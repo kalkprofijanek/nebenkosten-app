@@ -1,0 +1,9 @@
+private-data/
+*.bak
+*.backup
+*.tmp
+nk-daten.json
+.env
+.env.*
+node_modules/
+dist/
