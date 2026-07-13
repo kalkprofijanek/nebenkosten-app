@@ -31,7 +31,7 @@ Node-Test-Suite und vollständiger Repository-Guard.
 
 ## Testbefehle und Ergebnisse
 
-`npm.cmd run ci`: 10/10 Tests bestanden; Mindestabdeckung von 80 Prozent für Zeilen, Branches und Funktionen erzwungen. Repository-Guard und Legacy-SHA-256-Prüfung bestanden.
+`npm.cmd run ci`: 11/11 Tests bestanden; Mindestabdeckung von 80 Prozent für Zeilen, Branches und Funktionen erzwungen. Repository-Guard und Legacy-SHA-256-Prüfung bestanden.
 
 ## Datenschutzprüfung
 

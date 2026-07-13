@@ -31,6 +31,24 @@ const IGNORE_PROBES = Object.freeze([
   ['dist/', 'dist/probe.js'],
 ])
 
+const LOCAL_GIT_ENVIRONMENT_VARIABLES = Object.freeze([
+  'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+  'GIT_COMMON_DIR',
+  'GIT_CONFIG',
+  'GIT_CONFIG_COUNT',
+  'GIT_CONFIG_PARAMETERS',
+  'GIT_DIR',
+  'GIT_GRAFT_FILE',
+  'GIT_IMPLICIT_WORK_TREE',
+  'GIT_INDEX_FILE',
+  'GIT_NO_REPLACE_OBJECTS',
+  'GIT_OBJECT_DIRECTORY',
+  'GIT_PREFIX',
+  'GIT_REPLACE_REF_BASE',
+  'GIT_SHALLOW_FILE',
+  'GIT_WORK_TREE',
+])
+
 const REQUIRED_FILES = Object.freeze([
   '.gitignore',
   'AGENTS.md',
@@ -44,6 +62,19 @@ const REQUIRED_FILES = Object.freeze([
 
 export function calculateSha256(content) {
   return createHash('sha256').update(content).digest('hex')
+}
+
+export function createIsolatedGitEnvironment(environment = process.env) {
+  const isolatedEnvironment = { ...environment }
+  for (const variable of LOCAL_GIT_ENVIRONMENT_VARIABLES) {
+    delete isolatedEnvironment[variable]
+  }
+  for (const variable of Object.keys(isolatedEnvironment)) {
+    if (/^GIT_CONFIG_(?:KEY|VALUE)_\d+$/u.test(variable)) {
+      delete isolatedEnvironment[variable]
+    }
+  }
+  return isolatedEnvironment
 }
 
 export function findMissingIgnoreRules(gitignore) {
@@ -72,12 +103,12 @@ export function findForbiddenTrackedFiles(trackedFiles) {
   })
 }
 
-function findIneffectiveIgnoreRules(repositoryRoot) {
+function findIneffectiveIgnoreRules(repositoryRoot, gitEnvironment) {
   return IGNORE_PROBES.filter(([, probePath]) => {
     const result = spawnSync(
       'git',
       ['check-ignore', '--no-index', '--quiet', '--', probePath],
-      { cwd: repositoryRoot },
+      { cwd: repositoryRoot, env: gitEnvironment },
     )
     return result.status !== 0
   }).map(([rule]) => rule)
@@ -91,7 +122,10 @@ function parseExpectedLegacyHash(checksumFile) {
 
 export function verifyRepository(
   repositoryRoot,
-  { legacyReferenceHash = LEGACY_REFERENCE_SHA256 } = {},
+  {
+    gitEnvironment = process.env,
+    legacyReferenceHash = LEGACY_REFERENCE_SHA256,
+  } = {},
 ) {
   const failures = []
 
@@ -108,7 +142,10 @@ export function verifyRepository(
     if (missingRules.length > 0) {
       failures.push(`Missing .gitignore rules: ${missingRules.join(', ')}`)
     }
-    const ineffectiveRules = findIneffectiveIgnoreRules(repositoryRoot)
+    const ineffectiveRules = findIneffectiveIgnoreRules(
+      repositoryRoot,
+      gitEnvironment,
+    )
     if (ineffectiveRules.length > 0) {
       failures.push(`Ineffective .gitignore rules: ${ineffectiveRules.join(', ')}`)
     }
@@ -143,6 +180,7 @@ export function verifyRepository(
   const trackedFiles = execFileSync('git', ['ls-files', '-z'], {
     cwd: repositoryRoot,
     encoding: 'utf8',
+    env: gitEnvironment,
   })
     .split('\0')
     .filter(Boolean)
