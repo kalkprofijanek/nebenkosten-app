@@ -2297,7 +2297,7 @@ const HAUSWART_SPLIT_STANDARD=[
 ];
 function istHauswartVertragsBuchung(b){
   const t=((b&&b.auftraggeber||'')+' '+(b&&b.verwendungszweck||'')+' '+(b&&b.bemerkung||'')).toLowerCase();
-  return /muster hausservice/.test(t)&&/hausmeister|objektbetreuung|wohnanlage traben|laubloch/.test(t);
+  return /muster hausservice/.test(t)&&/hausmeister|objektbetreuung|musterwohnanlage|amselring/.test(t);
 }
 function ensureKostenartByKey(o,key,template){
   const abr=activeAbrechnung(o)||buchungAbrechnung(o,o&&o.jahr);

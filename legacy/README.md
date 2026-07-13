@@ -5,7 +5,7 @@
 Verbindliche SHA-256-Prüfsumme:
 
 ```text
-874af27415add7aeea330592c3e45da78a7c3e20e46dfcb8d71abbba6d21abab
+30995a442892f66bb8dcdaa55cb684c17ee59836e5b9a3ef16fc271f83f42095
 ```
 
 Ab dem bereinigten Root-Commit darf die Datei weder formatiert noch normalisiert oder fachlich verändert werden. Characterization Tests müssen zwischen dieser sanitisierten GitHub-Baseline und Vergleichstests gegen den ausschließlich lokalen produktiven Originalstand unterscheiden.

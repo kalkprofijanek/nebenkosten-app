@@ -59,7 +59,7 @@ Die Dokumentation wird durch Review und reproduzierbare statische Prüfungen ver
 
 - `git diff main -- legacy/index.html` liefert keinen Unterschied.
 - SHA-256 des committed, LF-normalisierten Git-Inhalts von `legacy/index.html` entspricht
-  `874af27415add7aeea330592c3e45da78a7c3e20e46dfcb8d71abbba6d21abab`.
+  `30995a442892f66bb8dcdaa55cb684c17ee59836e5b9a3ef16fc271f83f42095`.
 - Der Rundungsscan liefert 33 Quellzeilen; alle 33 sind in Abschnitt 6 dokumentiert.
 - Der Definitionsscan meldet nach Abgleich mit Funktionsinventar und Coverage-Anhang
   `unmapped = 0`.
