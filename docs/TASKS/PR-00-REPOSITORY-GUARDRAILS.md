@@ -14,7 +14,7 @@ Root-Dokumentation und Konfiguration, `.github/`, `docs/`, `scripts/`, `tests/re
 
 ## Akzeptanzkriterien
 
-- Die sanitisierte, noch nicht abschließend anonymitätsgeprüfte GitHub-Referenz entspricht SHA-256 `874af27415add7aeea330592c3e45da78a7c3e20e46dfcb8d71abbba6d21abab`.
+- Die sanitisierte, noch nicht abschließend anonymitätsgeprüfte GitHub-Referenz entspricht SHA-256 `30995a442892f66bb8dcdaa55cb684c17ee59836e5b9a3ef16fc271f83f42095`.
 - Verbotene private Dateien werden nicht getrackt.
 - Alle vorgeschriebenen `.gitignore`-Regeln sind vorhanden.
 - Agenten-, Datenschutz-, Review- und Sicherheitsregeln sind dokumentiert.

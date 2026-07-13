@@ -12,7 +12,7 @@ Die Sanitisation ersetzte nicht nur Kontaktdaten, sondern auch Seed-, Zuordnungs
 ## Entscheidung
 
 1. Die produktive Original-App bleibt ausschließlich lokal unter `C:\Projekte\nebenkosten-app-alt\index.html` und wird niemals nach GitHub übertragen.
-2. `legacy/index.html` in GitHub ist die sanitisierte, noch nicht abschließend anonymitätsgeprüfte Migrationsbaseline. Ihr verbindlicher SHA-256 lautet `874af27415add7aeea330592c3e45da78a7c3e20e46dfcb8d71abbba6d21abab`.
+2. `legacy/index.html` in GitHub ist die sanitisierte, noch nicht abschließend anonymitätsgeprüfte Migrationsbaseline. Ihr verbindlicher SHA-256 lautet `30995a442892f66bb8dcdaa55cb684c17ee59836e5b9a3ef16fc271f83f42095`.
 3. Ab dem bereinigten Root-Commit wird diese Datei unverändert geschützt.
 4. Characterization Tests verwenden ausschließlich nachweislich anonymisierte Fixtures. Fachliche Vergleiche mit dem produktiven Original erfolgen lokal und dürfen weder Eingaben noch Ergebnisse nach GitHub übertragen.
 5. Das Repository bleibt privat, bis GitHub Support die Dereferenzierung der belasteten PR-Refs, die Entfernung von Cached Views und die serverseitige Garbage Collection bestätigt hat und eine dokumentierte erneute Inhalts-/Denylist-Prüfung der gesamten erreichbaren Historie bestanden ist.
