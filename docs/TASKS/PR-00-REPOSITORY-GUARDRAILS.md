@@ -14,7 +14,7 @@ Root-Dokumentation und Konfiguration, `.github/`, `docs/`, `scripts/`, `tests/re
 
 ## Akzeptanzkriterien
 
-- Legacy-SHA-256 entspricht `726272e4438e3199ae154a7073741586e0d171647f39e271e6eb50e8f26cce0f`.
+- Die sanitisierte, noch nicht abschließend anonymitätsgeprüfte GitHub-Referenz entspricht SHA-256 `874af27415add7aeea330592c3e45da78a7c3e20e46dfcb8d71abbba6d21abab`.
 - Verbotene private Dateien werden nicht getrackt.
 - Alle vorgeschriebenen `.gitignore`-Regeln sind vorhanden.
 - Agenten-, Datenschutz-, Review- und Sicherheitsregeln sind dokumentiert.
@@ -25,7 +25,7 @@ Root-Dokumentation und Konfiguration, `.github/`, `docs/`, `scripts/`, `tests/re
 
 - Unit-Tests für Ignore-Regeln, verbotene Pfade und Hashberechnung
 - vollständiger Repository-Guard gegen den aktuellen Git-Stand
-- SHA-256-Vergleich gegen den bisherigen produktiven Stand
+- SHA-256-Vergleich gegen den bereinigten GitHub-Root; der produktive Originalstand wird ausschließlich lokal geprüft
 - Prüfung des Git-Diffs für `legacy/index.html`
 
 ## Nicht umgesetzt

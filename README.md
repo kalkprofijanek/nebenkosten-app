@@ -4,7 +4,7 @@ Dieses Repository enthält die kontrollierte Migration einer bestehenden, lokale
 
 ## Aktueller Stand
 
-Die Migration befindet sich in PR 00: Repository-Grundschutz. Der unveränderte Referenzstand liegt unter `legacy/index.html`. Es wurde noch keine Fachlogik migriert.
+Die Migration befindet sich in PR 00: Repository-Grundschutz. Unter `legacy/index.html` liegt eine sanitisierte, noch nicht abschließend anonymitätsgeprüfte Migrationsreferenz. Die unveränderte lokale Sicherung des produktiven Originalstands verbleibt ausschließlich lokal und wird nicht in GitHub gespeichert; sie ist nicht bytegleich zur GitHub-Baseline. Es wurde noch keine Fachlogik migriert.
 
 ## Sicherheitsregel
 

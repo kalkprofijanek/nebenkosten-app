@@ -1,6 +1,6 @@
 ## Ziel
 
-PR 00 vervollständigt die unveränderte Legacy-Sicherung und etabliert den Repository-Grundschutz.
+PR 00 schützt die sanitisierte, noch nicht abschließend anonymitätsgeprüfte GitHub-Legacy-Referenz und etabliert den Repository-Grundschutz nach dem History-Rewrite.
 
 ## Umgesetzter Umfang
 
@@ -23,7 +23,7 @@ Keine.
 
 ## Migrationsauswirkungen
 
-Keine; `legacy/index.html` bleibt bytegleich.
+Keine weiteren; `legacy/index.html` bleibt bytegleich zum bereinigten Root-Commit. Die vorherige Sanitisation gegenüber der ausschließlich lokalen produktiven Original-App ist in ADR-0001 dokumentiert; sie gilt nicht als Nachweis vollständiger Anonymisierung.
 
 ## Tests
 
@@ -35,11 +35,11 @@ Node-Test-Suite und vollständiger Repository-Guard.
 
 ## Datenschutzprüfung
 
-Verbotene private Pfade und Umgebungsdateien werden automatisiert blockiert. Der Legacy-Referenzstand bleibt unverändert.
+Verbotene private Pfade und Umgebungsdateien werden automatisiert blockiert. Der sanitisierte GitHub-Referenzstand bleibt ab dem bereinigten Root-Commit unverändert.
 
 ## Risiken
 
-Der öffentliche Legacy-Snapshot enthält vorbestehende geschäftliche Referenzangaben; eine Bereinigung ist nicht Teil dieses PRs.
+Alte Pull-Request-Refs und Commit-Objekte können weiterhin die verworfene Historie erreichen. Das Repository bleibt privat, bis GitHub Support die serverseitige Bereinigung bestätigt und eine erneute dokumentierte Inhalts-/Denylist-Prüfung der gesamten erreichbaren Historie bestanden ist. Die bereinigten Seed- und Klassifizierungsbereiche sind nicht vollständig verhaltensgleich mit der lokalen produktiven Original-App.
 
 ## Screenshots oder Beispielausgabe
 
@@ -47,7 +47,7 @@ Nicht zutreffend.
 
 ## Review-Schwerpunkte
 
-Unverändertheit der Legacy-Datei, Wirksamkeit der Ignore-Regeln und CI-Guardrails.
+Unverändertheit der sanitisierten GitHub-Baseline, Wirksamkeit der Ignore-Regeln, CI-Guardrails und korrekte Trennung vom lokalen produktiven Originalstand.
 
 ## Rollback
 
