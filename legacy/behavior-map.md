@@ -196,7 +196,7 @@ verschoben und vom Objekt gelöscht.
 | `vorname`, `nachname` | string | optional |
 | `anrede` | einer von `ANREDE` (`''`, `Herr`, `Frau`, `Familie`, `Firma`) | optional |
 | `nutzeinheit`, `lage` | string | Wohnungs-/Einheitenbezeichnung |
-| `mandatsref` | string, Konvention `<Präfix>_<Nr\|leerstand>`, z. B. `El1EGli_001` | zentraler Schlüssel für Block-/Haus-Zuordnung (`blockVonRef`, `hausKeyVonRef`) |
+| `mandatsref` | string, Konvention `<Präfix>_<Nr\|leerstand>`, z. B. `<BLOCK_PREFIX>_001` | zentraler Schlüssel für Block-/Haus-Zuordnung (`blockVonRef`, `hausKeyVonRef`) |
 | `firma_privat` | string, `'Privat'` default | |
 | `email` | string | optional, für Freigabeprüfung relevant |
 | `eingezogen`, `ausgezogen` | ISO-Datum | tagegenauer Nutzungszeitraum; leer/„weiter wohnhaft" = kein Auszug |
