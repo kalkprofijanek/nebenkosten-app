@@ -1,4 +1,4 @@
-# Masterplan: Umzug der Nebenkosten-App und parallele Entwicklung mit Fable 5 und Codex GPT-5.6
+# Masterplan: Umzug der Nebenkosten-App und parallele Entwicklung mit Claude und Codex GPT-5.6
 
 Stand: 11. Juli 2026  
 Zweck: Verbindliche Arbeits-, Migrations- und Review-Anweisung für den kontrollierten Umbau der bestehenden Single-File-Anwendung `index.html` in eine allgemein nutzbare, wartbare und über GitHub entwickelte Web-Anwendung.
@@ -18,7 +18,7 @@ Der Umbau darf keine fachlich funktionierende Bestandsfunktion stillschweigend v
 - lokal und datenschutzgerecht funktionieren,
 - später um Benutzerkonten, Mandantentrennung und serverseitige Speicherung ergänzt werden können,
 - automatisiert getestet, gebaut und über GitHub weiterentwickelt werden,
-- von Fable 5 und Codex GPT-5.6 parallel bearbeitet und gegenseitig geprüft werden können.
+- von Claude und Codex GPT-5.6 parallel bearbeitet und gegenseitig geprüft werden können.
 
 GitHub ist die gemeinsame Quelle für Code, Dokumentation, Issues, Pull Requests, Tests, Releases und Deployment. Echte Mieter-, Eigentümer-, Bank-, Verbrauchs-, Abrechnungs- oder Belegdaten werden nicht in GitHub gespeichert.
 
@@ -79,7 +79,7 @@ bleiben lokal unter `private-data/documents/`. Für automatisierte Tests dürfen
 
 ### 2.3 Keine parallele Bearbeitung desselben Arbeitsverzeichnisses
 
-Fable und Codex arbeiten niemals gleichzeitig im selben Ordner. Jeder Agent erhält:
+Claude und Codex arbeiten niemals gleichzeitig im selben Ordner. Jeder Agent erhält:
 
 - einen eigenen Git-Branch,
 - einen eigenen Git-Worktree,
@@ -798,9 +798,9 @@ Bevor du eine Schnittstelle änderst:
 
 ---
 
-## 13. Rollenverteilung zwischen Fable und Codex
+## 13. Rollenverteilung zwischen Claude und Codex
 
-### 13.1 Fable 5
+### 13.1 Claude
 
 Primärverantwortung:
 
@@ -841,7 +841,7 @@ Primärverantwortung:
 - CI/CD,
 - Refactoring,
 - technische Fehlerbehebung,
-- Review der Fable-Implementierung.
+- Review der Claude-Implementierung.
 
 Bevorzugte Pfade:
 
@@ -893,7 +893,7 @@ integration/<milestone>
 Beispiel:
 
 ```text
-agent/fable-pr01-inventory
+agent/claude-pr01-inventory
 agent/codex-pr02-scaffold
 agent/fable-pr03-schema
 agent/codex-pr04-storage
@@ -905,13 +905,13 @@ PowerShell:
 
 ```powershell
 $Repo = "C:\Projekte\nebenkosten-app"
-$Fable = "C:\Projekte\nebenkosten-app-fable"
+$Claude = "C:\Projekte\nebenkosten-app-claude"
 $Codex = "C:\Projekte\nebenkosten-app-codex"
 
 git -C $Repo checkout main
 git -C $Repo pull --ff-only
 
-git -C $Repo worktree add $Fable -b agent/fable-current main
+git -C $Repo worktree add $Claude -b agent/claude-current main
 git -C $Repo worktree add $Codex -b agent/codex-current main
 ```
 
@@ -921,8 +921,8 @@ Bash:
 git checkout main
 git pull --ff-only
 
-git worktree add ../nebenkosten-app-fable \
-  -b agent/fable-current main
+git worktree add ../nebenkosten-app-claude \
+  -b agent/claude-current main
 
 git worktree add ../nebenkosten-app-codex \
   -b agent/codex-current main
@@ -939,13 +939,13 @@ Vor einer neuen Arbeitsrunde werden alte Branches nicht ungeprüft wiederverwend
 2. Akzeptanzkriterien festlegen
 3. Datei- und Pfadverantwortung festlegen
 4. getrennte Branches und Worktrees anlegen
-5. Fable und Codex parallel starten
+5. Claude und Codex parallel starten
 6. beide Agenten führen Tests aus
 7. beide Agenten committen
 8. beide Agenten pushen
 9. beide Agenten erstellen Pull Requests
-10. Codex reviewt den Fable-PR
-11. Fable reviewt den Codex-PR
+10. Codex reviewt den Claude-PR
+11. Claude reviewt den Codex-PR
 12. Beanstandungen werden behoben
 13. CI läuft erneut
 14. höchstens zwei automatische Review-Schleifen
@@ -963,7 +963,7 @@ Vor einer neuen Arbeitsrunde werden alte Branches nicht ungeprüft wiederverwend
 Im jeweiligen Worktree:
 
 ```bash
-git push -u origin agent/fable-current
+git push -u origin agent/claude-current
 ```
 
 ```bash
@@ -978,13 +978,13 @@ git push
 
 ### 16.2 Pull Request mit GitHub CLI
 
-Fable-PR:
+Claude-PR:
 
 ```bash
 gh pr create \
   --base main \
-  --head agent/fable-current \
-  --title "Fable: <Aufgabe>" \
+  --head agent/claude-current \
+  --title "Claude: <Aufgabe>" \
   --body-file docs/TASKS/<task>-pr-description.md
 ```
 
@@ -1034,7 +1034,7 @@ Jeder Pull Request enthält:
 
 ## 17. Gegenseitiges Review
 
-### 17.1 Codex prüft Fable
+### 17.1 Codex prüft Claude
 
 Prüfschwerpunkte:
 
@@ -1051,7 +1051,7 @@ Prüfschwerpunkte:
 Review-Auftrag:
 
 ```text
-Prüfe den Pull Request von Fable gegen main.
+Prüfe den Pull Request von Claude gegen main.
 
 Kontrolliere insbesondere:
 
@@ -1070,7 +1070,7 @@ BLOCKER, MAJOR, MINOR und NOTE.
 Jeder Fund muss Datei, Zeile, Auswirkung und konkrete Korrektur nennen.
 ```
 
-### 17.2 Fable prüft Codex
+### 17.2 Claude prüft Codex
 
 Prüfschwerpunkte:
 
@@ -1246,7 +1246,7 @@ Preview-Deployments für Pull Requests sind zulässig, sofern nur anonymisierte 
 ### PR 00 – Sicherung und Repository-Grundschutz
 
 Verantwortlich: Codex  
-Review: Fable
+Review: Claude
 
 Aufgaben:
 
@@ -1267,7 +1267,7 @@ Akzeptanz:
 
 ### PR 01 – Bestandsaufnahme und Refactor-Map
 
-Verantwortlich: Fable  
+Verantwortlich: Claude  
 Review: Codex
 
 Aufgaben:
@@ -1289,7 +1289,7 @@ Akzeptanz:
 ### PR 02 – Workspace und TypeScript-Scaffold
 
 Verantwortlich: Codex  
-Review: Fable
+Review: Claude
 
 Aufgaben:
 
@@ -1313,7 +1313,7 @@ Akzeptanz:
 
 ### PR 03 – Schema und Legacy-v3-Mapping
 
-Verantwortlich: Fable  
+Verantwortlich: Claude  
 Review: Codex
 
 Aufgaben:
@@ -1333,7 +1333,7 @@ Akzeptanz:
 ### PR 04 – Legacy-v3-Importer
 
 Verantwortlich: Codex  
-Review: Fable
+Review: Claude
 
 Aufgaben:
 
@@ -1352,7 +1352,7 @@ Akzeptanz:
 
 ### PR 05 – Characterization Tests
 
-Verantwortlich: Fable  
+Verantwortlich: Claude  
 Review: Codex
 
 Aufgaben:
@@ -1384,7 +1384,7 @@ Mindestfälle:
 ### PR 06 – Core-Berechnungsengine
 
 Verantwortlich: Codex  
-Review: Fable
+Review: Claude
 
 Aufgaben:
 
@@ -1403,7 +1403,7 @@ Akzeptanz:
 
 ### PR 07 – Heizkosten- und CO₂-Modul
 
-Verantwortlich: Fable für Vertrag und Testfälle  
+Verantwortlich: Claude für Vertrag und Testfälle  
 Codex für Implementierung  
 Gegenseitiges Review
 
@@ -1428,7 +1428,7 @@ Akzeptanz:
 ### PR 08 – Persistenz und Backup
 
 Verantwortlich: Codex  
-Review: Fable
+Review: Claude
 
 Aufgaben:
 
@@ -1450,7 +1450,7 @@ Akzeptanz:
 ### PR 09 – UI-Grundstruktur
 
 Verantwortlich: Codex  
-Review: Fable
+Review: Claude
 
 Aufgaben:
 
@@ -1471,7 +1471,7 @@ Akzeptanz:
 
 ### PR 10 – Validatoren und Freigabe
 
-Verantwortlich: Fable  
+Verantwortlich: Claude  
 Review: Codex
 
 Aufgaben:
@@ -1486,7 +1486,7 @@ Aufgaben:
 ### PR 11 – PDF und Export
 
 Verantwortlich: Codex  
-Review: Fable
+Review: Claude
 
 Aufgaben:
 
@@ -1515,7 +1515,7 @@ Aufgaben:
 
 ---
 
-## 21. Sofort verwendbarer Masterauftrag für Fable
+## 21. Sofort verwendbarer Masterauftrag für Claude
 
 ```text
 Du arbeitest als leitender Softwarearchitekt und fachlicher Integrator für den
@@ -1600,7 +1600,7 @@ Verbindliche Ziele:
 10. Führe Format, Lint, Typecheck, Tests und Build aus.
 11. Erstelle kleine Commits.
 12. Pushe den Branch und erstelle einen Pull Request.
-13. Reviewe anschließend den zugeordneten Fable-Pull-Request.
+13. Reviewe anschließend den zugeordneten Claude-Pull-Request.
 14. Melde BLOCKER und MAJOR präzise mit Datei, Zeile, Auswirkung und Lösung.
 15. Führe keinen Merge in main aus.
 
@@ -1623,22 +1623,22 @@ Die konkreten Modellbezeichnungen werden als Variablen gesetzt, weil sie von der
 
 ```powershell
 $Repo = "C:\Projekte\nebenkosten-app"
-$FableDir = "C:\Projekte\nebenkosten-app-fable"
+$ClaudeDir = "C:\Projekte\nebenkosten-app-claude"
 $CodexDir = "C:\Projekte\nebenkosten-app-codex"
 
-$FableBranch = "agent/fable-pr01-inventory"
+$ClaudeBranch = "agent/claude-pr01-inventory"
 $CodexBranch = "agent/codex-pr02-scaffold"
 
-$FableModel = "<INSTALLIERTE_FABLE_MODELL-ID>"
+$ClaudeModel = "<INSTALLIERTE_CLAUDE_MODELL-ID>"
 $CodexModel = "<INSTALLIERTE_CODEX_MODELL-ID>"
 
 git -C $Repo checkout main
 git -C $Repo pull --ff-only
 
-git -C $Repo worktree add $FableDir -b $FableBranch main
+git -C $Repo worktree add $ClaudeDir -b $ClaudeBranch main
 git -C $Repo worktree add $CodexDir -b $CodexBranch main
 
-$FableJob = Start-Job -ScriptBlock {
+$ClaudeJob = Start-Job -ScriptBlock {
     param($Directory, $Model)
 
     Set-Location $Directory
@@ -1650,7 +1650,7 @@ Bearbeite nur diesen Task.
 Führe Tests aus, committe, pushe und erstelle einen Pull Request.
 Führe keinen Merge aus.
 "@
-} -ArgumentList $FableDir, $FableModel
+} -ArgumentList $ClaudeDir, $ClaudeModel
 
 $CodexJob = Start-Job -ScriptBlock {
     param($Directory, $Model)
@@ -1669,9 +1669,9 @@ Führe keinen Merge aus.
 "@
 } -ArgumentList $CodexDir, $CodexModel
 
-Wait-Job $FableJob, $CodexJob
+Wait-Job $ClaudeJob, $CodexJob
 
-Receive-Job $FableJob
+Receive-Job $ClaudeJob
 Receive-Job $CodexJob
 ```
 
@@ -1732,7 +1732,7 @@ Der Umzug ist erst abgeschlossen, wenn alle folgenden Punkte erfüllt sind:
 
 ### Abnahme
 
-- Fable-Review ohne offene BLOCKER.
+- Claude-Review ohne offene BLOCKER.
 - Codex-Review ohne offene BLOCKER.
 - CI vollständig grün.
 - Vergleichsabrechnung dokumentiert.
@@ -1769,7 +1769,7 @@ Nicht zulässig:
 Die erste Arbeitsrunde besteht ausschließlich aus:
 
 ```text
-Fable:
+Claude:
 PR 01 – Bestandsaufnahme und Refactor-Map
 
 Codex:
@@ -1778,7 +1778,7 @@ oder anschließend
 PR 02 – Workspace und TypeScript-Scaffold
 ```
 
-Fable beginnt nicht mit der vollständigen Neustrukturierung der Rechenlogik, bevor die Bestandsaufnahme abgeschlossen ist.
+Claude beginnt nicht mit der vollständigen Neustrukturierung der Rechenlogik, bevor die Bestandsaufnahme abgeschlossen ist.
 
 Codex beginnt nicht mit dem Nachbauen der Fachlogik, bevor Datenmodell, Migrationsmapping und Characterization Tests ausreichend definiert sind.
 
@@ -1801,7 +1801,7 @@ Prioritäten:
 8. Entwicklungsgeschwindigkeit
 ```
 
-Bei widersprüchlichen Vorschlägen von Fable und Codex wird nicht automatisch eine Variante gewählt. Beide Varianten werden mit Auswirkungen dokumentiert. Die Entscheidung erfolgt im Pull Request oder in einem Architecture Decision Record unter:
+Bei widersprüchlichen Vorschlägen von Claude und Codex wird nicht automatisch eine Variante gewählt. Beide Varianten werden mit Auswirkungen dokumentiert. Die Entscheidung erfolgt im Pull Request oder in einem Architecture Decision Record unter:
 
 ```text
 docs/DECISIONS/ADR-XXXX-<thema>.md
