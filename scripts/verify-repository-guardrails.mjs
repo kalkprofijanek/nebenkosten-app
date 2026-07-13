@@ -17,7 +17,7 @@ export const REQUIRED_IGNORE_RULES = Object.freeze([
 ])
 
 export const LEGACY_REFERENCE_SHA256 =
-  '726272e4438e3199ae154a7073741586e0d171647f39e271e6eb50e8f26cce0f'
+  '874af27415add7aeea330592c3e45da78a7c3e20e46dfcb8d71abbba6d21abab'
 
 const IGNORE_PROBES = Object.freeze([
   ['private-data/', 'private-data/probe.json'],
