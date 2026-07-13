@@ -6,8 +6,17 @@ Bezug: `MASTERPLAN_MIGRATION_FABLE_CODEX.md`, Abschnitte 3, 4.2, 5, 6, 7, 9, 10,
 
 Diese Datei ist ein reines Lese-Ergebnis. Es wurde **keine Zeile** in `legacy/index.html`
 verändert. Die Datei hat 6275 Zeilen (HTML/CSS/JS in einer Datei) und wurde vollständig
-gelesen. Alle Aussagen unten sind an konkreten Zeilenverweisen (Stand des Commits
-`2c017b7`) festgemacht.
+gesichtet. Migrationskritische Pfade wurden im Detail nachvollzogen; bei nur gruppiert
+erfassten oder noch unsicheren Pfaden ist die Prüftiefe ausdrücklich ausgewiesen. Alle
+Aussagen unten beziehen sich auf die sanitisierte, noch nicht abschließend
+anonymitätsgeprüfte GitHub-Baseline im Commit `b9ce5e2`. Ihr SHA-256 lautet
+`874af27415add7aeea330592c3e45da78a7c3e20e46dfcb8d71abbba6d21abab`.
+
+Diese GitHub-Baseline ist nicht byte- oder vollständig verhaltensgleich mit der
+ausschließlich lokal aufbewahrten produktiven Original-App. Insbesondere bereinigte
+Seed-, Zuordnungs- und Klassifizierungswerte können abweichen; Vergleiche mit dem
+Produktivoriginal erfolgen ausschließlich lokal und ohne Übertragung von Ein- oder
+Ausgabedaten nach GitHub.
 
 ---
 
@@ -73,15 +82,15 @@ Fokus-Trap und Escape-Handling.
 | `Store.data` | 958 | Wurzel des persistierten Datenbaums: `{version, gespeichert, firmen: []}`. |
 | `Engine` | 2388 | Zustandslose Berechnungsfunktionen (CO₂, Brennstoff/FIFO, Heizkosten, Gesamtabrechnung). Nimmt ein Objekt `o` (aktuelle Abrechnung) entgegen und liefert ein Ergebnisobjekt zurück — **mutiert das Eingabeobjekt nicht**, ist damit der Teil, der einer „reinen Funktion" im Sinne des Masterplans (Abschnitt 6.1) am nächsten kommt (siehe Abschnitt 8 unten für Einschränkungen). |
 | `App` | 2685–6271 | UI-Controller + Renderer: hält Navigationszustand (`view`, `otab`, `firma`, `objekt`, `abrechnung`, `erg`, diverse `_filter`/`_sort`-UI-States) und ca. 150 Methoden für Rendering, CRUD, PDF-Erzeugung, Buchungsabgleich. |
-| `EMH_BLOECKE` | 499 | Default-Konfiguration von 4 Heizkreis-Blöcken (B1–B4) mit Namen, Kürzel, Mandatsref-Präfixen, Energieträger. Wird kopiert nach `o.bloecke`, wenn ein Objekt noch keine eigene Block-Konfiguration hat. |
+| Block-Seed-Konstante (Symbol bewusst nicht zitiert) | 499 | Sanitisierte Default-Struktur von 4 Heizkreis-Blöcken (B1–B4) mit Namen, Kürzel, Mandatsref-Präfixen und Energieträger. Wird kopiert nach `o.bloecke`, wenn ein Objekt noch keine eigene Block-Konfiguration hat; kann vom lokalen Produktivoriginal abweichen. |
 | `STANDARD_KOSTENARTEN` | 1319 | Katalog der BetrKV-Pflicht-/Regelpositionen, die je Abrechnungsjahr automatisch angelegt werden (`ensureStandardKostenarten`, Z. 1337). |
 | `BETRKV_KAT` | 585 | Dropdown-Katalog der §2-BetrKV-Kategorien mit vordefiniertem Typ/Umlageschlüssel/Kostentext (UI-Autofill). |
 | `UMLAGE_OPT` | 257 | Erlaubte Umlageschlüssel: `m2_nf`, `m2_nf_hzg`, `einheiten`, `we_anzahl`, `direkt`. |
 | `CO2_FAKTOR_DEF` / `CO2_FAKTOR_HK` | 266/269 | CO₂-Emissionsfaktoren (kg CO₂/kWh) je Energieträger. |
 | `HEIZWERT_DEF` | 267 | Heizwerte (kWh/Einheit) je Energieträger. |
 | `BEHG_PREIS` / `BEHG_PREIS_DEFAULT` | 271/272 | CO₂-Preis (€/t) je Jahr nach BEHG-Stufenplan, mit Fallback. |
-| `STROMZAEHLER_SEED` | 1983 | **Objektspezifischer** Seed realer Stromzähler-Stammdaten (siehe Risiko-Abschnitt 8.1 — enthält reale Adress-/Zähler-/Vertragsdaten fest im Code). |
-| `HAUSWART_VERTRAG_INFO` / `HAUSWART_SPLIT_STANDARD` | 2281/2291 | Feste Vertragskonditionen eines konkreten Hausmeisterservice-Vertrags (ebenfalls objektspezifisch, siehe Risiko 8.1). |
+| `STROMZAEHLER_SEED` | 1983 | Sanitisierte, hart codierte Beispielstruktur für Stromzähler-Stammdaten. Noch nicht abschließend anonymitätsgeprüft; fachliche Zuordnung kann vom lokalen Produktivoriginal abweichen (Risiko 8.1). |
+| `HAUSWART_VERTRAG_INFO` / `HAUSWART_SPLIT_STANDARD` | 2281/2291 | Sanitisierte, hart codierte Vertrags-/Aufteilungsstruktur. Noch nicht abschließend anonymitätsgeprüft und nicht als produktive Stammdaten übernehmen (Risiko 8.1). |
 | `BUCH_KATEGORIEN` | 256 | Kategorien für importierte Kontobuchungen (`OFFEN`, `NK_UMLEGBAR`, `NK_NICHT_UMLEGBAR`, `MIETEINGANG`, `KAUTION`, `INSTANDHALTUNG`, `VERWALTUNG`, `SONSTIGE`). |
 | `_feldHandlers` | 246 | `Map<elementId, handlerFn>` für die generische Formular-Feld-Bindung. |
 | `_syncOrphansCache` | 2143 | `WeakMap<objekt, orphanListe>` — nicht persistiert, hält das Ergebnis der letzten `syncBuchungenForObjekt`-Ausführung für die Freigabeprüfung vor. |
@@ -141,7 +150,7 @@ Stammdaten-Ebene (bleibt bei Migration auf dem Objekt, jahresunabhängig):
 | `eigene_nr`, `objekt_nr` | string | interne/externe Objektnummer |
 | `strasse`, `plz_ort` | string | Pflicht für Freigabe (Z. 1719) |
 | `iban`, `kontoinhaber` | string | objekteigene Bankverbindung, Fallback auf Firma |
-| `bloecke` | `Block[]` | Heizkreis-Blöcke (siehe 3.9), Default = Kopie von `EMH_BLOECKE` |
+| `bloecke` | `Block[]` | Heizkreis-Blöcke (siehe 3.9), Default = Kopie der Block-Seed-Konstante in Z. 499 |
 | `stromzaehler` | `Stromzaehler[]` | objektweit, jahresunabhängig (siehe 3.10) |
 | `buchungen` | `Buchung[]` | importierte Kontobewegungen, jahresunabhängig zugeordnet über `abr_jahr` je Split (siehe 3.11) |
 | `abrechnungen` | `Abrechnung[]` | ein Eintrag je Abrechnungsjahr (siehe 3.3) |
@@ -245,7 +254,7 @@ verschoben und vom Objekt gelöscht.
 | `_stromzaehler_id` | string | Zuordnung zu einem Stromzähler |
 | `_geschaetzt`, `_schaetzung_grund` | boolean/string | manuell übernommener Schätzwert ohne Beleg |
 
-### 3.7 Block (Heizkreis-Definition, jahresunabhängig) — `EMH_BLOECKE` Z. 499, `App.addBlk()` Z. 4273
+### 3.7 Block (Heizkreis-Definition, jahresunabhängig) — Block-Seed Z. 499, `App.addBlk()` Z. 4273
 
 | Feld | Typ | Bemerkung |
 |---|---|---|
@@ -253,7 +262,7 @@ verschoben und vom Objekt gelöscht.
 | `name`, `kuerzel` | string | Anzeigename |
 | `energietraeger` | string, freier Text (z. B. `Heizöl`, `Pellets`, `WP Mono`, `Hybrid WP+Gas`) | Default für neue Heizkreise |
 | `prefix` | `string[]` | Mandatsref-Präfixe zur automatischen Nutzer-Zuordnung (`blockVonRef`, Z. 512) |
-| `hk` | string | in `EMH_BLOECKE` vorhanden (`'HK1'` etc.), im Code sonst nicht ausgewertet (Altfeld, siehe Risiko 8.4) |
+| `hk` | string | im Block-Seed vorhanden, im Code sonst nicht ausgewertet (Altfeld, siehe Risiko 8.4) |
 
 ### 3.8 Heizkreis (jahresbezogen, `Abrechnung.heizkreise[]`) — `App.ensureHeizkreise()` Z. 4244
 
@@ -599,6 +608,36 @@ der gleichen Fachlogik parallel zu `pdfEinzelDoc` (siehe Risiko 8.5).
 - `sollteVorUnloadWarnen()` (Z. 956) + `beforeunload`/`pagehide`-Handler (Z. 2756–2759):
   Verlustschutz beim Schließen des Tabs (Flush + Browser-Warnung bei ungesicherten Änderungen).
 
+### 4.13 Ergänzende migrationskritische Funktionsgruppen
+
+- **Berechnungs- und Freigabe-Orchestrierung**: `App.ensureErg`, `App.berechne`,
+  `App.oTabFreigabe` und `buildFreigabeChecks` verbinden Cache-Invalidierung,
+  `Engine.rechne`, Blocker und Ausgabefreigabe. Ziel: `packages/core/allocation`,
+  `packages/validators` und eine dünne UI-Schicht in `apps/web`.
+- **Buchungs-Pipeline**: CSV-Parsing, Klassifizierung, Jahres-/Kostenartauflösung, Splits,
+  Heizkreis-/Lieferungsübernahme und Linkstatus bilden einen zusammenhängenden Workflow
+  (`buchParseCSV` bis `oTabBuchungen`). Ziel: `packages/import-export`,
+  `packages/core/allocation`, `packages/core/heating`, `packages/validators`.
+- **Kosten, Grundsteuer und Belege**: Statuswechsel von Standardkostenarten,
+  Grundsteuer-Scope, externe Zahlungsbegründung und Dateianhänge verändern die fachliche
+  Verwendbarkeit von Kosten. Ziel: `packages/core/allocation`, `packages/validators`,
+  `packages/import-export`.
+- **Heizung, Energiequellen, Lieferungen und Zähler**: Quellenauflösung, Blockpflege,
+  Rechnungs-/Lieferungszuordnung und Schätzungsübernahme sind gemeinsam zu migrieren.
+  Ziel: `packages/core/heating` mit UI in `apps/web`.
+- **Persistenz und Wiederherstellung**: IndexedDB, File System Access, Autosave,
+  Konfliktauflösung, Snapshot-Rotation und Restore sind ein eigener Adapterbereich.
+  Ziel: `packages/persistence`; keine Fachlogik in Browser-Adaptern.
+- **Anhänge, CSV und PDF**: partieller Spreadsheet-Formelpräfix-Guard, Belegdateien,
+  Tabellenexport und die
+  verschiedenen Nachweis-/PDF-Varianten sind getrennte Ausgabeadapter. Ziel:
+  `packages/import-export` und `packages/pdf`.
+
+Der Coverage-Anhang in Abschnitt 10 ergänzt alle migrationsrelevanten Definitionen, die in
+den Detailabschnitten nicht bereits namentlich vorkommen. Reine DOM-, Label- und
+Format-Helfer sind dort nur dann enthalten, wenn sie Daten, Sicherheit oder Fachverhalten
+beeinflussen.
+
 ---
 
 ## 5. Rechenwege im Detail: `Engine.rechne(o)` (Zeile 2466–2681)
@@ -677,8 +716,9 @@ abweichenden Zwischenwerten, siehe Risiko 8.3).
 Geldbeträge werden **durchgängig als JavaScript-Fließkommazahlen in Euro** gehalten (nicht in
 Cent) — das ist ein fundamentaler Unterschied zum Zielmodell (Masterplan 5.3/2.5) und muss bei
 der Migration explizit adressiert werden (siehe Risiko 8.6). Innerhalb von `Engine.rechne()`
-selbst wird **nirgends gerundet** — alle Zwischenwerte bleiben volle Fließkomma-Präzision;
-Rundung passiert nur an folgenden Stellen:
+selbst wird **nirgends gerundet** — alle Zwischenwerte bleiben volle Fließkomma-Präzision.
+Ein Quelltext-Scan auf `Math.round`, `Math.ceil`, `Math.floor` und `.toFixed(` ergibt exakt
+33 Quellzeilen; alle 33 sind in der folgenden Tabelle erfasst:
 
 | Zeile | Kontext | Verfahren |
 |---|---|---|
@@ -693,18 +733,27 @@ Rundung passiert nur an folgenden Stellen:
 | 2065 | `removeBuchungRefs()` | `Math.round(...×100)/100` — Kostenart-Betrag neu aus Belegsumme abgeleitet |
 | 2078 | `mengeAusBuchungstext()` | `Math.round(...×1000)/1000` — Tonnen→kg-Umrechnung (Mengeneinheit, nicht Geld) |
 | 2242 | `syncBuchungenForObjekt()` | `Math.round(...×100)/100` — Kostenart-Betrag aus Belegsumme |
+| 2673 | `Engine.rechne()` (Warntext) | `.toFixed(0)` — unzugeordnete Heizungs-Betriebskosten nur für die Anzeige auf ganze Euro |
 | 3088/3099 | `App.neuesAbrechnungsjahr()` (Bestandsrollover) | `Math.round(...×100)/100` — Anfangsbestandswert des Folgejahres |
 | 3467/3469/3476 | `App.nutzerSchaetzen()` | `Math.round` auf ganze HKV-Einheiten (drei Schätzmethoden) |
 | 3587 | `App.verteileUnscopedHeizkosten()` | `Math.round(...×100)/100` je Block-Anteil, letzter Block erhält Rest via `.toFixed(2)` (Restcent-Zuweisung an letzte Position) |
+| 3666 | `App.nutzerDetail()` (Fristanzeige) | `Math.ceil` auf verbleibende ganze Tage |
 | 3698 | `App.oTabKosten` (Anzeige) | `Math.round(...×1000)/10` — Umlage-% auf eine Nachkommastelle |
+| 3824 | `exportBelegliste()` | `.toFixed(2)` — Geldbeträge für den CSV-Export mit zwei Dezimalstellen |
 | 4031 | `verschiebeBelegAlsLieferung()` | `Math.round(...×100)/100` — Kostenart-Betrag nach Entfernen eines Belegs |
+| 4059 | `stromzaehlerZuordnung()` (Übernahme-Link) | `.toFixed(2)` — Vergleichsbetrag als Formularwert mit zwei Dezimalstellen |
 | 4136 | `App.setStromzaehlerFeld`-Umfeld (Rechnung-Zähler-Zuordnung) | `Math.round(...×100)/100` |
+| 4188 | `heizkreisZaehler()` (Übernahme-Link) | `.toFixed(2)` — Vergleichsbetrag als Formularwert mit zwei Dezimalstellen |
 | 4302 | `App._autoAnfWert()` | `.toFixed(2)` — Anfangsbestandswert = Menge×Preis |
+| 4528 | `App.oTabErgebnis()` | `Math.ceil(.../5)×5` — empfohlene monatliche Vorauszahlung auf den nächsten 5-Euro-Schritt aufrunden |
 | 4861/4862/4865 | `App._buchSplitAdd`/Hauswart-Split | `Math.round(total×proz)/100` je Split, `Math.round((rest−raw)×100)/100` Restverfolgung, letzter Split erhält den tatsächlichen Rest |
 | 4924 | Buchungs-Restbetrag-Berechnung | `Math.round(...×100)/100 × Math.sign(...)` |
 | 4939 | `sp.betrag` bei Split-Erzeugung | `Math.round(...×p×sign)/100` |
 | 5813 | `pdfTechemKostenaufstellung()` (Anzeige) | `Math.round` auf ganze Prozent (Grund-/Verbrauchsanteil-Anzeige) |
-| 6057 | PDF CO₂-Stufenermittlung | kein Runden, nur Stufen-`if`-Kette (Doppelimplementierung von `co2MieterAnteil`, siehe Risiko 8.3) |
+
+Die PDF-CO₂-Stufenermittlung um Zeile 6057 enthält keine Rundung, sondern eine
+Stufen-`if`-Kette (Doppelimplementierung von `co2MieterAnteil`, siehe Risiko 8.3), und zählt
+daher nicht zu den 33 Rundungsquellzeilen.
 
 Für die **Anzeige** (nicht Speicherung) wird durchgängig `fmtEuro()` (Z. 615,
 `Intl.NumberFormat('de-DE', {style:'currency'})`) bzw. `fmtNum()` (Z. 616) verwendet — diese
@@ -733,45 +782,39 @@ Masterplan 2.6/12.1 Punkt 3).
 | Persistenz: localStorage/IndexedDB/File-System-Access (Abschnitt 4.12) | `packages/persistence` (`adapters/`, `indexed-db/`, `file-system/`, `memory/`) | Konfliktschutz- und Snapshot-Logik (`_diskStamp`, `snapshotsZuBehalten`) ist eigenständige, reine Teillogik und sollte separat testbar bleiben |
 | PDF-Erzeugung (Abschnitt 4.10) | `packages/pdf` (`statements/`, `summaries/`, `templates/`) | `pdfEinzelDoc`→`statements`, `pdfSammelDoc`/`pdfGesamtDoc`/`pdfEigentuemerDoc`→`summaries`, Techem-/CO₂-/Hauswart-Bausteine→`templates` |
 | UI-Rendering (`App.render*`, `oTab*`, Modal-Handling, Formularbindung) | `apps/web` | Komplette Neuimplementierung als React-Komponenten; keine fachliche Logik übernehmen, nur Interaktionsfluss/Navigation als Vorlage |
-| Objekt-/Firmenspezifische Konstanten (`EMH_BLOECKE`, `STROMZAEHLER_SEED`, `HAUSWART_VERTRAG_INFO`, `buchAutoKlassifiziere`-Regeln) | **Nirgends 1:1 übernehmen** — siehe Risiko 8.1 | Müssen als konfigurierbare Stammdaten (Mandant/Objekt-Ebene) neu modelliert werden, nicht als Code-Konstanten |
+| Objekt-/Firmenspezifische Konstanten (Block-Seed Z. 499, `STROMZAEHLER_SEED`, `HAUSWART_VERTRAG_INFO`, `buchAutoKlassifiziere`-Regeln) | **Nirgends 1:1 übernehmen** — siehe Risiko 8.1 | Müssen als konfigurierbare Stammdaten (Mandant/Objekt-Ebene) neu modelliert werden, nicht als Code-Konstanten |
 
 ---
 
 ## 8. Risiken und unklare Bereiche
 
-### 8.1 Reale, objektspezifische Daten fest im Code — behoben, siehe main-Commit b9ce5e2
+### 8.1 Sanitisierte, aber noch nicht abschließend anonymitätsgeprüfte Baseline
 
-**Update (13.07.2026):** Der ursprüngliche Root-Commit von `legacy/index.html` enthielt
-mehrere Konstanten mit konkreten, real wirkenden Betriebsdaten eines einzelnen Kunden
-(Adressen, Zählernummern, Vertragskonto-/MaLo-Nummern, Energieanbieter-Namen, ein konkreter
-Dienstleistungsvertrag sowie ca. 30 Regex-Klassifikationsregeln mit real wirkenden
-Personen-/Firmennamen). Ein Zwischenstand dieser Bestandsaufnahme hatte diese Werte
-versehentlich zitiert und kurzzeitig in einem öffentlichen Repository gepusht (PR #1,
-Commit 159112f). Das wurde wie folgt behoben:
+Die aktuelle GitHub-Baseline wurde nach einem Datenschutzvorfall aus der produktiven App
+abgeleitet. Dabei wurden Kontakt-, Seed-, Zuordnungs- und Klassifizierungswerte bereinigt.
+Die Bereinigung ist jedoch noch nicht als vollständige Anonymisierung nachgewiesen; einzelne
+real wirkende operative Identifikatoren oder alte Mandats-/Ortstokens können weiterhin
+vorhanden sein. Die Baseline darf daher nicht öffentlich gestellt und nicht als Quelle
+produktiver Stammdaten verwendet werden.
 
-1. Repository sofort auf privat gestellt.
-2. `main`-Root-Commit neu erstellt (`b9ce5e2`): alle betroffenen Konstanten
-   (`STROMZAEHLER_SEED`, `EMH_BLOECKE`, `HAUSWART_VERTRAG_INFO`,
-   `buchAutoKlassifiziere()`-Regeln, Ansprechpartner-/Firmendaten in `seedData()`) wurden
-   durch strukturell gleichwertige, klar fiktive Platzhalter ersetzt — Feldnamen, Formate
-   und Berechnungslogik sind unverändert, nur die Dateninhalte wurden anonymisiert.
-3. Der tainted PR #1 wurde geschlossen, sein Branch gelöscht; diese Bestandsaufnahme wurde
-   auf Basis des bereinigten `main` neu aufgesetzt.
-4. Der Branch von PR 00 (Codex) wurde ebenfalls auf den bereinigten `main`-Root umgebaset,
-   die Legacy-SHA-256-Referenz entsprechend aktualisiert.
+Die Eingriffe betreffen unter anderem `seedData()`, `STROMZAEHLER_SEED`, den Block-Seed
+in Z. 499,
+`HAUSWART_VERTRAG_INFO` und Regeln in `buchAutoKlassifiziere()`. Sie waren nicht rein
+textuell: In diesen Bereichen können sich Zuordnungen, Vorschläge und anderes Verhalten von
+der ausschließlich lokal aufbewahrten produktiven Original-App unterscheiden. Die
+GitHub-Datei ist deshalb lediglich die unveränderlich geschützte **Migrationsbaseline**, kein
+byte- oder verhaltensgleiches Produktivabbild.
 
-`legacy/index.html` gilt ab sofort **inklusive** dieser Anonymisierung als der maßgebliche,
-unveränderliche Referenzbestand (Masterplan-Regel „unverändert lassen" bezieht sich ab hier
-auf den bereinigten Stand). Für die Migration bleibt weiterhin wichtig: Diese Konstanten
-sind **Beispiel-/Platzhalterdaten** und dürfen nicht als reale Stammdaten missverstanden
-werden; produktive Werte gehören ausschließlich in `private-data/` bzw. eine künftige
-Datenbank, niemals als Code-Konstanten.
+Produktive Werte gehören ausschließlich in lokale `private-data/`-Bestände bzw. eine
+künftige Datenbank, niemals in Code, Dokumentation, Fixtures oder Git-Historie. Fachliche
+Vergleiche mit dem Produktivoriginal erfolgen ausschließlich lokal; weder Eingaben noch
+Ergebnisse dürfen nach GitHub übertragen werden.
 
-**Restrisiko:** Der ursprüngliche (unbereinigte) Commit war für ca. 30–50 Minuten öffentlich
-einsehbar. Es wurden keine Forks/Stars/Watcher festgestellt. GitHub-interne PR-Referenzen
-(`refs/pull/1/head`, `refs/pull/2/head`) bleiben unabhängig von Branch-Löschungen bestehen
-und sind nur über einen GitHub-Support-Request vollständig purgbar — das Repository ist
-inzwischen privat, das Restrisiko ist daher auf den Repo-Owner-Zugriff begrenzt.
+**Restrisiko:** Geschlossene Pull-Request-Refs und serverseitige Cache-/Commit-Objekte der
+verworfenen Historie können weiterhin erreichbar sein. Das Repository bleibt privat, bis
+GitHub Support die Dereferenzierung, Cached-View-Bereinigung und Garbage Collection
+bestätigt hat und zusätzlich eine dokumentierte Inhalts-/Denylist-Prüfung der gesamten dann
+erreichbaren Historie bestanden ist.
 
 ### 8.2 Kein echtes Schema / keine Laufzeitvalidierung der Fachdaten
 
@@ -810,7 +853,7 @@ stillschweigend toleriert wurden (z. B. `betrag` als String, `null`, leerer Stri
 - `Nutzer._abrStatus`: wird nur von `App.alleFreigeben()` gesetzt, aber sonst nirgends
   ausgewertet oder angezeigt — vermutlich ein Rest einer früheren Idee für Freigabe pro
   einzelnem Mieter statt pro Abrechnungsjahr.
-- `Block.hk` (z. B. `'HK1'` in `EMH_BLOECKE`): im aktiven Code nicht referenziert (Block-ID
+- `Block.hk` (z. B. ein Heizkreis-Kürzel im Block-Seed): im aktiven Code nicht referenziert (Block-ID
   selbst wird als Schlüssel verwendet, nicht `hk`).
 - `Objekt.standardKostenartenStatus` existiert sowohl root- als auch abrechnungsbezogen je
   nach Migrationsstand einer Datei — welches Feld tatsächlich gelesen wird, hängt vom
@@ -849,6 +892,21 @@ nicht-offensichtlicher Kopplungspunkt zwischen zwei sonst getrennten Tabs, der b
 Entkopplung in `packages/core` explizit als Vertrag (Eingabe: alle Kostenarten + alle
 Heizkreis-Vorgaben; Ausgabe: Betriebsstrom je Block) dokumentiert werden sollte.
 
+### 8.8 CSV-Import/-Export ist nur partiell abgesichert
+
+`csvGuardCell()` (Z. 632) schützt ausschließlich Zellen des Beleglisten-Exports und nur,
+wenn das erste Zeichen `=`, `+`, `-`, `@`, TAB oder CR ist. Führende Leerzeichen, weitere
+Steuerzeichen und LF werden nicht normalisiert. Das ist ein partieller
+Spreadsheet-Formelpräfix-Guard, **kein allgemeiner CSV-Sicherheitsnachweis**.
+
+`buchParseCSV()` (Z. 4662) ist ein einfacher Eigenparser. Der Import besitzt kein explizites
+Datei-, Zeilen- oder Feldlängenlimit und keine strikte Schema-/Datumsvalidierung. Importierte
+Bank-/Buchungsdaten sind daher als nicht vertrauenswürdige, potenziell personenbezogene
+Local-only-Daten zu behandeln: nicht loggen, nicht in Fixtures übernehmen und niemals nach
+GitHub übertragen. Für die Migration sind ein etablierter Parser, Größenlimits,
+Schema-Validierung sowie Tests für Escaping, Steuerzeichen und Spreadsheet-Injection
+erforderlich.
+
 ---
 
 ## 9. Nicht behandelte/unsichere Bereiche
@@ -869,8 +927,9 @@ sollte (nicht geraten):
 3. **`App.nutzerDetail()`** (referenziert Z. 3330, Implementierung ab Z. 3632) — Detail-/
    Versandadress-Dialog eines einzelnen Nutzers wurde nicht gelesen; vermutlich reine
    Formularfelder auf bereits dokumentierten `Nutzer`-Feldern (`versand_strasse` etc.).
-4. **Exportfunktionen `exportBelegliste()`** (Z. 3820) und CSV-Export-Details — wurden nur
-   angerissen (Kopf gelesen), nicht das vollständige CSV-Spaltenlayout nachvollzogen.
+4. **Exportfunktion `exportBelegliste()`** (Z. 3820) — Spaltenaufbau, Zahlenformat und
+   partieller Formelpräfix-Guard wurden nachvollzogen; nicht verifiziert ist die exakte
+   Kompatibilität mit allen später verwendeten Tabellenprogrammen und Importprofilen.
 5. **`buchUebernehmen`/`buchHauswartVertragAufteilen`/`_buchApplyVorschlag`/
    `_buchVorschlag`** (Z. 4843–5203) — die feineren Regeln, wie ein Buchungsvorschlag
    („gleicher Auftraggeber wie zuvor") zustande kommt und wie die Hauswart-Automatik im Detail
@@ -901,3 +960,174 @@ sollte (nicht geraten):
 Kein Bereich wurde bewusst verschwiegen; alle oben genannten Punkte sind Bereiche, in denen
 diese Bestandsaufnahme das gesehene Verhalten korrekt wiedergibt, aber keine vollständige
 Zeile-für-Zeile-Verifikation stattgefunden hat.
+
+---
+
+## 10. Coverage-Anhang: ergänzend erfasste Definitionen
+
+Der Definitionsscan erkennt 325 globale Funktionen sowie Methoden von `Store`, `Engine` und
+`App`. 190 davon werden vor diesem Abschnitt bereits namentlich behandelt. Die folgende
+Prüfliste enthält 113 migrationsrelevante Definitionen; sieben davon werden bewusst erneut
+aufgeführt, weil der Coverage-Abgleich ihnen hier Gruppe, Ziel-Package und Prüftiefe zuordnet.
+Sie ergänzt damit 106 zuvor noch nicht namentlich erfasste Definitionen. Reine
+DOM-, Label- und Format-Helfer ohne Daten-, Sicherheits- oder Fachwirkung sind von diesem
+migrationsbezogenen Nachweis ausgenommen. Mit Detailabschnitten plus Anhang gilt für die
+festgelegte Abgrenzung: 190 + 106 migrationsrelevante Definitionen + 29 explizite
+Präsentationshelfer = 325, **unmapped = 0**.
+
+| Zeile | Definition | Funktionsgruppe | Ziel-Package | Prüftiefe |
+|---:|---|---|---|---|
+| 284 | `heizquellenVonHk` | heating-source-resolution | `packages/core/heating` | tief |
+| 328 | `heizUebersichtHtml` | heating-result-view | `apps/web` | gruppiert |
+| 395 | `heizVerteilungKurzHtml` | heating-result-view | `apps/web` | gruppiert |
+| 434 | `autoHeizkreisKostenHtml` | heating-result-view | `apps/web` | gruppiert |
+| 507 | `_aktiveBloecke` | building-block-scope | `packages/core/heating` | gruppiert |
+| 519 | `getBlock` | building-block-scope | `packages/core/heating` | gruppiert |
+| 523 | `neueBlockId` | building-block-schema | `packages/schema` | gruppiert |
+| 525 | `ensureObjektBloecke` | building-block-migration | `packages/schema` | tief |
+| 526 | `normScopeKey` | allocation-scope | `packages/schema` | gruppiert |
+| 527 | `scopeIstBlock` | allocation-scope | `packages/core/allocation` | gruppiert |
+| 541 | `hausScopes` | allocation-scope | `packages/core/allocation` | gruppiert |
+| 577 | `formatSchlPdf` | pdf-allocation-format | `packages/pdf` | gruppiert |
+| 620 | `parseDE` | input-number-parsing | `packages/schema` | gruppiert |
+| 632 | `csvGuardCell` | partial-spreadsheet-formula-prefix-guard | `packages/import-export` | tief |
+| 681 | `tageImJahr` | period-calculation | `packages/core/periods` | gruppiert |
+| 905 | `idb` | indexeddb-access | `packages/persistence` | gruppiert |
+| 907 | `idbGet` | indexeddb-access | `packages/persistence` | gruppiert |
+| 908 | `idbSnapAdd` | snapshot-storage | `packages/persistence` | gruppiert |
+| 909 | `idbSnapGet` | snapshot-storage | `packages/persistence` | gruppiert |
+| 910 | `idbSnapKeys` | snapshot-storage | `packages/persistence` | gruppiert |
+| 911 | `idbSnapDelete` | snapshot-storage | `packages/persistence` | gruppiert |
+| 1061 | `konfliktUeberschreiben` | persistence-conflict-resolution | `packages/persistence` | tief |
+| 1095 | `reaktivieren` | persistence-reactivation | `packages/persistence` | gruppiert |
+| 1113 | `scheduleAutosave` | autosave-scheduling | `packages/persistence` | gruppiert |
+| 1122 | `autosaveNow` | autosave-execution | `packages/persistence` | tief |
+| 1183 | `zeigeSnapshotVerlauf` | snapshot-ui | `apps/web` | gruppiert |
+| 1193 | `snapshotWiederherstellen` | snapshot-restore | `packages/persistence` | tief |
+| 1204 | `flush` | persistence-flush | `packages/persistence` | tief |
+| 1205 | `setStatus` | persistence-state | `packages/persistence` | gruppiert |
+| 1225 | `setupAuto` | file-persistence-setup | `packages/persistence` | tief |
+| 1242 | `ensurePerm` | file-permission | `packages/persistence` | tief |
+| 1248 | `speichern` | file-save | `packages/persistence` | gruppiert |
+| 1256 | `loadFromFile` | file-load | `packages/persistence` | tief |
+| 1408 | `buchungslinkFehltAnzahl` | booking-validation | `packages/validators` | gruppiert |
+| 1411 | `heizkreisBuchungslinkFehltAnzahl` | heating-booking-validation | `packages/validators` | gruppiert |
+| 1416 | `kostenartInAbrechnungSichtbar` | cost-visibility | `packages/core/allocation` | gruppiert |
+| 1492 | `stromzaehlerRelevantFuerZeitraum` | meter-period-validation | `packages/validators` | tief |
+| 1565 | `heizkreisZaehlerStatus` | heating-meter-status | `packages/validators` | tief |
+| 2039 | `activeAbrechnung` | accounting-selection | `packages/core/allocation` | gruppiert |
+| 2043 | `buchungAbrechnung` | booking-accounting-resolution | `packages/core/allocation` | tief |
+| 2052 | `normText` | booking-normalization | `packages/import-export` | gruppiert |
+| 2053 | `buchungText` | booking-normalization | `packages/import-export` | gruppiert |
+| 2068 | `removeHkBuchungRefs` | booking-heating-reference-sync | `packages/import-export` | tief |
+| 2087 | `buchungLieferung` | delivery-booking-resolution | `packages/core/heating` | tief |
+| 2102 | `ensureHkQuelle` | heating-source-migration | `packages/core/heating` | tief |
+| 2123 | `syncHkDelivery` | booking-delivery-sync | `packages/import-export` | tief |
+| 2148 | `hkLieferungTagVonBuchung` | delivery-date-resolution | `packages/core/heating` | tief |
+| 2164 | `hkLieferungManuelleMengeVonBuchung` | delivery-quantity-resolution | `packages/core/heating` | tief |
+| 2249 | `buchungNkLinkTargets` | booking-link-targets | `packages/core/allocation` | tief |
+| 2258 | `buchungTargetIstVerknuepft` | booking-link-status | `packages/validators` | gruppiert |
+| 2270 | `buchungNkLinkStatus` | booking-link-status | `packages/validators` | tief |
+| 2278 | `buchungIstHardNkUebernommen` | booking-transfer-status | `packages/validators` | gruppiert |
+| 2302 | `ensureKostenartByKey` | cost-category-resolution | `packages/core/allocation` | tief |
+| 2326 | `hauswartVertragSummary` | caretaker-contract-allocation | `packages/core/allocation` | tief |
+| 2338 | `hauswartVertragHinweisHtml` | caretaker-contract-warning | `apps/web` | gruppiert |
+| 2762 | `dialogAuto` | persistence-dialog | `apps/web` | gruppiert |
+| 2850 | `setAnschreibenAktiv` | output-configuration | `apps/web` | gruppiert |
+| 2866 | `setStromzaehlerJahrFeld` | meter-year-state | `apps/web` | gruppiert |
+| 3373 | `addGrundsteuerHaus` | property-tax-allocation | `packages/core/allocation` | tief |
+| 3383 | `oTabGrundsteuer` | property-tax-ui | `apps/web` | gruppiert |
+| 3615 | `loadDemo` | dataset-replacement | `packages/import-export` | tief |
+| 3860 | `setK` | cost-record-update | `apps/web` | gruppiert |
+| 3861 | `setBelegUmlage` | receipt-allocation | `packages/core/allocation` | tief |
+| 3864 | `_externGrundPrompt` | external-payment-reason | `apps/web` | gruppiert |
+| 3870 | `setBelegExternOk` | external-payment-validation | `packages/validators` | tief |
+| 3875 | `resetBelegExternOk` | external-payment-validation | `packages/validators` | gruppiert |
+| 3879 | `liefExternToggle` | external-delivery-validation | `packages/validators` | tief |
+| 3898 | `belegDateiUpload` | receipt-attachment | `packages/import-export` | tief |
+| 3910 | `belegDateiEntfernen` | receipt-attachment | `packages/import-export` | gruppiert |
+| 3916 | `belegDateiOeffnen` | receipt-attachment | `packages/import-export` | gruppiert |
+| 3925 | `delK` | cost-record-delete | `apps/web` | gruppiert |
+| 3931 | `deaktiviereStandard` | cost-category-state | `packages/core/allocation` | tief |
+| 3941 | `aktiviereStandard` | cost-category-state | `packages/core/allocation` | tief |
+| 4084 | `setRechnungZaehler` | invoice-meter-link | `packages/core/heating` | tief |
+| 4114 | `setStromzaehlerSchaetzung` | meter-estimate | `packages/core/heating` | gruppiert |
+| 4127 | `uebernehmeSchaetzungInAbrechnung` | meter-estimate-transfer | `packages/core/heating` | tief |
+| 4143 | `uebernehmeSchaetzungHeizkreis` | heating-estimate-transfer | `packages/core/heating` | tief |
+| 4234 | `setLieferungZaehler` | delivery-meter-link | `packages/core/heating` | tief |
+| 4272 | `hkById` | heating-circuit-resolution | `packages/core/heating` | gruppiert |
+| 4281 | `delBlk` | heating-block-delete | `packages/core/heating` | tief |
+| 4290 | `setLiefBlk` | block-delivery-update | `packages/core/heating` | gruppiert |
+| 4291 | `addLiefBlk` | block-delivery-create | `packages/core/heating` | gruppiert |
+| 4292 | `delLiefBlk` | block-delivery-delete | `packages/core/heating` | gruppiert |
+| 4293 | `setQuelleBlk` | block-source-update | `packages/core/heating` | gruppiert |
+| 4294 | `setQuelleLiefBlk` | block-source-delivery-update | `packages/core/heating` | gruppiert |
+| 4295 | `addQuelleLiefBlk` | block-source-delivery-create | `packages/core/heating` | gruppiert |
+| 4296 | `delQuelleLiefBlk` | block-source-delivery-delete | `packages/core/heating` | gruppiert |
+| 4516 | `oTabFreigabe` | release-validation-ui | `apps/web` | gruppiert |
+| 4662 | `buchParseCSV` | booking-csv-parsing | `packages/import-export` | tief |
+| 4783 | `buchEdit` | booking-edit | `apps/web` | gruppiert |
+| 4883 | `_buchSet` | booking-field-update | `apps/web` | gruppiert |
+| 4884 | `_buchSetUmlage` | booking-allocation-update | `packages/core/allocation` | tief |
+| 4885 | `_buchSplitSetUmlage` | booking-split-allocation | `packages/core/allocation` | tief |
+| 4892 | `_kostenartInJahr` | cost-category-period-check | `packages/core/allocation` | gruppiert |
+| 4897 | `_buchSetAbrJahr` | booking-accounting-year | `packages/core/allocation` | tief |
+| 4930 | `_buchSplitDel` | booking-split-delete | `packages/core/allocation` | gruppiert |
+| 4932 | `_buchSplitSet` | booking-split-update | `packages/core/allocation` | tief |
+| 4934 | `_buchSplitSetHauswartProz` | caretaker-booking-split | `packages/core/allocation` | tief |
+| 4944 | `buchDel` | booking-delete | `apps/web` | gruppiert |
+| 4949 | `buchDelConfirm` | booking-delete-confirmation | `apps/web` | gruppiert |
+| 4972 | `buchToggleGeprueft` | booking-review-status | `apps/web` | gruppiert |
+| 4995 | `buchHkEintragen` | booking-heating-transfer | `packages/core/heating` | tief |
+| 5026 | `buchHkQuick` | booking-heating-quick-transfer | `packages/core/heating` | tief |
+| 5038 | `buchNeu` | booking-create | `apps/web` | gruppiert |
+| 5074 | `renderBuchungen` | booking-ui | `apps/web` | gruppiert |
+| 5311 | `oTabBuchungen` | booking-ui | `apps/web` | gruppiert |
+| 5528 | `oTabAbrechnung` | accounting-ui | `apps/web` | gruppiert |
+| 5595 | `ensureErg` | calculation-result-cache | `packages/core/allocation` | tief |
+| 5596 | `berechne` | calculation-orchestration | `packages/core/allocation` | tief |
+| 5648 | `co2NachweisHtml` | co2-output | `packages/pdf` | gruppiert |
+| 5676 | `pdfTechemBereiche` | techem-section-selection | `packages/pdf` | tief |
+| 5684 | `pdfTechemKennzahlen` | techem-metrics | `packages/pdf` | tief |
+| 5769 | `pdfTechemKostenaufstellungEinzel` | techem-cost-output | `packages/pdf` | gruppiert |
+
+### 10.1 Explizit ausgeschlossene Präsentationshelfer
+
+Diese 29 Definitionen wurden vom migrationsrelevanten Tiefen-Coverage-Scope ausgeschlossen,
+sind aber zur vollständigen Nachvollziehbarkeit des Definitionsscans ausdrücklich erfasst.
+Sie erzeugen oder aktualisieren ausschließlich DOM-, Label-, Badge-, Options- oder
+Inline-HTML-Darstellung und enthalten nach Sichtung keine eigenständige persistente
+Fachentscheidung. Ihr Ziel ist bei Bedarf eine Neuimplementierung in `apps/web`, nicht eine
+Übernahme in Core-Pakete.
+
+| Zeile | Definition | Ausschlussgrund |
+|---:|---|---|
+| 250 | `_pruneFeldHandlers` | DOM-Handler-Bereinigung |
+| 535 | `hausLabel` | Label-Formatierung |
+| 563 | `scopeLabel` | Label-Formatierung |
+| 569 | `scopeLabelLang` | Label-Formatierung |
+| 608 | `betrKVAnzeige` | Anzeigeformatierung |
+| 638 | `jsArg` | UI-Argument-Escaping; Sicherheitsanforderung bleibt separat erhalten |
+| 719 | `auszugText` | Anzeigeformatierung |
+| 1043 | `showBanner` | DOM-Banner |
+| 1049 | `hideBanner` | DOM-Banner |
+| 1084 | `_zeigeMehrereTabsWarnung` | DOM-Warnung |
+| 1088 | `showVersionsBanner` | DOM-Banner |
+| 1571 | `heizkreisZaehlerBadgeHtml` | Badge-HTML |
+| 1614 | `stromzaehlerSektionHtml` | Abschnitts-HTML |
+| 2784 | `crumbs` | Navigationstext |
+| 2795 | `note` | DOM-Hinweis |
+| 3148 | `_tabBadges` | Badge-HTML |
+| 4607 | `buchKatBadge` | Badge-HTML |
+| 4733 | `_buchKaOpts` | Select-Optionen |
+| 4750 | `_buchKaOptsYear` | Select-Optionen |
+| 4887 | `_buchAbrJahrOpts` | Select-Optionen |
+| 4974 | `_buchHkOpts` | Select-Optionen |
+| 5077 | `_buchSearchInput` | DOM-Fokuspflege |
+| 5166 | `_buchFlash` | DOM-Kurzhinweis |
+| 5174 | `_buchKaName` | Anzeigeformatierung |
+| 5204 | `_buchInlineHTML` | Inline-Editor-HTML |
+| 5270 | `buchInlineToggle` | Inline-Editor-DOM |
+| 5286 | `_buchInlineRefresh` | Inline-Editor-DOM |
+| 5291 | `_buchInlineBadge` | Inline-Badge-HTML |
+| 5301 | `buchInlineClose` | Inline-Editor-DOM |
