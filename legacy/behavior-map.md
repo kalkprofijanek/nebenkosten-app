@@ -742,31 +742,35 @@ Masterplan 2.6/12.1 Punkt 3).
 ### 8.1 Reale, objektspezifische Daten fest im Code (kritisch für Masterplan 2.2/23)
 
 `legacy/index.html` enthält, obwohl es sich um eine „Vorlage"-Codedatei handelt, mehrere
-Konstanten mit **konkreten, real wirkenden Betriebsdaten eines einzelnen Kunden** (EMH
-Wohnraum GmbH / Wohnanlage Am Laubloch/Elsternweg, Traben-Trarbach):
+Konstanten mit **konkreten, real wirkenden Betriebsdaten eines einzelnen Kunden** eines
+Wohnungsverwaltungs-Mandats mit mehreren Gebäuden. Diese Bestandsaufnahme reproduziert die
+konkreten Werte bewusst **nicht** (keine echten personenbezogenen Daten, siehe Masterplan
+2.2/Aufgabenauftrag) und beschreibt nur Art und Fundstelle:
 
-- `STROMZAEHLER_SEED` (Z. 1983–1997): 12 Einträge mit echten Adressen, Zählernummern,
-  Vertragskonto-/MaLo-Nummern, Anbieternamen (E.ON, Yello) und Freitext-Notizen zu laufenden
-  Streitfällen („Schlussrechnung fälschlich auf Privatperson … ausgestellt").
-- `EMH_BLOECKE` (Z. 499–504): konkrete Adressblöcke „Elsternweg 1+3", „Am Laubloch 8+10" usw.
-- `HAUSWART_VERTRAG_INFO` (Z. 2281–2289): konkreter Dienstleister („EMS Projekte GmbH"),
-  Vertragssumme (4.000 € netto/Monat), Auftraggeber-Firmenname.
-- `buchAutoKlassifiziere()` (Z. 4616–4659): ca. 30 Regex-Regeln mit echten Personen-/
-  Firmennamen (z. B. „Tanja Begall", „Christian Merten", „KL Haustechnik", „Bastian Ehses",
-  „Wolk AG", „Glowsky") zur automatischen Klassifikation importierter Kontobuchungen.
+- `STROMZAEHLER_SEED` (Z. 1983–1997): ca. 12 Einträge mit real wirkenden Adressen,
+  Zählernummern, Vertragskonto-/MaLo-Nummern, Energieanbieter-Namen und Freitext-Notizen zu
+  laufenden Klärfällen mit einzelnen Verträgen.
+- `EMH_BLOECKE` (Z. 499–504): konkrete, real wirkende Straßen-/Hausnummern-Adressblöcke der
+  verwalteten Liegenschaft.
+- `HAUSWART_VERTRAG_INFO` (Z. 2281–2289): ein konkreter Dienstleistungsvertrag mit
+  Firmenname des Auftragnehmers, Vertragssumme und Auftraggeber-Firmenname.
+- `buchAutoKlassifiziere()` (Z. 4616–4659): ca. 30 Regex-Regeln mit real wirkenden
+  Personen- und Firmennamen (Handwerker, Dienstleister) zur automatischen Klassifikation
+  importierter Kontobuchungen.
 - `seedData()` (Z. 848–891) enthält zusätzlich fiktive, aber realistisch wirkende
-  Personendaten (Mustermann, Schneider, Becker) — hier unproblematisch, da explizit als
-  Demo-Daten gekennzeichnet.
+  Personendaten — hier fachlich unproblematisch, da explizit als Demo-/Beispieldaten
+  gekennzeichnet und ersichtlich nicht mit den oben genannten Konstanten identisch.
 
 Das widerspricht dem Grundsatz aus Masterplan Abschnitt 2.2 („Keine echten Daten in GitHub")
 und Abschnitt 23, wonach `legacy/index.html` als Referenzbestand dient. Da die Datei laut
-Aufgabenstellung **nicht verändert** werden darf, wird dies hier nur dokumentiert. Für die
-Migration bedeutet das zwingend: Diese Konstanten dürfen **nicht** 1:1 in neue Packages
-übernommen werden, sondern müssen durch generische, mandantenfähige Stammdaten-Strukturen
-ersetzt werden; produktive Werte gehören ausschließlich in `private-data/` bzw. eine künftige
-Datenbank. Empfehlung: menschliche Entscheidung einholen, ob `legacy/index.html` (trotz
-„unverändert lassen"-Regel) nachträglich aus der Git-Historie bzw. künftigen öffentlichen
-Spiegelungen entfernt/anonymisiert werden muss, bevor das Repository extern sichtbar wird.
+Aufgabenstellung **nicht verändert** werden darf, wird dies hier nur dokumentiert — ohne die
+betroffenen Werte selbst zu wiederholen. Für die Migration bedeutet das zwingend: Diese
+Konstanten dürfen **nicht** 1:1 in neue Packages übernommen werden, sondern müssen durch
+generische, mandantenfähige Stammdaten-Strukturen ersetzt werden; produktive Werte gehören
+ausschließlich in `private-data/` bzw. eine künftige Datenbank. Empfehlung: menschliche
+Entscheidung einholen, ob `legacy/index.html` (trotz „unverändert lassen"-Regel) nachträglich
+aus der Git-Historie bzw. künftigen öffentlichen Spiegelungen entfernt/anonymisiert werden
+muss, bevor das Repository extern sichtbar wird.
 
 ### 8.2 Kein echtes Schema / keine Laufzeitvalidierung der Fachdaten
 
