@@ -1,2 +1,7 @@
 legacy/**
 private-data/**
+dist/**
+coverage/**
+playwright-report/**
+test-results/**
+pnpm-lock.yaml

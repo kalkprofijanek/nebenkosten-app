@@ -1,0 +1,16 @@
+name: Setup workspace
+description: Activates the pinned Node.js and pnpm toolchain and installs the lockfile.
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      with:
+        node-version: 22.23.1
+    - name: Activate pnpm
+      shell: bash
+      run: corepack enable && corepack prepare pnpm@11.7.0 --activate
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile

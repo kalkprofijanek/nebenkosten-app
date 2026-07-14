@@ -1,0 +1,154 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format-check:
+    name: format-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - &checkout
+        name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - &setup
+        name: Setup workspace
+        uses: ./.github/actions/setup-workspace
+      - run: pnpm format:check
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - *checkout
+      - *setup
+      - run: pnpm lint
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - *checkout
+      - *setup
+      - run: pnpm typecheck
+
+  architecture-tests:
+    name: architecture-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - *checkout
+      - *setup
+      - run: pnpm test:architecture
+
+  repository-tests:
+    name: repository-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - *checkout
+      - *setup
+      - run: pnpm test:repository
+
+  unit-tests:
+    name: unit-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - *checkout
+      - *setup
+      - run: pnpm test:unit
+
+  integration-tests:
+    name: integration-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - *checkout
+      - *setup
+      - run: pnpm test:integration
+
+  migration-tests:
+    name: migration-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - *checkout
+      - *setup
+      - run: pnpm test:migration
+
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - *checkout
+      - *setup
+      - run: pnpm test:coverage
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - *checkout
+      - *setup
+      - run: pnpm build
+
+  e2e-smoke:
+    name: e2e-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - *checkout
+      - *setup
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Build workspaces
+        run: pnpm build
+      - name: Run browser smoke test
+        run: pnpm test:e2e
+      - name: Upload browser diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 3
+
+  privacy-scan:
+    name: privacy-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - *checkout
+      - *setup
+      - run: pnpm test:privacy
+      - run: pnpm privacy:scan
+
+  security-audit:
+    name: security-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - *checkout
+      - *setup
+      - run: pnpm security:audit
