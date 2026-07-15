@@ -5,10 +5,12 @@
  * hier wird nur der persistierte Snapshot-Rahmen definiert.
  */
 import { z } from 'zod'
+import { legacyUnmappedSchema } from './shared'
 import {
   entityIdSchema,
   isoTimestampSchema,
   moneyCentsSchema,
+  sha256HexSchema,
 } from '../primitives'
 import { validationIssueSchema } from './validation'
 
@@ -19,12 +21,13 @@ import { validationIssueSchema } from './validation'
  * (Masterplan 10).
  */
 export const calculationRunSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   billingPeriodId: entityIdSchema,
   startedAt: isoTimestampSchema,
   appVersion: z.string().nullish(),
   /** SHA-256 des validierten, serialisierten Eingabestands. */
-  inputSha256: z.string().length(64).nullish(),
+  inputSha256: sha256HexSchema.nullish(),
 })
 export type CalculationRun = z.infer<typeof calculationRunSchema>
 
@@ -46,6 +49,7 @@ export type CalculationTotals = z.infer<typeof calculationTotalsSchema>
  * Aufbau wird mit PR 06/07 versioniert (`snapshotFormatVersion`).
  */
 export const calculationResultSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   calculationRunId: entityIdSchema,
   totals: calculationTotalsSchema,

@@ -12,7 +12,11 @@
  * nicht über stilles Ignorieren.
  */
 import { z } from 'zod'
-import { CURRENT_SCHEMA_VERSION, isoTimestampSchema } from '../../primitives'
+import {
+  CURRENT_SCHEMA_VERSION,
+  isoTimestampSchema,
+  sha256HexSchema,
+} from '../../primitives'
 import {
   allocationRuleSchema,
   auditEventSchema,
@@ -53,7 +57,6 @@ export const masterDataSchema = z.strictObject({
   tenancies: z.array(tenancySchema),
   allocationRules: z.array(allocationRuleSchema),
   heatingSystems: z.array(heatingSystemSchema),
-  energySources: z.array(energySourceSchema),
   meters: z.array(meterSchema),
 })
 export type MasterData = z.infer<typeof masterDataSchema>
@@ -67,6 +70,7 @@ export const billingDataSchema = z.strictObject({
   costEntries: z.array(costEntrySchema),
   bankBookings: z.array(bankBookingSchema),
   heatingCircuits: z.array(heatingCircuitSchema),
+  energySources: z.array(energySourceSchema),
   fuelStocks: z.array(fuelStockSchema),
   fuelDeliveries: z.array(fuelDeliverySchema),
   meterReadings: z.array(meterReadingSchema),
@@ -88,7 +92,7 @@ export const fileMetaSchema = z.strictObject({
   migratedFrom: z
     .strictObject({
       schemaVersion: z.int().positive(),
-      sourceSha256: z.string().length(64),
+      sourceSha256: sha256HexSchema,
       migratedAt: isoTimestampSchema,
     })
     .nullish(),
@@ -119,7 +123,6 @@ export function createEmptyAppDataFile(): AppDataFile {
       tenancies: [],
       allocationRules: [],
       heatingSystems: [],
-      energySources: [],
       meters: [],
     },
     billingData: {
@@ -130,6 +133,7 @@ export function createEmptyAppDataFile(): AppDataFile {
       costEntries: [],
       bankBookings: [],
       heatingCircuits: [],
+      energySources: [],
       fuelStocks: [],
       fuelDeliveries: [],
       meterReadings: [],

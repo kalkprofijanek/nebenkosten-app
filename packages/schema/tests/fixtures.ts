@@ -378,17 +378,6 @@ export function createFictionalAppDataFile(): AppDataFile {
           name: 'Zentralheizung (fiktiv)',
         },
       ],
-      energySources: [
-        {
-          id: '77777777-7777-4777-8777-777777777777',
-          heatingCircuitId: '88888888-8888-4888-8888-888888888888',
-          key: 'haupt',
-          name: 'Heizöl Haupttank',
-          sourceType: 'Heizöl',
-          calorificValueKwhPerUnit: 10,
-          co2FactorKgPerKwh: 0.266,
-        },
-      ],
       meters: [
         {
           id: 'sz_test001',
@@ -527,6 +516,17 @@ export function createFictionalAppDataFile(): AppDataFile {
           },
           hasCentralHotWater: true,
           hotWaterSharePercent: 18,
+        },
+      ],
+      energySources: [
+        {
+          id: '77777777-7777-4777-8777-777777777777',
+          heatingCircuitId: '88888888-8888-4888-8888-888888888888',
+          key: 'haupt',
+          name: 'Heizöl Haupttank',
+          sourceType: 'Heizöl',
+          calorificValueKwhPerUnit: 10,
+          co2FactorKgPerKwh: 0.266,
         },
       ],
       fuelStocks: [

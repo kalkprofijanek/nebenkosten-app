@@ -10,7 +10,7 @@ import {
   moneyCentsSchema,
   quantitySchema,
 } from '../primitives'
-import { allocationScopeSchema } from './shared'
+import { allocationScopeSchema, legacyUnmappedSchema } from './shared'
 
 /**
  * Tenancy / Mietverhältnis (Legacy: Vertrags-Anteil des `Nutzer`-Objekts).
@@ -20,6 +20,7 @@ import { allocationScopeSchema } from './shared'
  * verwendet (Legacy-Verhalten, dort `miete_monat`).
  */
 export const tenancySchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   unitId: entityIdSchema,
   personIds: z.array(entityIdSchema),
@@ -39,6 +40,7 @@ export type Tenancy = z.infer<typeof tenancySchema>
  * „leerstand“) durch genau ein explizites Merkmal.
  */
 export const occupancyPeriodSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   billingPeriodId: entityIdSchema,
   unitId: entityIdSchema,
@@ -88,17 +90,20 @@ export const prepaymentSchema = z.discriminatedUnion('mode', [
     occupancyPeriodId: entityIdSchema,
     mode: z.literal('monthly'),
     monthlyAmountCents: moneyCentsSchema,
+    legacyUnmapped: legacyUnmappedSchema.nullish(),
   }),
   z.strictObject({
     id: entityIdSchema,
     occupancyPeriodId: entityIdSchema,
     mode: z.literal('annual'),
     annualAmountCents: moneyCentsSchema,
+    legacyUnmapped: legacyUnmappedSchema.nullish(),
   }),
   z.strictObject({
     id: entityIdSchema,
     occupancyPeriodId: entityIdSchema,
     mode: z.literal('none_agreed'),
+    legacyUnmapped: legacyUnmappedSchema.nullish(),
   }),
 ])
 export type Prepayment = z.infer<typeof prepaymentSchema>

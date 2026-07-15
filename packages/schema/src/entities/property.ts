@@ -4,7 +4,11 @@
  */
 import { z } from 'zod'
 import { entityIdSchema, quantitySchema } from '../primitives'
-import { addressSchema, bankAccountSchema } from './shared'
+import {
+  addressSchema,
+  bankAccountSchema,
+  legacyUnmappedSchema,
+} from './shared'
 
 /**
  * Property / Liegenschaft (Legacy: `Objekt`, Stammdaten-Anteil).
@@ -12,6 +16,7 @@ import { addressSchema, bankAccountSchema } from './shared'
  * unverändert auf (reine Dokumentation, keine Rechenwirkung).
  */
 export const propertySchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   ownerCompanyId: entityIdSchema,
   internalNumber: z.string().nullish(),
@@ -28,6 +33,7 @@ export type Property = z.infer<typeof propertySchema>
  * Nutzungseinheiten über die Mandatsreferenz (Legacy `blockVonRef`).
  */
 export const buildingSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   propertyId: entityIdSchema,
   name: z.string().min(1),
@@ -44,6 +50,7 @@ export type Building = z.infer<typeof buildingSchema>
  * `null` = bewusst „nicht vorhanden“, fehlend = nicht erfasst.
  */
 export const unitSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   propertyId: entityIdSchema,
   buildingId: entityIdSchema.nullish(),

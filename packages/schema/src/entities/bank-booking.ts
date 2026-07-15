@@ -8,6 +8,7 @@
  * Local-only-Daten und gehören niemals in Fixtures oder GitHub.
  */
 import { z } from 'zod'
+import { legacyUnmappedSchema } from './shared'
 import {
   entityIdSchema,
   isoDateSchema,
@@ -43,6 +44,7 @@ export type BankBookingHeatingTarget = z.infer<
 
 /** Aufteilung einer Buchung auf mehrere Kostenarten/Jahre (Legacy Split). */
 export const bankBookingSplitSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   amountCents: moneyCentsSchema,
   costCategoryId: entityIdSchema.nullish(),
@@ -59,6 +61,7 @@ export type BankBookingSplit = z.infer<typeof bankBookingSplitSchema>
  * wie im Legacy-Format (Ausgabe negativ).
  */
 export const bankBookingSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   propertyId: entityIdSchema,
   /** Dedupe-Schlüssel aus Datum+Betrag+Auftraggeber+Zweck (Legacy `hash`). */

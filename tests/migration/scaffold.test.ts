@@ -21,8 +21,11 @@ describe('migration scaffold', () => {
   })
 
   it('migrateV3ToCurrent ist bewusst noch nicht implementiert (PR 04)', () => {
-    expect(() => migrateV3ToCurrent({ version: 3, firmen: [] })).toThrowError(
-      /PR 04/u,
-    )
+    expect(() =>
+      migrateV3ToCurrent(
+        { version: 3, firmen: [] },
+        { sourceSha256: 'a'.repeat(64) },
+      ),
+    ).toThrowError(/PR 04/u)
   })
 })

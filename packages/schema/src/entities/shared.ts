@@ -5,6 +5,16 @@ import { z } from 'zod'
 import { entityIdSchema } from '../primitives'
 
 /**
+ * Verlustfrei konservierte, unbekannte Legacy-Felder (docs/MIGRATION.md
+ * Abschnitt 6). Jede persistierte Entität führt dieses Feld, damit der
+ * Migrationsvertrag „kein stilles Verwerfen“ (Masterplan 9.2/25) im
+ * Zielformat tatsächlich erfüllbar ist; die Migration listet die Pfade
+ * zusätzlich in `report.unmappedFields`.
+ */
+export const legacyUnmappedSchema = z.record(z.string(), z.unknown())
+export type LegacyUnmapped = z.infer<typeof legacyUnmappedSchema>
+
+/**
  * Postanschrift. `postalCodeAndCity` wird bewusst als kombiniertes Feld
  * geführt, weil das Legacy-Format (`plz_ort`) nicht verlustfrei in PLZ und
  * Ort zerlegbar ist. Eine spätere Normalisierung ist eine eigene, bewusste
@@ -75,10 +85,14 @@ export const estimateSchema = z.strictObject({
 })
 export type Estimate = z.infer<typeof estimateSchema>
 
-/** Angehängte Beleg-Datei (Base64, Typ-/Größenprüfung in Validatoren). */
+/**
+ * Angehängte Beleg-Datei (Base64). Harte Obergrenzen gegen entartete
+ * Importe: Dateiname/MIME begrenzt, Inhalt max. ~15 MB binär
+ * (20 Mio. Base64-Zeichen). Feinere Typ-/Inhaltsprüfung: Validatoren.
+ */
 export const fileAttachmentSchema = z.strictObject({
-  fileName: z.string().min(1),
-  mimeType: z.string().min(1),
-  dataBase64: z.string().min(1),
+  fileName: z.string().min(1).max(255),
+  mimeType: z.string().min(1).max(127),
+  dataBase64: z.string().min(1).max(20_000_000),
 })
 export type FileAttachment = z.infer<typeof fileAttachmentSchema>

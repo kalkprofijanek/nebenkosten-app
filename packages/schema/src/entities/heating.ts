@@ -11,7 +11,11 @@ import {
   percentSchema,
   quantitySchema,
 } from '../primitives'
-import { bookingLinkSchema, externalPaymentSchema } from './shared'
+import {
+  bookingLinkSchema,
+  externalPaymentSchema,
+  legacyUnmappedSchema,
+} from './shared'
 
 /**
  * HeatingSystem / Heizsystem einer Liegenschaft. Im Legacy-Format nur
@@ -20,6 +24,7 @@ import { bookingLinkSchema, externalPaymentSchema } from './shared'
  * je Liegenschaft.
  */
 export const heatingSystemSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   propertyId: entityIdSchema,
   name: z.string().nullish(),
@@ -64,6 +69,7 @@ export type HeatingCircuitOverrides = z.infer<
  * `Abrechnung.heizkreise[]`, 1:1 zum Gebäudeblock).
  */
 export const heatingCircuitSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   billingPeriodId: entityIdSchema,
   heatingSystemId: entityIdSchema,
@@ -84,6 +90,7 @@ export type HeatingCircuit = z.infer<typeof heatingCircuitSchema>
  * `key` folgt der Legacy-Konvention (`haupt`, `wp_strom`, `gas`, …).
  */
 export const energySourceSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   heatingCircuitId: entityIdSchema,
   key: z.string().min(1),
@@ -103,6 +110,7 @@ export type EnergySource = z.infer<typeof energySourceSchema>
  * FIFO-Bewertung ist dieser Unterschied fachlich relevant.
  */
 export const fuelStockSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   energySourceId: entityIdSchema,
   billingPeriodId: entityIdSchema,
@@ -124,6 +132,7 @@ export const fuelDeliveryQuantityStatusSchema = z.string()
  * FuelDelivery / Brennstofflieferung (Legacy: `lieferungen[]`).
  */
 export const fuelDeliverySchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   energySourceId: entityIdSchema,
   billingPeriodId: entityIdSchema,

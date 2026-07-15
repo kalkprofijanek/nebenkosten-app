@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { entityIdSchema, isoTimestampSchema } from '../primitives'
 import {
   addressSchema,
+  legacyUnmappedSchema,
   bankAccountSchema,
   contactPersonSchema,
   salutationSchema,
@@ -16,6 +17,7 @@ import {
  * Organization je importierter Datei.
  */
 export const organizationSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   name: z.string().min(1),
   createdAt: isoTimestampSchema.nullish(),
@@ -28,6 +30,7 @@ export type Organization = z.infer<typeof organizationSchema>
  * Rechtsprüfung); `additionalNameLines` nimmt `name2..name4` auf.
  */
 export const ownerCompanySchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   organizationId: entityIdSchema,
   name: z.string().min(1),
@@ -46,6 +49,7 @@ export type OwnerCompany = z.infer<typeof ownerCompanySchema>
  * (alternative Anzeige zu Vor-/Nachname, Legacy `nutzerName()`).
  */
 export const personSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   organizationId: entityIdSchema,
   salutation: salutationSchema.nullish(),

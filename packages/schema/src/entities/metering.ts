@@ -3,6 +3,7 @@
  * MeterReading und MeterBillingStatus sind abrechnungsjahresbezogen.
  */
 import { z } from 'zod'
+import { legacyUnmappedSchema } from './shared'
 import {
   entityIdSchema,
   isoDateSchema,
@@ -28,6 +29,7 @@ export type MeterEnergySourceRef = z.infer<typeof meterEnergySourceRefSchema>
  * Meter / Zähler (Legacy: `Objekt.stromzaehler[]`, jahresunabhängig).
  */
 export const meterSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   propertyId: entityIdSchema,
   kind: meterKindSchema,
@@ -53,6 +55,7 @@ export type Meter = z.infer<typeof meterSchema>
  * Nutzer); die Entität ist für die neue Erfassung vorgesehen.
  */
 export const meterReadingSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   meterId: entityIdSchema,
   billingPeriodId: entityIdSchema.nullish(),
@@ -69,9 +72,17 @@ export type MeterReading = z.infer<typeof meterReadingSchema>
  * kein Auto-Matching (Legacy-Entscheidung).
  */
 export const meterBillingStatusSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   meterId: entityIdSchema,
-  billingPeriodId: entityIdSchema,
+  /**
+   * Leer, wenn der Legacy-Jahresstatus auf ein Jahr ohne angelegte
+   * BillingPeriod zeigt (docs/MIGRATION.md 4.11) — der Eintrag wird
+   * trotzdem konserviert und per warning gemeldet.
+   */
+  billingPeriodId: entityIdSchema.nullish(),
+  /** Legacy-Jahresschluessel, traegt das Jahr auch ohne BillingPeriod. */
+  year: z.int().min(1900).max(2200).nullish(),
   bookingPresent: z.boolean().nullish(),
   annualInvoicePresent: z.boolean().nullish(),
   note: z.string().nullish(),

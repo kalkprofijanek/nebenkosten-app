@@ -85,3 +85,9 @@ export type Quantity = z.infer<typeof quantitySchema>
 
 /** Nicht-leerer Freitext (getrimmt validiert, aber unverändert gespeichert). */
 export const nonEmptyStringSchema = z.string().min(1)
+
+/** SHA-256 als lowercase-Hex (64 Zeichen) — echte Formatprüfung statt nur Länge. */
+export const sha256HexSchema = z
+  .string()
+  .regex(/^[0-9a-f]{64}$/, { message: 'SHA-256 muss lowercase-Hex sein' })
+export type Sha256Hex = z.infer<typeof sha256HexSchema>

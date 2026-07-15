@@ -12,16 +12,27 @@ import type { ValidationIssue } from '../entities/validation'
 import type { AppDataFile } from '../versions/current/app-data-file'
 import type { MigrationReport } from './report'
 
-/** Optionen des Migrationslaufs. */
+/**
+ * Optionen des Migrationslaufs.
+ *
+ * `sourceSha256` ist verpflichtend und liegt in der Verantwortung des
+ * Aufrufers (Import-Pipeline, PR 08): Der Hash MUSS über den
+ * unveränderten Original-Bytes der Quelldatei gebildet werden, BEVOR
+ * geparst wird (Masterplan 9.2 „unveränderte Quelldatei hashen“).
+ * Die Migration selbst erhält nur bereits geparste Daten und kann den
+ * Original-Hash deshalb nicht selbst garantieren; außerdem ist
+ * SHA-256 im Browser (WebCrypto) asynchron, dieser Vertrag aber
+ * bewusst synchron und deterministisch. Format: lowercase-Hex,
+ * 64 Zeichen (`sha256HexSchema`); der Bericht validiert das.
+ */
 export interface MigrationOptions {
+  /**
+   * SHA-256 (lowercase-Hex) der unveränderten Original-Bytes der
+   * Quelldatei. Pflicht — siehe Interface-Dokumentation.
+   */
+  sourceSha256: string
   /** Quelldateiname für den Bericht (Anzeige, kein Pfad erforderlich). */
   sourceFileName?: string
-  /**
-   * SHA-256 der unveränderten Quelldatei (Hex). Wird er nicht
-   * mitgegeben, muss die Implementierung ihn selbst über dem
-   * serialisierten Eingabetext bilden (Masterplan 9.2).
-   */
-  sourceSha256?: string
   /** App-Version für den Bericht. */
   appVersion?: string
   /** Zeitquelle (Determinismus in Tests); Default: Systemzeit. */
@@ -60,17 +71,17 @@ export type MigrationResult =
  * 2. Kein Feld der Quelldatei geht still verloren: jedes bekannte Feld
  *    ist gemappt (docs/MIGRATION.md), jedes bewusst verworfene Feld
  *    steht mit Begründung in `report.droppedFields`, jedes unbekannte
- *    Feld wird in `report.unmappedFields` ausgewiesen und im
- *    Zielbestand konserviert.
- * 3. Geldbeträge werden mit der dokumentierten Regel Euro→Cent
- *    konvertiert (kaufmännische Rundung auf ganze Cent; Abweichung
- *    > 0,001 Cent erzeugt eine `warning`, siehe docs/MIGRATION.md).
+ *    Feld wird im Zielbestand im `legacyUnmapped`-Feld der jeweiligen
+ *    Entität konserviert und in `report.unmappedFields` ausgewiesen.
+ * 3. Geldbeträge werden ausschließlich über `euroToCents()`
+ *    (`./euro-to-cents.ts`) konvertiert; Präzisionsverluste laut
+ *    `euroToCentsLostPrecision()` erzeugen eine `warning`.
  * 4. Fehlende Werte werden nicht durch `0` ersetzt (Masterplan 25).
  * 5. Der Lauf ist deterministisch bei gleicher Eingabe und `now`.
  */
 export type MigrateV3ToCurrent = (
   input: unknown,
-  options?: MigrationOptions,
+  options: MigrationOptions,
 ) => MigrationResult
 
 /**

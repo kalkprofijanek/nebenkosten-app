@@ -2,6 +2,7 @@
  * Abrechnungsjahr (Masterplan 5.1/5.2, Legacy: `Abrechnung`).
  */
 import { z } from 'zod'
+import { legacyUnmappedSchema } from './shared'
 import {
   entityIdSchema,
   isoDateSchema,
@@ -89,6 +90,7 @@ export type StandardCostCategoryStatus = z.infer<
 
 /** BillingPeriod / Abrechnungsjahr (Legacy: `Abrechnung`). */
 export const billingPeriodSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   propertyId: entityIdSchema,
   year: z.int().min(1900).max(2200),

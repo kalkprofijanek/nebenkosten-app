@@ -17,6 +17,7 @@ import {
   estimateSchema,
   externalPaymentSchema,
   fileAttachmentSchema,
+  legacyUnmappedSchema,
 } from './shared'
 
 /**
@@ -42,6 +43,7 @@ export type AllocationKey = z.infer<typeof allocationKeySchema>
  * erlaubt später mandantenweite Standard-Schlüssel je Kostenart-Typ.
  */
 export const allocationRuleSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   organizationId: entityIdSchema,
   name: z.string().min(1),
@@ -59,6 +61,7 @@ export type CostCategoryKind = z.infer<typeof costCategoryKindSchema>
  * ohne die Beleg-Beträge — Beträge leben in `CostEntry`).
  */
 export const costCategorySchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   billingPeriodId: entityIdSchema,
   /** Referenz auf den Standardkostenarten-Katalog (Legacy `standard_key`). */
@@ -97,6 +100,7 @@ export type CostCategory = z.infer<typeof costCategorySchema>
  * einer Kostenart). Beträge in ganzen Cent.
  */
 export const costEntrySchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   costCategoryId: entityIdSchema,
   date: isoDateSchema.nullish(),

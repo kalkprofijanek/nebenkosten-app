@@ -123,9 +123,22 @@ describe('validationIssueSchema (Masterplan 7.1)', () => {
 
 describe('migrateV3ToCurrent (Vertrag, Implementierung in PR 04)', () => {
   it('ist als Funktion exportiert und wirft bis PR 04 einen klaren Fehler', () => {
-    expect(() => migrateV3ToCurrent({ version: 3, firmen: [] })).toThrowError(
-      /PR 04/,
-    )
+    expect(() =>
+      migrateV3ToCurrent(
+        { version: 3, firmen: [] },
+        { sourceSha256: 'a'.repeat(64) },
+      ),
+    ).toThrowError(/PR 04/)
+  })
+
+  it('MigrationOptions verlangt den Quelldatei-Hash (Vertrag)', () => {
+    // Typvertrag: sourceSha256 ist Pflicht — der Aufrufer (Import-
+    // Pipeline) hasht die unveränderten Original-Bytes VOR dem Parsen.
+    const options: Parameters<typeof migrateV3ToCurrent>[1] = {
+      sourceSha256: 'b'.repeat(64),
+      sourceFileName: 'fiktiv.json',
+    }
+    expect(options.sourceSha256).toHaveLength(64)
   })
 
   it('MigrationResult deckt Erfolgs- und Fehlerpfad ab (Typvertrag)', () => {

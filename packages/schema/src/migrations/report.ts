@@ -4,7 +4,7 @@
  * bewusster Übernahme, Masterplan 9.2).
  */
 import { z } from 'zod'
-import { isoTimestampSchema } from '../primitives'
+import { isoTimestampSchema, sha256HexSchema } from '../primitives'
 import { validationIssueSchema } from '../entities/validation'
 
 /** Zählungen des migrierten Bestands (Masterplan 9.3). */
@@ -54,8 +54,8 @@ export type MigrationDroppedField = z.infer<typeof migrationDroppedFieldSchema>
 export const migrationReportSchema = z.strictObject({
   /** Quelldateiname, falls bekannt (Import aus Dateiauswahl). */
   sourceFileName: z.string().nullish(),
-  /** SHA-256 der unveränderten Quelldatei (Hex, 64 Zeichen). */
-  sourceSha256: z.string().length(64),
+  /** SHA-256 der unveränderten Quelldatei (lowercase-Hex, validiert). */
+  sourceSha256: sha256HexSchema,
   detectedSchemaVersion: z.int().positive(),
   targetSchemaVersion: z.int().positive(),
   counts: migrationCountsSchema,

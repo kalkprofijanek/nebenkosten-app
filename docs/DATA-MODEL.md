@@ -45,7 +45,6 @@ AppDataFile
 │   ├── tenancies[]
 │   ├── allocationRules[]
 │   ├── heatingSystems[]
-│   ├── energySources[]
 │   └── meters[]
 └── billingData           // abrechnungsjahresbezogen (Masterplan 5.2)
     ├── billingPeriods[]
@@ -55,6 +54,7 @@ AppDataFile
     ├── costEntries[]
     ├── bankBookings[]
     ├── heatingCircuits[]
+    ├── energySources[]
     ├── fuelStocks[]
     ├── fuelDeliveries[]
     ├── meterReadings[]
@@ -277,6 +277,11 @@ Neu (v3 implizit: ein Objekt = eine Anlage): `id`, `propertyId`,
 
 ### 3.15 EnergySource / Energiequelle (`energySourceSchema`)
 
+Liegt im `billingData`-Container: Energiequellen hängen am
+jahresbezogenen Heizkreis (v3: `Heizkreis.energiequellen[]` je
+Abrechnung) — eine Stammdaten-Verortung würde bei mehreren
+Abrechnungsjahren instabile oder doppelte Referenzen erzeugen.
+
 | Feld                       | Typ      | P/opt | Legacy                                             |
 | -------------------------- | -------- | ----- | -------------------------------------------------- |
 | `id`                       | EntityId | P     | — (neu)                                            |
@@ -341,7 +346,9 @@ Neu (v3 hat keine eigenständigen Ablesungen): `id`, `meterId`,
 
 Legacy: `Stromzaehler.jahresstatus[jahr]` (manuell gepflegte
 Jahres-Checkliste): `id`, `meterId`, `billingPeriodId`,
-`bookingPresent?`, `annualInvoicePresent?`, `note?`,
+`billingPeriodId` ist optional (Legacy-Jahresstatus kann auf ein Jahr
+ohne angelegte BillingPeriod zeigen; das Jahr bleibt dann in `year`),
+dazu `bookingPresent?`, `annualInvoicePresent?`, `note?`,
 `estimateAmountCents?` (Euro→Cent), `estimateReason?`.
 
 ### 3.21 Prepayment / Vorauszahlung (`prepaymentSchema`)

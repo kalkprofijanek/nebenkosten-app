@@ -2,7 +2,12 @@
  * Erzeugte Dokumente und Änderungsprotokoll (Masterplan 5.1).
  */
 import { z } from 'zod'
-import { entityIdSchema, isoTimestampSchema } from '../primitives'
+import { legacyUnmappedSchema } from './shared'
+import {
+  entityIdSchema,
+  isoTimestampSchema,
+  sha256HexSchema,
+} from '../primitives'
 
 /** Dokumentarten der Legacy-PDF-Ausgabe (Masterplan 10). */
 export const documentKindSchema = z.enum([
@@ -22,6 +27,7 @@ export type DocumentKind = z.infer<typeof documentKindSchema>
  * darf ein finalisiertes Dokument nicht rückwirkend verändern.
  */
 export const documentSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   billingPeriodId: entityIdSchema,
   kind: documentKindSchema,
@@ -30,7 +36,7 @@ export const documentSchema = z.strictObject({
   /** Empfänger-Nutzungszeitraum bei Einzelabrechnungen. */
   occupancyPeriodId: entityIdSchema.nullish(),
   fileName: z.string().nullish(),
-  sha256: z.string().length(64).nullish(),
+  sha256: sha256HexSchema.nullish(),
 })
 export type Document = z.infer<typeof documentSchema>
 
@@ -40,6 +46,7 @@ export type Document = z.infer<typeof documentSchema>
  * (`nutzerAnzahl`, `fehler`, `warnungen`, `version`, …) verlustfrei auf.
  */
 export const auditEventSchema = z.strictObject({
+  legacyUnmapped: legacyUnmappedSchema.nullish(),
   id: entityIdSchema,
   billingPeriodId: entityIdSchema.nullish(),
   timestamp: isoTimestampSchema,
