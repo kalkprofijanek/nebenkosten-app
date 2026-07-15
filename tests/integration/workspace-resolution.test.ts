@@ -11,12 +11,24 @@ const workspacePackages = [
   '@nebenkosten/test-fixtures',
 ] as const
 
+/**
+ * Packages mit echter Implementierung (kein leerer Platzhalter mehr).
+ * Muss synchron zu `implementedPackages` in
+ * `tests/architecture/workspace-scaffold.test.mjs` gepflegt werden
+ * (PR 03: schema).
+ */
+const implementedPackages = new Set<string>(['@nebenkosten/schema'])
+
 describe('workspace package resolution', () => {
   it.each(workspacePackages)(
-    'resolves the API-neutral package %s',
+    'resolves the workspace package %s',
     async (packageName) => {
       const packageModule = await import(packageName)
-      expect(Object.keys(packageModule)).toEqual([])
+      if (implementedPackages.has(packageName)) {
+        expect(Object.keys(packageModule).length).toBeGreaterThan(0)
+      } else {
+        expect(Object.keys(packageModule)).toEqual([])
+      }
     },
   )
 })
