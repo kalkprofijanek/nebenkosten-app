@@ -16,6 +16,24 @@ const packageNames = Object.freeze([
   'test-fixtures',
 ])
 
+/**
+ * Packages, die bereits echte Implementierung tragen (kein
+ * `export {}`-Platzhalter mehr). Wächst mit jedem Fach-PR;
+ * Änderungen an dieser Liste sind Vertragsänderungen und gehören
+ * sichtbar in den jeweiligen PR (PR 03: schema).
+ */
+const implementedPackages = Object.freeze(new Set(['schema']))
+
+/**
+ * Erlaubte Laufzeit-Dependencies der domänenneutralen Packages.
+ * Zod ist die vom Masterplan (4.1) vorgeschriebene
+ * Laufzeitvalidierung; Browser-/React-/Build-Bibliotheken bleiben
+ * verboten.
+ */
+const allowedNeutralDependencies = Object.freeze(new Set(['zod']))
+const forbiddenDependencyPattern =
+  /react|vite|vitest|playwright|jsdom|dom|browser/iu
+
 function readJson(relativePath) {
   return JSON.parse(readFileSync(resolve(repositoryRoot, relativePath), 'utf8'))
 }
@@ -36,13 +54,17 @@ test('workspace contains every planned API-neutral package', () => {
     assert.equal(manifest.name, `@nebenkosten/${packageName}`)
     assert.equal(manifest.private, true)
     assert.equal(manifest.exports, './src/index.ts')
-    assert.equal(
-      readFileSync(
-        resolve(repositoryRoot, packageRoot, 'src/index.ts'),
-        'utf8',
-      ).trim(),
-      'export {}',
-    )
+
+    const indexSource = readFileSync(
+      resolve(repositoryRoot, packageRoot, 'src/index.ts'),
+      'utf8',
+    ).trim()
+    if (implementedPackages.has(packageName)) {
+      assert.notEqual(indexSource, 'export {}')
+      assert.notEqual(indexSource, '')
+    } else {
+      assert.equal(indexSource, 'export {}')
+    }
   }
 })
 
@@ -52,7 +74,18 @@ test('domain-neutral packages have no browser or React surface', () => {
     const manifest = readJson(`${packageRoot}/package.json`)
     const tsconfig = readJson(`${packageRoot}/tsconfig.json`)
 
-    assert.equal(manifest.dependencies, undefined)
+    for (const dependencyName of Object.keys(manifest.dependencies ?? {})) {
+      assert.equal(
+        allowedNeutralDependencies.has(dependencyName),
+        true,
+        `unerlaubte Laufzeit-Dependency in ${packageName}: ${dependencyName}`,
+      )
+      assert.doesNotMatch(
+        dependencyName,
+        forbiddenDependencyPattern,
+        `Browser-/React-/Build-Dependency in ${packageName}: ${dependencyName}`,
+      )
+    }
     assert.deepEqual(tsconfig.compilerOptions.lib, ['ES2022'])
   }
 })
