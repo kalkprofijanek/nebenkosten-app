@@ -55,7 +55,12 @@ export type IsoTimestamp = z.infer<typeof isoTimestampSchema>
 export const moneyCentsSchema = z.int().min(-9_007_199_254_740_991)
 export type MoneyCents = z.infer<typeof moneyCentsSchema>
 
-/** Nicht-negativer Centbetrag (z. B. Vorauszahlungen, Bestandswerte). */
+/**
+ * Nicht-negativer Centbetrag für Felder, bei denen das Vorzeichen bereits
+ * strukturell feststeht. Migrierte fachliche Werte bleiben bis zur
+ * Plausibilitätsprüfung in PR 10 bewusst vorzeichenbehaftet, damit negative
+ * Legacy-Werte nicht schon beim Import verloren gehen.
+ */
 export const nonNegativeMoneyCentsSchema = z.int().nonnegative()
 
 /** Prozentwert 0–100 als Zahl (keine formatierten Strings). */

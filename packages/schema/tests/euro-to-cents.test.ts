@@ -25,6 +25,10 @@ describe('euroToCents (verbindliche Migrationsregel euro_to_cents)', () => {
     expect(euroToCents(0.1 + 0.2)).toBe(30)
   })
 
+  it('verändert keine signifikanten Stellen großer, sicherer Centwerte', () => {
+    expect(euroToCents(12_345_678_901_234.56)).toBe(1_234_567_890_123_456)
+  })
+
   it('liefert niemals -0', () => {
     expect(Object.is(euroToCents(-0), 0)).toBe(true)
     expect(Object.is(euroToCents(-0.001), 0)).toBe(true)
@@ -33,6 +37,12 @@ describe('euroToCents (verbindliche Migrationsregel euro_to_cents)', () => {
   it('lehnt nicht-endliche Beträge ab', () => {
     expect(() => euroToCents(Number.NaN)).toThrowError(RangeError)
     expect(() => euroToCents(Number.POSITIVE_INFINITY)).toThrowError(RangeError)
+    expect(() => euroToCents(Number.MAX_VALUE)).toThrowError(RangeError)
+    expect(() => euroToCents(Number.MAX_SAFE_INTEGER)).toThrowError(RangeError)
+    expect(() => euroToCentsLostPrecision(Number.NaN)).toThrowError(RangeError)
+    expect(() =>
+      euroToCentsLostPrecision(Number.POSITIVE_INFINITY),
+    ).toThrowError(RangeError)
   })
 
   it('erkennt echten Präzisionsverlust, aber keine gewollte Rundung', () => {

@@ -77,7 +77,6 @@ und die Characterization Tests (PR 05).
 
 ## Nicht umgesetzt (bewusst)
 
-- Migrations-Implementierung, Fixture-Suite des Importers,
-  `legacyUnmapped`-Felder: PR 04 (Codex).
+- Migrations-Implementierung und Fixture-Suite des Importers: PR 04 (Codex).
 - Fachliche Plausibilitätsprüfungen: PR 10.
 - Rundungsregeln der Engine (`docs/ROUNDING.md`): PR 05/06.

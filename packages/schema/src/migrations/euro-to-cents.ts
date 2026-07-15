@@ -1,37 +1,78 @@
 /**
- * Verbindliche Implementierung der Migrationsregel `euro_to_cents`
- * (docs/MIGRATION.md Abschnitt 3). PR 04 MUSS diese Funktion verwenden —
- * eine eigene Rundung wäre eine stille Vertragsabweichung.
- *
- * Anforderungen:
- * - kaufmännische Rundung „halbe Cent weg von Null“ — auch für negative
- *   Beträge (`Math.round` allein rundet -0,5 fälschlich Richtung +∞);
- * - robust gegen binäre Fließkommadarstellung (z. B. ist
- *   `1.005 * 100 === 100.49999…`; naives Runden ergäbe 100 statt 101).
- *   Dafür wird der Zwischenwert auf 15 signifikante Dezimalstellen
- *   normalisiert, bevor gerundet wird.
+ * Verbindliche Implementierung der Migrationsregel `euro_to_cents`.
+ * Die kanonische Dezimaldarstellung des JavaScript-Werts wird mit BigInt
+ * skaliert. So bleiben signifikante Stellen erhalten und halbe Cent werden
+ * für beide Vorzeichen symmetrisch weg von Null gerundet.
  */
-export function euroToCents(euro: number): number {
+interface ScaledCents {
+  denominator: bigint
+  quotient: bigint
+  remainder: bigint
+  sign: 1 | -1
+}
+
+const MAX_SAFE_CENTS = BigInt(Number.MAX_SAFE_INTEGER)
+
+function scaleEuroToCents(euro: number): ScaledCents {
   if (!Number.isFinite(euro)) {
     throw new RangeError(`euroToCents: Betrag ist nicht endlich: ${euro}`)
   }
-  const sign = euro < 0 ? -1 : 1
-  const centsExact = Number((Math.abs(euro) * 100).toPrecision(15))
-  const cents = sign * Math.round(centsExact)
-  // -0 vermeiden (0 und -0 sind in JSON/Vergleichen nicht unterscheidbar,
-  // aber Object.is-Tests und Serialisierer stolpern darüber).
-  return cents === 0 ? 0 : cents
+
+  const [coefficient, exponentText] = Math.abs(euro)
+    .toString()
+    .toLowerCase()
+    .split('e')
+  const exponent = exponentText === undefined ? 0 : Number(exponentText)
+  const [integerPart, fractionPart = ''] = coefficient!.split('.')
+  const digits = BigInt(`${integerPart}${fractionPart}`)
+  const centExponent = exponent - fractionPart.length + 2
+
+  if (centExponent >= 0) {
+    return {
+      denominator: 1n,
+      quotient: digits * 10n ** BigInt(centExponent),
+      remainder: 0n,
+      sign: euro < 0 ? -1 : 1,
+    }
+  }
+
+  const denominator = 10n ** BigInt(-centExponent)
+  return {
+    denominator,
+    quotient: digits / denominator,
+    remainder: digits % denominator,
+    sign: euro < 0 ? -1 : 1,
+  }
+}
+
+function roundedSafeCents(parts: ScaledCents): number {
+  const roundUp = parts.remainder * 2n >= parts.denominator
+  const absoluteCents = parts.quotient + (roundUp ? 1n : 0n)
+  if (absoluteCents > MAX_SAFE_CENTS) {
+    throw new RangeError(
+      'euroToCents: Ergebnis liegt außerhalb des sicheren Centbereichs',
+    )
+  }
+  if (absoluteCents === 0n) return 0
+  return parts.sign * Number(absoluteCents)
+}
+
+export function euroToCents(euro: number): number {
+  return roundedSafeCents(scaleEuroToCents(euro))
 }
 
 /**
- * Prüft, ob die Euro→Cent-Konvertierung einen echten Präzisionsverlust
- * jenseits der Float-Darstellung hatte (docs/MIGRATION.md: erzeugt eine
- * `warning`). Toleranz: 0,001 Cent auf den normalisierten Zwischenwert.
+ * Meldet Sub-Cent-Verlust über 0,001 Cent. Exakte Halb-Cent-Werte sind eine
+ * gewollte kaufmännische Rundung und daher keine Präzisionswarnung.
  */
 export function euroToCentsLostPrecision(euro: number): boolean {
-  const centsExact = Number((Math.abs(euro) * 100).toPrecision(15))
-  const remainder = Math.abs(centsExact - Math.round(centsExact))
-  // Genau ,5 Cent ist gewollte kaufmännische Rundung, kein Verlust.
-  if (Math.abs(remainder - 0.5) < 1e-9) return false
-  return remainder > 0.001
+  const parts = scaleEuroToCents(euro)
+  roundedSafeCents(parts)
+  if (parts.remainder === 0n) return false
+  if (parts.remainder * 2n === parts.denominator) return false
+  const distance =
+    parts.remainder * 2n < parts.denominator
+      ? parts.remainder
+      : parts.denominator - parts.remainder
+  return distance * 1_000n > parts.denominator
 }

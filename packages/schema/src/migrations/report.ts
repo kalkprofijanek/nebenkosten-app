@@ -6,6 +6,7 @@
 import { z } from 'zod'
 import { isoTimestampSchema, sha256HexSchema } from '../primitives'
 import { validationIssueSchema } from '../entities/validation'
+import { safeFileNameSchema } from '../entities/shared'
 
 /** Zählungen des migrierten Bestands (Masterplan 9.3). */
 export const migrationCountsSchema = z.strictObject({
@@ -53,7 +54,7 @@ export type MigrationDroppedField = z.infer<typeof migrationDroppedFieldSchema>
 /** Migrationsbericht (Masterplan 9.3). */
 export const migrationReportSchema = z.strictObject({
   /** Quelldateiname, falls bekannt (Import aus Dateiauswahl). */
-  sourceFileName: z.string().nullish(),
+  sourceFileName: safeFileNameSchema.nullish(),
   /** SHA-256 der unveränderten Quelldatei (lowercase-Hex, validiert). */
   sourceSha256: sha256HexSchema,
   detectedSchemaVersion: z.int().positive(),

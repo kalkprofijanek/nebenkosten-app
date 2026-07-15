@@ -558,6 +558,7 @@ export function createFictionalAppDataFile(): AppDataFile {
           id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
           meterId: 'sz_test001',
           billingPeriodId: 'abr_test001',
+          year: 2024,
           bookingPresent: true,
           annualInvoicePresent: false,
           note: 'Rechnung angefordert',

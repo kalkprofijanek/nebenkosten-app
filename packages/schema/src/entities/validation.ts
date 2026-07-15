@@ -52,16 +52,20 @@ export const validationIssueSchema = z.strictObject({
   code: z
     .string()
     .min(1)
+    .max(100)
     .regex(/^[a-z0-9_.]+$/),
   area: validationAreaSchema,
-  title: z.string().min(1),
-  detail: z.string().nullish(),
-  path: z.array(z.union([z.string(), z.int().nonnegative()])).nullish(),
+  title: z.string().min(1).max(200),
+  detail: z.string().max(2_000).nullish(),
+  path: z
+    .array(z.union([z.string().max(255), z.int().nonnegative()]))
+    .max(64)
+    .nullish(),
   /** Betroffene Entität, falls zuordenbar. */
   entity: z
     .strictObject({
-      type: z.string().min(1),
-      id: z.string().min(1),
+      type: z.string().min(1).max(100),
+      id: z.string().min(1).max(128),
     })
     .nullish(),
 })

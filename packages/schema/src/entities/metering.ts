@@ -82,7 +82,7 @@ export const meterBillingStatusSchema = z.strictObject({
    */
   billingPeriodId: entityIdSchema.nullish(),
   /** Legacy-Jahresschluessel, traegt das Jahr auch ohne BillingPeriod. */
-  year: z.int().min(1900).max(2200).nullish(),
+  year: z.int().min(1900).max(2200),
   bookingPresent: z.boolean().nullish(),
   annualInvoicePresent: z.boolean().nullish(),
   note: z.string().nullish(),

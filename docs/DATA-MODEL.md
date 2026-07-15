@@ -70,6 +70,12 @@ IDs (keine Verschachtelung wie im Legacy-Baum `firmen→objekte→…`). Das
 macht Migrationen, Diffs und spätere Datenbank-Anbindung (Phase 2)
 mechanisch einfacher und erzwingt saubere Beziehungsdefinitionen.
 
+Feldspezifische Einheiten und fachlich unplausible Vorzeichen werden bewusst
+in `packages/validators` (PR 10) geprüft. Das Strukturschema lässt solche
+Legacy-Werte zunächst zu, damit die Migration sie nicht verwirft; PR 04 meldet
+sie als Issue und bewahrt den Originalwert gegebenenfalls in
+`legacyUnmapped`. Die Einheit selbst bleibt im `Quantity` immer explizit.
+
 ## 3. Entitäten
 
 Notation: „P“ = Pflichtfeld, „opt“ = optional (`.nullish()`,
@@ -237,20 +243,20 @@ Umlageschlüssel (`allocationKeySchema`): `usable_area` (`m2_nf`),
 
 Legacy: `Beleg` (`Kostenart.rechnungen[]`).
 
-| Feld               | Typ                              | P/opt | Legacy                                  |
-| ------------------ | -------------------------------- | ----- | --------------------------------------- |
-| `id`               | EntityId                         | P     | — (neu; Belege haben in v3 keine ID)    |
-| `costCategoryId`   | EntityId                         | P     | Position im Baum                        |
-| `date`             | IsoDate                          | opt   | `datum`                                 |
-| `description`      | string                           | opt   | `bezeichnung`                           |
-| `amountCents`      | MoneyCents                       | P     | `betrag` (Euro→Cent)                    |
-| `receiptReference` | string                           | opt   | `beleg`                                 |
-| `attachment`       | {fileName, mimeType, dataBase64} | opt   | `datei_name`, `datei_typ`, `datei_data` |
-| `allocablePercent` | Percent                          | opt   | `umlage_proz`                           |
-| `bookingLink`      | {bankBookingId, splitId}         | opt   | `_buchung`, `_buchung_split`            |
-| `externalPayment`  | {confirmed, reason}              | opt   | `_extern_ok`, `_extern_grund`           |
-| `meterId`          | EntityId                         | opt   | `_stromzaehler_id`                      |
-| `estimate`         | {isEstimated, reason}            | opt   | `_geschaetzt`, `_schaetzung_grund`      |
+| Feld               | Typ                              | P/opt | Legacy                                                                |
+| ------------------ | -------------------------------- | ----- | --------------------------------------------------------------------- |
+| `id`               | EntityId                         | P     | — (neu; Belege haben in v3 keine ID)                                  |
+| `costCategoryId`   | EntityId                         | P     | Position im Baum                                                      |
+| `date`             | IsoDate                          | opt   | `datum`                                                               |
+| `description`      | string                           | opt   | `bezeichnung`                                                         |
+| `amountCents`      | MoneyCents                       | P     | `betrag` (Euro→Cent)                                                  |
+| `receiptReference` | string                           | opt   | `beleg`                                                               |
+| `attachment`       | {fileName, mimeType, dataBase64} | opt   | `datei_name`, `datei_typ`, `datei_data`; PDF/JPEG/PNG/WEBP, max. 4 MB |
+| `allocablePercent` | Percent                          | opt   | `umlage_proz`                                                         |
+| `bookingLink`      | {bankBookingId, splitId}         | opt   | `_buchung`, `_buchung_split`                                          |
+| `externalPayment`  | {confirmed, reason}              | opt   | `_extern_ok`, `_extern_grund`                                         |
+| `meterId`          | EntityId                         | opt   | `_stromzaehler_id`                                                    |
+| `estimate`         | {isEstimated, reason}            | opt   | `_geschaetzt`, `_schaetzung_grund`                                    |
 
 ### 3.12 AllocationRule / Umlageregel (`allocationRuleSchema`)
 
@@ -345,9 +351,9 @@ Neu (v3 hat keine eigenständigen Ablesungen): `id`, `meterId`,
 ### 3.20 MeterBillingStatus (`meterBillingStatusSchema`)
 
 Legacy: `Stromzaehler.jahresstatus[jahr]` (manuell gepflegte
-Jahres-Checkliste): `id`, `meterId`, `billingPeriodId`,
-`billingPeriodId` ist optional (Legacy-Jahresstatus kann auf ein Jahr
-ohne angelegte BillingPeriod zeigen; das Jahr bleibt dann in `year`),
+Jahres-Checkliste): `id`, `meterId`, `year`, `billingPeriodId`.
+`year` ist immer Pflicht; `billingPeriodId` ist optional, weil ein
+Legacy-Jahresstatus auf ein Jahr ohne angelegte BillingPeriod zeigen kann;
 dazu `bookingPresent?`, `annualInvoicePresent?`, `note?`,
 `estimateAmountCents?` (Euro→Cent), `estimateReason?`.
 
