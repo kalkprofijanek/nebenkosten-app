@@ -1,0 +1,978 @@
+[
+  {
+    "id": "case-01-full-year",
+    "periodDays": 366,
+    "totals": {
+      "recordedCostsCents": 120000,
+      "tenantTotalCents": 120000,
+      "landlordTotalCents": 0,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 108000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 0,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 0,
+      "baseCostsCents": 0,
+      "consumptionCostsCents": 0,
+      "fuelConsumptionCents": 0,
+      "unallocatedLandlordCents": 0,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 0,
+          "baseCents": 0,
+          "consumptionCents": 0,
+          "fuelConsumptionCents": 0,
+          "hotWaterCents": 0,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 100,
+          "co2IntensityKgPerSqmYear": 0,
+          "co2Kg": 0,
+          "energyKwh": 0
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 0,
+      "tenantCents": 0,
+      "landlordCents": 0
+    },
+    "vacancyLandlordCents": 0,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 72000,
+        "prepaymentCents": 60000,
+        "balanceCents": 12000,
+        "status": "gelb"
+      },
+      {
+        "id": "t2",
+        "isVacancy": false,
+        "shareCents": 48000,
+        "prepaymentCents": 48000,
+        "balanceCents": 0,
+        "status": "gelb"
+      }
+    ]
+  },
+  {
+    "id": "case-02-tenant-change",
+    "periodDays": 365,
+    "totals": {
+      "recordedCostsCents": 100000,
+      "tenantTotalCents": 100000,
+      "landlordTotalCents": 0,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 51000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 0,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 0,
+      "baseCostsCents": 0,
+      "consumptionCostsCents": 0,
+      "fuelConsumptionCents": 0,
+      "unallocatedLandlordCents": 0,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 0,
+          "baseCents": 0,
+          "consumptionCents": 0,
+          "fuelConsumptionCents": 0,
+          "hotWaterCents": 0,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 100,
+          "co2IntensityKgPerSqmYear": 0,
+          "co2Kg": 0,
+          "energyKwh": 0
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 0,
+      "tenantCents": 0,
+      "landlordCents": 0
+    },
+    "vacancyLandlordCents": 0,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 49589,
+        "prepaymentCents": 24000,
+        "balanceCents": 25589,
+        "status": "gelb"
+      },
+      {
+        "id": "t2",
+        "isVacancy": false,
+        "shareCents": 50411,
+        "prepaymentCents": 27000,
+        "balanceCents": 23411,
+        "status": "gelb"
+      }
+    ]
+  },
+  {
+    "id": "case-03-vacancy",
+    "periodDays": 366,
+    "totals": {
+      "recordedCostsCents": 100000,
+      "tenantTotalCents": 60000,
+      "landlordTotalCents": 40000,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 60000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 0,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 0,
+      "baseCostsCents": 0,
+      "consumptionCostsCents": 0,
+      "fuelConsumptionCents": 0,
+      "unallocatedLandlordCents": 0,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 0,
+          "baseCents": 0,
+          "consumptionCents": 0,
+          "fuelConsumptionCents": 0,
+          "hotWaterCents": 0,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 100,
+          "co2IntensityKgPerSqmYear": 0,
+          "co2Kg": 0,
+          "energyKwh": 0
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 0,
+      "tenantCents": 0,
+      "landlordCents": 0
+    },
+    "vacancyLandlordCents": 40000,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 60000,
+        "prepaymentCents": 60000,
+        "balanceCents": 0,
+        "status": "gelb"
+      },
+      {
+        "id": "t2",
+        "isVacancy": true,
+        "shareCents": 40000,
+        "prepaymentCents": 0,
+        "balanceCents": 40000,
+        "status": "gelb"
+      }
+    ]
+  },
+  {
+    "id": "case-04-multiple-buildings",
+    "periodDays": 366,
+    "totals": {
+      "recordedCostsCents": 320000,
+      "tenantTotalCents": 320000,
+      "landlordTotalCents": 0,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 240000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 0,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 0,
+      "baseCostsCents": 0,
+      "consumptionCostsCents": 0,
+      "fuelConsumptionCents": 0,
+      "unallocatedLandlordCents": 0,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 0,
+          "baseCents": 0,
+          "consumptionCents": 0,
+          "fuelConsumptionCents": 0,
+          "hotWaterCents": 0,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 100,
+          "co2IntensityKgPerSqmYear": 0,
+          "co2Kg": 0,
+          "energyKwh": 0
+        },
+        {
+          "buildingId": "B2",
+          "heatingTotalCents": 0,
+          "baseCents": 0,
+          "consumptionCents": 0,
+          "fuelConsumptionCents": 0,
+          "hotWaterCents": 0,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 100,
+          "co2IntensityKgPerSqmYear": 0,
+          "co2Kg": 0,
+          "energyKwh": 0
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 0,
+      "tenantCents": 0,
+      "landlordCents": 0
+    },
+    "vacancyLandlordCents": 0,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 90000,
+        "prepaymentCents": 72000,
+        "balanceCents": 18000,
+        "status": "gelb"
+      },
+      {
+        "id": "t2",
+        "isVacancy": false,
+        "shareCents": 90000,
+        "prepaymentCents": 72000,
+        "balanceCents": 18000,
+        "status": "gelb"
+      },
+      {
+        "id": "t3",
+        "isVacancy": false,
+        "shareCents": 140000,
+        "prepaymentCents": 96000,
+        "balanceCents": 44000,
+        "status": "gelb"
+      }
+    ]
+  },
+  {
+    "id": "case-05-multiple-circuits",
+    "periodDays": 366,
+    "totals": {
+      "recordedCostsCents": 520000,
+      "tenantTotalCents": 520000,
+      "landlordTotalCents": 0,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 504000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 0,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 520000,
+      "baseCostsCents": 156000,
+      "consumptionCostsCents": 364000,
+      "fuelConsumptionCents": 500000,
+      "unallocatedLandlordCents": 0,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 320000,
+          "baseCents": 96000,
+          "consumptionCents": 224000,
+          "fuelConsumptionCents": 300000,
+          "hotWaterCents": 0,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 5,
+          "co2IntensityKgPerSqmYear": 79.702,
+          "co2Kg": 7992,
+          "energyKwh": 30000
+        },
+        {
+          "buildingId": "B2",
+          "heatingTotalCents": 200000,
+          "baseCents": 60000,
+          "consumptionCents": 140000,
+          "fuelConsumptionCents": 200000,
+          "hotWaterCents": 0,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 100,
+          "co2IntensityKgPerSqmYear": 4.009,
+          "co2Kg": 402,
+          "energyKwh": 2000
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 0,
+      "tenantCents": 0,
+      "landlordCents": 0
+    },
+    "vacancyLandlordCents": 0,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 115200,
+        "prepaymentCents": 108000,
+        "balanceCents": 7200,
+        "status": "gruen"
+      },
+      {
+        "id": "t2",
+        "isVacancy": false,
+        "shareCents": 204800,
+        "prepaymentCents": 192000,
+        "balanceCents": 12800,
+        "status": "gruen"
+      },
+      {
+        "id": "t3",
+        "isVacancy": false,
+        "shareCents": 200000,
+        "prepaymentCents": 204000,
+        "balanceCents": -4000,
+        "status": "gruen"
+      }
+    ]
+  },
+  {
+    "id": "case-06-heating-oil-fifo",
+    "periodDays": 366,
+    "totals": {
+      "recordedCostsCents": 222500,
+      "tenantTotalCents": 222500,
+      "landlordTotalCents": 0,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 204000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 0,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 222500,
+      "baseCostsCents": 66750,
+      "consumptionCostsCents": 155750,
+      "fuelConsumptionCents": 222500,
+      "unallocatedLandlordCents": 0,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 222500,
+          "baseCents": 66750,
+          "consumptionCents": 155750,
+          "fuelConsumptionCents": 222500,
+          "hotWaterCents": 0,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 5,
+          "co2IntensityKgPerSqmYear": 66.418,
+          "co2Kg": 6660,
+          "energyKwh": 25000
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 0,
+      "tenantCents": 0,
+      "landlordCents": 0
+    },
+    "vacancyLandlordCents": 0,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 89000,
+        "prepaymentCents": 84000,
+        "balanceCents": 5000,
+        "status": "gruen"
+      },
+      {
+        "id": "t2",
+        "isVacancy": false,
+        "shareCents": 133500,
+        "prepaymentCents": 120000,
+        "balanceCents": 13500,
+        "status": "gruen"
+      }
+    ]
+  },
+  {
+    "id": "case-07-pellets",
+    "periodDays": 366,
+    "totals": {
+      "recordedCostsCents": 200000,
+      "tenantTotalCents": 200000,
+      "landlordTotalCents": 0,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 198000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 0,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 200000,
+      "baseCostsCents": 60000,
+      "consumptionCostsCents": 140000,
+      "fuelConsumptionCents": 200000,
+      "unallocatedLandlordCents": 0,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 200000,
+          "baseCents": 60000,
+          "consumptionCents": 140000,
+          "fuelConsumptionCents": 200000,
+          "hotWaterCents": 0,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 100,
+          "co2IntensityKgPerSqmYear": 8.616,
+          "co2Kg": 864,
+          "energyKwh": 24000
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 0,
+      "tenantCents": 0,
+      "landlordCents": 0
+    },
+    "vacancyLandlordCents": 0,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 86000,
+        "prepaymentCents": 84000,
+        "balanceCents": 2000,
+        "status": "gruen"
+      },
+      {
+        "id": "t2",
+        "isVacancy": false,
+        "shareCents": 114000,
+        "prepaymentCents": 114000,
+        "balanceCents": 0,
+        "status": "gruen"
+      }
+    ]
+  },
+  {
+    "id": "case-08-heat-pump",
+    "periodDays": 366,
+    "totals": {
+      "recordedCostsCents": 240000,
+      "tenantTotalCents": 240000,
+      "landlordTotalCents": 0,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 222000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 0,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 240000,
+      "baseCostsCents": 72000,
+      "consumptionCostsCents": 168000,
+      "fuelConsumptionCents": 240000,
+      "unallocatedLandlordCents": 0,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 240000,
+          "baseCents": 72000,
+          "consumptionCents": 168000,
+          "fuelConsumptionCents": 240000,
+          "hotWaterCents": 0,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 100,
+          "co2IntensityKgPerSqmYear": 0,
+          "co2Kg": 0,
+          "energyKwh": 8000
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 0,
+      "tenantCents": 0,
+      "landlordCents": 0
+    },
+    "vacancyLandlordCents": 0,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 144000,
+        "prepaymentCents": 132000,
+        "balanceCents": 12000,
+        "status": "gruen"
+      },
+      {
+        "id": "t2",
+        "isVacancy": false,
+        "shareCents": 96000,
+        "prepaymentCents": 90000,
+        "balanceCents": 6000,
+        "status": "gruen"
+      }
+    ]
+  },
+  {
+    "id": "case-09-hybrid",
+    "periodDays": 366,
+    "totals": {
+      "recordedCostsCents": 250000,
+      "tenantTotalCents": 246202,
+      "landlordTotalCents": 3798,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 312000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 0,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 237339,
+      "baseCostsCents": 71202,
+      "consumptionCostsCents": 166137,
+      "fuelConsumptionCents": 237339,
+      "unallocatedLandlordCents": 0,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 237339,
+          "baseCents": 71202,
+          "consumptionCents": 166137,
+          "fuelConsumptionCents": 237339,
+          "hotWaterCents": 0,
+          "co2CostCents": 12661,
+          "co2TenantCents": 8863,
+          "co2LandlordCents": 3798,
+          "co2TenantPercent": 70,
+          "co2IntensityKgPerSqmYear": 22.957,
+          "co2Kg": 2302,
+          "energyKwh": 7000
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 12661,
+      "tenantCents": 8863,
+      "landlordCents": 3798
+    },
+    "vacancyLandlordCents": 0,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 123101,
+        "prepaymentCents": 156000,
+        "balanceCents": -32899,
+        "status": "gruen"
+      },
+      {
+        "id": "t2",
+        "isVacancy": false,
+        "shareCents": 123101,
+        "prepaymentCents": 156000,
+        "balanceCents": -32899,
+        "status": "gruen"
+      }
+    ]
+  },
+  {
+    "id": "case-10-central-hot-water",
+    "periodDays": 366,
+    "totals": {
+      "recordedCostsCents": 400000,
+      "tenantTotalCents": 400000,
+      "landlordTotalCents": 0,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 396000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 0,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 280000,
+      "baseCostsCents": 84000,
+      "consumptionCostsCents": 196000,
+      "fuelConsumptionCents": 400000,
+      "unallocatedLandlordCents": 0,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 280000,
+          "baseCents": 84000,
+          "consumptionCents": 196000,
+          "fuelConsumptionCents": 400000,
+          "hotWaterCents": 120000,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 5,
+          "co2IntensityKgPerSqmYear": 106.269,
+          "co2Kg": 10656,
+          "energyKwh": 40000
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 0,
+      "tenantCents": 0,
+      "landlordCents": 0
+    },
+    "vacancyLandlordCents": 0,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 168400,
+        "prepaymentCents": 168000,
+        "balanceCents": 400,
+        "status": "gruen"
+      },
+      {
+        "id": "t2",
+        "isVacancy": false,
+        "shareCents": 231600,
+        "prepaymentCents": 228000,
+        "balanceCents": 3600,
+        "status": "gruen"
+      }
+    ]
+  },
+  {
+    "id": "case-11-decentral-hot-water",
+    "periodDays": 366,
+    "totals": {
+      "recordedCostsCents": 300000,
+      "tenantTotalCents": 300000,
+      "landlordTotalCents": 0,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 300000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 0,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 300000,
+      "baseCostsCents": 90000,
+      "consumptionCostsCents": 210000,
+      "fuelConsumptionCents": 300000,
+      "unallocatedLandlordCents": 0,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 300000,
+          "baseCents": 90000,
+          "consumptionCents": 210000,
+          "fuelConsumptionCents": 300000,
+          "hotWaterCents": 0,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 5,
+          "co2IntensityKgPerSqmYear": 79.702,
+          "co2Kg": 7992,
+          "energyKwh": 30000
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 0,
+      "tenantCents": 0,
+      "landlordCents": 0
+    },
+    "vacancyLandlordCents": 0,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 159000,
+        "prepaymentCents": 156000,
+        "balanceCents": 3000,
+        "status": "gruen"
+      },
+      {
+        "id": "t2",
+        "isVacancy": false,
+        "shareCents": 141000,
+        "prepaymentCents": 144000,
+        "balanceCents": -3000,
+        "status": "gruen"
+      }
+    ]
+  },
+  {
+    "id": "case-12-co2-split",
+    "periodDays": 366,
+    "totals": {
+      "recordedCostsCents": 200000,
+      "tenantTotalCents": 191209,
+      "landlordTotalCents": 8791,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 216000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 0,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 170696,
+      "baseCostsCents": 51209,
+      "consumptionCostsCents": 119487,
+      "fuelConsumptionCents": 170696,
+      "unallocatedLandlordCents": 0,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 170696,
+          "baseCents": 51209,
+          "consumptionCents": 119487,
+          "fuelConsumptionCents": 170696,
+          "hotWaterCents": 0,
+          "co2CostCents": 29304,
+          "co2TenantCents": 20513,
+          "co2LandlordCents": 8791,
+          "co2TenantPercent": 70,
+          "co2IntensityKgPerSqmYear": 26.567,
+          "co2Kg": 5328,
+          "energyKwh": 20000
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 29304,
+      "tenantCents": 20513,
+      "landlordCents": 8791
+    },
+    "vacancyLandlordCents": 0,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 95604,
+        "prepaymentCents": 108000,
+        "balanceCents": -12396,
+        "status": "gruen"
+      },
+      {
+        "id": "t2",
+        "isVacancy": false,
+        "shareCents": 95604,
+        "prepaymentCents": 108000,
+        "balanceCents": -12396,
+        "status": "gruen"
+      }
+    ]
+  },
+  {
+    "id": "case-13-direct-costs",
+    "periodDays": 366,
+    "totals": {
+      "recordedCostsCents": 100000,
+      "tenantTotalCents": 100000,
+      "landlordTotalCents": 0,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 108000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 50000,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 0,
+      "baseCostsCents": 0,
+      "consumptionCostsCents": 0,
+      "fuelConsumptionCents": 0,
+      "unallocatedLandlordCents": 0,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 0,
+          "baseCents": 0,
+          "consumptionCents": 0,
+          "fuelConsumptionCents": 0,
+          "hotWaterCents": 0,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 100,
+          "co2IntensityKgPerSqmYear": 0,
+          "co2Kg": 0,
+          "energyKwh": 0
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 0,
+      "tenantCents": 0,
+      "landlordCents": 0
+    },
+    "vacancyLandlordCents": 0,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 60000,
+        "prepaymentCents": 60000,
+        "balanceCents": 0,
+        "status": "gelb"
+      },
+      {
+        "id": "t2",
+        "isVacancy": false,
+        "shareCents": 40000,
+        "prepaymentCents": 48000,
+        "balanceCents": -8000,
+        "status": "gelb"
+      }
+    ]
+  },
+  {
+    "id": "case-14-missing-assignment",
+    "periodDays": 366,
+    "totals": {
+      "recordedCostsCents": 250000,
+      "tenantTotalCents": 200000,
+      "landlordTotalCents": 50000,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 240000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 0,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 250000,
+      "baseCostsCents": 75000,
+      "consumptionCostsCents": 175000,
+      "fuelConsumptionCents": 200000,
+      "unallocatedLandlordCents": 50000,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 200000,
+          "baseCents": 60000,
+          "consumptionCents": 140000,
+          "fuelConsumptionCents": 200000,
+          "hotWaterCents": 0,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 5,
+          "co2IntensityKgPerSqmYear": 53.134,
+          "co2Kg": 5328,
+          "energyKwh": 20000
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 0,
+      "tenantCents": 0,
+      "landlordCents": 0
+    },
+    "vacancyLandlordCents": 0,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 100000,
+        "prepaymentCents": 120000,
+        "balanceCents": -20000,
+        "status": "gruen"
+      },
+      {
+        "id": "t2",
+        "isVacancy": false,
+        "shareCents": 100000,
+        "prepaymentCents": 120000,
+        "balanceCents": -20000,
+        "status": "gruen"
+      }
+    ]
+  },
+  {
+    "id": "case-15-negative-values",
+    "periodDays": 366,
+    "totals": {
+      "recordedCostsCents": 80000,
+      "tenantTotalCents": 80000,
+      "landlordTotalCents": 0,
+      "unallocatedCents": 0,
+      "prepaymentsCents": 144000,
+      "controlDifferenceCents": 0,
+      "directCostsCents": 0,
+      "internalCostsCents": 0
+    },
+    "heating": {
+      "totalCents": 100000,
+      "baseCostsCents": 30000,
+      "consumptionCostsCents": 70000,
+      "fuelConsumptionCents": 100000,
+      "unallocatedLandlordCents": 0,
+      "perCircuit": [
+        {
+          "buildingId": "B1",
+          "heatingTotalCents": 100000,
+          "baseCents": 30000,
+          "consumptionCents": 70000,
+          "fuelConsumptionCents": 100000,
+          "hotWaterCents": 0,
+          "co2CostCents": 0,
+          "co2TenantCents": 0,
+          "co2LandlordCents": 0,
+          "co2TenantPercent": 70,
+          "co2IntensityKgPerSqmYear": 26.567,
+          "co2Kg": 2664,
+          "energyKwh": 10000
+        }
+      ]
+    },
+    "co2": {
+      "totalCostCents": 0,
+      "tenantCents": 0,
+      "landlordCents": 0
+    },
+    "vacancyLandlordCents": 0,
+    "tenants": [
+      {
+        "id": "t1",
+        "isVacancy": false,
+        "shareCents": 75000,
+        "prepaymentCents": 72000,
+        "balanceCents": 3000,
+        "status": "gruen"
+      },
+      {
+        "id": "t2",
+        "isVacancy": false,
+        "shareCents": 5000,
+        "prepaymentCents": 72000,
+        "balanceCents": -67000,
+        "status": "gelb"
+      }
+    ]
+  }
+]
