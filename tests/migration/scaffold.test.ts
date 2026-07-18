@@ -20,12 +20,15 @@ describe('migration scaffold', () => {
     expect(probeSchemaVersion({ version: 3 })).toEqual({ kind: 'legacy-v3' })
   })
 
-  it('migrateV3ToCurrent ist bewusst noch nicht implementiert (PR 04)', () => {
-    expect(() =>
-      migrateV3ToCurrent(
-        { version: 3, firmen: [] },
-        { sourceSha256: 'a'.repeat(64) },
-      ),
-    ).toThrowError(/PR 04/u)
+  it('migrateV3ToCurrent liefert ab PR 04 das aktuelle Schema', () => {
+    const result = migrateV3ToCurrent(
+      { version: 3, gespeichert: null, firmen: [] },
+      {
+        sourceSha256: 'a'.repeat(64),
+        now: () => new Date('2026-03-04T05:06:07.000Z'),
+      },
+    )
+
+    expect(result).toMatchObject({ ok: true, data: { schemaVersion: 4 } })
   })
 })

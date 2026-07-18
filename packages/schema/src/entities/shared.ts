@@ -257,6 +257,7 @@ export const safeFileNameSchema = z
     (name) =>
       !name.includes('/') &&
       !name.includes('\\') &&
+      !name.includes(':') &&
       Array.from(name).every((character) => {
         const codePoint = character.codePointAt(0)!
         return codePoint >= 32 && codePoint !== 127
@@ -266,6 +267,16 @@ export const safeFileNameSchema = z
   .refine((name) => name !== '.' && name !== '..', {
     message: 'Ungültiger Dateiname',
   })
+  .refine((name) => !/[. ]$/u.test(name), {
+    message: 'Dateiname darf nicht mit Punkt oder Leerzeichen enden',
+  })
+  .refine(
+    (name) => {
+      const baseName = name.split('.')[0]!.toLocaleUpperCase('en-US')
+      return !/^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/u.test(baseName)
+    },
+    { message: 'Reservierter Windows-Dateiname' },
+  )
 
 const base64PayloadPattern =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u
@@ -291,6 +302,24 @@ export const fileAttachmentSchema = z
       return
     }
     const payload = match[2]!
+    const extensionsByMime = {
+      'application/pdf': ['.pdf'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/webp': ['.webp'],
+    } as const
+    const lowerName = attachment.fileName.toLocaleLowerCase('en-US')
+    if (
+      !extensionsByMime[attachment.mimeType].some((extension) =>
+        lowerName.endsWith(extension),
+      )
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Dateiendung passt nicht zum MIME-Typ',
+        path: ['fileName'],
+      })
+    }
     const padding = payload.endsWith('==') ? 2 : payload.endsWith('=') ? 1 : 0
     const decodedBytes = (payload.length / 4) * 3 - padding
     if (decodedBytes > MAX_ATTACHMENT_BYTES) {

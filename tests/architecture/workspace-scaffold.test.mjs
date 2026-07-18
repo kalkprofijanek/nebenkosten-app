@@ -20,9 +20,9 @@ const packageNames = Object.freeze([
  * Packages, die bereits echte Implementierung tragen (kein
  * `export {}`-Platzhalter mehr). Wächst mit jedem Fach-PR;
  * Änderungen an dieser Liste sind Vertragsänderungen und gehören
- * sichtbar in den jeweiligen PR (PR 03: schema).
+ * sichtbar in den jeweiligen PR (PR 03: schema; PR 04: import-export).
  */
-const implementedPackages = Object.freeze(new Set(['schema']))
+const implementedPackages = Object.freeze(new Set(['schema', 'import-export']))
 
 /**
  * Erlaubte Laufzeit-Dependencies der domänenneutralen Packages.

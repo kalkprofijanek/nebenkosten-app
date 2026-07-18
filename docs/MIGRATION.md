@@ -105,22 +105,22 @@ mit ID-Referenzen (DATA-MODEL Abschnitt 2). Reihenfolge der Arrays
 bleibt erhalten (Anzeige-Reihenfolge ist fachlich relevant,
 `displayOrder`).
 
-| §    | v3-Quelle                                               | Ziel-Entitäten                                                                                                                                                                                                                                                                                                                                         |
-| ---- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 4.1  | Datei-Root (`version`, `gespeichert`)                   | `schemaVersion` (Literal 4), `meta.savedAt` (`ms_epoch_to_iso`), `meta.migratedFrom` (aus dem Lauf)                                                                                                                                                                                                                                                    |
-| 4.2  | `Firma`                                                 | eine implizite `Organization` (v3 kennt keine Mandanten; `id_generate`, `name` aus `name1`) + `OwnerCompany` je Firma                                                                                                                                                                                                                                  |
-| 4.3  | `Objekt`                                                | `Property`; `excel_quelle` verbatim nach `legacySourceInfo`                                                                                                                                                                                                                                                                                            |
-| 4.4  | `Objekt.bloecke[]` (bzw. App-Default, falls leer)       | `Building` je Block; `hk`-Feld siehe Abschnitt 5                                                                                                                                                                                                                                                                                                       |
-| 4.5  | `Abrechnung` (bzw. historisches Objekt-Root-Layout)     | `BillingPeriod`; Root-Layout-Felder werden zuvor logisch nach `abrechnungen[0]` gehoben (wie `migrateObjekt()` der Alt-App)                                                                                                                                                                                                                            |
-| 4.6  | `Nutzer`                                                | Zerlegung in `Unit` (`id_generate`; Deduplizierung über `nutzeinheit`+`lage` innerhalb der Property), `Person` (`id_generate`; entfällt bei Leerstand), `Tenancy` (übernimmt `Nutzer.id`), `OccupancyPeriod` (`id_generate`, `kind` aus Leerstand-Disjunktion) und `Prepayment` (Abschnitt 4.7)                                                        |
-| 4.7  | `Nutzer.vz_monat` / `vz_gesamt` / `keine_vz_vereinbart` | genau ein `Prepayment` je OccupancyPeriod: `vz_monat` gesetzt (auch 0) → `monthly`; sonst `vz_gesamt` → `annual`; sonst `keine_vz_vereinbart` → `none_agreed`; sonst kein Prepayment + `info`-Issue                                                                                                                                                    |
-| 4.8  | `Kostenart`                                             | `CostCategory`; `rechnungen[]` → `CostEntry` je Beleg (`id_generate`)                                                                                                                                                                                                                                                                                  |
-| 4.9  | `Heizkreis`                                             | `HeatingSystem` (eines je Property, `id_generate`) + `HeatingCircuit` (`buildingId` = v3-Heizkreis-`id`); `brennstoff`-Block und `energiequellen[]` → `EnergySource` (+ `FuelStock` je Quelle×Jahr, `FuelDelivery` je Lieferung); Einzelblock-Fallback (`Abrechnung.brennstoff` ohne `heizkreise[]`) erzeugt einen impliziten Heizkreis + `info`-Issue |
-| 4.10 | `Abrechnung.co2`, `Heizkreis.co2`                       | `HeatingCircuit.co2` (`Co2Config`, Modus `auto`/`manual` aus `modus`)                                                                                                                                                                                                                                                                                  |
-| 4.11 | `Stromzaehler`                                          | `Meter` (`heizkreis_id` per `ref_split`); `jahresstatus[jahr]` → `MeterBillingStatus` je Jahr mit vorhandener BillingPeriod; Jahre ohne BillingPeriod → `warning`, Eintrag wird trotzdem angelegt (`billingPeriodId` bleibt leer, das Legacy-Jahr bleibt im Feld `year` erhalten)                                                                      |
-| 4.12 | `Buchung`                                               | `BankBooking` (Kategorien-Enum identisch `BUCH_KATEGORIEN`; `hash` → `dedupeHash`; `_heizkreis`/`_hk` per `ref_split` → `heatingTarget`; `_geprueft` → `reviewed`; `_importiert` → `importedAt`); `splits[]` → `BankBookingSplit`                                                                                                                      |
-| 4.13 | `Abrechnung._protokoll[]`                               | `AuditEvent` je Eintrag (append-only; variable Felder verbatim nach `details`)                                                                                                                                                                                                                                                                         |
-| 4.14 | —                                                       | `AllocationRule`: die fünf Standardregeln (Abschnitt 3.3) werden einmalig erzeugt (v3 kennt nur das Feld `umlage_nach`)                                                                                                                                                                                                                                |
+| §    | v3-Quelle                                                                            | Ziel-Entitäten                                                                                                                                                                                                                                                                                                                                         |
+| ---- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 4.1  | Datei-Root (`version`, `gespeichert`)                                                | `schemaVersion` (Literal 4), `meta.savedAt` (`ms_epoch_to_iso`), `meta.migratedFrom` (aus dem Lauf)                                                                                                                                                                                                                                                    |
+| 4.2  | `Firma`                                                                              | eine implizite `Organization` je Datei (v3 kennt keine Mandanten; `id_generate`, `name` aus Benutzereingabe oder sicherem Dateinamen) + `OwnerCompany` je Firma (`name` aus `name1`)                                                                                                                                                                   |
+| 4.3  | `Objekt`                                                                             | `Property`; `excel_quelle` verbatim nach `legacySourceInfo`                                                                                                                                                                                                                                                                                            |
+| 4.4  | `Objekt.bloecke[]` (bzw. neutrale, aus Heizkreis-IDs abgeleitete Blocks, falls leer) | `Building` je Block; `hk`-Feld siehe Abschnitt 5                                                                                                                                                                                                                                                                                                       |
+| 4.5  | `Abrechnung` (bzw. historisches Objekt-Root-Layout)                                  | `BillingPeriod`; Root-Layout-Felder werden zuvor logisch nach `abrechnungen[0]` gehoben (wie `migrateObjekt()` der Alt-App)                                                                                                                                                                                                                            |
+| 4.6  | `Nutzer`                                                                             | Zerlegung in `Unit` (`id_generate`; Deduplizierung über `nutzeinheit`+`lage` innerhalb der Property), `Person` (`id_generate`; entfällt bei Leerstand), `Tenancy` (übernimmt `Nutzer.id`), `OccupancyPeriod` (`id_generate`, `kind` aus Leerstand-Disjunktion) und `Prepayment` (Abschnitt 4.7)                                                        |
+| 4.7  | `Nutzer.vz_monat` / `vz_gesamt` / `keine_vz_vereinbart`                              | genau ein `Prepayment` je OccupancyPeriod: `vz_monat` gesetzt (auch 0) → `monthly`; sonst `vz_gesamt` → `annual`; sonst `keine_vz_vereinbart` → `none_agreed`; sonst kein Prepayment + `info`-Issue                                                                                                                                                    |
+| 4.8  | `Kostenart`                                                                          | `CostCategory`; `rechnungen[]` → `CostEntry` je Beleg (`id_generate`)                                                                                                                                                                                                                                                                                  |
+| 4.9  | `Heizkreis`                                                                          | `HeatingSystem` (eines je Property, `id_generate`) + `HeatingCircuit` (`buildingId` = v3-Heizkreis-`id`); `brennstoff`-Block und `energiequellen[]` → `EnergySource` (+ `FuelStock` je Quelle×Jahr, `FuelDelivery` je Lieferung); Einzelblock-Fallback (`Abrechnung.brennstoff` ohne `heizkreise[]`) erzeugt einen impliziten Heizkreis + `info`-Issue |
+| 4.10 | `Abrechnung.co2`, `Heizkreis.co2`                                                    | `HeatingCircuit.co2` (`Co2Config`, Modus `auto`/`manual` aus `modus`)                                                                                                                                                                                                                                                                                  |
+| 4.11 | `Stromzaehler`                                                                       | `Meter` (`heizkreis_id` per `ref_split`); `jahresstatus[jahr]` → `MeterBillingStatus` je Jahr mit vorhandener BillingPeriod; Jahre ohne BillingPeriod → `warning`, Eintrag wird trotzdem angelegt (`billingPeriodId` bleibt leer, das Legacy-Jahr bleibt im Feld `year` erhalten)                                                                      |
+| 4.12 | `Buchung`                                                                            | `BankBooking` (Kategorien-Enum identisch `BUCH_KATEGORIEN`; `hash` → `dedupeHash`; `_heizkreis`/`_hk` per `ref_split` → `heatingTarget`; `_geprueft` → `reviewed`; `_importiert` → `importedAt`); `splits[]` → `BankBookingSplit`                                                                                                                      |
+| 4.13 | `Abrechnung._protokoll[]`                                                            | `AuditEvent` je Eintrag (append-only; variable Felder verbatim nach `details`)                                                                                                                                                                                                                                                                         |
+| 4.14 | —                                                                                    | `AllocationRule`: die fünf Standardregeln (Abschnitt 3.3) werden einmalig erzeugt (v3 kennt nur das Feld `umlage_nach`)                                                                                                                                                                                                                                |
 
 ## 5. Bewusst verworfene Felder (`report.droppedFields`)
 
@@ -140,10 +140,10 @@ ausgewiesen (Datenschutz, `migrationDroppedFieldSchema`).
 Alle v3-Schemas sind `looseObject`: Felder, die dieses Mapping nicht
 kennt, überleben das Parsen. Die Migration legt sie je Entität unter
 `legacyUnmapped` als begrenzte Pfad-/Wert-Liste im Zielobjekt ab. Dadurch
-bleiben auch Schlüsselnamen wie `__proto__` erhalten, ohne als
-Objekt-Merge-Schlüssel verwendet zu werden. Die `strictObject`-Schemas
-des Zielformats führen dieses Feld explizit und die Migration listet die
-JSON-Pfade in `report.unmappedFields`. Ist das in einer Entität nicht
+werden unbekannte Originalschlüssel nie als Objekt-Merge-Schlüssel verwendet.
+Die `strictObject`-Schemas des Zielformats führen dieses Feld explizit und die
+Migration listet redigierte Platzhalterpfade in `report.unmappedFields`. Ist
+das in einer Entität nicht
 möglich, schlägt die Migration fehl statt still zu verwerfen
 (`validation_failed`).
 
@@ -156,6 +156,12 @@ Beleg- oder sonstige Quelldaten bleiben im lokalen Zielbestand; der Bericht
 enthält dafür nur Code, Pfad und redigierte Erläuterungen.
 
 ## 7. Migrationsbericht (Masterplan 9.3)
+
+Sicherheitspräzisierung für PR 04: Dynamische Originalschlüssel erscheinen
+ausschließlich in `legacyUnmapped`; Berichtspfade verwenden dafür den
+Platzhalter `<unknown-field>`. Der reservierte Schlüssel `__proto__` ist eine
+bewusste Ausnahme: Er wird an der Systemgrenze redigiert abgewiesen und nie
+als Objekt-Merge-Schlüssel verarbeitet.
 
 `migrationReportSchema` (`packages/schema/src/migrations/report.ts`):
 Quelldateiname, SHA-256 der Quelldatei, erkannte/Ziel-Schema-Version,
@@ -179,12 +185,67 @@ zeigt das Muster); niemals Werte aus `legacy/index.html` übernehmen —
 auch die dortigen sanitisierten Platzhalter sind Beispieldaten, keine
 Fixtures (ADR-0001).
 
-## 9. Offene Punkte für PR 04
+## 9. In PR 04 geschlossene Punkte
 
-- Verbindliche Fixture-Suite: Volljahr, Nutzerwechsel, Leerstand,
+- Umgesetzte Fixture-Suite: Volljahr, Nutzerwechsel, Leerstand,
   mehrere Blöcke/Heizkreise, Einzelblock-Fallback, historisches
   Root-Layout, unbekannte Felder, ungültige Eingaben
   (`invalid_json_structure`, `unsupported_schema_version`,
   `newer_schema_version`).
-- Entscheidung dokumentieren, ob `Block.hk` endgültig entfällt oder als
-  `legacyUnmapped` konserviert wird (Abschnitt 5, aktuell: konservieren).
+- `Block.hk` wird wie in Abschnitt 5 festgelegt als `legacyUnmapped`
+  konserviert.
+
+## 10. Implementierungsentscheidungen PR 04
+
+PR 04 hat die offenen Vertragslücken wie folgt geschlossen:
+
+- Die äußere Importgrenze liegt in `packages/import-export`. Sie begrenzt
+  Originaldateien vor Dekodierung und Hashing auf 10 MiB, dekodiert UTF-8
+  strikt, parst JSON ohne Rohdaten in Fehlermeldungen und bildet SHA-256 über
+  eine unveränderte Kopie der Originalbytes.
+- Neu erzeugte IDs sind deterministische UUIDv8-Werte aus Quell-SHA-256 und
+  stabilem Quellpfad. Gleiche Eingabe, gleicher Hash und gleiche Zeitquelle
+  ergeben deshalb bytegleiches Ergebnis ohne Zufall.
+- Legacy-Block-IDs (`B1` usw.) sind nur innerhalb einer Liegenschaft eindeutig.
+  `Building.id` wird daher als `<propertyId>:<legacyBlockId>` gespeichert. Alle
+  Gebäude-, Heizkreis-, Scope-, Zähler- und Buchungsreferenzen verwenden
+  dieselbe Zuordnung.
+- Fehlt `Objekt.bloecke`, werden neutrale Blocks ausschließlich aus vorhandenen
+  Heizkreis-IDs abgeleitet. Die Objekt-/Adress-spezifische Defaultliste der
+  Legacy-App wird aus Datenschutzgründen weder kopiert noch als Fixture genutzt.
+- Fehlen bei einer vorhandenen Jahreszahl beide Zeitraumgrenzen, wird der
+  dokumentierte Volljahreszeitraum `01.01.–31.12.` erzeugt und als `info`
+  gemeldet. Ein teilweise vorhandener oder ungültiger Zeitraum führt dagegen
+  zu `validation_failed`.
+- Ungültige optionale Werte werden redigiert gemeldet, im Zielfeld ausgelassen
+  und unter `legacyUnmapped` konserviert. Ungültige Pflichtwerte (unter anderem
+  Firmenname, Jahr/Zeitraum, Kostenartenname, Beleg-/Buchungsbetrag,
+  Zählerart und Auditaktion) brechen den gesamten Lauf mit
+  `validation_failed` ab; es werden keine fachlichen Nullwerte erfunden.
+- Historische Root-Jahresfelder werden nur dann gehoben, wenn
+  `abrechnungen[]` leer ist. Bei gleichzeitig vorhandenen modernen und alten
+  Jahresfeldern hat `abrechnungen[]` Vorrang; die alten Werte werden mit
+  Warnung konserviert.
+- Anhänge benötigen sicheren Dateinamen, erlaubte MIME-/Dateiendungs-Kombination,
+  korrektes Base64, höchstens 4 MiB dekodierte Größe und passende Dateisignatur
+  (PDF/JPEG/PNG/WEBP). Abgewiesene Anhänge bleiben vollständig konserviert.
+- `Block.hk` bleibt wie in Abschnitt 5 entschieden zusätzlich im jeweiligen
+  `Building.legacyUnmapped` erhalten und wird im Bericht als verworfen sowie
+  konserviert ausgewiesen.
+
+Die in Abschnitt 9 geforderte Fixture-Suite ist in
+`packages/schema/tests/pr04-*.test.ts` und
+`tests/migration/legacy-v3-import.test.ts` umgesetzt. Alle Fixtures sind frei
+erfunden und verwenden keine Werte aus `legacy/index.html`.
+
+### Ressourcenlimits
+
+Die Dateigrenze akzeptiert höchstens 10 MiB Originalbytes. Vor Zod und
+Transformation gelten zusätzlich 1.000 Elemente je Collection, 10.000
+Knoten insgesamt, 64 Ebenen und 10 MiB Text einschließlich Schlüsseln. Die
+Collection- und Knotengrenzen begrenzen zugleich die kumulativen Kopierkosten
+der unveränderlich aufgebauten Zielarrays.
+Überschreitungen werden mit `migration.input_limits_exceeded` abgewiesen.
+Proxy-/Typed-Array-Sonderfälle, Accessor-Eigenschaften, werfende
+Options-Getter und Zeitquellen bleiben innerhalb der Importgrenze und liefern
+ausschließlich redigierte Fehler.

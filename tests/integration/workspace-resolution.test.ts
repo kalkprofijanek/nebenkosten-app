@@ -15,9 +15,12 @@ const workspacePackages = [
  * Packages mit echter Implementierung (kein leerer Platzhalter mehr).
  * Muss synchron zu `implementedPackages` in
  * `tests/architecture/workspace-scaffold.test.mjs` gepflegt werden
- * (PR 03: schema).
+ * (PR 03: schema; PR 04: import-export).
  */
-const implementedPackages = new Set<string>(['@nebenkosten/schema'])
+const implementedPackages = new Set<string>([
+  '@nebenkosten/schema',
+  '@nebenkosten/import-export',
+])
 
 describe('workspace package resolution', () => {
   it.each(workspacePackages)(
