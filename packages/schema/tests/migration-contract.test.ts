@@ -6,6 +6,7 @@ import {
   migrationReportSchema,
   validationIssueSchema,
 } from '../src'
+import { createMinimalFictionalV3File } from './fixtures'
 
 function createFictionalReport(): MigrationReport {
   return {
@@ -121,14 +122,18 @@ describe('validationIssueSchema (Masterplan 7.1)', () => {
   })
 })
 
-describe('migrateV3ToCurrent (Vertrag, Implementierung in PR 04)', () => {
-  it('ist als Funktion exportiert und wirft bis PR 04 einen klaren Fehler', () => {
-    expect(() =>
-      migrateV3ToCurrent(
-        { version: 3, firmen: [] },
-        { sourceSha256: 'a'.repeat(64) },
-      ),
-    ).toThrowError(/PR 04/)
+describe('migrateV3ToCurrent (Vertrag und Implementierung in PR 04)', () => {
+  it('liefert fuer eine gueltige v3-Datei ein validiertes Ergebnis', () => {
+    const result = migrateV3ToCurrent(createMinimalFictionalV3File(), {
+      sourceSha256: 'a'.repeat(64),
+      now: () => new Date('2026-03-04T05:06:07.000Z'),
+    })
+
+    expect(result).toMatchObject({
+      ok: true,
+      data: { schemaVersion: 4 },
+      report: { detectedSchemaVersion: 3, targetSchemaVersion: 4 },
+    })
   })
 
   it('MigrationOptions verlangt den Quelldatei-Hash (Vertrag)', () => {

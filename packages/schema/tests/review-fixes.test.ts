@@ -195,6 +195,17 @@ describe('Beleg-Dateianhang (Legacy-Grenzen)', () => {
         mimeType: 'image/png',
       }).success,
     ).toBe(false)
+    for (const fileName of [
+      'CON.pdf',
+      'rechnung.pdf.',
+      'rechnung.pdf ',
+      'rechnung:privat.pdf',
+      'rechnung.png',
+    ])
+      expect(
+        fileAttachmentSchema.safeParse({ ...validAttachment, fileName })
+          .success,
+      ).toBe(false)
   })
 })
 

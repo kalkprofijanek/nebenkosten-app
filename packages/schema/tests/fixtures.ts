@@ -266,6 +266,116 @@ export function createFictionalV3File(): Record<string, unknown> {
   }
 }
 
+/** Kleinste dokumentierte v3-Datei; alle Werte sind frei erfunden. */
+export function createMinimalFictionalV3File(): Record<string, unknown> {
+  return {
+    version: 3,
+    gespeichert: '2026-01-02T03:04:05.000Z',
+    firmen: [],
+  }
+}
+
+/**
+ * Export aus der Zeit vor `Objekt.abrechnungen[]`. Die Jahresdaten liegen
+ * hier noch direkt auf dem Objekt und muessen wie von der Alt-App gehoben
+ * werden.
+ */
+export function createHistoricalRootV3File(): Record<string, unknown> {
+  return {
+    version: 3,
+    gespeichert: '2023-01-02T03:04:05.000Z',
+    firmen: [
+      {
+        id: 'f_historisch_test',
+        name1: 'Historische Testverwaltung GmbH',
+        objekte: [
+          {
+            id: 'obj_historisch_test',
+            eigene_nr: 'H-001',
+            strasse: 'Fiktive Anschrift',
+            plz_ort: '00002 Beispielort',
+            bloecke: [
+              {
+                id: 'B1',
+                name: 'Historisches Testhaus',
+                prefix: ['HT'],
+              },
+            ],
+            jahr: 2022,
+            zeitraum: { von: '2022-01-01', bis: '2022-12-31' },
+            vorgaben: { verbrauch_proz: 70, grund_proz: 30 },
+            gesamt: { flaeche: 50, personen: 1 },
+            nutzer: [
+              {
+                id: 'n_historisch_test',
+                nr: 1,
+                aktiv: 'J',
+                vorname: 'Tessa',
+                nachname: 'Testperson',
+                nutzeinheit: 'Archiv-WE 1',
+                lage: 'EG',
+                mandatsref: 'HT_001',
+                flaeche_nf: 50,
+                personen: 1,
+                vz_gesamt: 600,
+              },
+            ],
+            kostenarten: [
+              {
+                id: 'k_historisch_test',
+                typ: 'betrieb',
+                bezeichnung: 'Historische Testkosten',
+                umlage_nach: 'm2_nf',
+                betrag: 123.45,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  }
+}
+
+/** Zwei Properties verwenden dieselbe lokale Legacy-Block-ID `B1`. */
+export function createDuplicateBuildingIdsV3File(): Record<string, unknown> {
+  return {
+    version: 3,
+    gespeichert: '2026-02-03T04:05:06.000Z',
+    firmen: [
+      {
+        id: 'f_doppelt_test',
+        name1: 'Doppelte Block-IDs Test GmbH',
+        objekte: [
+          {
+            id: 'obj_nord_test',
+            eigene_nr: 'NORD',
+            bloecke: [{ id: 'B1', name: 'Testhaus Nord', prefix: ['N'] }],
+            abrechnungen: [
+              {
+                id: 'abr_nord_test',
+                jahr: 2025,
+                heizkreise: [{ id: 'B1', hat_warmwasser: false }],
+              },
+            ],
+          },
+          {
+            id: 'obj_sued_test',
+            eigene_nr: 'SUED',
+            bloecke: [{ id: 'B1', name: 'Testhaus Sued', prefix: ['S'] }],
+            abrechnungen: [
+              {
+                id: 'abr_sued_test',
+                jahr: 2025,
+                heizkreise: [{ id: 'B1', hat_warmwasser: false }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  }
+}
+
 /** Minimale, gültige Datei im aktuellen Format mit einem Datensatz je Container-Kern. */
 export function createFictionalAppDataFile(): AppDataFile {
   return {

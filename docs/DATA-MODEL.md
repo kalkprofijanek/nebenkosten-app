@@ -125,14 +125,14 @@ Datenänderung).
 
 Legacy: `Block` (`B1`…`B9`), jahresunabhängige Heizkreis-Blöcke.
 
-| Feld                      | Typ      | P/opt | Legacy           |
-| ------------------------- | -------- | ----- | ---------------- |
-| `id`                      | EntityId | P     | `Block.id`       |
-| `propertyId`              | EntityId | P     | Position im Baum |
-| `name`                    | string   | P     | `name`           |
-| `shortName`               | string   | opt   | `kuerzel`        |
-| `defaultEnergySourceType` | string   | opt   | `energietraeger` |
-| `mandateRefPrefixes`      | string[] | P     | `prefix`         |
+| Feld                      | Typ      | P/opt | Legacy                                                   |
+| ------------------------- | -------- | ----- | -------------------------------------------------------- |
+| `id`                      | EntityId | P     | `<Property.id>:<Block.id>` (lokale Legacy-ID namespaced) |
+| `propertyId`              | EntityId | P     | Position im Baum                                         |
+| `name`                    | string   | P     | `name`                                                   |
+| `shortName`               | string   | opt   | `kuerzel`                                                |
+| `defaultEnergySourceType` | string   | opt   | `energietraeger`                                         |
+| `mandateRefPrefixes`      | string[] | P     | `prefix`                                                 |
 
 ### 3.5 Unit / Nutzungseinheit (`unitSchema`)
 

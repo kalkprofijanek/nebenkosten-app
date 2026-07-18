@@ -44,7 +44,13 @@ test('allows only registry integrity and workspace links in the lockfile', () =>
   const safeLockfile = [
     "lockfileVersion: '9.0'",
     'resolution: {integrity: sha512-fixture}',
-    'version: link:packages/core',
+    'importers:',
+    '  .:',
+    '        version: link:packages/core',
+    '  packages/core: {}',
+    '  packages/import-export:',
+    '        version: link:../schema',
+    '  packages/schema:',
   ].join('\n')
   const unsafeLockfile = [
     'resolution: https://packages.invalid/archive.tgz',
@@ -52,13 +58,20 @@ test('allows only registry integrity and workspace links in the lockfile', () =>
     'resolution: ssh://example.invalid/package.git',
     'version: file:../outside-workspace',
     'resolution: {directory: ../outside, type: directory}',
-    'version: link:../outside-workspace',
+    'importers:',
+    '  packages/import-export:',
+    '        version: link:../outside',
+    '  apps/web:',
+    '        version: link:../../outside',
+    '        quotedHttps: "ignored-key"',
+    '        version: "https://packages.invalid/quoted.tgz"',
+    "        version: 'link:../../quoted-outside'",
   ].join('\n')
 
   assert.deepEqual(findForbiddenLockfileSources(safeLockfile), [])
   assert.deepEqual(
     findForbiddenLockfileSources(unsafeLockfile),
-    [1, 2, 3, 4, 5, 6],
+    [1, 2, 3, 4, 5, 8, 10, 12, 13],
   )
 })
 

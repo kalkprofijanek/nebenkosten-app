@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
-import { dirname, extname, resolve } from 'node:path'
+import { dirname, extname, posix, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const EXCLUDED_PATHS = new Set(['legacy/index.html', 'pnpm-lock.yaml'])
@@ -97,19 +97,66 @@ export function findSensitiveContent(relativePath, content) {
 
 export function findForbiddenLockfileSources(content) {
   const forbiddenLines = []
+  const lines = content.split(/\r?\n/u)
+  const workspaceImporters = new Set()
+  let inImporters = false
 
-  for (const [index, line] of content.split(/\r?\n/u).entries()) {
+  for (const line of lines) {
+    if (/^importers:\s*$/u.test(line)) {
+      inImporters = true
+      continue
+    }
+    if (inImporters && /^\S/u.test(line)) {
+      inImporters = false
+      continue
+    }
+    const importerMatch = inImporters
+      ? /^ {2}([^:\s][^:]*):\s*(?:\{\})?\s*$/u.exec(line)
+      : null
+    if (importerMatch?.[1]) workspaceImporters.add(importerMatch[1])
+  }
+
+  inImporters = false
+  let currentImporter
+  for (const [index, line] of lines.entries()) {
+    if (/^importers:\s*$/u.test(line)) {
+      inImporters = true
+      currentImporter = undefined
+      continue
+    }
+    if (inImporters && /^\S/u.test(line)) {
+      inImporters = false
+      currentImporter = undefined
+    }
+    const importerMatch = inImporters
+      ? /^ {2}([^:\s][^:]*):\s*(?:\{\})?\s*$/u.exec(line)
+      : null
+    if (importerMatch?.[1]) currentImporter = importerMatch[1]
     const resolutionMatch = line.match(/^\s*resolution:\s*(.+)$/u)
     const linkMatch = line.match(/\b(?:resolution|version):\s+link:([^\s]+)/u)
-    const hasAllowedWorkspaceLink = linkMatch
-      ? /^(?:apps|packages)\/[a-z0-9-]+$/u.test(linkMatch[1] ?? '')
+    const rawVersionValue =
+      line.match(/^\s*version:\s*(.+)$/u)?.[1]?.trim() ?? ''
+    const quotedVersionMatch = rawVersionValue.match(/^(['"])(.*)\1$/u)
+    const versionValue = quotedVersionMatch?.[2] ?? rawVersionValue
+    const linkTarget =
+      linkMatch?.[1] ?? versionValue.match(/^link:([^\s]+)$/u)?.[1]
+    const resolvedLinkTarget =
+      linkTarget && currentImporter
+        ? posix.normalize(
+            currentImporter === '.'
+              ? linkTarget
+              : posix.join(currentImporter, linkTarget),
+          )
+        : undefined
+    const hasAllowedWorkspaceLink = resolvedLinkTarget
+      ? workspaceImporters.has(resolvedLinkTarget) &&
+        /^(?:apps|packages)\/[a-z0-9-]+$/u.test(resolvedLinkTarget)
       : false
     const hasIntegrityResolution = resolutionMatch
       ? /^\{integrity:\s*sha512-[A-Za-z0-9+/]+={0,2}\}$/u.test(
           resolutionMatch[1] ?? '',
         )
       : false
-    const versionValue = line.match(/^\s*version:\s*(.+)$/u)?.[1] ?? ''
     const hasSourceProtocol =
       versionValue.length > 0 &&
       /^(?:file|git|github|gitlab|bitbucket|http|https|ssh):/iu.test(
@@ -117,7 +164,8 @@ export function findForbiddenLockfileSources(content) {
       )
     const hasCustomSourceKey =
       /(?:^|[{,]\s*)(?:directory|path|repo|tarball):/iu.test(line)
-    const hasForbiddenLink = Boolean(linkMatch) && !hasAllowedWorkspaceLink
+    const hasForbiddenLink =
+      linkTarget !== undefined && !hasAllowedWorkspaceLink
     const hasForbiddenResolution =
       Boolean(resolutionMatch) && !hasIntegrityResolution
 

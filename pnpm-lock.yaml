@@ -101,7 +101,11 @@ importers:
 
   packages/core: {}
 
-  packages/import-export: {}
+  packages/import-export:
+    dependencies:
+      '@nebenkosten/schema':
+        specifier: workspace:*
+        version: link:../schema
 
   packages/pdf: {}
 
