@@ -1,9 +1,13 @@
 import { useEffect, useState, type MouseEvent } from 'react'
 
 import { appRoutes, findRoute } from './app/navigation'
+import type { WorkspaceState } from './app/workspace-controller'
 
 interface AppProps {
   readonly initialPath?: string
+  readonly onCreateWorkspace?: () => void
+  readonly previewMode?: boolean
+  readonly workspaceState?: WorkspaceState
 }
 
 const workflowRoutes = appRoutes.slice(1)
@@ -89,14 +93,46 @@ function EmptyWorkspace({
   )
 }
 
-function Dashboard() {
+function Dashboard({
+  onCreateWorkspace,
+  workspaceState,
+}: {
+  readonly onCreateWorkspace?: () => void
+  readonly workspaceState?: WorkspaceState
+}) {
+  const data = workspaceState?.data
+  const objectCount = data?.masterData.properties.length ?? 0
+  const periodCount = data?.billingData.billingPeriods.length ?? 0
+  const userCount = data?.billingData.occupancyPeriods.length ?? 0
+
   return (
     <>
+      {workspaceState?.status === 'empty' ? (
+        <section className="welcome-panel" aria-labelledby="welcome-title">
+          <div>
+            <p className="section-kicker">Sicherer Start</p>
+            <h2 id="welcome-title">Neuen Arbeitsbestand beginnen</h2>
+            <p>
+              Es ist noch kein lokaler Datenbestand vorhanden. Erst dein Klick
+              legt eine gültige, leere Datei der Schema-Version 4 an.
+            </p>
+          </div>
+          <button
+            className="button button--primary"
+            type="button"
+            onClick={onCreateWorkspace}
+            disabled={onCreateWorkspace === undefined}
+          >
+            Arbeitsbestand anlegen
+          </button>
+        </section>
+      ) : null}
+
       <section className="metric-grid" aria-label="Aktueller Datenstand">
         {[
-          ['0', 'Objekte'],
-          ['0', 'Abrechnungsjahre'],
-          ['0', 'Nutzer'],
+          [String(objectCount), 'Objekte'],
+          [String(periodCount), 'Abrechnungsjahre'],
+          [String(userCount), 'Nutzer'],
           ['Entwurf', 'Aktueller Status'],
         ].map(([value, label]) => (
           <article className="metric-card" key={label}>
@@ -157,7 +193,29 @@ function Dashboard() {
   )
 }
 
-export function App({ initialPath }: AppProps) {
+function saveLabel(state?: WorkspaceState, previewMode = false): string {
+  if (state?.status === 'loading') return 'Lokaler Stand wird geladen'
+  if (state?.status === 'empty') return 'Noch kein Arbeitsbestand'
+  if (state?.status === 'conflict')
+    return 'Speicherkonflikt – nicht überschrieben'
+  if (state?.status === 'blocked') return 'Speicherstand ist geschützt'
+  if (state?.status === 'error') return 'Speichern nicht möglich'
+  if (state?.saving) return 'Änderungen werden gespeichert'
+  if (state !== undefined && !state.dirty) {
+    return previewMode
+      ? 'Nur im Arbeitsspeicher – beim Neuladen verloren'
+      : 'Lokal gespeichert'
+  }
+  if (state?.dirty) return 'Ungesicherte Änderungen'
+  return 'Noch nicht gespeichert'
+}
+
+export function App({
+  initialPath,
+  onCreateWorkspace,
+  previewMode,
+  workspaceState,
+}: AppProps) {
   const [path, setPath] = useState(
     initialPath ??
       (globalThis.location?.hash.startsWith('#/')
@@ -256,7 +314,7 @@ export function App({ initialPath }: AppProps) {
           <div className="topbar-actions">
             <span className="save-state">
               <i aria-hidden="true" />
-              Noch nicht gespeichert
+              {saveLabel(workspaceState, previewMode)}
             </span>
             <button
               className="button button--quiet"
@@ -280,7 +338,10 @@ export function App({ initialPath }: AppProps) {
           </header>
 
           {route.path === '/' ? (
-            <Dashboard />
+            <Dashboard
+              onCreateWorkspace={onCreateWorkspace}
+              workspaceState={workspaceState}
+            />
           ) : (
             <EmptyWorkspace
               actionLabel={route.actionLabel}

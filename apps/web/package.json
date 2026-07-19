@@ -11,6 +11,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@nebenkosten/persistence": "workspace:*",
+    "@nebenkosten/schema": "workspace:*",
     "react": "19.2.7",
     "react-dom": "19.2.7"
   }

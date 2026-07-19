@@ -8,6 +8,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { App } from './App'
+import type { WorkspaceState } from './app/workspace-controller'
 
 afterEach(() => {
   cleanup()
@@ -120,6 +121,43 @@ describe('App', () => {
 
     expect(
       screen.getByRole('heading', { name: 'Kosten erfassen' }),
+    ).toBeVisible()
+  })
+
+  it.each([
+    ['conflict', false, false, 'Speicherkonflikt – nicht überschrieben'],
+    ['blocked', false, false, 'Speicherstand ist geschützt'],
+    ['error', false, false, 'Speichern nicht möglich'],
+    ['ready', true, true, 'Änderungen werden gespeichert'],
+    ['ready', true, false, 'Ungesicherte Änderungen'],
+  ] as const)(
+    'shows the safe %s storage state',
+    (status, dirty, saving, label) => {
+      const workspaceState: WorkspaceState = {
+        status,
+        data: null,
+        revision: null,
+        dirty,
+        saving,
+        errorCode: status === 'ready' ? null : 'io_failed',
+      }
+      render(<App initialPath="/" workspaceState={workspaceState} />)
+      expect(screen.getByText(label)).toBeVisible()
+    },
+  )
+
+  it('labels clean preview storage as session-only', () => {
+    const workspaceState: WorkspaceState = {
+      status: 'ready',
+      data: null,
+      revision: 'revision',
+      dirty: false,
+      saving: false,
+      errorCode: null,
+    }
+    render(<App initialPath="/" previewMode workspaceState={workspaceState} />)
+    expect(
+      screen.getByText('Nur im Arbeitsspeicher – beim Neuladen verloren'),
     ).toBeVisible()
   })
 })

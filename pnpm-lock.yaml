@@ -92,6 +92,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@nebenkosten/persistence':
+        specifier: workspace:*
+        version: link:../../packages/persistence
+      '@nebenkosten/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
       react:
         specifier: 19.2.7
         version: 19.2.7

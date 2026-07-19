@@ -435,11 +435,43 @@ h1 {
 
 .workflow-card,
 .empty-panel,
-.release-panel {
+.release-panel,
+.welcome-panel {
   border: 1px solid var(--line);
   border-radius: 1rem;
   background: var(--paper);
   box-shadow: 0 1.2rem 3.5rem rgb(31 55 43 / 5%);
+}
+
+.welcome-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 1rem;
+  padding: 1.35rem 1.5rem;
+  border-color: #bcd9c9;
+  background: var(--mint-soft);
+}
+
+.welcome-panel h2 {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.45rem;
+  font-weight: 500;
+}
+
+.welcome-panel p:last-child {
+  max-width: 45rem;
+  margin: 0.45rem 0 0;
+  color: #526b5f;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.welcome-panel .button {
+  flex: 0 0 auto;
+  margin: 0;
 }
 
 .workflow-card {
@@ -750,6 +782,10 @@ h1 {
 
   .release-panel {
     grid-template-columns: 1fr;
+  }
+
+  .welcome-panel {
+    display: grid;
   }
 
   .release-score {
