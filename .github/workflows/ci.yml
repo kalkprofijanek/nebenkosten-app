@@ -92,6 +92,15 @@ jobs:
       - *setup
       - run: pnpm test:migration
 
+  characterization-tests:
+    name: characterization-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - *checkout
+      - *setup
+      - run: pnpm test:characterization
+
   coverage:
     name: coverage
     runs-on: ubuntu-latest

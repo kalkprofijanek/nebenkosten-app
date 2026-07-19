@@ -1,0 +1,1408 @@
+{
+  "note": "Frei erfundene, anonyme Charakterisierungs-Szenarien (Mustermann-Stil). Einzige Wahrheitsquelle fuer Eingabe-Fixtures (v4) und die aus der Legacy-Engine hergeleiteten Golden-Werte. Betraege in Euro (werden beim Build/Vergleich in Cent gewandelt). Siehe tests/characterization/README.md.",
+  "scenarios": [
+    {
+      "id": "case-01-full-year",
+      "title": "Vollstaendiges Jahr, eine Betriebskostenart nach Nutzflaeche",
+      "coverage": [
+        "daily-periods",
+        "usable-area",
+        "prepayments",
+        "control-sum",
+        "total-billing"
+      ],
+      "year": 2024,
+      "from": "2024-01-01",
+      "to": "2024-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "usable",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": null,
+          "mandatePrefixes": ["AW1"]
+        }
+      ],
+      "circuits": [],
+      "costs": [
+        {
+          "id": "k-muell",
+          "kind": "operating",
+          "label": "Muellbeseitigung",
+          "statementText": "Muellbeseitigung",
+          "betrkv": "§2 Nr. 8b",
+          "allocationKey": "usable_area",
+          "scope": { "kind": "property" },
+          "amountEur": 1200
+        }
+      ],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 60,
+          "heatedAreaSqm": 60,
+          "persons": 2,
+          "consumptionUnits": 0,
+          "prepay": { "mode": "monthly", "amountEur": 50 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u2",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "tenant",
+          "usableAreaSqm": 40,
+          "heatedAreaSqm": 40,
+          "persons": 1,
+          "consumptionUnits": 0,
+          "prepay": { "mode": "monthly", "amountEur": 40 }
+        }
+      ]
+    },
+    {
+      "id": "case-02-tenant-change",
+      "title": "Unterjaehriger Nutzerwechsel, taggenaue Verteilung",
+      "coverage": [
+        "daily-periods",
+        "tenant-change",
+        "usable-area",
+        "prepayments",
+        "control-sum"
+      ],
+      "year": 2025,
+      "from": "2025-01-01",
+      "to": "2025-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "usable",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": null,
+          "mandatePrefixes": ["AW1"]
+        }
+      ],
+      "circuits": [],
+      "costs": [
+        {
+          "id": "k-gart",
+          "kind": "operating",
+          "label": "Gartenpflege",
+          "statementText": "Gartenpflege",
+          "betrkv": "§2 Nr. 10",
+          "allocationKey": "usable_area",
+          "scope": { "kind": "property" },
+          "amountEur": 1000
+        }
+      ],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "from": "2025-01-01",
+          "to": "2025-06-30",
+          "usableAreaSqm": 100,
+          "heatedAreaSqm": 100,
+          "persons": 2,
+          "consumptionUnits": 0,
+          "prepay": { "mode": "monthly", "amountEur": 40 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "tenant",
+          "from": "2025-07-01",
+          "to": "2025-12-31",
+          "usableAreaSqm": 100,
+          "heatedAreaSqm": 100,
+          "persons": 1,
+          "consumptionUnits": 0,
+          "prepay": { "mode": "monthly", "amountEur": 45 }
+        }
+      ]
+    },
+    {
+      "id": "case-03-vacancy",
+      "title": "Leerstand einer Einheit, Vermieter traegt den Leerstandsanteil",
+      "coverage": ["vacancy", "usable-area", "landlord-share", "control-sum"],
+      "year": 2024,
+      "from": "2024-01-01",
+      "to": "2024-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "usable",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": null,
+          "mandatePrefixes": ["AW1"]
+        }
+      ],
+      "circuits": [],
+      "costs": [
+        {
+          "id": "k-reinig",
+          "kind": "operating",
+          "label": "Gebaeudereinigung",
+          "statementText": "Gebaeudereinigung",
+          "betrkv": "§2 Nr. 9",
+          "allocationKey": "usable_area",
+          "scope": { "kind": "property" },
+          "amountEur": 1000
+        }
+      ],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 60,
+          "heatedAreaSqm": 60,
+          "persons": 2,
+          "consumptionUnits": 0,
+          "prepay": { "mode": "monthly", "amountEur": 50 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u2",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "vacancy",
+          "usableAreaSqm": 40,
+          "heatedAreaSqm": 40,
+          "persons": 0,
+          "consumptionUnits": 0,
+          "prepay": { "mode": "none" }
+        }
+      ]
+    },
+    {
+      "id": "case-04-multiple-buildings",
+      "title": "Mehrere Haeuser/Bloecke, objektweite und blockbezogene Kosten",
+      "coverage": [
+        "multi-building",
+        "usable-area",
+        "residential-units",
+        "per-building-scope",
+        "control-sum"
+      ],
+      "year": 2024,
+      "from": "2024-01-01",
+      "to": "2024-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "usable",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": null,
+          "mandatePrefixes": ["AW1"]
+        },
+        {
+          "id": "B2",
+          "name": "Haus Sued",
+          "shortName": "AW2",
+          "energyType": null,
+          "mandatePrefixes": ["AW2"]
+        }
+      ],
+      "circuits": [],
+      "costs": [
+        {
+          "id": "k-vers",
+          "kind": "operating",
+          "label": "Gebaeudeversicherung",
+          "statementText": "Gebaeudeversicherung",
+          "betrkv": "§2 Nr. 13",
+          "allocationKey": "usable_area",
+          "scope": { "kind": "property" },
+          "amountEur": 2000
+        },
+        {
+          "id": "k-b1",
+          "kind": "operating",
+          "label": "Gartenpflege AW1",
+          "statementText": "Gartenpflege AW1",
+          "betrkv": "§2 Nr. 10",
+          "allocationKey": "usable_area",
+          "scope": { "kind": "building", "buildingId": "B1" },
+          "amountEur": 600
+        },
+        {
+          "id": "k-b2",
+          "kind": "operating",
+          "label": "Gartenpflege AW2",
+          "statementText": "Gartenpflege AW2",
+          "betrkv": "§2 Nr. 10",
+          "allocationKey": "usable_area",
+          "scope": { "kind": "building", "buildingId": "B2" },
+          "amountEur": 300
+        },
+        {
+          "id": "k-aufzug",
+          "kind": "operating",
+          "label": "Aufzug",
+          "statementText": "Aufzug",
+          "betrkv": "§2 Nr. 7",
+          "allocationKey": "residential_units",
+          "scope": { "kind": "property" },
+          "amountEur": 300
+        }
+      ],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 50,
+          "heatedAreaSqm": 50,
+          "persons": 2,
+          "consumptionUnits": 0,
+          "prepay": { "mode": "monthly", "amountEur": 60 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u2",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "tenant",
+          "usableAreaSqm": 50,
+          "heatedAreaSqm": 50,
+          "persons": 2,
+          "consumptionUnits": 0,
+          "prepay": { "mode": "monthly", "amountEur": 60 }
+        },
+        {
+          "id": "t3",
+          "unitId": "u3",
+          "buildingId": "B2",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 100,
+          "heatedAreaSqm": 100,
+          "persons": 3,
+          "consumptionUnits": 0,
+          "prepay": { "mode": "monthly", "amountEur": 80 }
+        }
+      ]
+    },
+    {
+      "id": "case-05-multiple-circuits",
+      "title": "Mehrere Heizkreise (Heizoel + Erdgas), Heizungsbetriebskosten im 70/30-Topf",
+      "coverage": [
+        "multi-circuit",
+        "heating-operating-costs",
+        "heating-base-consumption",
+        "heated-area",
+        "consumption-units",
+        "per-building-scope",
+        "control-sum"
+      ],
+      "year": 2024,
+      "from": "2024-01-01",
+      "to": "2024-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "heated",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": "Heizoel",
+          "mandatePrefixes": ["AW1"]
+        },
+        {
+          "id": "B2",
+          "name": "Haus Sued",
+          "shortName": "AW2",
+          "energyType": "Erdgas",
+          "mandatePrefixes": ["AW2"]
+        }
+      ],
+      "circuits": [
+        {
+          "buildingId": "B1",
+          "hasCentralHotWater": false,
+          "hotWaterPercent": null,
+          "overrides": null,
+          "co2": {
+            "mode": "auto",
+            "pricePerTonEur": 0,
+            "factorKgPerKwh": null
+          },
+          "sources": [
+            {
+              "key": "haupt",
+              "name": "Heizoel",
+              "type": "Heizoel",
+              "calorificKwh": 10,
+              "co2FactorKgPerKwh": 0.2664,
+              "openingQuantity": 0,
+              "openingUnit": "l",
+              "openingValueEur": 0,
+              "remainingQuantity": 0,
+              "deliveries": [
+                {
+                  "date": "2024-02-01",
+                  "quantity": 3000,
+                  "unit": "l",
+                  "amountEur": 3000
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "buildingId": "B2",
+          "hasCentralHotWater": false,
+          "hotWaterPercent": null,
+          "overrides": null,
+          "co2": {
+            "mode": "auto",
+            "pricePerTonEur": 0,
+            "factorKgPerKwh": null
+          },
+          "sources": [
+            {
+              "key": "haupt",
+              "name": "Erdgas",
+              "type": "Erdgas",
+              "calorificKwh": 10,
+              "co2FactorKgPerKwh": 0.201,
+              "openingQuantity": 0,
+              "openingUnit": "m3",
+              "openingValueEur": 0,
+              "remainingQuantity": 0,
+              "deliveries": [
+                {
+                  "date": "2024-02-01",
+                  "quantity": 200,
+                  "unit": "m3",
+                  "amountEur": 2000
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "costs": [
+        {
+          "id": "k-wartung-b1",
+          "kind": "heating",
+          "label": "Heizungswartung AW1",
+          "statementText": "Betrieb Heizungsanlage AW1",
+          "betrkv": "§2 Nr. 4",
+          "allocationKey": "heated_area",
+          "scope": { "kind": "building", "buildingId": "B1" },
+          "amountEur": 200
+        }
+      ],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 50,
+          "heatedAreaSqm": 50,
+          "persons": 2,
+          "consumptionUnits": 30,
+          "prepay": { "mode": "monthly", "amountEur": 90 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u2",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "tenant",
+          "usableAreaSqm": 50,
+          "heatedAreaSqm": 50,
+          "persons": 2,
+          "consumptionUnits": 70,
+          "prepay": { "mode": "monthly", "amountEur": 160 }
+        },
+        {
+          "id": "t3",
+          "unitId": "u3",
+          "buildingId": "B2",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 100,
+          "heatedAreaSqm": 100,
+          "persons": 3,
+          "consumptionUnits": 100,
+          "prepay": { "mode": "monthly", "amountEur": 170 }
+        }
+      ]
+    },
+    {
+      "id": "case-06-heating-oil-fifo",
+      "title": "Heizoel mit Anfangs- und Restbestand (FIFO-Bewertung)",
+      "coverage": [
+        "fuel-fifo",
+        "fuel-opening-remaining",
+        "heating-base-consumption",
+        "heated-area",
+        "consumption-units",
+        "control-sum"
+      ],
+      "year": 2024,
+      "from": "2024-01-01",
+      "to": "2024-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "heated",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": "Heizoel",
+          "mandatePrefixes": ["AW1"]
+        }
+      ],
+      "circuits": [
+        {
+          "buildingId": "B1",
+          "hasCentralHotWater": false,
+          "hotWaterPercent": null,
+          "overrides": null,
+          "co2": {
+            "mode": "auto",
+            "pricePerTonEur": 0,
+            "factorKgPerKwh": null
+          },
+          "sources": [
+            {
+              "key": "haupt",
+              "name": "Heizoel",
+              "type": "Heizoel",
+              "calorificKwh": 10,
+              "co2FactorKgPerKwh": 0.2664,
+              "openingQuantity": 1000,
+              "openingUnit": "l",
+              "openingValueEur": 800,
+              "remainingQuantity": 500,
+              "deliveries": [
+                {
+                  "date": "2024-03-01",
+                  "quantity": 2000,
+                  "unit": "l",
+                  "amountEur": 1900
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "costs": [],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 40,
+          "heatedAreaSqm": 40,
+          "persons": 1,
+          "consumptionUnits": 40,
+          "prepay": { "mode": "monthly", "amountEur": 70 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u2",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "tenant",
+          "usableAreaSqm": 60,
+          "heatedAreaSqm": 60,
+          "persons": 2,
+          "consumptionUnits": 60,
+          "prepay": { "mode": "monthly", "amountEur": 100 }
+        }
+      ]
+    },
+    {
+      "id": "case-07-pellets",
+      "title": "Pellets-Heizung (Mengeneinheit kg, Heizwert 4,8 kWh/kg)",
+      "coverage": [
+        "fuel-pellets",
+        "heating-base-consumption",
+        "heated-area",
+        "consumption-units",
+        "control-sum"
+      ],
+      "year": 2024,
+      "from": "2024-01-01",
+      "to": "2024-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "heated",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": "Pellets",
+          "mandatePrefixes": ["AW1"]
+        }
+      ],
+      "circuits": [
+        {
+          "buildingId": "B1",
+          "hasCentralHotWater": false,
+          "hotWaterPercent": null,
+          "overrides": null,
+          "co2": {
+            "mode": "auto",
+            "pricePerTonEur": 0,
+            "factorKgPerKwh": null
+          },
+          "sources": [
+            {
+              "key": "haupt",
+              "name": "Pellets",
+              "type": "Pellets",
+              "calorificKwh": 4.8,
+              "co2FactorKgPerKwh": 0.036,
+              "openingQuantity": 0,
+              "openingUnit": "kg",
+              "openingValueEur": 0,
+              "remainingQuantity": 0,
+              "deliveries": [
+                {
+                  "date": "2024-02-15",
+                  "quantity": 5000,
+                  "unit": "kg",
+                  "amountEur": 2000
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "costs": [],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 50,
+          "heatedAreaSqm": 50,
+          "persons": 2,
+          "consumptionUnits": 40,
+          "prepay": { "mode": "monthly", "amountEur": 70 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u2",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "tenant",
+          "usableAreaSqm": 50,
+          "heatedAreaSqm": 50,
+          "persons": 2,
+          "consumptionUnits": 60,
+          "prepay": { "mode": "monthly", "amountEur": 95 }
+        }
+      ]
+    },
+    {
+      "id": "case-08-heat-pump",
+      "title": "Waermepumpe (WP Mono), Strom als Energietraeger, CO2 ~ 0",
+      "coverage": [
+        "heat-pump",
+        "heating-base-consumption",
+        "heated-area",
+        "consumption-units",
+        "control-sum"
+      ],
+      "year": 2024,
+      "from": "2024-01-01",
+      "to": "2024-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "heated",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": "WP Mono",
+          "mandatePrefixes": ["AW1"]
+        }
+      ],
+      "circuits": [
+        {
+          "buildingId": "B1",
+          "hasCentralHotWater": false,
+          "hotWaterPercent": null,
+          "overrides": null,
+          "co2": {
+            "mode": "auto",
+            "pricePerTonEur": 55,
+            "factorKgPerKwh": null
+          },
+          "sources": [
+            {
+              "key": "wp_strom",
+              "name": "Waermepumpenstrom",
+              "type": "Strom",
+              "calorificKwh": 1,
+              "co2FactorKgPerKwh": 0,
+              "openingQuantity": 0,
+              "openingUnit": "kWh",
+              "openingValueEur": 0,
+              "remainingQuantity": 0,
+              "deliveries": [
+                {
+                  "date": "2024-06-30",
+                  "quantity": 8000,
+                  "unit": "kWh",
+                  "amountEur": 2400
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "costs": [],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 60,
+          "heatedAreaSqm": 60,
+          "persons": 2,
+          "consumptionUnits": 60,
+          "prepay": { "mode": "monthly", "amountEur": 110 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u2",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "tenant",
+          "usableAreaSqm": 40,
+          "heatedAreaSqm": 40,
+          "persons": 1,
+          "consumptionUnits": 40,
+          "prepay": { "mode": "monthly", "amountEur": 75 }
+        }
+      ]
+    },
+    {
+      "id": "case-09-hybrid",
+      "title": "Hybridheizung Waermepumpe + Gas-Spitzenlast (zwei Energiequellen)",
+      "coverage": [
+        "hybrid-heating",
+        "multi-energy-source",
+        "heat-pump",
+        "co2-split",
+        "heating-base-consumption",
+        "control-sum"
+      ],
+      "year": 2024,
+      "from": "2024-01-01",
+      "to": "2024-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "heated",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": "Hybrid WP+Gas",
+          "mandatePrefixes": ["AW1"]
+        }
+      ],
+      "circuits": [
+        {
+          "buildingId": "B1",
+          "hasCentralHotWater": false,
+          "hotWaterPercent": null,
+          "overrides": null,
+          "co2": {
+            "mode": "auto",
+            "pricePerTonEur": 55,
+            "factorKgPerKwh": null
+          },
+          "sources": [
+            {
+              "key": "wp_strom",
+              "name": "Waermepumpenstrom",
+              "type": "Strom",
+              "calorificKwh": 1,
+              "co2FactorKgPerKwh": 0.38,
+              "openingQuantity": 0,
+              "openingUnit": "kWh",
+              "openingValueEur": 0,
+              "remainingQuantity": 0,
+              "deliveries": [
+                {
+                  "date": "2024-06-30",
+                  "quantity": 5000,
+                  "unit": "kWh",
+                  "amountEur": 1500
+                }
+              ]
+            },
+            {
+              "key": "gas",
+              "name": "Gas Zusatz-/Spitzenlast",
+              "type": "Gas",
+              "calorificKwh": 10,
+              "co2FactorKgPerKwh": 0.201,
+              "openingQuantity": 0,
+              "openingUnit": "m3",
+              "openingValueEur": 0,
+              "remainingQuantity": 0,
+              "deliveries": [
+                {
+                  "date": "2024-12-15",
+                  "quantity": 200,
+                  "unit": "m3",
+                  "amountEur": 1000
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "costs": [],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 50,
+          "heatedAreaSqm": 50,
+          "persons": 2,
+          "consumptionUnits": 50,
+          "prepay": { "mode": "monthly", "amountEur": 130 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u2",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "tenant",
+          "usableAreaSqm": 50,
+          "heatedAreaSqm": 50,
+          "persons": 2,
+          "consumptionUnits": 50,
+          "prepay": { "mode": "monthly", "amountEur": 130 }
+        }
+      ]
+    },
+    {
+      "id": "case-10-central-hot-water",
+      "title": "Zentrale Warmwasserbereitung (§9 HeizKV, Verteilung nach Personen)",
+      "coverage": [
+        "central-hot-water",
+        "hot-water-share",
+        "heating-base-consumption",
+        "person-key",
+        "control-sum"
+      ],
+      "year": 2024,
+      "from": "2024-01-01",
+      "to": "2024-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "heated",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": "Heizoel",
+          "mandatePrefixes": ["AW1"]
+        }
+      ],
+      "circuits": [
+        {
+          "buildingId": "B1",
+          "hasCentralHotWater": true,
+          "hotWaterPercent": 30,
+          "overrides": null,
+          "co2": {
+            "mode": "auto",
+            "pricePerTonEur": 0,
+            "factorKgPerKwh": null
+          },
+          "sources": [
+            {
+              "key": "haupt",
+              "name": "Heizoel",
+              "type": "Heizoel",
+              "calorificKwh": 10,
+              "co2FactorKgPerKwh": 0.2664,
+              "openingQuantity": 0,
+              "openingUnit": "l",
+              "openingValueEur": 0,
+              "remainingQuantity": 0,
+              "deliveries": [
+                {
+                  "date": "2024-02-01",
+                  "quantity": 4000,
+                  "unit": "l",
+                  "amountEur": 4000
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "costs": [],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 50,
+          "heatedAreaSqm": 50,
+          "persons": 2,
+          "consumptionUnits": 40,
+          "prepay": { "mode": "monthly", "amountEur": 140 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u2",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "tenant",
+          "usableAreaSqm": 50,
+          "heatedAreaSqm": 50,
+          "persons": 3,
+          "consumptionUnits": 60,
+          "prepay": { "mode": "monthly", "amountEur": 190 }
+        }
+      ]
+    },
+    {
+      "id": "case-11-decentral-hot-water",
+      "title": "Dezentrale Warmwasserbereitung (kein zentraler WW-Ausweis)",
+      "coverage": [
+        "decentral-hot-water",
+        "heating-base-consumption",
+        "heated-area",
+        "consumption-units",
+        "control-sum"
+      ],
+      "year": 2024,
+      "from": "2024-01-01",
+      "to": "2024-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "heated",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": "Heizoel",
+          "mandatePrefixes": ["AW1"]
+        }
+      ],
+      "circuits": [
+        {
+          "buildingId": "B1",
+          "hasCentralHotWater": false,
+          "hotWaterPercent": null,
+          "overrides": null,
+          "co2": {
+            "mode": "auto",
+            "pricePerTonEur": 0,
+            "factorKgPerKwh": null
+          },
+          "sources": [
+            {
+              "key": "haupt",
+              "name": "Heizoel",
+              "type": "Heizoel",
+              "calorificKwh": 10,
+              "co2FactorKgPerKwh": 0.2664,
+              "openingQuantity": 0,
+              "openingUnit": "l",
+              "openingValueEur": 0,
+              "remainingQuantity": 0,
+              "deliveries": [
+                {
+                  "date": "2024-02-01",
+                  "quantity": 3000,
+                  "unit": "l",
+                  "amountEur": 3000
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "costs": [],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 60,
+          "heatedAreaSqm": 60,
+          "persons": 2,
+          "consumptionUnits": 50,
+          "prepay": { "mode": "monthly", "amountEur": 130 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u2",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "tenant",
+          "usableAreaSqm": 40,
+          "heatedAreaSqm": 40,
+          "persons": 1,
+          "consumptionUnits": 50,
+          "prepay": { "mode": "monthly", "amountEur": 120 }
+        }
+      ]
+    },
+    {
+      "id": "case-12-co2-split",
+      "title": "CO2-Aufteilung nach CO2KostAufG-Stufenmodell (mittlere Emissionsstufe)",
+      "coverage": [
+        "co2-quantity",
+        "co2-cost",
+        "co2-split",
+        "behg-price",
+        "heating-base-consumption",
+        "control-sum"
+      ],
+      "year": 2024,
+      "from": "2024-01-01",
+      "to": "2024-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "heated",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": "Heizoel",
+          "mandatePrefixes": ["AW1"]
+        }
+      ],
+      "circuits": [
+        {
+          "buildingId": "B1",
+          "hasCentralHotWater": false,
+          "hotWaterPercent": null,
+          "overrides": null,
+          "co2": {
+            "mode": "auto",
+            "pricePerTonEur": 55,
+            "factorKgPerKwh": null
+          },
+          "sources": [
+            {
+              "key": "haupt",
+              "name": "Heizoel",
+              "type": "Heizoel",
+              "calorificKwh": 10,
+              "co2FactorKgPerKwh": 0.2664,
+              "openingQuantity": 0,
+              "openingUnit": "l",
+              "openingValueEur": 0,
+              "remainingQuantity": 0,
+              "deliveries": [
+                {
+                  "date": "2024-02-01",
+                  "quantity": 2000,
+                  "unit": "l",
+                  "amountEur": 2000
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "costs": [],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 100,
+          "heatedAreaSqm": 100,
+          "persons": 2,
+          "consumptionUnits": 50,
+          "prepay": { "mode": "monthly", "amountEur": 90 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u2",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "tenant",
+          "usableAreaSqm": 100,
+          "heatedAreaSqm": 100,
+          "persons": 2,
+          "consumptionUnits": 50,
+          "prepay": { "mode": "monthly", "amountEur": 90 }
+        }
+      ]
+    },
+    {
+      "id": "case-13-direct-costs",
+      "title": "Direktkosten (nicht automatisch verteilt) neben regulaerer Umlage",
+      "coverage": [
+        "direct-costs",
+        "usable-area",
+        "unallocated-costs",
+        "control-sum"
+      ],
+      "year": 2024,
+      "from": "2024-01-01",
+      "to": "2024-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "usable",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": null,
+          "mandatePrefixes": ["AW1"]
+        }
+      ],
+      "circuits": [],
+      "costs": [
+        {
+          "id": "k-wasser",
+          "kind": "water",
+          "label": "Wasserversorgung",
+          "statementText": "Wasserversorgung",
+          "betrkv": "§2 Nr. 2",
+          "allocationKey": "usable_area",
+          "scope": { "kind": "property" },
+          "amountEur": 1000
+        },
+        {
+          "id": "k-direkt",
+          "kind": "operating",
+          "label": "Direktkosten Sonderposten",
+          "statementText": "Direktkosten Sonderposten",
+          "betrkv": "§2 Nr. 17",
+          "allocationKey": "direct",
+          "scope": { "kind": "property" },
+          "amountEur": 500
+        }
+      ],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 60,
+          "heatedAreaSqm": 60,
+          "persons": 2,
+          "consumptionUnits": 0,
+          "prepay": { "mode": "monthly", "amountEur": 50 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u2",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "tenant",
+          "usableAreaSqm": 40,
+          "heatedAreaSqm": 40,
+          "persons": 1,
+          "consumptionUnits": 0,
+          "prepay": { "mode": "monthly", "amountEur": 40 }
+        }
+      ]
+    },
+    {
+      "id": "case-14-missing-assignment",
+      "title": "Fehlende Zuordnung: Heizungs-Betriebskosten ohne Block trifft den Vermieter",
+      "coverage": [
+        "missing-assignment",
+        "unallocated-heating",
+        "landlord-share",
+        "control-sum"
+      ],
+      "year": 2024,
+      "from": "2024-01-01",
+      "to": "2024-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "heated",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": "Heizoel",
+          "mandatePrefixes": ["AW1"]
+        }
+      ],
+      "circuits": [
+        {
+          "buildingId": "B1",
+          "hasCentralHotWater": false,
+          "hotWaterPercent": null,
+          "overrides": null,
+          "co2": {
+            "mode": "auto",
+            "pricePerTonEur": 0,
+            "factorKgPerKwh": null
+          },
+          "sources": [
+            {
+              "key": "haupt",
+              "name": "Heizoel",
+              "type": "Heizoel",
+              "calorificKwh": 10,
+              "co2FactorKgPerKwh": 0.2664,
+              "openingQuantity": 0,
+              "openingUnit": "l",
+              "openingValueEur": 0,
+              "remainingQuantity": 0,
+              "deliveries": [
+                {
+                  "date": "2024-02-01",
+                  "quantity": 2000,
+                  "unit": "l",
+                  "amountEur": 2000
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "costs": [
+        {
+          "id": "k-wartung",
+          "kind": "heating",
+          "label": "Heizungswartung (ohne Block)",
+          "statementText": "Heizungswartung",
+          "betrkv": "§2 Nr. 4",
+          "allocationKey": "heated_area",
+          "scope": { "kind": "property" },
+          "amountEur": 500
+        }
+      ],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 50,
+          "heatedAreaSqm": 50,
+          "persons": 2,
+          "consumptionUnits": 50,
+          "prepay": { "mode": "monthly", "amountEur": 100 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u2",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "tenant",
+          "usableAreaSqm": 50,
+          "heatedAreaSqm": 50,
+          "persons": 2,
+          "consumptionUnits": 50,
+          "prepay": { "mode": "monthly", "amountEur": 100 }
+        }
+      ]
+    },
+    {
+      "id": "case-15-negative-values",
+      "title": "Negative/unplausible Werte: Gutschrift-Position und Einheit ohne HKV-Ablesewert",
+      "coverage": [
+        "negative-values",
+        "implausible-values",
+        "usable-area",
+        "consumption-units-missing",
+        "control-sum"
+      ],
+      "year": 2024,
+      "from": "2024-01-01",
+      "to": "2024-12-31",
+      "defaults": {
+        "consumptionPercent": 70,
+        "basePercent": 30,
+        "baseArea": "heated",
+        "operatingElectricityPercent": 0
+      },
+      "buildings": [
+        {
+          "id": "B1",
+          "name": "Haus Nord",
+          "shortName": "AW1",
+          "energyType": "Heizoel",
+          "mandatePrefixes": ["AW1"]
+        }
+      ],
+      "circuits": [
+        {
+          "buildingId": "B1",
+          "hasCentralHotWater": false,
+          "hotWaterPercent": null,
+          "overrides": null,
+          "co2": {
+            "mode": "auto",
+            "pricePerTonEur": 0,
+            "factorKgPerKwh": null
+          },
+          "sources": [
+            {
+              "key": "haupt",
+              "name": "Heizoel",
+              "type": "Heizoel",
+              "calorificKwh": 10,
+              "co2FactorKgPerKwh": 0.2664,
+              "openingQuantity": 0,
+              "openingUnit": "l",
+              "openingValueEur": 0,
+              "remainingQuantity": 0,
+              "deliveries": [
+                {
+                  "date": "2024-02-01",
+                  "quantity": 1000,
+                  "unit": "l",
+                  "amountEur": 1000
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "costs": [
+        {
+          "id": "k-gutschrift",
+          "kind": "operating",
+          "label": "Betriebskosten-Gutschrift",
+          "statementText": "Betriebskosten-Gutschrift",
+          "betrkv": "§2 Nr. 17",
+          "allocationKey": "usable_area",
+          "scope": { "kind": "property" },
+          "amountEur": -200
+        }
+      ],
+      "tenants": [
+        {
+          "id": "t1",
+          "unitId": "u1",
+          "buildingId": "B1",
+          "mandateSuffix": "001",
+          "kind": "tenant",
+          "usableAreaSqm": 50,
+          "heatedAreaSqm": 50,
+          "persons": 2,
+          "consumptionUnits": 50,
+          "prepay": { "mode": "monthly", "amountEur": 60 }
+        },
+        {
+          "id": "t2",
+          "unitId": "u2",
+          "buildingId": "B1",
+          "mandateSuffix": "002",
+          "kind": "tenant",
+          "usableAreaSqm": 50,
+          "heatedAreaSqm": 50,
+          "persons": 2,
+          "consumptionUnits": 0,
+          "prepay": { "mode": "monthly", "amountEur": 60 }
+        }
+      ]
+    }
+  ]
+}
