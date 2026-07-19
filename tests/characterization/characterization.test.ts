@@ -83,6 +83,14 @@ describe.each(scenarios.map((scenario) => [scenario.id, scenario] as const))(
   (id, scenario) => {
     const golden = goldenById.get(id)!
 
+    it('setzt periodDays auf den inklusiven Zeitraum aus from/to', () => {
+      const inclusiveDays =
+        Math.round(
+          (Date.parse(scenario.to) - Date.parse(scenario.from)) / 86_400_000,
+        ) + 1
+      expect(golden.periodDays).toBe(inclusiveDays)
+    })
+
     it('erzeugt eine gegen appDataFileSchema gueltige v4-Eingabe-Fixture', () => {
       const appData = buildAppDataFile(scenario)
       const result = appDataFileSchema.safeParse(appData)

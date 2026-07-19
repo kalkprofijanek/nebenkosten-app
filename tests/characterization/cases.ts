@@ -46,6 +46,26 @@ function requireFiniteNonNegative(value: unknown, path: string): number {
   return value
 }
 
+function requirePercent(value: unknown, path: string): number {
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    value < 0 ||
+    value > 100
+  )
+    fail(path, 'muss eine Zahl in [0, 100] sein')
+  return value
+}
+
+/** Inklusive Tagesanzahl zwischen zwei ISO-Datumsangaben (UTC, DST-sicher). */
+function inclusiveDays(fromIso: string, toIso: string, path: string): number {
+  const from = Date.parse(fromIso)
+  const to = Date.parse(toIso)
+  if (!Number.isFinite(from) || !Number.isFinite(to) || to < from)
+    fail(path, `ungültiger Zeitraum ${fromIso}..${toIso}`)
+  return Math.round((to - from) / 86_400_000) + 1
+}
+
 function requireString(value: unknown, path: string): string {
   if (typeof value !== 'string' || value.length === 0)
     fail(path, 'muss ein nicht-leerer String sein')
@@ -81,14 +101,21 @@ function validateCircuit(raw: unknown, path: string): GoldenCircuit {
     'co2LandlordCents',
   ] as const
   const nonNegFields = [
-    'co2TenantPercent',
     'co2IntensityKgPerSqmYear',
     'co2Kg',
     'energyKwh',
   ] as const
-  requireKnownKeys(object, ['buildingId', ...intFields, ...nonNegFields], path)
+  requireKnownKeys(
+    object,
+    ['buildingId', 'co2TenantPercent', ...intFields, ...nonNegFields],
+    path,
+  )
   const circuit = {
     buildingId: requireString(object.buildingId, `${path}.buildingId`),
+    co2TenantPercent: requirePercent(
+      object.co2TenantPercent,
+      `${path}.co2TenantPercent`,
+    ),
   } as Record<string, unknown>
   for (const field of intFields)
     circuit[field] = requireInt(object[field], `${path}.${field}`)
@@ -237,6 +264,26 @@ export const goldens: readonly Golden[] = loadJson<unknown[]>(
 export const goldenById: ReadonlyMap<string, Golden> = new Map(
   goldens.map((golden) => [golden.id, golden]),
 )
+
+// Kreuzprüfung beim Laden: `periodDays` jeder Golden-Zeile muss der
+// inklusiven Tagesdifferenz aus `scenario.from`/`scenario.to` entsprechen —
+// ein falscher Wert (z. B. 999) fällt so beim Import auf, obwohl kein Test
+// das Feld direkt vergleicht.
+for (const scenario of scenarios) {
+  const golden = goldenById.get(scenario.id)
+  if (!golden)
+    fail(`scenario ${scenario.id}`, 'kein zugehöriger Golden-Datensatz')
+  const expected = inclusiveDays(
+    scenario.from,
+    scenario.to,
+    `scenario ${scenario.id} Zeitraum`,
+  )
+  if (golden.periodDays !== expected)
+    fail(
+      `goldens[${scenario.id}].periodDays`,
+      `muss ${expected} sein (inklusive ${scenario.from}..${scenario.to}), war ${golden.periodDays}`,
+    )
+}
 
 /**
  * Gepaarte Fälle für PR 06. Die Core-Engine importiert dies, um ihr
