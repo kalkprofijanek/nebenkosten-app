@@ -259,21 +259,58 @@ describe.each(scenarios.map((scenario) => [scenario.id, scenario] as const))(
       }
     })
 
-    it('entspricht vollständig den Legacy-Golden-Werten', () => {
+    it('entspricht den Legacy-Goldens mit freigegebener Restcent-Anpassung', () => {
       const appData = buildAppDataFile(scenario)
       const input = createCalculationInput(appData, 'bp-1')
       const actual = calculateBilling(input)
+      const actualTenants = actual.tenants.map((tenant) => ({
+        ...tenant,
+        id: tenant.id.replace(/^op-/u, ''),
+      }))
 
       expect(actual.periodDays).toBe(golden.periodDays)
       expect(actual.totals).toEqual(golden.totals)
       expect(actual.heating).toEqual(golden.heating)
       expect(actual.co2).toEqual(golden.co2)
+      expect(actualTenants).toHaveLength(golden.tenants.length)
+      for (const [index, tenant] of actualTenants.entries()) {
+        const legacyTenant = golden.tenants[index]!
+        const allowedRestcentDelta =
+          scenario.id === 'case-12-co2-split' && tenant.id === 't1' ? 1 : 0
+        expect({
+          id: tenant.id,
+          isVacancy: tenant.isVacancy,
+          prepaymentCents: tenant.prepaymentCents,
+          status: tenant.status,
+        }).toEqual({
+          id: legacyTenant.id,
+          isVacancy: legacyTenant.isVacancy,
+          prepaymentCents: legacyTenant.prepaymentCents,
+          status: legacyTenant.status,
+        })
+        expect(
+          Math.abs(tenant.shareCents - legacyTenant.shareCents),
+        ).toBeLessThanOrEqual(allowedRestcentDelta)
+        expect(
+          Math.abs(tenant.balanceCents - legacyTenant.balanceCents),
+        ).toBeLessThanOrEqual(allowedRestcentDelta)
+        expect(tenant.balanceCents).toBe(
+          tenant.shareCents - tenant.prepaymentCents,
+        )
+      }
       expect(
-        actual.tenants.map((tenant) => ({
-          ...tenant,
-          id: tenant.id.replace(/^op-/u, ''),
-        })),
-      ).toEqual(golden.tenants)
+        actualTenants
+          .filter(({ isVacancy }) => !isVacancy)
+          .reduce((sum, { shareCents }) => sum + shareCents, 0),
+      ).toBe(actual.totals.tenantTotalCents)
+      if (scenario.id === 'case-12-co2-split') {
+        expect(
+          actualTenants.map(({ id, shareCents }) => ({ id, shareCents })),
+        ).toEqual([
+          { id: 't1', shareCents: 95_605 },
+          { id: 't2', shareCents: 95_604 },
+        ])
+      }
       expect(actual.vacancyLandlordCents).toBe(golden.vacancyLandlordCents)
     })
   },

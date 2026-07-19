@@ -6,7 +6,10 @@ Bezug: Masterplan Abschnitt 6, 9.5, 20 (PR 05/06); `docs/ROUNDING.md`;
 `legacy/behavior-map.md` Abschnitt 5–6.
 
 > PR 06 hat alle 15 vollständigen Engine-Vergleiche aktiviert. Derselbe
-> Testrunner läuft außerdem im Coverage-Gate des Core-Pakets.
+> Testrunner läuft außerdem im Coverage-Gate des Core-Pakets. Seit der
+> menschlichen Restcent-Entscheidung gilt das Größter-Rest-Verfahren; die
+> unveränderten Legacy-Goldens dürfen dadurch je Nutzer höchstens 1 Cent
+> abweichen.
 
 ## Inhalt
 
@@ -40,8 +43,11 @@ Bezug: Masterplan Abschnitt 6, 9.5, 20 (PR 05/06); `docs/ROUNDING.md`;
 Brennstoffsumme`, Warmwasseranteil im Heiztopf, sowie Plausibilität von
    CO₂-Menge/Energiemenge.
 4. **Vollständigkeit:** Alle Mindest-Testfälle aus Masterplan 20 sind abgedeckt.
-5. **Vollständiger Engine-Vergleich:** `periodDays`, `totals`, `heating`, `co2`,
-   alle Nutzerzeilen und der Leerstandsanteil werden je Fall exakt verglichen.
+5. **Vollständiger Engine-Vergleich:** `periodDays`, `totals`, `heating`, `co2`
+   und der Leerstandsanteil werden je Fall exakt verglichen. Nutzeranteil und
+   Saldo bleiben ebenfalls exakt, außer bei der ausdrücklich dokumentierten
+   Restcent-Zeile `case-12-co2-split`/`t1`; dort ist genau 1 Cent Abweichung
+   zulässig. Status, Vorauszahlung, ID und Leerstandsmerkmal bleiben exakt.
 
 Alle Engine-Vergleiche sind aktiv; es gibt keine `todo`-Fälle mehr.
 

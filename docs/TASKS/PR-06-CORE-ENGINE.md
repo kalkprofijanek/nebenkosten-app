@@ -52,29 +52,34 @@ aus und mutiert weder `appData` noch den erzeugten Snapshot.
   Brennstoff-Mengeneinheiten, optionale Heizangaben, negative Anteile und alle
   zehn automatischen CO₂-Stufen.
 - 15 vollständige Characterization-Vergleiche gegen die in PR 05 freigegebenen
-  Legacy-Golden-Werte.
+  Legacy-Golden-Werte; nur die dokumentierte Restcent-Zeile in Fall 12 darf
+  durch die menschlich freigegebene Verteilung genau 1 Cent abweichen.
 - Core-Coverage-Gate: mindestens 80 % für Statements, Branches, Functions und
   Lines.
 
 ## Verbindliche Ergebnisse
 
-- Alle 15 Legacy-Vergleichsfälle stimmen vollständig überein.
+- Alle 15 Legacy-Vergleichsfälle stimmen fachlich überein; die einzige
+  Zielabweichung ist die freigegebene Restcent-Verteilung in Fall 12.
 - Cent-Rundung erfolgt einmalig an der Ausgabegrenze mit
   `roundCentsHalfAwayFromZero`.
+- Nutzerzeilen werden anschließend per Größter-Rest-Verfahren summenerhaltend
+  ausgeglichen; Gleichstände entscheidet die stabile Nutzer-ID.
 - Die Kontrolldifferenz wird als eigener Cent-Wert ausgewiesen; die
   Freigabegrenze bleibt 1 Cent gemäß menschlicher Entscheidung in
   `docs/ROUNDING.md`.
 - Direktkosten und `NICHT_UML` bleiben entsprechend den freigegebenen
   Legacy-Goldens informativ außerhalb der Kontrollidentität.
 
-## Noch erforderliche menschliche Entscheidung
+## Menschlich freigegebene Restcent-Entscheidung
 
-Das Restcent-Verfahren aus `docs/ROUNDING.md`, Abschnitt 5/8, ist weiterhin
-offen. Die Engine bewahrt bis zu dieser Entscheidung das durch die Golden-Werte
-festgelegte Legacy-Verhalten: volle Zwischenpräzision, unabhängige Rundung der
-Ausgabezeilen und keine nachträgliche Restcent-Umverteilung. Eine Umstellung auf
-das größte-Rest-Verfahren benötigt eine bewusste fachliche Freigabe und
-angepasste Zieltests; sie darf nicht stillschweigend erfolgen.
+Das Restcent-Verfahren aus `docs/ROUNDING.md`, Abschnitt 5/8, ist entschieden:
+Das Zielsystem verwendet das Größter-Rest-Verfahren. Volle Zwischenpräzision
+bleibt erhalten; erst an der Ausgabegrenze werden die fehlenden Cent nach dem
+größten Nachkomma-Rest verteilt. Bei Gleichstand entscheidet die stabile
+Nutzer-ID aufsteigend. Die Golden-Werte bleiben als Legacy-Referenz unverändert;
+der Characterization-Test erlaubt ausschließlich die dadurch begründete
+Abweichung von höchstens 1 Cent je Nutzer.
 
 ## Akzeptanzkriterien
 

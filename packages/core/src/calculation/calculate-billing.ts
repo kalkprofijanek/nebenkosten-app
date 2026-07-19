@@ -15,6 +15,7 @@ import {
 } from '../contracts'
 import { calculateOccupancyDays, calculatePeriodDays } from '../periods'
 import { calculatePrepaymentCents } from '../prepayments'
+import { allocateLargestRemainder } from '../rest-cents'
 import { roundCentsHalfAwayFromZero } from '../rounding'
 
 interface OccupancyContext {
@@ -599,9 +600,27 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
       input.billingPeriod,
     ),
   }))
+  const roundedSharesByKind = new Map(
+    (['tenant', 'vacancy'] as const).map((kind) => [
+      kind,
+      new Map(
+        allocateLargestRemainder(
+          rawShares
+            .filter(({ context }) => context.occupancy.kind === kind)
+            .map(({ context, share }) => ({
+              id: context.occupancy.id,
+              exactCents: share,
+            })),
+        ).map(({ id, cents }) => [id, cents]),
+      ),
+    ]),
+  )
   const tenants = rawShares.map(({ context, share, prepayment }) => {
-    const shareCents = roundCentsHalfAwayFromZero(share)
-    const balanceCents = roundCentsHalfAwayFromZero(share - prepayment)
+    const shareCents =
+      roundedSharesByKind
+        .get(context.occupancy.kind)
+        ?.get(context.occupancy.id) ?? roundCentsHalfAwayFromZero(share)
+    const balanceCents = shareCents - prepayment
     const hasMissingConsumption = context.consumptionUnits <= 0
     return {
       id: context.occupancy.id,
