@@ -100,17 +100,27 @@ Nur einzelne **manuelle** Split-Helfer der Legacy (Block-Aufteilung von
 Heizkosten, Buchungs-Splits) weisen den Rest der **letzten** Position/dem
 letzten Block zu (`legacy/behavior-map.md` Abschnitt 6, Zeilen 3587, 4861 ff.).
 
-**Zielvorgabe (offene Entscheidung, Abschnitt 8):** Für PR 06 ist ein
-deterministisches Restcent-Verfahren festzulegen. Optionen:
+**Verbindliche Entscheidung (menschliche Freigabe 2026-07):** PR 06 verwendet
+das **Größter-Rest-Verfahren** (largest remainder) über die Nutzeranteile.
 
-1. **Größter-Rest-Verfahren** (largest remainder) über die Nutzeranteile —
-   fair, deterministisch, Summe der Anteile = gerundete Gesamtsumme.
-2. **Vermieter trägt den Rest** — entspricht der Legacy-Logik am nächsten
-   (Differenz fließt in `vermieterKosten`/`kontrollDiff`), aber der Mieter­summen
-   ergeben nicht exakt die Gesamtsumme.
+Algorithmus:
 
-Empfehlung: Option 1 für die auf dem Mieter-PDF ausgewiesenen Beträge, mit
-dokumentierter Gegenbuchung, damit die Kontrollidentität exakt aufgeht.
+1. Alle exakten Centanteile werden zunächst abgerundet.
+2. Die Zielsumme ist die mit `round half away from zero` gerundete Summe der
+   ungerundeten Anteile.
+3. Die noch fehlenden Cent werden absteigend nach dem Nachkomma-Rest verteilt.
+4. Bei identischem Rest entscheidet die stabile Nutzer-ID aufsteigend.
+5. Mieter- und Leerstandszeilen werden getrennt ausgeglichen, damit beide
+   fachlichen Gruppen summenerhaltend bleiben.
+6. Der Saldo wird anschließend exakt als `gerundeter Anteil − Vorauszahlung`
+   gebildet.
+
+Damit ist die Summe der ausgewiesenen Mieteranteile immer exakt gleich
+`tenantTotalCents`. Gegenüber dem Legacy-Bestand ist je Nutzer höchstens eine
+fachlich freigegebene Abweichung von 1 Cent zulässig. In
+`case-12-co2-split` erhält bei gleichem Rest die lexikografisch erste Nutzer-ID
+den einzelnen Restcent; die Legacy-Goldens selbst bleiben als unveränderte
+Referenzwerte erhalten.
 
 ---
 
@@ -176,8 +186,9 @@ Kontrolldifferenz = 0.
    Verbindlich **0,01 € (1 Cent)** im Zielsystem und für PR 06. Der Legacy-Wert
    **0,50 €** bleibt nur als dokumentierter Warnwert erhalten, nicht als
    Freigabegrenze (siehe Abschnitt 7). Die Fixtures verwenden bereits 1 Cent.
-2. **Restcent-Verfahren:** Größter-Rest vs. „Vermieter trägt den Rest"
-   (Abschnitt 5). Muss in PR 06 verbindlich festgelegt werden.
+2. **Restcent-Verfahren — ENTSCHIEDEN (menschliche Freigabe 2026-07):**
+   Größter-Rest-Verfahren mit stabiler ID als Gleichstandsregel; Mieter- und
+   Leerstandszeilen werden getrennt ausgeglichen (Abschnitt 5).
 3. **„Nicht zugeordnete Beträge" in der Kontrollidentität:** Legacy hält
    `direktKostenSum`/`interneKostenSum` außerhalb der Identität; die
    Masterplan-Formel nennt „+ nicht zugeordnete Beträge". Zu klären, ob diese
@@ -186,6 +197,6 @@ Kontrolldifferenz = 0.
    gesetzt; abweichende kaufmännische Sonderregeln (z. B. „half to even") sind
    nicht vorgesehen — bei Bedarf hier ergänzen.
 
-Punkt 1 ist entschieden; die Punkte 2–4 sind bis zur Abnahme durch den Menschen
-offen und dürfen nicht stillschweigend anders implementiert werden
-(Masterplan 2.6, 12.1 Punkt 3).
+Die Punkte 1 und 2 sind entschieden; die Punkte 3 und 4 sind bis zur Abnahme
+durch den Menschen offen und dürfen nicht stillschweigend anders implementiert
+werden (Masterplan 2.6, 12.1 Punkt 3).

@@ -4,8 +4,18 @@
   "private": true,
   "type": "module",
   "exports": "./src/index.ts",
+  "dependencies": {
+    "@nebenkosten/schema": "workspace:*"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "test:coverage": "vitest run --config vitest.config.ts --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "4.1.10",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
   }
 }

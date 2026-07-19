@@ -22,7 +22,9 @@ const packageNames = Object.freeze([
  * Änderungen an dieser Liste sind Vertragsänderungen und gehören
  * sichtbar in den jeweiligen PR (PR 03: schema; PR 04: import-export).
  */
-const implementedPackages = Object.freeze(new Set(['schema', 'import-export']))
+const implementedPackages = Object.freeze(
+  new Set(['core', 'schema', 'import-export']),
+)
 
 /**
  * Erlaubte Laufzeit-Dependencies der domänenneutralen Packages.
@@ -30,7 +32,9 @@ const implementedPackages = Object.freeze(new Set(['schema', 'import-export']))
  * Laufzeitvalidierung; Browser-/React-/Build-Bibliotheken bleiben
  * verboten.
  */
-const allowedNeutralDependencies = Object.freeze(new Set(['zod']))
+const allowedNeutralDependencies = Object.freeze(
+  new Set(['@nebenkosten/schema', 'zod']),
+)
 const forbiddenDependencyPattern =
   /react|vite|vitest|playwright|jsdom|dom|browser/iu
 

@@ -1,20 +1,18 @@
 /**
- * Characterization-Tests (PR 05).
- *
- * Die Core-Berechnungsengine existiert noch nicht (PR 06). Dieser Test liefert
- * daher die Golden-Fixtures und prueft, was ohne Engine pruefbar ist:
+ * Characterization-Tests (PR 05, mit Engine-Vergleich ab PR 06).
  *
  *  (a) jede Eingabe-Fixture (v4) validiert gegen `appDataFileSchema`;
  *  (b) die aus der Legacy-Engine hergeleiteten Golden-Werte sind in sich
  *      konsistent (Kontrollidentitaet, Saldo = Anteil - Vorauszahlung,
  *      CO2- und Heizkostenaufteilung, Restcent-Toleranz);
- *  (c) je Fall ein `it.todo`, das in PR 06 die neue Engine gegen die Golden-
- *      Werte aktiviert (Vergleichsrahmen; siehe `expectedFor`).
+ *  (c) die neue Core-Engine wird je Fall vollständig gegen die Golden-Werte
+ *      verglichen.
  *
- * Kein Test ist rot; die Engine-Vergleiche sind bewusst als pending markiert.
+ * Das Core-Package bindet diesen Test zusätzlich in sein Coverage-Gate ein.
  */
-import { describe, expect, it } from 'vitest'
+import { calculateBilling, createCalculationInput } from '@nebenkosten/core'
 import { appDataFileSchema } from '@nebenkosten/schema'
+import { describe, expect, it } from 'vitest'
 import { buildAppDataFile } from './build-app-data'
 import { goldenById, goldens, scenarios } from './cases'
 
@@ -261,13 +259,59 @@ describe.each(scenarios.map((scenario) => [scenario.id, scenario] as const))(
       }
     })
 
-    // PR 06: die neue Core-Engine gegen die Golden-Werte pruefen.
-    // Aktivieren, sobald `calculateBilling` (Masterplan 6.1) existiert;
-    // Fälle über das neutrale Modul `cases.ts` (`characterizationCases()`)
-    // beziehen und das VOLLSTÄNDIGE Ergebnis vergleichen — totals, heating,
-    // co2, tenants und vacancyLandlordCents, nicht nur `totals`.
-    it.todo(
-      `PR 06: Engine-Ergebnis vollständig gegen Golden-Werte vergleichen (${id})`,
-    )
+    it('entspricht den Legacy-Goldens mit freigegebener Restcent-Anpassung', () => {
+      const appData = buildAppDataFile(scenario)
+      const input = createCalculationInput(appData, 'bp-1')
+      const actual = calculateBilling(input)
+      const actualTenants = actual.tenants.map((tenant) => ({
+        ...tenant,
+        id: tenant.id.replace(/^op-/u, ''),
+      }))
+
+      expect(actual.periodDays).toBe(golden.periodDays)
+      expect(actual.totals).toEqual(golden.totals)
+      expect(actual.heating).toEqual(golden.heating)
+      expect(actual.co2).toEqual(golden.co2)
+      expect(actualTenants).toHaveLength(golden.tenants.length)
+      for (const [index, tenant] of actualTenants.entries()) {
+        const legacyTenant = golden.tenants[index]!
+        const allowedRestcentDelta =
+          scenario.id === 'case-12-co2-split' && tenant.id === 't1' ? 1 : 0
+        expect({
+          id: tenant.id,
+          isVacancy: tenant.isVacancy,
+          prepaymentCents: tenant.prepaymentCents,
+          status: tenant.status,
+        }).toEqual({
+          id: legacyTenant.id,
+          isVacancy: legacyTenant.isVacancy,
+          prepaymentCents: legacyTenant.prepaymentCents,
+          status: legacyTenant.status,
+        })
+        expect(
+          Math.abs(tenant.shareCents - legacyTenant.shareCents),
+        ).toBeLessThanOrEqual(allowedRestcentDelta)
+        expect(
+          Math.abs(tenant.balanceCents - legacyTenant.balanceCents),
+        ).toBeLessThanOrEqual(allowedRestcentDelta)
+        expect(tenant.balanceCents).toBe(
+          tenant.shareCents - tenant.prepaymentCents,
+        )
+      }
+      expect(
+        actualTenants
+          .filter(({ isVacancy }) => !isVacancy)
+          .reduce((sum, { shareCents }) => sum + shareCents, 0),
+      ).toBe(actual.totals.tenantTotalCents)
+      if (scenario.id === 'case-12-co2-split') {
+        expect(
+          actualTenants.map(({ id, shareCents }) => ({ id, shareCents })),
+        ).toEqual([
+          { id: 't1', shareCents: 95_605 },
+          { id: 't2', shareCents: 95_604 },
+        ])
+      }
+      expect(actual.vacancyLandlordCents).toBe(golden.vacancyLandlordCents)
+    })
   },
 )
