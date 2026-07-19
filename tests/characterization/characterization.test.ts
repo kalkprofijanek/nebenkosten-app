@@ -270,7 +270,10 @@ describe.each(scenarios.map((scenario) => [scenario.id, scenario] as const))(
 
       expect(actual.periodDays).toBe(golden.periodDays)
       expect(actual.totals).toEqual(golden.totals)
-      expect(actual.heating).toEqual(golden.heating)
+      // PR 07 erweitert den versionierten Ergebnis-Snapshot additiv um einen
+      // nachvollziehbaren Heiz-/CO2-Trace. Sämtliche Legacy-Golden-Felder
+      // bleiben weiterhin vollständig und exakt zu vergleichen.
+      expect(actual.heating).toMatchObject(golden.heating)
       expect(actual.co2).toEqual(golden.co2)
       expect(actualTenants).toHaveLength(golden.tenants.length)
       for (const [index, tenant] of actualTenants.entries()) {

@@ -4,75 +4,32 @@ import type {
   CostEntry,
   OccupancyPeriod,
   Quantity,
-  Tenancy,
   Unit,
 } from '@nebenkosten/schema'
 import {
   CORE_SNAPSHOT_FORMAT_VERSION,
+  HEATING_TRACE_FORMAT_VERSION,
   type CalculationInput,
   type CalculationOutput,
-  type CircuitCalculationResult,
+  type CircuitCo2Trace,
+  type CircuitHeatingSplitTrace,
+  type CircuitWarmWaterTrace,
 } from '../contracts'
 import { calculateOccupancyDays, calculatePeriodDays } from '../periods'
 import { calculatePrepaymentCents } from '../prepayments'
 import { allocateLargestRemainder } from '../rest-cents'
 import { roundCentsHalfAwayFromZero } from '../rounding'
-
-interface OccupancyContext {
-  occupancy: Readonly<OccupancyPeriod>
-  unit: Readonly<Unit>
-  tenancy?: Readonly<Tenancy>
-  days: number
-  timeFactor: number
-  buildingId?: string
-  usableArea: number
-  heatedArea: number
-  persons: number
-  consumptionUnits: number
-}
-
-interface AllocationBasis {
-  usableArea: number
-  heatedArea: number
-  persons: number
-  consumptionUnits: number
-  residentialUnits: number
-}
-
-interface RawCircuitResult {
-  buildingId: string
-  heatingTotal: number
-  baseCosts: number
-  consumptionCosts: number
-  fuelConsumption: number
-  hotWater: number
-  co2Cost: number
-  co2Tenant: number
-  co2Landlord: number
-  co2TenantPercent: number
-  co2Intensity: number
-  co2Kg: number
-  energyKwh: number
-  basePrice: number
-  consumptionPrice: number
-  hotWaterPricePerPerson: number
-  co2PricePerConsumptionUnit: number
-}
-
-interface RawCostPosition {
-  category: Readonly<CostCategory>
-  amount: number
-  effectiveAmount: number
-  freeLandlordAmount: number
-  basis: AllocationBasis
-}
-
-interface FuelResult {
-  fullCost: number
-  consumedQuantity: number
-  energyKwh: number
-  co2Kg: number
-}
+import { calculateEnergySourceFuel } from '../heating/fuel'
+import { calculateOperatingElectricityPlan } from '../heating/operating-electricity'
+import { outputCircuit, outputCircuitTrace } from '../heating/output'
+import type {
+  AllocationBasis,
+  AggregateFuelResult,
+  OccupancyContext,
+  PreparedCircuit,
+  RawCircuitResult,
+  RawCostPosition,
+} from './types'
 
 function quantityValue(
   quantity: Readonly<Quantity> | null | undefined,
@@ -309,77 +266,6 @@ function costShare(
   }
 }
 
-function calculateFuel(
-  sourceId: string,
-  input: CalculationInput,
-  calorificValue: number,
-  co2Factor: number,
-): FuelResult {
-  const stock = input.fuelStocks.find(
-    ({ energySourceId }) => energySourceId === sourceId,
-  )
-  const deliveries = input.fuelDeliveries
-    .filter(({ energySourceId }) => energySourceId === sourceId)
-    .slice()
-    .sort((left, right) => {
-      const byDate = (left.date ?? '').localeCompare(right.date ?? '')
-      return byDate || left.id.localeCompare(right.id)
-    })
-  const expectedUnit =
-    stock?.openingQuantity?.unit ??
-    stock?.remainingQuantity?.unit ??
-    deliveries.find(({ quantity }) => quantity)?.quantity?.unit
-  const openingQuantity = quantityValue(stock?.openingQuantity, expectedUnit)
-  const lots = [
-    ...(stock?.openingQuantity || stock?.openingValueCents
-      ? [
-          {
-            quantity: openingQuantity,
-            amount: stock.openingValueCents ?? 0,
-          },
-        ]
-      : []),
-    ...deliveries.map((delivery) => ({
-      quantity: quantityValue(delivery.quantity, expectedUnit),
-      amount: delivery.amountCents ?? 0,
-    })),
-  ]
-  const totalQuantity = lots.reduce((sum, lot) => sum + lot.quantity, 0)
-  const totalValue = lots.reduce((sum, lot) => sum + lot.amount, 0)
-  const remainingInput = Math.max(
-    0,
-    quantityValue(stock?.remainingQuantity, expectedUnit),
-  )
-  if (totalQuantity <= 0) {
-    return {
-      fullCost: Math.max(0, totalValue),
-      consumedQuantity: 0,
-      energyKwh: 0,
-      co2Kg: 0,
-    }
-  }
-
-  let remaining = Math.min(remainingInput, totalQuantity)
-  let remainingValue = 0
-  for (let index = lots.length - 1; index >= 0 && remaining > 0; index -= 1) {
-    const lot = lots[index]!
-    const quantity = Math.max(0, lot.quantity)
-    if (quantity === 0) continue
-    const retained = Math.min(quantity, remaining)
-    remainingValue += retained * (lot.amount / quantity)
-    remaining -= retained
-  }
-  const consumedQuantity =
-    totalQuantity - Math.min(remainingInput, totalQuantity)
-  const energyKwh = consumedQuantity * calorificValue
-  return {
-    fullCost: Math.max(0, totalValue - remainingValue),
-    consumedQuantity,
-    energyKwh,
-    co2Kg: energyKwh * co2Factor,
-  }
-}
-
 function co2TenantFactor(intensity: number): number {
   if (intensity < 12) return 1
   if (intensity < 17) return 0.9
@@ -393,18 +279,28 @@ function co2TenantFactor(intensity: number): number {
   return 0.05
 }
 
+function co2Tier(intensity: number): number {
+  if (intensity < 12) return 1
+  if (intensity < 17) return 2
+  if (intensity < 22) return 3
+  if (intensity < 27) return 4
+  if (intensity < 32) return 5
+  if (intensity < 37) return 6
+  if (intensity < 42) return 7
+  if (intensity < 47) return 8
+  if (intensity < 52) return 9
+  return 10
+}
+
 function roundQuantity(value: number, digits: number): number {
   const factor = 10 ** digits
   return Math.round(value * factor) / factor
 }
 
-function rawCircuitResults(
+function prepareCircuits(
   input: CalculationInput,
   contexts: readonly OccupancyContext[],
-  positions: readonly RawCostPosition[],
-  periodDays: number,
-): RawCircuitResult[] {
-  const defaults = input.billingPeriod.heatingDefaults
+): PreparedCircuit[] {
   return input.buildings.map((building) => {
     const circuit = input.heatingCircuits.find(
       ({ buildingId }) => buildingId === building.id,
@@ -417,121 +313,199 @@ function rawCircuitResults(
           ({ heatingCircuitId }) => heatingCircuitId === circuit.id,
         )
       : []
-    const fuel = sources.reduce<FuelResult>(
+    const fuel = sources.reduce<AggregateFuelResult>(
       (sum, source) => {
-        const result = calculateFuel(
-          source.id,
-          input,
-          source.calorificValueKwhPerUnit ?? 0,
-          source.co2FactorKgPerKwh ?? circuit?.co2?.co2FactorKgPerKwh ?? 0,
+        const result = calculateEnergySourceFuel(
+          source,
+          input.fuelStocks,
+          input.fuelDeliveries,
+          circuit?.co2?.co2FactorKgPerKwh ?? 0,
         )
         return {
-          fullCost: sum.fullCost + result.fullCost,
-          consumedQuantity: sum.consumedQuantity + result.consumedQuantity,
-          energyKwh: sum.energyKwh + result.energyKwh,
-          co2Kg: sum.co2Kg + result.co2Kg,
+          fullCost: sum.fullCost + result.fullCostCentsRaw,
+          energyKwh: sum.energyKwh + result.energyKwhRaw,
+          co2Kg: sum.co2Kg + result.co2KgRaw,
+          sources: [...sum.sources, result.trace],
         }
       },
-      { fullCost: 0, consumedQuantity: 0, energyKwh: 0, co2Kg: 0 },
+      { fullCost: 0, energyKwh: 0, co2Kg: 0, sources: [] },
     )
-    const heatedArea = circuitContexts.reduce(
-      (sum, context) => sum + context.heatedArea,
-      0,
-    )
-    const automaticIntensity =
-      heatedArea > 0 ? (fuel.co2Kg * (365 / periodDays)) / heatedArea : 0
-    const co2Config = circuit?.co2
-    const manual = co2Config?.mode === 'manual'
-    const co2Cost = manual
-      ? (co2Config.levyCents ?? 0)
-      : (fuel.co2Kg / 1_000) * (co2Config?.co2PricePerTonCents ?? 4_500)
-    const intensity = manual
-      ? (co2Config.intensityKgPerSqmYear ?? 0)
-      : automaticIntensity
-    const tenantFactor = manual
-      ? 1 - (co2Config.landlordSharePercent ?? 0) / 100
-      : co2TenantFactor(intensity)
-    const co2Tenant = co2Cost * tenantFactor
-    const co2Landlord = co2Cost - co2Tenant
-    const fuelConsumption = Math.max(0, fuel.fullCost - co2Cost)
-    const hotWaterShare = circuit?.hasCentralHotWater
-      ? (circuit.hotWaterSharePercent ?? 18) / 100
-      : 0
-    const hotWater = fuelConsumption * hotWaterShare
-    const heatingOperating = positions
-      .filter(
-        ({ category }) =>
-          category.kind === 'heating' &&
-          category.scope?.kind === 'building' &&
-          category.scope.buildingId === building.id,
-      )
-      .reduce((sum, position) => sum + position.effectiveAmount, 0)
-    const heatingTotal = fuelConsumption - hotWater + heatingOperating
-    const consumptionFactor =
-      (circuit?.overrides?.consumptionSharePercent ??
-        defaults?.consumptionSharePercent ??
-        70) / 100
-    const baseFactor =
-      (circuit?.overrides?.baseSharePercent ??
-        defaults?.baseSharePercent ??
-        30) / 100
-    const baseCosts = heatingTotal * baseFactor
-    const consumptionCosts = heatingTotal * consumptionFactor
-    const basis = buildAllocationBasis(input, contexts, {
-      kind: 'building',
-      buildingId: building.id,
-    })
-    const useUsableArea = defaults?.baseCostAreaBasis === 'usable_area'
-    const baseDenominator = useUsableArea ? basis.usableArea : basis.heatedArea
-    const hotWaterPersons =
-      circuitContexts.reduce((sum, context) => {
-        if (context.occupancy.kind === 'vacancy') return sum
-        return (
-          sum + (context.persons > 0 ? context.persons : 1) * context.timeFactor
-        )
-      }, 0) || 1
-    return {
-      buildingId: building.id,
-      heatingTotal,
-      baseCosts,
-      consumptionCosts,
-      fuelConsumption,
-      hotWater,
-      co2Cost,
-      co2Tenant,
-      co2Landlord,
-      co2TenantPercent: tenantFactor * 100,
-      co2Intensity: intensity,
-      co2Kg: manual ? 0 : fuel.co2Kg,
-      energyKwh: fuel.energyKwh,
-      basePrice: baseDenominator > 0 ? baseCosts / baseDenominator : 0,
-      consumptionPrice:
-        basis.consumptionUnits > 0
-          ? consumptionCosts / basis.consumptionUnits
-          : 0,
-      hotWaterPricePerPerson: hotWater / hotWaterPersons,
-      co2PricePerConsumptionUnit:
-        basis.consumptionUnits > 0 ? co2Tenant / basis.consumptionUnits : 0,
-    }
+    return { buildingId: building.id, circuit, contexts: circuitContexts, fuel }
   })
 }
 
-function outputCircuit(result: RawCircuitResult): CircuitCalculationResult {
-  return {
-    buildingId: result.buildingId,
-    heatingTotalCents: roundCentsHalfAwayFromZero(result.heatingTotal),
-    baseCents: roundCentsHalfAwayFromZero(result.baseCosts),
-    consumptionCents: roundCentsHalfAwayFromZero(result.consumptionCosts),
-    fuelConsumptionCents: roundCentsHalfAwayFromZero(result.fuelConsumption),
-    hotWaterCents: roundCentsHalfAwayFromZero(result.hotWater),
-    co2CostCents: roundCentsHalfAwayFromZero(result.co2Cost),
-    co2TenantCents: roundCentsHalfAwayFromZero(result.co2Tenant),
-    co2LandlordCents: roundCentsHalfAwayFromZero(result.co2Landlord),
-    co2TenantPercent: roundQuantity(result.co2TenantPercent, 3),
-    co2IntensityKgPerSqmYear: roundQuantity(result.co2Intensity, 3),
-    co2Kg: roundQuantity(result.co2Kg, 3),
-    energyKwh: roundQuantity(result.energyKwh, 3),
-  }
+function rawCircuitResults(
+  input: CalculationInput,
+  preparedCircuits: readonly PreparedCircuit[],
+  positions: readonly RawCostPosition[],
+  periodDays: number,
+  operatingElectricityByBuildingId: ReadonlyMap<string, number>,
+): RawCircuitResult[] {
+  const defaults = input.billingPeriod.heatingDefaults
+  return preparedCircuits.map(
+    ({ buildingId, circuit, contexts: circuitContexts, fuel }) => {
+      const basis = buildAllocationBasis(input, circuitContexts, {
+        kind: 'building',
+        buildingId,
+      })
+      const heatedArea = basis.heatedArea
+      const automaticIntensity =
+        heatedArea > 0 ? (fuel.co2Kg * (365 / periodDays)) / heatedArea : 0
+      const co2Config = circuit?.co2
+      const manual = co2Config?.mode === 'manual'
+      const co2Cost = manual
+        ? (co2Config.levyCents ?? 0)
+        : (fuel.co2Kg / 1_000) * (co2Config?.co2PricePerTonCents ?? 4_500)
+      const intensity = manual
+        ? (co2Config.intensityKgPerSqmYear ?? 0)
+        : automaticIntensity
+      const tenantFactor = manual
+        ? 1 - (co2Config.landlordSharePercent ?? 0) / 100
+        : co2TenantFactor(intensity)
+      const co2Tenant = co2Cost * tenantFactor
+      const co2Landlord = co2Cost - co2Tenant
+      const fuelConsumption = Math.max(0, fuel.fullCost - co2Cost)
+      const hotWaterShare = circuit?.hasCentralHotWater
+        ? (circuit.hotWaterSharePercent ?? 18) / 100
+        : 0
+      const hotWater = fuelConsumption * hotWaterShare
+      const heatingOperating = positions
+        .filter(
+          ({ category }) =>
+            category.kind === 'heating' &&
+            category.scope?.kind === 'building' &&
+            category.scope.buildingId === buildingId,
+        )
+        .reduce((sum, position) => sum + position.effectiveAmount, 0)
+      const operatingElectricityShare =
+        (circuit?.overrides?.operatingElectricitySharePercent ??
+          defaults?.operatingElectricitySharePercent ??
+          0) / 100
+      const operatingElectricityIntended =
+        fuelConsumption * operatingElectricityShare
+      const operatingElectricity =
+        operatingElectricityByBuildingId.get(buildingId) ?? 0
+      const heatingTotal =
+        fuelConsumption - hotWater + heatingOperating + operatingElectricity
+      const consumptionFactor =
+        (circuit?.overrides?.consumptionSharePercent ??
+          defaults?.consumptionSharePercent ??
+          70) / 100
+      const baseFactor =
+        (circuit?.overrides?.baseSharePercent ??
+          defaults?.baseSharePercent ??
+          30) / 100
+      const baseCosts = heatingTotal * baseFactor
+      const consumptionCosts = heatingTotal * consumptionFactor
+      const useUsableArea = defaults?.baseCostAreaBasis === 'usable_area'
+      const baseDenominator = useUsableArea
+        ? basis.usableArea
+        : basis.heatedArea
+      const fallbackOccupancyIds = circuit?.hasCentralHotWater
+        ? circuitContexts
+            .filter(
+              ({ occupancy, persons }) =>
+                occupancy.kind !== 'vacancy' && persons <= 0,
+            )
+            .map(({ occupancy }) => occupancy.id)
+        : []
+      const calculatedHotWaterPersons = circuitContexts.reduce(
+        (sum, context) => {
+          if (context.occupancy.kind === 'vacancy') return sum
+          return (
+            sum +
+            (context.persons > 0 ? context.persons : 1) * context.timeFactor
+          )
+        },
+        0,
+      )
+      const hotWaterPersons = circuit?.hasCentralHotWater
+        ? calculatedHotWaterPersons || 1
+        : 0
+      const roundedCo2Split = new Map(
+        allocateLargestRemainder([
+          { id: 'tenant', exactCents: co2Tenant },
+          { id: 'landlord', exactCents: co2Landlord },
+        ]).map(({ id, cents }) => [id, cents]),
+      )
+      const co2Trace: CircuitCo2Trace = {
+        mode: manual ? 'manual' : 'auto',
+        pricePerTonCents: manual
+          ? (co2Config.co2PricePerTonCents ?? null)
+          : (co2Config?.co2PricePerTonCents ?? 4_500),
+        heatedAreaSqm: roundQuantity(heatedArea, 3),
+        periodDays,
+        annualizationFactor: roundQuantity(365 / periodDays, 6),
+        intensityKgPerSqmYear: roundQuantity(intensity, 3),
+        tier: manual ? 'manual' : co2Tier(intensity),
+        tenantPercent: roundQuantity(tenantFactor * 100, 3),
+        landlordPercent: roundQuantity((1 - tenantFactor) * 100, 3),
+        totalCents: roundCentsHalfAwayFromZero(co2Cost),
+        tenantCents: roundedCo2Split.get('tenant')!,
+        landlordCents: roundedCo2Split.get('landlord')!,
+      }
+      const warmWaterTrace: CircuitWarmWaterTrace = {
+        method: circuit?.hasCentralHotWater
+          ? 'fuel_percentage_by_persons'
+          : 'none',
+        sharePercent: circuit?.hasCentralHotWater
+          ? roundQuantity(hotWaterShare * 100, 3)
+          : 0,
+        poolCents: roundCentsHalfAwayFromZero(hotWater),
+        personTimeDenominator: circuit?.hasCentralHotWater
+          ? roundQuantity(hotWaterPersons, 3)
+          : 0,
+        fallbackOccupancyIds,
+      }
+      const roundedHeatingSplit = new Map(
+        allocateLargestRemainder([
+          { id: 'base', exactCents: baseCosts },
+          { id: 'consumption', exactCents: consumptionCosts },
+        ]).map(({ id, cents }) => [id, cents]),
+      )
+      const splitTrace: CircuitHeatingSplitTrace = {
+        baseSharePercent: roundQuantity(baseFactor * 100, 3),
+        consumptionSharePercent: roundQuantity(consumptionFactor * 100, 3),
+        baseAreaBasis: useUsableArea ? 'usable_area' : 'heated_area',
+        baseDenominator: roundQuantity(baseDenominator, 3),
+        consumptionDenominator: roundQuantity(basis.consumptionUnits, 3),
+        baseCents: roundedHeatingSplit.get('base')!,
+        consumptionCents: roundedHeatingSplit.get('consumption')!,
+      }
+      return {
+        buildingId,
+        heatingCircuitId: circuit?.id ?? null,
+        heatingTotal,
+        baseCosts,
+        consumptionCosts,
+        fuelConsumption,
+        hotWater,
+        co2Cost,
+        co2Tenant,
+        co2Landlord,
+        co2TenantPercent: tenantFactor * 100,
+        co2Intensity: intensity,
+        co2Kg: manual ? 0 : fuel.co2Kg,
+        energyKwh: fuel.energyKwh,
+        basePrice: baseDenominator > 0 ? baseCosts / baseDenominator : 0,
+        consumptionPrice:
+          basis.consumptionUnits > 0
+            ? consumptionCosts / basis.consumptionUnits
+            : 0,
+        hotWaterPricePerPerson:
+          hotWaterPersons > 0 ? hotWater / hotWaterPersons : 0,
+        co2PricePerConsumptionUnit:
+          basis.consumptionUnits > 0 ? co2Tenant / basis.consumptionUnits : 0,
+        energySources: fuel.sources,
+        co2Trace,
+        warmWaterTrace,
+        heatingOperating,
+        operatingElectricity,
+        operatingElectricityIntended,
+        splitTrace,
+      }
+    },
+  )
 }
 
 function rawTenantShare(
@@ -581,8 +555,54 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
     input.billingPeriod.periodEnd,
   )
   const contexts = buildOccupancyContexts(input)
-  const positions = costPositions(input, contexts)
-  const circuits = rawCircuitResults(input, contexts, positions, periodDays)
+  const originalPositions = costPositions(input, contexts)
+  const preparedCircuits = prepareCircuits(input, contexts)
+  const preliminaryCircuits = rawCircuitResults(
+    input,
+    preparedCircuits,
+    originalPositions,
+    periodDays,
+    new Map(),
+  )
+  const operatingElectricityPlan = calculateOperatingElectricityPlan(
+    preliminaryCircuits.map(({ buildingId, operatingElectricityIntended }) => ({
+      buildingId,
+      intendedCentsExact: operatingElectricityIntended,
+    })),
+    originalPositions
+      .filter(
+        ({ category, effectiveAmount }) =>
+          category.kind !== 'heating' &&
+          category.betrkvCategory !== 'NICHT_UML' &&
+          category.allocationKey !== 'direct' &&
+          category.scope?.kind !== 'house' &&
+          category.isOperatingElectricitySource === true &&
+          effectiveAmount > 0,
+      )
+      .map(({ category, effectiveAmount }) => ({
+        costCategoryId: category.id,
+        availableCentsExact: effectiveAmount,
+        buildingId:
+          category.scope?.kind === 'building'
+            ? category.scope.buildingId
+            : null,
+      })),
+  )
+  const positions = originalPositions.map((position) => ({
+    ...position,
+    effectiveAmount:
+      position.effectiveAmount -
+      (operatingElectricityPlan.deductedCentsExactByCostCategoryId.get(
+        position.category.id,
+      ) ?? 0),
+  }))
+  const circuits = rawCircuitResults(
+    input,
+    preparedCircuits,
+    positions,
+    periodDays,
+    operatingElectricityPlan.movedCentsExactByBuildingId,
+  )
   const defaultsBasis =
     input.billingPeriod.heatingDefaults?.baseCostAreaBasis ?? 'heated_area'
   const prepaymentsByOccupancy = new Map(
@@ -670,18 +690,6 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
     (input.billingPeriod.heatingDefaults?.baseSharePercent ?? 30) / 100
   const fallbackConsumptionFactor =
     (input.billingPeriod.heatingDefaults?.consumptionSharePercent ?? 70) / 100
-  const heatingTotal = circuitHeating + heatingOperatingUnscoped
-  const baseCosts =
-    circuits.reduce((sum, circuit) => sum + circuit.baseCosts, 0) +
-    heatingOperatingUnscoped * fallbackBaseFactor
-  const consumptionCosts =
-    circuits.reduce((sum, circuit) => sum + circuit.consumptionCosts, 0) +
-    heatingOperatingUnscoped * fallbackConsumptionFactor
-  const fuelConsumption = circuits.reduce(
-    (sum, circuit) => sum + circuit.fuelConsumption,
-    0,
-  )
-  const co2Cost = circuits.reduce((sum, circuit) => sum + circuit.co2Cost, 0)
   const co2Tenant = circuits.reduce(
     (sum, circuit) => sum + circuit.co2Tenant,
     0,
@@ -734,6 +742,34 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
   const prepayments = rawShares
     .filter(({ context }) => context.occupancy.kind !== 'vacancy')
     .reduce((sum, result) => sum + result.prepayment, 0)
+  const circuitOutputs = circuits.map(outputCircuit)
+  const sumCircuitOutput = (
+    select: (circuit: (typeof circuitOutputs)[number]) => number,
+  ): number => circuitOutputs.reduce((sum, circuit) => sum + select(circuit), 0)
+  const fallbackHeatingSplit = new Map(
+    allocateLargestRemainder([
+      {
+        id: 'base',
+        exactCents: heatingOperatingUnscoped * fallbackBaseFactor,
+      },
+      {
+        id: 'consumption',
+        exactCents: heatingOperatingUnscoped * fallbackConsumptionFactor,
+      },
+    ]).map(({ id, cents }) => [id, cents]),
+  )
+  const circuitTraces = circuits.map((circuit) =>
+    outputCircuitTrace(
+      circuit,
+      operatingElectricityPlan.circuitResultsByBuildingId.get(
+        circuit.buildingId,
+      ) ?? {
+        intendedCents: 0,
+        movedCents: 0,
+        uncoveredCents: 0,
+      },
+    ),
+  )
 
   return {
     snapshotFormatVersion: CORE_SNAPSHOT_FORMAT_VERSION,
@@ -749,19 +785,35 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
       internalCostsCents: roundCentsHalfAwayFromZero(internalCosts),
     },
     heating: {
-      totalCents: roundCentsHalfAwayFromZero(heatingTotal),
-      baseCostsCents: roundCentsHalfAwayFromZero(baseCosts),
-      consumptionCostsCents: roundCentsHalfAwayFromZero(consumptionCosts),
-      fuelConsumptionCents: roundCentsHalfAwayFromZero(fuelConsumption),
+      totalCents:
+        sumCircuitOutput(({ heatingTotalCents }) => heatingTotalCents) +
+        roundCentsHalfAwayFromZero(heatingOperatingUnscoped),
+      baseCostsCents:
+        sumCircuitOutput(({ baseCents }) => baseCents) +
+        fallbackHeatingSplit.get('base')!,
+      consumptionCostsCents:
+        sumCircuitOutput(({ consumptionCents }) => consumptionCents) +
+        fallbackHeatingSplit.get('consumption')!,
+      fuelConsumptionCents: sumCircuitOutput(
+        ({ fuelConsumptionCents }) => fuelConsumptionCents,
+      ),
       unallocatedLandlordCents: roundCentsHalfAwayFromZero(
         unscopedHeatingLandlord,
       ),
-      perCircuit: circuits.map(outputCircuit),
+      perCircuit: circuitOutputs,
+      operatingElectricity: operatingElectricityPlan.publicResult,
+      trace: {
+        traceFormatVersion: HEATING_TRACE_FORMAT_VERSION,
+        operatingElectricity: operatingElectricityPlan.publicResult,
+        circuits: circuitTraces,
+      },
     },
     co2: {
-      totalCostCents: roundCentsHalfAwayFromZero(co2Cost),
-      tenantCents: roundCentsHalfAwayFromZero(co2Tenant),
-      landlordCents: roundCentsHalfAwayFromZero(co2Landlord),
+      totalCostCents: sumCircuitOutput(({ co2CostCents }) => co2CostCents),
+      tenantCents: sumCircuitOutput(({ co2TenantCents }) => co2TenantCents),
+      landlordCents: sumCircuitOutput(
+        ({ co2LandlordCents }) => co2LandlordCents,
+      ),
     },
     vacancyLandlordCents: roundCentsHalfAwayFromZero(vacancyLandlord),
     tenants,

@@ -383,9 +383,13 @@ Fixtures oder GitHub).
 `calculationResultSchema`: `id`, `calculationRunId`,
 `totals` (Cent-genaue Kontrollsummen inkl.
 `controlDifferenceCents`), `warnings: ValidationIssue[]`,
-`snapshotFormatVersion`, `resultSnapshot` (Engine-Ergebnis; innere
-Struktur wird mit PR 06/07 in `packages/core/src/contracts/`
-präzisiert). In v3 wird das Berechnungsergebnis nicht persistiert.
+`snapshotFormatVersion`, `resultSnapshot` (Engine-Ergebnis). Der mit
+PR 07 präzisierte Vertrag liegt in `packages/core/src/contracts/`:
+Snapshot v2 enthält zusätzlich die budgetgedeckte
+Betriebsstrom-Umbuchung sowie einen eigenständig versionierten
+Heizkosten-/CO₂-Trace v1. Die fachlichen Felder und Rechenketten sind
+in `docs/HEATING-CO2.md` beschrieben. In v3 wird das
+Berechnungsergebnis nicht persistiert.
 
 ### 3.24 ValidationIssue / Prüfhinweis (`validationIssueSchema`)
 
@@ -438,11 +442,13 @@ als Strings/`null`, Euro-Fließkomma. Deshalb gilt dort:
 
 ## 6. Offene Punkte
 
-- Verbindliche Rundungsregeln je Rechenschritt: `docs/ROUNDING.md`
-  (PR 05/06). Die Kontrollsummen-Toleranz weicht im Bestand (0,50 €)
-  vom Masterplan-Ziel (0,01 €) ab — Entscheidung dazu steht aus
-  (behavior-map Abschnitt 6).
-- Innere Struktur von `resultSnapshot` (PR 06/07).
+- Die verbindlichen Rundungsregeln stehen in `docs/ROUNDING.md`
+  (PR 05/06); als Zieltoleranz gelten 0,01 €. Der historische
+  Legacy-Warnwert von 0,50 € bleibt nur als Bestandsbeobachtung
+  dokumentiert.
+- Snapshot v2 und der Heizkosten-/CO₂-Trace v1 sind mit PR 07
+  festgelegt. Persistenz und Versionsschutz dieses Ergebnisses folgen
+  in PR 08.
 - Standardkostenarten-Katalog (`STANDARD_KOSTENARTEN`) und
   BetrKV-Kategorienkatalog werden mit der Engine/Validatoren als
   konfigurierbare Kataloge modelliert, nicht als Code-Konstanten

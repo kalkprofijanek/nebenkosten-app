@@ -1,6 +1,6 @@
 # Testmatrix: Rechenbereiche (Masterplan 6.2) je Characterization-Fall
 
-Stand: PR 05. Zuordnung der 15 Golden-Fixtures zu den zu erhaltenden
+Stand: PR 07. Zuordnung der 15 Golden-Fixtures zu den zu erhaltenden
 Berechnungsbereichen aus Masterplan Abschnitt 6.2. `X` = Bereich wird durch
 diesen Fall gezielt geprüft; `(x)` = Bereich ist im Fall vorhanden, aber nicht
 sein Schwerpunkt.
@@ -25,6 +25,7 @@ Fälle: 01 Volljahr · 02 Nutzerwechsel · 03 Leerstand · 04 Mehrere Häuser ·
 | Kontrollsummen | X | X | X | X | X | X | X | X | X | X | X | X | X | X | X |
 | Kosten ohne Zuordnung | | | | | | | | | | | | | X | X | |
 | Heizungsbetriebskosten | | | | | X | | | | | | | | | X | |
+| Betriebsstrom-Reallokation | | | | | | | | | | | | | | | |
 | Brennstoffanfangsbestand | | | | | | X | | | | | | | | | |
 | Lieferungen | | | | | X | X | X | X | X | X | X | X | | X | X |
 | Restbestand | | | | | | X | | | | | | | | | |
@@ -50,9 +51,12 @@ Fälle: 01 Volljahr · 02 Nutzerwechsel · 03 Leerstand · 04 Mehrere Häuser ·
   für die Stufenermittlung mit `365/Periodentage` hochgerechnet — enthalten in
   den CO₂-Fällen). Es gibt daher keinen eigenen Fall.
 - **Betriebsstrom-Reallokation** (Heizungs-Betriebsstrom aus Allgemeinstrom,
-  `bsFactor`; `legacy/behavior-map.md` Risiko 8.7) ist **nicht** in den 15
-  Mindestfällen enthalten und bewusst auf **PR 07** (Heizkosten-/CO₂-Modul)
-  verschoben. Alle Fixtures setzen `operatingElectricityPercent = 0`.
+  `bsFactor`; `legacy/behavior-map.md` Risiko 8.7) ist mit PR 07 in der
+  Core-Engine umgesetzt. Die gezielten Nachweise für vollständige und
+  budgetbegrenzte Umbuchung sowie gebäudespezifische Quellen stehen in
+  `packages/core/tests/heating-pr07.test.ts`. In dieser Matrix bleibt die Zeile
+  leer, weil alle 15 unveränderten Golden-Fixtures
+  `operatingElectricityPercent = 0` setzen.
 - **Rundungsdifferenzen**: `case-12-co2-split` erzeugt bewusst einen Restcent
   (Summe der gerundeten Nutzeranteile = Gesamtsumme − 1 Cent). Regeln dazu in
   `docs/ROUNDING.md` Abschnitt 5.
