@@ -23,7 +23,7 @@ const packageNames = Object.freeze([
  * sichtbar in den jeweiligen PR (PR 03: schema; PR 04: import-export).
  */
 const implementedPackages = Object.freeze(
-  new Set(['core', 'schema', 'import-export']),
+  new Set(['core', 'schema', 'persistence', 'import-export']),
 )
 
 /**

@@ -447,8 +447,9 @@ als Strings/`null`, Euro-Fließkomma. Deshalb gilt dort:
   Legacy-Warnwert von 0,50 € bleibt nur als Bestandsbeobachtung
   dokumentiert.
 - Snapshot v2 und der Heizkosten-/CO₂-Trace v1 sind mit PR 07
-  festgelegt. Persistenz und Versionsschutz dieses Ergebnisses folgen
-  in PR 08.
+  festgelegt. PR 08 persistiert die vollständige `AppDataFile` einschließlich
+  dieser Ergebnisse; Versionsschutz, Revisionen und Restore sind in
+  `docs/PERSISTENCE.md` beschrieben.
 - Standardkostenarten-Katalog (`STANDARD_KOSTENARTEN`) und
   BetrKV-Kategorienkatalog werden mit der Engine/Validatoren als
   konfigurierbare Kataloge modelliert, nicht als Code-Konstanten
