@@ -1,6 +1,7 @@
 import {
   toPersistenceError,
   type PersistenceErrorCode,
+  type SnapshotStorageAdapter,
   type StorageAdapter,
 } from '@nebenkosten/persistence'
 import {
@@ -33,6 +34,7 @@ export interface WorkspaceController {
   update(transform: (draft: AppDataFile) => AppDataFile): boolean
   reportExternalRevision(revision: string): void
   retrySave(): boolean
+  importData(data: AppDataFile): Promise<boolean>
   shouldWarnBeforeUnload(): boolean
   subscribe(listener: (state: WorkspaceState) => void): () => void
   dispose(): void
@@ -61,6 +63,12 @@ function initialState(): WorkspaceState {
 
 function cloneData(data: AppDataFile): AppDataFile {
   return structuredClone(data)
+}
+
+function supportsSnapshots(
+  adapter: StorageAdapter,
+): adapter is SnapshotStorageAdapter {
+  return 'createSnapshot' in adapter
 }
 
 export function createWorkspaceController({
@@ -249,6 +257,42 @@ export function createWorkspaceController({
         return
       }
       clearTimer()
+      if (!state.dirty && !state.saving) {
+        const retainedData = state.data
+        const retainedRevision = state.revision
+        publish({ ...state, status: 'loading' })
+        void adapter
+          .load()
+          .then((loaded) => {
+            if (disposed) return
+            if (loaded === null) {
+              publish({
+                status: 'empty',
+                data: null,
+                revision: null,
+                dirty: false,
+                saving: false,
+                errorCode: null,
+              })
+              return
+            }
+            publish({
+              status: 'ready',
+              data: cloneData(loaded.data),
+              revision: loaded.revision,
+              dirty: false,
+              saving: false,
+              errorCode: null,
+            })
+          })
+          .catch((error: unknown) => {
+            if (disposed) return
+            publish(
+              classifyFailure(error, retainedData, retainedRevision, false),
+            )
+          })
+        return
+      }
       publish({
         ...state,
         status: 'conflict',
@@ -267,6 +311,50 @@ export function createWorkspaceController({
         return false
       }
       publish({ ...state, status: 'ready', errorCode: null })
+      scheduleAutosave()
+      return true
+    },
+
+    async importData(data: AppDataFile): Promise<boolean> {
+      if (
+        disposed ||
+        (state.status !== 'empty' && state.status !== 'ready') ||
+        state.dirty ||
+        state.saving
+      ) {
+        return false
+      }
+      const validated = appDataFileSchema.parse(cloneData(data))
+      const expectedRevision = state.revision
+      if (expectedRevision !== null) {
+        if (!supportsSnapshots(adapter)) return false
+        try {
+          await adapter.createSnapshot({
+            expectedRevision,
+            kind: 'manual',
+          })
+        } catch (error: unknown) {
+          publish(classifyFailure(error, state.data, expectedRevision, false))
+          return false
+        }
+        if (
+          disposed ||
+          state.status !== 'ready' ||
+          state.revision !== expectedRevision ||
+          state.dirty
+        ) {
+          return false
+        }
+      }
+      changeGeneration += 1
+      publish({
+        status: 'ready',
+        data: validated,
+        revision: expectedRevision,
+        dirty: true,
+        saving: false,
+        errorCode: null,
+      })
       scheduleAutosave()
       return true
     },

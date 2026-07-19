@@ -2,9 +2,17 @@ import {
   IndexedDbStorageAdapter,
   MemoryStorageAdapter,
 } from '@nebenkosten/persistence'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { App } from './App'
+import { CalculationRoute } from './CalculationRoute'
+import { ImportControl } from './ImportControl'
+import { WorkflowRoute } from './WorkflowRoute'
+import {
+  emptySelection,
+  normalizeSelection,
+  type SelectionContext,
+} from './app/selection'
 import { TabCoordinator } from './app/tab-coordination'
 import {
   createWorkspaceController,
@@ -36,11 +44,26 @@ export function WorkspaceApp({
   const [workspaceState, setWorkspaceState] = useState<WorkspaceState>(
     controller.getState(),
   )
+  const [selection, setSelection] = useState<SelectionContext>(emptySelection)
+  const normalizedSelection = useMemo(
+    () =>
+      workspaceState.data === null
+        ? emptySelection
+        : normalizeSelection(workspaceState.data, selection),
+    [selection, workspaceState.data],
+  )
   const announcedRevision = useRef<string | null>(null)
 
   useEffect(() => {
     const unsubscribe = controller.subscribe(setWorkspaceState)
-    void controller.load()
+    void controller.load().then(() => {
+      if (
+        globalThis.location.protocol === 'file:' &&
+        controller.getState().status === 'empty'
+      ) {
+        controller.createNew()
+      }
+    })
     return () => {
       unsubscribe()
     }
@@ -50,6 +73,7 @@ export function WorkspaceApp({
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!controller.shouldWarnBeforeUnload()) return
       event.preventDefault()
+      event.returnValue = ''
     }
     globalThis.addEventListener('beforeunload', handleBeforeUnload)
     return () =>
@@ -89,7 +113,43 @@ export function WorkspaceApp({
   return (
     <App
       previewMode={previewMode}
+      importControl={
+        previewMode ? undefined : (
+          <ImportControl
+            disabled={
+              workspaceState.saving ||
+              workspaceState.dirty ||
+              workspaceState.status === 'conflict' ||
+              workspaceState.status === 'blocked'
+            }
+            onConfirm={(data) => controller.importData(data)}
+          />
+        )
+      }
       workspaceState={workspaceState}
+      renderRoute={
+        workspaceState.data === null
+          ? undefined
+          : (path) =>
+              path === '/berechnung' || path === '/freigabe' ? (
+                <CalculationRoute
+                  path={path}
+                  data={workspaceState.data!}
+                  billingPeriodId={normalizedSelection.billingPeriodId}
+                  onApply={(transform) => controller.update(transform)}
+                />
+              ) : (
+                <WorkflowRoute
+                  path={path}
+                  data={workspaceState.data!}
+                  selection={normalizedSelection}
+                  onApply={(transform) => controller.update(transform)}
+                  onSelectionChange={(patch) =>
+                    setSelection((current) => ({ ...current, ...patch }))
+                  }
+                />
+              )
+      }
       onCreateWorkspace={previewMode ? undefined : () => controller.createNew()}
     />
   )

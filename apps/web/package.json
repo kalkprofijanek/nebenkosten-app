@@ -11,6 +11,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@nebenkosten/core": "workspace:*",
+    "@nebenkosten/import-export": "workspace:*",
     "@nebenkosten/persistence": "workspace:*",
     "@nebenkosten/schema": "workspace:*",
     "react": "19.2.7",

@@ -5,6 +5,7 @@ import {
   screen,
   within,
 } from '@testing-library/react'
+import { createEmptyAppDataFile, type AppDataFile } from '@nebenkosten/schema'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { App } from './App'
@@ -158,6 +159,57 @@ describe('App', () => {
     render(<App initialPath="/" previewMode workspaceState={workspaceState} />)
     expect(
       screen.getByText('Nur im Arbeitsspeicher – beim Neuladen verloren'),
+    ).toBeVisible()
+    expect(
+      screen.getByText(/speichert Änderungen nicht dauerhaft/),
+    ).toBeVisible()
+  })
+
+  it('zeigt den echten Fortschritt des lokalen Datenstands', () => {
+    const empty = createEmptyAppDataFile()
+    const data: AppDataFile = {
+      ...empty,
+      masterData: {
+        ...empty.masterData,
+        ownerCompanies: [
+          {
+            id: 'company-1',
+            organizationId: 'organization-1',
+            name: 'Firma',
+            additionalNameLines: [],
+          },
+        ],
+        properties: [{ id: 'property-1', ownerCompanyId: 'company-1' }],
+      },
+      billingData: {
+        ...empty.billingData,
+        billingPeriods: [
+          {
+            id: 'period-1',
+            propertyId: 'property-1',
+            year: 2026,
+            periodStart: '2026-01-01',
+            periodEnd: '2026-12-31',
+            status: 'DRAFT',
+          },
+        ],
+      },
+    }
+    const workspaceState: WorkspaceState = {
+      status: 'ready',
+      data,
+      revision: 'revision',
+      dirty: false,
+      saving: false,
+      errorCode: null,
+    }
+
+    render(<App initialPath="/" workspaceState={workspaceState} />)
+
+    expect(screen.getByText('3 von 8 Schritten')).toBeVisible()
+    expect(screen.getAllByText('Erfasst')).toHaveLength(3)
+    expect(
+      screen.getByText(/Änderungen werden automatisch im lokalen Speicher/),
     ).toBeVisible()
   })
 })

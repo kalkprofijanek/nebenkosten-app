@@ -92,6 +92,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@nebenkosten/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@nebenkosten/import-export':
+        specifier: workspace:*
+        version: link:../../packages/import-export
       '@nebenkosten/persistence':
         specifier: workspace:*
         version: link:../../packages/persistence

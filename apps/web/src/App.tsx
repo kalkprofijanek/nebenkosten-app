@@ -1,12 +1,14 @@
-import { useEffect, useState, type MouseEvent } from 'react'
+import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
 
 import { appRoutes, findRoute } from './app/navigation'
 import type { WorkspaceState } from './app/workspace-controller'
 
 interface AppProps {
   readonly initialPath?: string
+  readonly importControl?: ReactNode
   readonly onCreateWorkspace?: () => void
   readonly previewMode?: boolean
+  readonly renderRoute?: (path: string) => ReactNode
   readonly workspaceState?: WorkspaceState
 }
 
@@ -95,15 +97,28 @@ function EmptyWorkspace({
 
 function Dashboard({
   onCreateWorkspace,
+  previewMode,
   workspaceState,
 }: {
   readonly onCreateWorkspace?: () => void
+  readonly previewMode?: boolean
   readonly workspaceState?: WorkspaceState
 }) {
   const data = workspaceState?.data
   const objectCount = data?.masterData.properties.length ?? 0
   const periodCount = data?.billingData.billingPeriods.length ?? 0
   const userCount = data?.billingData.occupancyPeriods.length ?? 0
+  const completedSteps = [
+    (data?.masterData.ownerCompanies.length ?? 0) > 0,
+    objectCount > 0,
+    periodCount > 0,
+    userCount > 0,
+    (data?.billingData.costEntries.length ?? 0) > 0,
+    (data?.billingData.heatingCircuits.length ?? 0) > 0,
+    (data?.billingData.calculationResults.length ?? 0) > 0,
+    false,
+  ]
+  const progressCount = completedSteps.filter(Boolean).length
 
   return (
     <>
@@ -148,9 +163,14 @@ function Dashboard({
             <p className="section-kicker">Geführter Ablauf</p>
             <h2 id="workflow-title">Von den Stammdaten zur Freigabe</h2>
           </div>
-          <span className="progress-label">0 von 8 Schritten</span>
+          <span className="progress-label">
+            {progressCount} von 8 Schritten
+          </span>
         </div>
-        <div className="progress-track" aria-hidden="true">
+        <div
+          className={`progress-track progress-track--${progressCount}`}
+          aria-hidden="true"
+        >
           <span />
         </div>
         <ol className="workflow-list">
@@ -163,9 +183,11 @@ function Dashboard({
                 <span>
                   <strong>{route.label}</strong>
                   <small>
-                    {index === 0
-                      ? 'Hier beginnt die neue Abrechnung'
-                      : 'Wartet auf vorherige Angaben'}
+                    {completedSteps[index]
+                      ? 'Erfasst'
+                      : index === progressCount
+                        ? 'Hier beginnt die neue Abrechnung'
+                        : 'Wartet auf vorherige Angaben'}
                   </small>
                 </span>
                 <span className="workflow-arrow" aria-hidden="true">
@@ -184,8 +206,9 @@ function Dashboard({
         <div>
           <strong>Deine Daten bleiben auf diesem Gerät</strong>
           <p>
-            Keine Cloud, kein Tracking. Der lokale Speicher wird im nächsten
-            UI-Meilenstein angebunden.
+            {previewMode
+              ? 'Keine Cloud, kein Tracking. Diese Vorschau speichert Änderungen nicht dauerhaft.'
+              : 'Keine Cloud, kein Tracking. Änderungen werden automatisch im lokalen Speicher gesichert.'}
           </p>
         </div>
       </aside>
@@ -212,8 +235,10 @@ function saveLabel(state?: WorkspaceState, previewMode = false): string {
 
 export function App({
   initialPath,
+  importControl,
   onCreateWorkspace,
   previewMode,
+  renderRoute,
   workspaceState,
 }: AppProps) {
   const [path, setPath] = useState(
@@ -316,14 +341,11 @@ export function App({
               <i aria-hidden="true" />
               {saveLabel(workspaceState, previewMode)}
             </span>
-            <button
-              className="button button--quiet"
-              type="button"
-              disabled
-              title="Der sichere Dateiimport folgt im nächsten UI-Meilenstein."
-            >
-              Daten importieren
-            </button>
+            {importControl ?? (
+              <button className="button button--quiet" type="button" disabled>
+                Daten importieren
+              </button>
+            )}
           </div>
         </header>
 
@@ -340,13 +362,16 @@ export function App({
           {route.path === '/' ? (
             <Dashboard
               onCreateWorkspace={onCreateWorkspace}
+              previewMode={previewMode}
               workspaceState={workspaceState}
             />
           ) : (
-            <EmptyWorkspace
-              actionLabel={route.actionLabel}
-              section={route.label}
-            />
+            (renderRoute?.(route.path) ?? (
+              <EmptyWorkspace
+                actionLabel={route.actionLabel}
+                section={route.label}
+              />
+            ))
           )}
         </main>
       </div>

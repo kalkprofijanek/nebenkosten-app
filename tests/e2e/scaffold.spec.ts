@@ -14,15 +14,15 @@ test('walks through the visible billing workflow without console errors', async 
   await expect(
     page.getByRole('heading', { name: 'Abrechnung im Blick' }),
   ).toBeVisible()
-  await page.getByRole('link', { name: 'Firmen' }).click()
+  await page.getByRole('link', { name: 'Firmen', exact: true }).click()
   await expect(
     page.getByRole('heading', { name: 'Firmen verwalten' }),
   ).toBeVisible()
-  await page.getByRole('link', { name: 'Kosten' }).click()
+  await page.getByRole('link', { name: 'Kosten', exact: true }).click()
   await expect(
     page.getByRole('heading', { name: 'Kosten erfassen' }),
   ).toBeVisible()
-  await page.getByRole('link', { name: 'Freigabe' }).click()
+  await page.getByRole('link', { name: 'Freigabe', exact: true }).click()
   await expect(
     page.getByRole('heading', { name: 'Abrechnung freigeben' }),
   ).toBeVisible()

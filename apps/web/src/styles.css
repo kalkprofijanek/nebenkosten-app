@@ -326,6 +326,79 @@ a {
   opacity: 0.58;
 }
 
+.import-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.import-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  z-index: 300;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(10 28 22 / 55%);
+}
+
+.import-dialog {
+  width: min(100%, 34rem);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: var(--paper);
+  box-shadow: 0 2rem 6rem rgb(0 0 0 / 25%);
+}
+
+.import-dialog h2 {
+  margin-top: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.import-dialog dl {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.import-dialog dl div {
+  padding: 0.75rem;
+  border-radius: 0.6rem;
+  background: #f5f7f4;
+}
+
+.import-dialog dt {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.import-dialog dd {
+  margin: 0.3rem 0 0;
+  font-weight: 800;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.dialog-actions button {
+  min-height: 2.5rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+}
+
 .button:focus-visible,
 a:focus-visible {
   outline: 3px solid #d49b47;
@@ -511,9 +584,41 @@ h1 {
 
 .progress-track span {
   display: block;
-  width: 3%;
+  width: 0;
   height: 100%;
   background: var(--forest-soft);
+}
+
+.progress-track--1 span {
+  width: 12.5%;
+}
+
+.progress-track--2 span {
+  width: 25%;
+}
+
+.progress-track--3 span {
+  width: 37.5%;
+}
+
+.progress-track--4 span {
+  width: 50%;
+}
+
+.progress-track--5 span {
+  width: 62.5%;
+}
+
+.progress-track--6 span {
+  width: 75%;
+}
+
+.progress-track--7 span {
+  width: 87.5%;
+}
+
+.progress-track--8 span {
+  width: 100%;
 }
 
 .workflow-list {
@@ -672,6 +777,134 @@ h1 {
   font-size: 0.65rem;
 }
 
+.main-content > form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--paper);
+  box-shadow: 0 1.2rem 3.5rem rgb(31 55 43 / 5%);
+}
+
+.main-content form label,
+.main-content > label {
+  display: grid;
+  gap: 0.42rem;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.main-content input,
+.main-content select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #cbd6ce;
+  border-radius: 0.6rem;
+  background: #ffffff;
+  color: var(--ink);
+}
+
+.main-content input:focus,
+.main-content select:focus {
+  border-color: var(--forest-soft);
+  outline: 3px solid rgb(31 87 71 / 14%);
+}
+
+.main-content form button {
+  align-self: end;
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: var(--forest);
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.main-content > label {
+  max-width: 30rem;
+  margin: 1rem 0;
+}
+
+.main-content > section[aria-label='Vorhandene Einträge'] {
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: rgb(255 255 255 / 80%);
+}
+
+.main-content > section[aria-label='Vorhandene Einträge'] h2 {
+  margin: 0 0 0.8rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.main-content > section[aria-label='Vorhandene Einträge'] ul {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.main-content > section[aria-label='Vorhandene Einträge'] li {
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.5rem;
+  background: #f5f7f4;
+}
+
+.main-content [role='alert'] {
+  padding: 0.8rem 1rem;
+  border: 1px solid #dfb4a9;
+  border-radius: 0.65rem;
+  background: #fff1ed;
+  color: #7a2e21;
+}
+
+.calculation-panel {
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--paper);
+}
+
+.calculation-panel h2 {
+  margin-top: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 500;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1.5rem 0 0;
+}
+
+.result-grid div {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: #f5f7f4;
+}
+
+.result-grid dt {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.result-grid dd {
+  margin: 0.5rem 0 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.25rem;
+}
+
 @media (max-width: 900px) {
   .app-frame {
     grid-template-columns: 5.25rem minmax(0, 1fr);
@@ -699,6 +932,10 @@ h1 {
   }
 
   .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .result-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -767,7 +1004,9 @@ h1 {
   }
 
   .metric-grid,
-  .workflow-list {
+  .workflow-list,
+  .main-content > form,
+  .result-grid {
     grid-template-columns: 1fr;
   }
 

@@ -38,7 +38,7 @@ const [stylesheet, script] = await Promise.all([
 const previewNotice = `
   <div class="preview-notice" role="status">
     <strong>Lokale PR-09-Vorschau</strong>
-    <span>Diese Zwischenansicht verwendet keine echten Daten und speichert noch keine Änderungen.</span>
+    <span>Diese Zwischenansicht verwendet keine echten Daten. Änderungen bleiben nur bis zum Neuladen erhalten.</span>
   </div>`
 const noticeStyles = `
     .preview-notice {

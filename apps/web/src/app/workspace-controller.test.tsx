@@ -1,5 +1,6 @@
 import { createEmptyAppDataFile, type AppDataFile } from '@nebenkosten/schema'
 import {
+  MemoryStorageAdapter,
   PersistenceError,
   type SaveOptions,
   type SaveResult,
@@ -272,6 +273,35 @@ describe('workspace controller', () => {
     expect(adapter.save).not.toHaveBeenCalled()
   })
 
+  it('reloads a newer external revision when this tab has no local changes', async () => {
+    const adapter = new FakeAdapter()
+    adapter.load
+      .mockResolvedValueOnce({
+        data: withVersion('loaded'),
+        revision: 'revision-1',
+      })
+      .mockResolvedValueOnce({
+        data: withVersion('external'),
+        revision: 'revision-2',
+      })
+    const controller = createWorkspaceController({ adapter })
+    await controller.load()
+
+    controller.reportExternalRevision('revision-2')
+    expect(controller.getState().status).toBe('loading')
+    await flushMicrotasks()
+
+    expect(controller.getState()).toMatchObject({
+      status: 'ready',
+      data: withVersion('external'),
+      revision: 'revision-2',
+      dirty: false,
+      saving: false,
+      errorCode: null,
+    })
+    expect(adapter.load).toHaveBeenCalledTimes(2)
+  })
+
   it('preserves an external conflict when an older in-flight save resolves', async () => {
     const adapter = new FakeAdapter()
     const pendingSave = deferred<SaveResult>()
@@ -388,6 +418,34 @@ describe('workspace controller', () => {
       revision: 'revision-2',
       dirty: false,
     })
+  })
+
+  it('imports into an empty workspace only after the explicit command', async () => {
+    const adapter = new FakeAdapter()
+    adapter.load.mockResolvedValue(null)
+    adapter.save.mockImplementation(async (data) => saved(data, 'revision-1'))
+    const controller = createWorkspaceController({ adapter, debounceMs: 10 })
+    await controller.load()
+
+    expect(await controller.importData(withVersion('imported'))).toBe(true)
+    await vi.advanceTimersByTimeAsync(10)
+
+    expect(adapter.save).toHaveBeenCalledWith(withVersion('imported'), {
+      expectedRevision: null,
+    })
+  })
+
+  it('creates a manual snapshot before replacing an existing workspace', async () => {
+    const adapter = new MemoryStorageAdapter()
+    await adapter.save(withVersion('existing'), { expectedRevision: null })
+    const controller = createWorkspaceController({ adapter, debounceMs: 10 })
+    await controller.load()
+
+    expect(await controller.importData(withVersion('imported'))).toBe(true)
+    expect(await adapter.listSnapshots()).toHaveLength(1)
+    await vi.advanceTimersByTimeAsync(10)
+
+    expect((await adapter.load())?.data.meta.appVersion).toBe('imported')
   })
 
   it('warns before unload only while dirty, saving, or conflicted', async () => {
