@@ -1,14 +1,294 @@
-export function App() {
+import { useEffect, useState, type MouseEvent } from 'react'
+
+import { appRoutes, findRoute } from './app/navigation'
+
+interface AppProps {
+  readonly initialPath?: string
+}
+
+const workflowRoutes = appRoutes.slice(1)
+
+function BrandMark() {
   return (
-    <main className="shell">
-      <section className="status-card" aria-labelledby="app-title">
-        <p className="eyebrow">Technisches Grundgerüst</p>
-        <h1 id="app-title">Nebenkosten-App</h1>
-        <p className="status-copy">
-          Der neue Workspace ist eingerichtet. Fachfunktionen werden in den
-          folgenden, separat geprüften Schritten ergänzt.
+    <span className="brand-mark" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+    </span>
+  )
+}
+
+function EmptyWorkspace({
+  actionLabel,
+  section,
+}: {
+  readonly actionLabel?: string
+  readonly section: string
+}) {
+  if (section === 'Berechnung') {
+    return (
+      <section className="empty-panel" aria-labelledby="calculation-empty">
+        <span className="empty-panel__symbol" aria-hidden="true">
+          ∑
+        </span>
+        <h2 id="calculation-empty">Noch nicht berechenbar</h2>
+        <p>
+          Lege zuerst Firma, Objekt, Abrechnungsjahr und die zugehörigen
+          Abrechnungsdaten an.
         </p>
+        <a className="button button--primary" href="#/firmen">
+          Mit den Stammdaten beginnen
+        </a>
       </section>
-    </main>
+    )
+  }
+
+  if (section === 'Freigabe') {
+    return (
+      <section className="release-panel" aria-labelledby="release-status">
+        <div>
+          <span className="status-pill status-pill--draft">Entwurf</span>
+          <h2 id="release-status">Freigabe ist noch gesperrt</h2>
+          <p>
+            Die fachlichen Freigabeprüfungen werden im nächsten geprüften
+            Schritt ergänzt. Bis dahin kann kein Abschlussstatus gesetzt werden.
+          </p>
+        </div>
+        <div
+          className="release-score"
+          aria-label="0 von 4 Prüfbereichen bereit"
+        >
+          <strong>0/4</strong>
+          <span>Prüfbereiche bereit</span>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="empty-panel" aria-labelledby="empty-title">
+      <span className="empty-panel__symbol" aria-hidden="true">
+        +
+      </span>
+      <h2 id="empty-title">Noch keine Einträge</h2>
+      <p>
+        Dieser Bereich ist bereit. Beginne mit einem ersten Eintrag oder
+        importiere später einen vorhandenen Datenbestand.
+      </p>
+      {actionLabel ? (
+        <button
+          className="button button--primary"
+          type="button"
+          disabled
+          title="Die Eingabemaske folgt im nächsten UI-Meilenstein."
+        >
+          {actionLabel}
+        </button>
+      ) : null}
+    </section>
+  )
+}
+
+function Dashboard() {
+  return (
+    <>
+      <section className="metric-grid" aria-label="Aktueller Datenstand">
+        {[
+          ['0', 'Objekte'],
+          ['0', 'Abrechnungsjahre'],
+          ['0', 'Nutzer'],
+          ['Entwurf', 'Aktueller Status'],
+        ].map(([value, label]) => (
+          <article className="metric-card" key={label}>
+            <strong>{value}</strong>
+            <span>{label}</span>
+          </article>
+        ))}
+      </section>
+
+      <section className="workflow-card" aria-labelledby="workflow-title">
+        <div className="section-heading">
+          <div>
+            <p className="section-kicker">Geführter Ablauf</p>
+            <h2 id="workflow-title">Von den Stammdaten zur Freigabe</h2>
+          </div>
+          <span className="progress-label">0 von 8 Schritten</span>
+        </div>
+        <div className="progress-track" aria-hidden="true">
+          <span />
+        </div>
+        <ol className="workflow-list">
+          {workflowRoutes.map((route, index) => (
+            <li key={route.path}>
+              <a href={`#${route.path}`}>
+                <span className="workflow-number">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <span>
+                  <strong>{route.label}</strong>
+                  <small>
+                    {index === 0
+                      ? 'Hier beginnt die neue Abrechnung'
+                      : 'Wartet auf vorherige Angaben'}
+                  </small>
+                </span>
+                <span className="workflow-arrow" aria-hidden="true">
+                  →
+                </span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <aside className="privacy-note">
+        <span className="privacy-note__icon" aria-hidden="true">
+          ✓
+        </span>
+        <div>
+          <strong>Deine Daten bleiben auf diesem Gerät</strong>
+          <p>
+            Keine Cloud, kein Tracking. Der lokale Speicher wird im nächsten
+            UI-Meilenstein angebunden.
+          </p>
+        </div>
+      </aside>
+    </>
+  )
+}
+
+export function App({ initialPath }: AppProps) {
+  const [path, setPath] = useState(
+    initialPath ??
+      (globalThis.location?.hash.startsWith('#/')
+        ? globalThis.location.hash.slice(1)
+        : globalThis.location?.pathname) ??
+      '/',
+  )
+  const route = findRoute(path)
+
+  useEffect(() => {
+    if (initialPath !== undefined) return
+
+    const handlePopState = () => {
+      if (globalThis.location.hash === '#main-content') return
+      setPath(
+        globalThis.location.hash.startsWith('#/')
+          ? globalThis.location.hash.slice(1)
+          : '/',
+      )
+    }
+    globalThis.addEventListener('popstate', handlePopState)
+    globalThis.addEventListener('hashchange', handlePopState)
+    return () => {
+      globalThis.removeEventListener('popstate', handlePopState)
+      globalThis.removeEventListener('hashchange', handlePopState)
+    }
+  }, [initialPath])
+
+  function navigate(event: MouseEvent<HTMLAnchorElement>, nextPath: string) {
+    event.preventDefault()
+    if (initialPath === undefined) {
+      globalThis.location.hash = nextPath
+      globalThis.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    setPath(nextPath)
+  }
+
+  return (
+    <div className="app-frame">
+      <a className="skip-link" href="#main-content">
+        Zum Inhalt springen
+      </a>
+
+      <aside className="sidebar">
+        <a
+          className="brand"
+          href="#/"
+          onClick={(event) => navigate(event, '/')}
+          aria-label="Nebenkosten-App – Übersicht"
+        >
+          <BrandMark />
+          <span>
+            <strong>Nebenkosten</strong>
+            <small>Abrechnung lokal</small>
+          </span>
+        </a>
+
+        <nav aria-label="Abrechnungsbereiche">
+          <p className="navigation-label">Arbeitsbereiche</p>
+          <ul className="navigation-list">
+            {appRoutes.map((item, index) => (
+              <li key={item.path}>
+                <a
+                  href={`#${item.path}`}
+                  aria-label={item.label}
+                  aria-current={route.path === item.path ? 'page' : undefined}
+                  onClick={(event) => navigate(event, item.path)}
+                >
+                  <span className="navigation-icon" aria-hidden="true">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <span>{item.label}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <footer className="sidebar-footer">
+          <div className="local-indicator">
+            <span aria-hidden="true" />
+            <div>
+              <strong>Nur lokal</strong>
+              <small>Schema v4 · PR 09</small>
+            </div>
+          </div>
+        </footer>
+      </aside>
+
+      <div className="workspace">
+        <header className="topbar">
+          <div className="context">
+            <span>Arbeitsbestand</span>
+            <strong>Noch kein Objekt gewählt</strong>
+          </div>
+          <div className="topbar-actions">
+            <span className="save-state">
+              <i aria-hidden="true" />
+              Noch nicht gespeichert
+            </span>
+            <button
+              className="button button--quiet"
+              type="button"
+              disabled
+              title="Der sichere Dateiimport folgt im nächsten UI-Meilenstein."
+            >
+              Daten importieren
+            </button>
+          </div>
+        </header>
+
+        <main id="main-content" className="main-content">
+          <header className="page-heading">
+            <div>
+              <p className="eyebrow">{route.eyebrow}</p>
+              <h1>{route.title}</h1>
+              <p>{route.description}</p>
+            </div>
+            <span className="status-pill status-pill--draft">Entwurf</span>
+          </header>
+
+          {route.path === '/' ? (
+            <Dashboard />
+          ) : (
+            <EmptyWorkspace
+              actionLabel={route.actionLabel}
+              section={route.label}
+            />
+          )}
+        </main>
+      </div>
+    </div>
   )
 }
