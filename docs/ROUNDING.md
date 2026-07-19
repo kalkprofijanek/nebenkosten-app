@@ -34,13 +34,13 @@ Wert zu verändern.
 
 ## 2. Interne Genauigkeit (Zielmodell)
 
-| Ebene | Regel |
-| --- | --- |
-| Persistenz | Ganze **Cent** als Integer (`moneyCentsSchema`). Keine Fließkomma-Euro. |
-| Eingabekonvertierung | Euro → Cent **ausschließlich** über `euroToCents` (siehe Abschnitt 3), dokumentiert in `docs/MIGRATION.md`. |
-| Kern-Rechnung (Engine) | Zwischenrechnungen mit voller `number`-Präzision (Cent als Dezimalzahl zulässig). **Keine Zwischenrundung** — wie Legacy. |
-| Ausgabe-Grenze | Rundung auf ganze Cent erst beim Ergebnis: je Position, je Nutzeranteil, je Aggregat. |
-| Mengen/Prozente | Mengen behalten Dezimalwert + Einheit (`quantitySchema`); Prozente sind Zahlen 0–100. Keine Geld-Rundung auf Mengen anwenden. |
+| Ebene                  | Regel                                                                                                                         |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Persistenz             | Ganze **Cent** als Integer (`moneyCentsSchema`). Keine Fließkomma-Euro.                                                       |
+| Eingabekonvertierung   | Euro → Cent **ausschließlich** über `euroToCents` (siehe Abschnitt 3), dokumentiert in `docs/MIGRATION.md`.                   |
+| Kern-Rechnung (Engine) | Zwischenrechnungen mit voller `number`-Präzision (Cent als Dezimalzahl zulässig). **Keine Zwischenrundung** — wie Legacy.     |
+| Ausgabe-Grenze         | Rundung auf ganze Cent erst beim Ergebnis: je Position, je Nutzeranteil, je Aggregat.                                         |
+| Mengen/Prozente        | Mengen behalten Dezimalwert + Einheit (`quantitySchema`); Prozente sind Zahlen 0–100. Keine Geld-Rundung auf Mengen anwenden. |
 
 Begründung: Zwischenrundung erzeugt Ketten-Rundungsfehler; die Legacy hält
 bewusst volle Präzision bis zum Ende. Das Zielmodell übernimmt das und rundet
@@ -68,19 +68,19 @@ genau dieser Funktion aus den Legacy-Fließkomma-Ergebnissen abgeleitet.
 
 Reihenfolge entspricht `Engine.rechne` (`legacy/behavior-map.md` Abschnitt 5).
 
-| Schritt | Zwischenwert | Rundung |
-| --- | --- | --- |
-| Zeitanteil (`bewohnteTage`, `zeitraumTage`) | Tage | **Ganze Tage** (`round`), vor der Geldrechnung. Zeitfaktor `zf = Tage/Perioden­tage` bleibt Fließkomma. |
-| Monatsanteil VZ (`monatlicheAnteile`) | Monatsbruchteile | Tage je Monat auf ganze Tage; Summe bleibt Fließkomma. |
-| FIFO-Brennstoff (`heizquelleKostenDetails`) | Restwert/Verbrauchskosten | **Keine** Zwischenrundung; volle Präzision. |
-| CO₂ (`co2BilanzBlock`) | kg, kWh, €, Kennwert | **Keine** Zwischenrundung; Stufenmodell auf ungerundetem Kennwert. |
-| 70/30-Heiztopf (Grund/Verbrauch) | € je Block | **Keine** Zwischenrundung. |
-| Preis je Bezugseinheit (`preisGrund`, `preisVerbr`, `preisCo2`, `kpos.preis`) | €/Einheit | **Keine** Zwischenrundung. |
-| Nutzer-Position (`pos[].betrag`) | € | Erst an der Ausgabegrenze auf Cent. |
-| Nutzer-Summe (`summe`), Saldo (`saldo = summe − vz`) | € | Erst an der Ausgabegrenze auf Cent. |
-| Aggregate (`gesamtkosten`, `vermieterKosten`, `erfassteKosten`) | € | Erst an der Ausgabegrenze auf Cent. |
-| VZ-Empfehlung (Folgejahr) | € | Legacy rundet auf 0,50 € bzw. 5 € (Anzeige/Assistent, **nicht** abrechnungsrelevant). |
-| Mengenumrechnung t→kg | Menge | `round(x·1000)/1000` (Menge, kein Geld). |
+| Schritt                                                                       | Zwischenwert              | Rundung                                                                                                 |
+| ----------------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Zeitanteil (`bewohnteTage`, `zeitraumTage`)                                   | Tage                      | **Ganze Tage** (`round`), vor der Geldrechnung. Zeitfaktor `zf = Tage/Perioden­tage` bleibt Fließkomma. |
+| Monatsanteil VZ (`monatlicheAnteile`)                                         | Monatsbruchteile          | Tage je Monat auf ganze Tage; Summe bleibt Fließkomma.                                                  |
+| FIFO-Brennstoff (`heizquelleKostenDetails`)                                   | Restwert/Verbrauchskosten | **Keine** Zwischenrundung; volle Präzision.                                                             |
+| CO₂ (`co2BilanzBlock`)                                                        | kg, kWh, €, Kennwert      | **Keine** Zwischenrundung; Stufenmodell auf ungerundetem Kennwert.                                      |
+| 70/30-Heiztopf (Grund/Verbrauch)                                              | € je Block                | **Keine** Zwischenrundung.                                                                              |
+| Preis je Bezugseinheit (`preisGrund`, `preisVerbr`, `preisCo2`, `kpos.preis`) | €/Einheit                 | **Keine** Zwischenrundung.                                                                              |
+| Nutzer-Position (`pos[].betrag`)                                              | €                         | Erst an der Ausgabegrenze auf Cent.                                                                     |
+| Nutzer-Summe (`summe`), Saldo (`saldo = summe − vz`)                          | €                         | Erst an der Ausgabegrenze auf Cent.                                                                     |
+| Aggregate (`gesamtkosten`, `vermieterKosten`, `erfassteKosten`)               | €                         | Erst an der Ausgabegrenze auf Cent.                                                                     |
+| VZ-Empfehlung (Folgejahr)                                                     | €                         | Legacy rundet auf 0,50 € bzw. 5 € (Anzeige/Assistent, **nicht** abrechnungsrelevant).                   |
+| Mengenumrechnung t→kg                                                         | Menge                     | `round(x·1000)/1000` (Menge, kein Geld).                                                                |
 
 Die 33 Legacy-Rundungsquellzeilen sind vollständig in `legacy/behavior-map.md`
 Abschnitt 6 tabelliert; sie liegen — bis auf die reine Anzeige und die manuellen
@@ -153,25 +153,29 @@ Posten; Leerstand steckt in `landlordTotalCents`).
 
 ## 7. Zulässige Toleranz
 
-| Quelle | Toleranz Kontrolldifferenz |
-| --- | --- |
-| Masterplan 6.3 | > 0,01 € (1 Cent) ist ein Fehler, sofern nicht fachlich begründet. |
-| Masterplan 9.5 | Saldo je Nutzer max. 0,01 € Abweichung gegenüber der Alt-App. |
-| Legacy-Freigabecheck | 0,50 € (`legacy/behavior-map.md` Abschnitt 6, Zeile 1825). |
-| Legacy-PDF-Anzeige | 0,02 € (Zeile 6264). |
+| Quelle                      | Toleranz Kontrolldifferenz                                                                |
+| --------------------------- | ----------------------------------------------------------------------------------------- |
+| Masterplan 6.3              | > 0,01 € (1 Cent) ist ein Fehler, sofern nicht fachlich begründet.                        |
+| Masterplan 9.5              | Saldo je Nutzer max. 0,01 € Abweichung gegenüber der Alt-App.                             |
+| Legacy-Freigabecheck        | 0,50 € (`legacy/behavior-map.md` Abschnitt 6, Zeile 1825).                                |
+| Legacy-PDF-Anzeige          | 0,02 € (Zeile 6264).                                                                      |
 | **Golden-Fixtures (PR 05)** | **1 Cent** (`CONTROL_TOLERANCE_CENTS`), plus je Nutzer/Position 1 Cent Restcent-Toleranz. |
 
-Die Golden-Fixtures verwenden bewusst die **strenge** Masterplan-Zielvorgabe
-(1 Cent). Alle 15 Fälle erfüllen sie mit Kontrolldifferenz = 0.
+**Verbindliche Entscheidung (menschliche Freigabe 2026-07):** Im Zielsystem gilt
+verbindlich **0,01 € (1 Cent)** als Freigabegrenze — auch für PR 06. Der
+historische Legacy-Wert **0,50 €** bleibt ausschließlich als **dokumentierter
+Legacy-Warnwert** bestehen und ist **keine** Freigabegrenze. Die Golden-Fixtures
+verwenden diese strenge Zielvorgabe; alle 15 Fälle erfüllen sie mit
+Kontrolldifferenz = 0.
 
 ---
 
-## 8. Offene Entscheidungen (menschliche Freigabe erforderlich)
+## 8. Entscheidungen und offene Punkte
 
-1. **Kontrolldifferenz-Toleranz:** Masterplan 0,01 € vs. Legacy 0,50 €
-   (Freigabe) / 0,02 € (PDF). Vorschlag: 0,01 € im Ziel-System übernehmen und
-   den Legacy-Wert als geänderte fachliche Regel dokumentieren. Bis zur
-   Entscheidung gilt in den Fixtures 1 Cent.
+1. **Kontrolldifferenz-Toleranz — ENTSCHIEDEN (menschliche Freigabe 2026-07):**
+   Verbindlich **0,01 € (1 Cent)** im Zielsystem und für PR 06. Der Legacy-Wert
+   **0,50 €** bleibt nur als dokumentierter Warnwert erhalten, nicht als
+   Freigabegrenze (siehe Abschnitt 7). Die Fixtures verwenden bereits 1 Cent.
 2. **Restcent-Verfahren:** Größter-Rest vs. „Vermieter trägt den Rest"
    (Abschnitt 5). Muss in PR 06 verbindlich festgelegt werden.
 3. **„Nicht zugeordnete Beträge" in der Kontrollidentität:** Legacy hält
@@ -182,5 +186,6 @@ Die Golden-Fixtures verwenden bewusst die **strenge** Masterplan-Zielvorgabe
    gesetzt; abweichende kaufmännische Sonderregeln (z. B. „half to even") sind
    nicht vorgesehen — bei Bedarf hier ergänzen.
 
-Diese Punkte sind bis zur Abnahme durch den Menschen offen und dürfen nicht
-stillschweigend anders implementiert werden (Masterplan 2.6, 12.1 Punkt 3).
+Punkt 1 ist entschieden; die Punkte 2–4 sind bis zur Abnahme durch den Menschen
+offen und dürfen nicht stillschweigend anders implementiert werden
+(Masterplan 2.6, 12.1 Punkt 3).

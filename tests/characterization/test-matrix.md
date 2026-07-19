@@ -34,7 +34,7 @@ Fälle: 01 Volljahr · 02 Nutzerwechsel · 03 Leerstand · 04 Mehrere Häuser ·
 | 50–70 % Verbrauchsanteil | | | | | X | X | X | X | X | X | X | X | | X | X |
 | Warmwasseranteil | | | | | | | | | | X | X | | | | |
 | mehrere Energiequellen | | | | | | | | | X | | | | | | |
-| Wärmepumpe plus Spitzenlast | | | | | | | | X | X | | | | | | |
+| Wärmepumpe plus Spitzenlast | | | | | | | | | X | | | | | | |
 | CO₂-Menge | | | | | (x) | (x) | (x) | (x) | X | (x) | (x) | X | | (x) | (x) |
 | CO₂-Kosten | | | | | | | | | X | | | X | | | |
 | Vermieter-/Mieteranteil | | | X | | | | | | X | | | X | | X | |

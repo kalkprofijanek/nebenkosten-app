@@ -13,22 +13,17 @@
  *
  * Kein Test ist rot; die Engine-Vergleiche sind bewusst als pending markiert.
  */
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { appDataFileSchema } from '@nebenkosten/schema'
 import { buildAppDataFile } from './build-app-data'
-import type { Golden, Scenario, ScenarioFile } from './types'
+import { goldenById, goldens, scenarios } from './cases'
 
-const scenarioFile = JSON.parse(
-  readFileSync(new URL('./scenarios.json', import.meta.url), 'utf8'),
-) as ScenarioFile
-const scenarios: Scenario[] = scenarioFile.scenarios
-
-const goldens = JSON.parse(
-  readFileSync(new URL('./goldens.json', import.meta.url), 'utf8'),
-) as Golden[]
-
-const goldenById = new Map(goldens.map((golden) => [golden.id, golden]))
+// Hinweis: `scenarios`/`goldens`/`goldenById` und `characterizationCases`
+// stammen aus dem neutralen Modul `cases.ts`. Dort werden `goldens.json`
+// und `scenarios.json` beim Laden zur Laufzeit validiert (nicht nur als
+// TypeScript-Typ) — fehlende oder falsch typisierte Golden-Felder (FIFO,
+// Warmwasser, CO2-Kennwert, Energiemenge, Status …) lassen das Laden und
+// damit die CI scheitern.
 
 /**
  * Kontrolldifferenz-Toleranz. Masterplan 6.3 fordert <= 0,01 EUR (1 Cent);
@@ -192,33 +187,79 @@ describe.each(scenarios.map((scenario) => [scenario.id, scenario] as const))(
     it('teilt je Heizkreis den 70/30-Topf konsistent auf (Grund + Verbrauch = Heiztopf)', () => {
       for (const circuit of golden.heating.perCircuit) {
         expect(
-          Math.abs(
-            circuit.heatingTotalCents -
-              (circuit.baseCents + circuit.consumptionCents),
-          ),
+          circuit.baseCents + circuit.consumptionCents,
           `70/30-Aufteilung weicht ab bei ${circuit.buildingId}`,
-        ).toBeLessThanOrEqual(1)
+        ).toBe(circuit.heatingTotalCents)
+      }
+    })
+
+    it('summiert Heizkreis-Töpfe inkl. unverteiltem Anteil zur Heizkosten-Gesamtsumme', () => {
+      const perCircuitTotal = golden.heating.perCircuit.reduce(
+        (sum, circuit) => sum + circuit.heatingTotalCents,
+        0,
+      )
+      // Masterplan 6.2 „unverteilter Heizkostenanteil": nicht einem Kreis
+      // zugeordnete Heizkosten gehen als Vermieteranteil in die Summe ein.
+      expect(perCircuitTotal + golden.heating.unallocatedLandlordCents).toBe(
+        golden.heating.totalCents,
+      )
+    })
+
+    it('summiert Heizkreis-Brennstoffkosten (FIFO) zur Heiz-Brennstoffsumme', () => {
+      const perCircuitFuel = golden.heating.perCircuit.reduce(
+        (sum, circuit) => sum + circuit.fuelConsumptionCents,
+        0,
+      )
+      expect(perCircuitFuel).toBe(golden.heating.fuelConsumptionCents)
+    })
+
+    it('hält je Heizkreis den Warmwasseranteil innerhalb des Heiztopfs', () => {
+      for (const circuit of golden.heating.perCircuit) {
+        expect(circuit.hotWaterCents).toBeGreaterThanOrEqual(0)
+        expect(
+          circuit.hotWaterCents,
+          `Warmwasseranteil > Heiztopf bei ${circuit.buildingId}`,
+        ).toBeLessThanOrEqual(circuit.heatingTotalCents)
+      }
+    })
+
+    it('teilt je Heizkreis die CO₂-Kosten konsistent in Mieter/Vermieter', () => {
+      const perCircuitTenant = golden.heating.perCircuit.reduce(
+        (sum, circuit) => sum + circuit.co2TenantCents,
+        0,
+      )
+      const perCircuitLandlord = golden.heating.perCircuit.reduce(
+        (sum, circuit) => sum + circuit.co2LandlordCents,
+        0,
+      )
+      expect(perCircuitTenant).toBe(golden.co2.tenantCents)
+      expect(perCircuitLandlord).toBe(golden.co2.landlordCents)
+      for (const circuit of golden.heating.perCircuit) {
+        expect(
+          circuit.co2TenantCents + circuit.co2LandlordCents,
+          `CO₂-Kreisaufteilung weicht ab bei ${circuit.buildingId}`,
+        ).toBe(circuit.co2CostCents)
+      }
+    })
+
+    it('hält CO₂-Kennwert, CO₂-Menge und Energiemenge je Heizkreis plausibel', () => {
+      for (const circuit of golden.heating.perCircuit) {
+        // Kein CO₂ ohne Energie; keine Energie ohne (positive) Brennstoff-/
+        // Verbrauchskosten — fängt vertauschte oder verlorene Detailwerte ab.
+        if (circuit.co2Kg > 0) expect(circuit.energyKwh).toBeGreaterThan(0)
+        if (circuit.co2CostCents > 0) expect(circuit.co2Kg).toBeGreaterThan(0)
+        if (circuit.energyKwh > 0)
+          expect(circuit.fuelConsumptionCents).toBeGreaterThan(0)
       }
     })
 
     // PR 06: die neue Core-Engine gegen die Golden-Werte pruefen.
-    // Aktivieren, sobald `calculateBilling` (Masterplan 6.1) existiert:
-    //   const result = calculateBilling(toCalculationInput(buildAppDataFile(scenario)))
-    //   expect(toCents(result.totals)).toEqual(golden.totals)
-    it.todo(`PR 06: Engine-Ergebnis gegen Golden-Werte vergleichen (${id})`)
+    // Aktivieren, sobald `calculateBilling` (Masterplan 6.1) existiert;
+    // Fälle über das neutrale Modul `cases.ts` (`characterizationCases()`)
+    // beziehen und das VOLLSTÄNDIGE Ergebnis vergleichen — totals, heating,
+    // co2, tenants und vacancyLandlordCents, nicht nur `totals`.
+    it.todo(
+      `PR 06: Engine-Ergebnis vollständig gegen Golden-Werte vergleichen (${id})`,
+    )
   },
 )
-
-/**
- * Vergleichsrahmen fuer PR 06: liefert Eingabe-Fixture und Golden-Werte eines
- * Falls. Die Core-Engine importiert dies, um ihr Ergebnis zu validieren.
- */
-export function characterizationCases(): {
-  scenario: Scenario
-  golden: Golden
-}[] {
-  return scenarios.map((scenario) => ({
-    scenario,
-    golden: goldenById.get(scenario.id)!,
-  }))
-}
