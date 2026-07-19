@@ -1,0 +1,393 @@
+import {
+  appDataFileSchema,
+  createEmptyAppDataFile,
+  type AppDataFile,
+} from '@nebenkosten/schema'
+import { describe, expect, it } from 'vitest'
+import {
+  addTenantOccupancy,
+  addVacancyOccupancy,
+  setOccupancyPrepayment,
+} from './commands'
+
+const IDS = {
+  organization: '10000000-0000-4000-8000-000000000001',
+  ownerCompany: '10000000-0000-4000-8000-000000000002',
+  property: '10000000-0000-4000-8000-000000000003',
+  unit: '10000000-0000-4000-8000-000000000004',
+  billingPeriod: '10000000-0000-4000-8000-000000000005',
+  person: '20000000-0000-4000-8000-000000000001',
+  tenancy: '20000000-0000-4000-8000-000000000002',
+  occupancy: '20000000-0000-4000-8000-000000000003',
+  prepayment: '20000000-0000-4000-8000-000000000004',
+} as const
+
+function validFile(): AppDataFile {
+  const empty = createEmptyAppDataFile()
+  return appDataFileSchema.parse({
+    ...empty,
+    masterData: {
+      ...empty.masterData,
+      organizations: [{ id: IDS.organization, name: 'Beispielverwaltung' }],
+      ownerCompanies: [
+        {
+          id: IDS.ownerCompany,
+          organizationId: IDS.organization,
+          name: 'Beispielbestand',
+          additionalNameLines: [],
+        },
+      ],
+      properties: [
+        {
+          id: IDS.property,
+          ownerCompanyId: IDS.ownerCompany,
+        },
+      ],
+      units: [
+        {
+          id: IDS.unit,
+          propertyId: IDS.property,
+          label: 'Wohnung 1',
+        },
+      ],
+    },
+    billingData: {
+      ...empty.billingData,
+      billingPeriods: [
+        {
+          id: IDS.billingPeriod,
+          propertyId: IDS.property,
+          year: 2026,
+          periodStart: '2026-01-01',
+          periodEnd: '2026-12-31',
+          status: 'DRAFT',
+        },
+      ],
+    },
+  })
+}
+
+function sequentialIds(...ids: string[]): () => string {
+  let index = 0
+  return () => ids[index++] ?? 'ffffffff-ffff-4fff-8fff-ffffffffffff'
+}
+
+describe('Nutzer-Commands', () => {
+  it('legt Nutzer, Mietverhältnis, Zeitraum und monatliche Vorauszahlung atomar an', () => {
+    const original = validFile()
+
+    const result = addTenantOccupancy(
+      original,
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: {
+          displayName: 'Erika Beispiel',
+        },
+        occupancy: {
+          from: '2026-01-01',
+          to: '2026-06-30',
+          persons: 2,
+        },
+        prepayment: { mode: 'monthly', monthlyAmountCents: 18_500 },
+      },
+      sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+    )
+
+    expect(original.masterData.persons).toEqual([])
+    expect(original.billingData.occupancyPeriods).toEqual([])
+    expect(result.masterData.persons).toEqual([
+      expect.objectContaining({
+        id: IDS.person,
+        organizationId: IDS.organization,
+        displayName: 'Erika Beispiel',
+      }),
+    ])
+    expect(result.masterData.tenancies).toEqual([
+      expect.objectContaining({
+        id: IDS.tenancy,
+        unitId: IDS.unit,
+        personIds: [IDS.person],
+      }),
+    ])
+    expect(result.billingData.occupancyPeriods).toEqual([
+      expect.objectContaining({
+        id: IDS.occupancy,
+        tenancyId: IDS.tenancy,
+        kind: 'tenant',
+      }),
+    ])
+    expect(result.billingData.prepayments).toEqual([
+      {
+        id: IDS.prepayment,
+        occupancyPeriodId: IDS.occupancy,
+        mode: 'monthly',
+        monthlyAmountCents: 18_500,
+      },
+    ])
+    expect(appDataFileSchema.safeParse(result).success).toBe(true)
+  })
+
+  it('erlaubt einen lückenlosen Nutzerwechsel ohne Überschneidung', () => {
+    const first = addTenantOccupancy(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Erster Beispielnutzer' },
+        occupancy: { from: '2026-01-01', to: '2026-06-30' },
+        prepayment: { mode: 'none_agreed' },
+      },
+      sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+    )
+
+    const changed = addTenantOccupancy(
+      first,
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Zweiter Beispielnutzer' },
+        occupancy: { from: '2026-07-01', to: '2026-12-31' },
+        prepayment: { mode: 'annual', annualAmountCents: 120_000 },
+      },
+      sequentialIds(
+        '30000000-0000-4000-8000-000000000001',
+        '30000000-0000-4000-8000-000000000002',
+        '30000000-0000-4000-8000-000000000003',
+        '30000000-0000-4000-8000-000000000004',
+      ),
+    )
+
+    expect(changed.billingData.occupancyPeriods).toHaveLength(2)
+    expect(changed.billingData.prepayments[1]).toEqual(
+      expect.objectContaining({
+        mode: 'annual',
+        annualAmountCents: 120_000,
+      }),
+    )
+  })
+
+  it('legt einen expliziten Leerstandszeitraum ohne Person oder Vorauszahlung an', () => {
+    const result = addVacancyOccupancy(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        from: '2026-01-01',
+        to: '2026-03-31',
+        note: 'Fiktiver Leerstand',
+      },
+      () => IDS.occupancy,
+    )
+
+    expect(result.masterData.persons).toEqual([])
+    expect(result.masterData.tenancies).toEqual([])
+    expect(result.billingData.prepayments).toEqual([])
+    expect(result.billingData.occupancyPeriods).toEqual([
+      {
+        id: IDS.occupancy,
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        tenancyId: null,
+        kind: 'vacancy',
+        from: '2026-01-01',
+        to: '2026-03-31',
+        note: 'Fiktiver Leerstand',
+      },
+    ])
+    expect(appDataFileSchema.safeParse(result).success).toBe(true)
+  })
+
+  it('wendet Zeitraum-, Referenz- und Überlappungsregeln auch auf Leerstand an', () => {
+    const occupied = addTenantOccupancy(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Fiktive Person' },
+        occupancy: { from: '2026-04-01', to: '2026-12-31' },
+        prepayment: { mode: 'none_agreed' },
+      },
+      sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+    )
+
+    expect(() =>
+      addVacancyOccupancy(occupied, {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        from: '2026-03-31',
+        to: '2026-04-30',
+      }),
+    ).toThrow(/überschneidet/i)
+    expect(() =>
+      addVacancyOccupancy(validFile(), {
+        billingPeriodId: 'unbekannt',
+        unitId: IDS.unit,
+      }),
+    ).toThrow(/Abrechnungsjahr/i)
+    expect(() =>
+      addVacancyOccupancy(validFile(), {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        from: '2025-12-31',
+      }),
+    ).toThrow(/Abrechnungszeitraum/i)
+  })
+
+  it('ersetzt eine Vorauszahlung immutable und behält deren ID', () => {
+    const withTenant = addTenantOccupancy(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Erika Beispiel' },
+        occupancy: {},
+        prepayment: { mode: 'none_agreed' },
+      },
+      sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+    )
+
+    const result = setOccupancyPrepayment(withTenant, {
+      occupancyPeriodId: IDS.occupancy,
+      mode: 'monthly',
+      monthlyAmountCents: 20_000,
+    })
+
+    expect(withTenant.billingData.prepayments[0]?.mode).toBe('none_agreed')
+    expect(result.billingData.prepayments).toEqual([
+      {
+        id: IDS.prepayment,
+        occupancyPeriodId: IDS.occupancy,
+        mode: 'monthly',
+        monthlyAmountCents: 20_000,
+      },
+    ])
+  })
+
+  it.each([
+    {
+      name: 'unbekannte Eingabefelder',
+      input: {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Erika', admin: true },
+        occupancy: {},
+        prepayment: { mode: 'none_agreed' },
+      },
+    },
+    {
+      name: 'Centbruchteile',
+      input: {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Erika' },
+        occupancy: {},
+        prepayment: { mode: 'monthly', monthlyAmountCents: 10.5 },
+      },
+    },
+    {
+      name: 'leere Namen',
+      input: {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: '   ' },
+        occupancy: {},
+        prepayment: { mode: 'none_agreed' },
+      },
+    },
+  ])('weist $name strikt zurück', ({ input }) => {
+    expect(() =>
+      addTenantOccupancy(
+        validFile(),
+        input,
+        sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+      ),
+    ).toThrow(/Eingabe/i)
+  })
+
+  it('weist fehlende Referenzen zurück', () => {
+    expect(() =>
+      addTenantOccupancy(
+        validFile(),
+        {
+          billingPeriodId: IDS.billingPeriod,
+          unitId: '99999999-9999-4999-8999-999999999999',
+          person: { displayName: 'Erika' },
+          occupancy: {},
+          prepayment: { mode: 'none_agreed' },
+        },
+        sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+      ),
+    ).toThrow(/Nutzungseinheit/i)
+  })
+
+  it('weist überlappende Zeiträume und Daten außerhalb des Abrechnungsjahres zurück', () => {
+    const first = addTenantOccupancy(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Erster Nutzer' },
+        occupancy: { from: '2026-01-01', to: '2026-06-30' },
+        prepayment: { mode: 'none_agreed' },
+      },
+      sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+    )
+
+    expect(() =>
+      addTenantOccupancy(
+        first,
+        {
+          billingPeriodId: IDS.billingPeriod,
+          unitId: IDS.unit,
+          person: { displayName: 'Überlappender Nutzer' },
+          occupancy: { from: '2026-06-30', to: '2026-12-31' },
+          prepayment: { mode: 'none_agreed' },
+        },
+        sequentialIds(
+          '40000000-0000-4000-8000-000000000001',
+          '40000000-0000-4000-8000-000000000002',
+          '40000000-0000-4000-8000-000000000003',
+          '40000000-0000-4000-8000-000000000004',
+        ),
+      ),
+    ).toThrow(/überschneidet/i)
+
+    expect(() =>
+      addTenantOccupancy(
+        validFile(),
+        {
+          billingPeriodId: IDS.billingPeriod,
+          unitId: IDS.unit,
+          person: { displayName: 'Außerhalb' },
+          occupancy: { from: '2025-12-31', to: '2026-12-31' },
+          prepayment: { mode: 'none_agreed' },
+        },
+        sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+      ),
+    ).toThrow(/Abrechnungszeitraum/i)
+  })
+
+  it('weist kollidierende erzeugte IDs und fehlende Vorauszahlungsreferenzen zurück', () => {
+    expect(() =>
+      addTenantOccupancy(
+        validFile(),
+        {
+          billingPeriodId: IDS.billingPeriod,
+          unitId: IDS.unit,
+          person: { displayName: 'Erika' },
+          occupancy: {},
+          prepayment: { mode: 'none_agreed' },
+        },
+        () => IDS.unit,
+      ),
+    ).toThrow(/ID/i)
+
+    expect(() =>
+      setOccupancyPrepayment(validFile(), {
+        occupancyPeriodId: IDS.occupancy,
+        mode: 'none_agreed',
+      }),
+    ).toThrow(/Nutzungszeitraum/i)
+  })
+})

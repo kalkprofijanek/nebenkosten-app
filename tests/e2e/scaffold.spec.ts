@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('renders the neutral workspace without console errors', async ({
+test('walks through the visible billing workflow without console errors', async ({
   page,
 }) => {
   const consoleErrors: string[] = []
@@ -12,8 +12,20 @@ test('renders the neutral workspace without console errors', async ({
   await page.goto('/')
 
   await expect(
-    page.getByRole('heading', { name: 'Nebenkosten-App' }),
+    page.getByRole('heading', { name: 'Abrechnung im Blick' }),
   ).toBeVisible()
-  await expect(page.getByText('Technisches Grundgerüst')).toBeVisible()
+  await page.getByRole('link', { name: 'Firmen', exact: true }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Firmen verwalten' }),
+  ).toBeVisible()
+  await page.getByRole('link', { name: 'Kosten', exact: true }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Kosten erfassen' }),
+  ).toBeVisible()
+  await page.getByRole('link', { name: 'Freigabe', exact: true }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Abrechnung freigeben' }),
+  ).toBeVisible()
+
   expect(consoleErrors).toEqual([])
 })

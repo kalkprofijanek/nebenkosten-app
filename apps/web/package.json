@@ -5,11 +5,16 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "build:html-preview": "node scripts/build-html-preview.mjs",
     "dev": "vite",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@nebenkosten/core": "workspace:*",
+    "@nebenkosten/import-export": "workspace:*",
+    "@nebenkosten/persistence": "workspace:*",
+    "@nebenkosten/schema": "workspace:*",
     "react": "19.2.7",
     "react-dom": "19.2.7"
   }

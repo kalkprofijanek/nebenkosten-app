@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
-import { App } from './App'
+import { WorkspaceApp } from './WorkspaceApp'
 import './styles.css'
 
 const rootElement = document.querySelector('#root')
@@ -12,6 +12,6 @@ if (!(rootElement instanceof HTMLElement)) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <WorkspaceApp />
   </StrictMode>,
 )
