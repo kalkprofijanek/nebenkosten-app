@@ -20,10 +20,11 @@ const packageNames = Object.freeze([
  * Packages, die bereits echte Implementierung tragen (kein
  * `export {}`-Platzhalter mehr). Wächst mit jedem Fach-PR;
  * Änderungen an dieser Liste sind Vertragsänderungen und gehören
- * sichtbar in den jeweiligen PR (PR 03: schema; PR 04: import-export).
+ * sichtbar in den jeweiligen PR (PR 03: schema; PR 04: import-export;
+ * PR 10: validators).
  */
 const implementedPackages = Object.freeze(
-  new Set(['core', 'schema', 'persistence', 'import-export']),
+  new Set(['core', 'schema', 'validators', 'persistence', 'import-export']),
 )
 
 /**
@@ -33,7 +34,7 @@ const implementedPackages = Object.freeze(
  * verboten.
  */
 const allowedNeutralDependencies = Object.freeze(
-  new Set(['@nebenkosten/schema', 'zod']),
+  new Set(['@nebenkosten/core', '@nebenkosten/schema', 'zod']),
 )
 const forbiddenDependencyPattern =
   /react|vite|vitest|playwright|jsdom|dom|browser/iu

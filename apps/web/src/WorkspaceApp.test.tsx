@@ -1,5 +1,5 @@
 import { MemoryStorageAdapter } from '@nebenkosten/persistence'
-import { createEmptyAppDataFile } from '@nebenkosten/schema'
+import { createEmptyAppDataFile, type AppDataFile } from '@nebenkosten/schema'
 import {
   cleanup,
   fireEvent,
@@ -7,7 +7,19 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('./CalculationRoute', () => ({
+  CalculationRoute: ({
+    onApply,
+  }: {
+    onApply: (transform: (data: AppDataFile) => AppDataFile) => boolean
+  }) => (
+    <button type="button" onClick={() => onApply((current) => current)}>
+      Testberechnung anwenden
+    </button>
+  ),
+}))
 
 import { createWorkspaceController } from './app/workspace-controller'
 import { createCompany } from './features/master-data/commands'
@@ -97,6 +109,129 @@ describe('WorkspaceApp', () => {
         controller.getState().data?.masterData.ownerCompanies.at(-1)?.id,
       ),
     )
+    controller.dispose()
+  })
+
+  it('bindet die PR-10-Freigabeprüfung in den ausgewählten Zeitraum ein', async () => {
+    const adapter = new MemoryStorageAdapter()
+    const empty = createEmptyAppDataFile()
+    await adapter.save(
+      {
+        ...empty,
+        masterData: {
+          ...empty.masterData,
+          organizations: [
+            {
+              id: '40000000-0000-4000-8000-000000000012',
+              name: 'Fiktive Verwaltung',
+            },
+          ],
+          ownerCompanies: [
+            {
+              id: '40000000-0000-4000-8000-000000000013',
+              organizationId: '40000000-0000-4000-8000-000000000012',
+              name: 'Fiktive Eigentümerin',
+              additionalNameLines: [],
+            },
+          ],
+          properties: [
+            {
+              id: '40000000-0000-4000-8000-000000000011',
+              ownerCompanyId: '40000000-0000-4000-8000-000000000013',
+            },
+          ],
+        },
+        billingData: {
+          ...empty.billingData,
+          billingPeriods: [
+            {
+              id: '40000000-0000-4000-8000-000000000010',
+              propertyId: '40000000-0000-4000-8000-000000000011',
+              year: 2026,
+              periodStart: '2026-01-01',
+              periodEnd: '2026-12-31',
+              status: 'DRAFT',
+            },
+          ],
+        },
+      },
+      { expectedRevision: null },
+    )
+    const controller = createWorkspaceController({ adapter, debounceMs: 0 })
+    window.location.hash = '#/freigabe'
+
+    render(<WorkspaceApp controller={controller} />)
+
+    expect(
+      await screen.findByRole('heading', { name: 'Prüfung und Freigabe' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: 'Prüfung starten' }),
+    ).toBeVisible()
+    controller.dispose()
+  })
+
+  it('setzt eine Berechnung während der Prüfung kontrolliert auf Entwurf zurück', async () => {
+    const adapter = new MemoryStorageAdapter()
+    const empty = createEmptyAppDataFile()
+    await adapter.save(
+      {
+        ...empty,
+        masterData: {
+          ...empty.masterData,
+          organizations: [
+            {
+              id: '40000000-0000-4000-8000-000000000023',
+              name: 'Fiktive Verwaltung',
+            },
+          ],
+          ownerCompanies: [
+            {
+              id: '40000000-0000-4000-8000-000000000022',
+              organizationId: '40000000-0000-4000-8000-000000000023',
+              name: 'Fiktive Eigentümerin',
+              additionalNameLines: [],
+            },
+          ],
+          properties: [
+            {
+              id: '40000000-0000-4000-8000-000000000021',
+              ownerCompanyId: '40000000-0000-4000-8000-000000000022',
+            },
+          ],
+        },
+        billingData: {
+          ...empty.billingData,
+          billingPeriods: [
+            {
+              id: '40000000-0000-4000-8000-000000000020',
+              propertyId: '40000000-0000-4000-8000-000000000021',
+              year: 2026,
+              periodStart: '2026-01-01',
+              periodEnd: '2026-12-31',
+              status: 'IN_REVIEW',
+            },
+          ],
+        },
+      },
+      { expectedRevision: null },
+    )
+    const controller = createWorkspaceController({ adapter, debounceMs: 0 })
+    window.location.hash = '#/berechnung'
+    render(<WorkspaceApp controller={controller} />)
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Testberechnung anwenden' }),
+    )
+
+    await waitFor(() =>
+      expect(
+        controller.getState().data?.billingData.billingPeriods[0]?.status,
+      ).toBe('DRAFT'),
+    )
+    expect(
+      controller.getState().data?.billingData.auditEvents.at(-1)?.action,
+    ).toBe('billing_period.review_invalidated')
     controller.dispose()
   })
 })

@@ -56,8 +56,8 @@ function EmptyWorkspace({
           <span className="status-pill status-pill--draft">Entwurf</span>
           <h2 id="release-status">Freigabe ist noch gesperrt</h2>
           <p>
-            Die fachlichen Freigabeprüfungen werden im nächsten geprüften
-            Schritt ergänzt. Bis dahin kann kein Abschlussstatus gesetzt werden.
+            Wähle zuerst ein Objekt und ein Abrechnungsjahr. Anschließend zeigt
+            PR 10 alle Fehler, Warnungen und Hinweise für die Freigabe.
           </p>
         </div>
         <div
@@ -324,7 +324,7 @@ export function App({
             <span aria-hidden="true" />
             <div>
               <strong>Nur lokal</strong>
-              <small>Schema v4 · PR 09</small>
+              <small>Schema v4 · PR 10</small>
             </div>
           </div>
         </footer>

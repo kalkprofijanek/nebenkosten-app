@@ -104,6 +104,9 @@ importers:
       '@nebenkosten/schema':
         specifier: workspace:*
         version: link:../../packages/schema
+      '@nebenkosten/validators':
+        specifier: workspace:*
+        version: link:../../packages/validators
       react:
         specifier: 19.2.7
         version: 19.2.7
@@ -187,7 +190,24 @@ importers:
 
   packages/ui: {}
 
-  packages/validators: {}
+  packages/validators:
+    dependencies:
+      '@nebenkosten/core':
+        specifier: workspace:*
+        version: link:../core
+      '@nebenkosten/schema':
+        specifier: workspace:*
+        version: link:../schema
+    devDependencies:
+      '@vitest/coverage-v8':
+        specifier: 4.1.10
+        version: 4.1.10(vitest@4.1.10)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: 4.1.10
+        version: 4.1.10(@types/node@26.1.1)(@vitest/coverage-v8@4.1.10)(jsdom@29.1.1)(vite@8.1.4(@types/node@26.1.1))
 
 packages:
 
