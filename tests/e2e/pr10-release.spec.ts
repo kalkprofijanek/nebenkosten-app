@@ -20,7 +20,7 @@ function releaseReadyData() {
           id: 'property-1',
           ownerCompanyId: 'owner-1',
           address: {
-              street: 'Musterweg',
+            street: 'Musterweg',
             postalCodeAndCity: '12345 Beispielstadt',
           },
         },
