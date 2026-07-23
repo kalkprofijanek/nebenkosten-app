@@ -6,12 +6,29 @@ import { CalculationRoute } from './CalculationRoute'
 
 afterEach(cleanup)
 
-function fileWithResult(): AppDataFile {
+function fileWithResult(
+  status:
+    | 'DRAFT'
+    | 'IN_REVIEW'
+    | 'READY_FOR_PDF'
+    | 'FINALIZED'
+    | 'SUPERSEDED' = 'DRAFT',
+): AppDataFile {
   const empty = createEmptyAppDataFile()
   return {
     ...empty,
     billingData: {
       ...empty.billingData,
+      billingPeriods: [
+        {
+          id: 'period-1',
+          propertyId: 'property-1',
+          year: 2026,
+          periodStart: '2026-01-01',
+          periodEnd: '2026-12-31',
+          status,
+        },
+      ],
       calculationRuns: [
         {
           id: 'run-1',
@@ -45,7 +62,6 @@ describe('CalculationRoute', () => {
     render(
       <CalculationRoute
         data={createEmptyAppDataFile()}
-        path="/berechnung"
         billingPeriodId={null}
         onApply={vi.fn()}
       />,
@@ -61,7 +77,6 @@ describe('CalculationRoute', () => {
     render(
       <CalculationRoute
         data={fileWithResult()}
-        path="/berechnung"
         billingPeriodId="period-1"
         onApply={() => false}
       />,
@@ -81,7 +96,6 @@ describe('CalculationRoute', () => {
     render(
       <CalculationRoute
         data={data}
-        path="/berechnung"
         billingPeriodId="period-1"
         onApply={(transform) => {
           transform(createEmptyAppDataFile())
@@ -100,30 +114,20 @@ describe('CalculationRoute', () => {
     )
   })
 
-  it('hält die Freigabe mit und ohne Ergebnis bis PR 10 gesperrt', () => {
-    const { rerender } = render(
-      <CalculationRoute
-        data={createEmptyAppDataFile()}
-        path="/freigabe"
-        billingPeriodId="period-1"
-        onApply={vi.fn()}
-      />,
-    )
-    expect(screen.getByText(/Führe zuerst eine Berechnung/)).toBeVisible()
-
-    rerender(
-      <CalculationRoute
-        data={fileWithResult()}
-        path="/freigabe"
-        billingPeriodId="period-1"
-        onApply={vi.fn()}
-      />,
-    )
-    expect(
-      screen.getByText((text) =>
-        text.startsWith('Letzte Kontrolldifferenz: 0,00'),
-      ),
-    ).toBeVisible()
-    expect(screen.getByLabelText('Freigabe gesperrt')).toBeVisible()
-  })
+  it.each(['READY_FOR_PDF', 'FINALIZED', 'SUPERSEDED'] as const)(
+    'sperrt neue Berechnungsläufe im Status %s',
+    (status) => {
+      render(
+        <CalculationRoute
+          data={fileWithResult(status)}
+          billingPeriodId="period-1"
+          onApply={vi.fn()}
+        />,
+      )
+      expect(screen.getByText(/für neue Berechnungen gesperrt/i)).toBeVisible()
+      expect(
+        screen.queryByRole('button', { name: 'Abrechnung berechnen' }),
+      ).not.toBeInTheDocument()
+    },
+  )
 })

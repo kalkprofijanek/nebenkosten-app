@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { App } from './App'
 import { CalculationRoute } from './CalculationRoute'
 import { ImportControl } from './ImportControl'
+import { ReleaseRoute } from './ReleaseRoute'
 import { WorkflowRoute } from './WorkflowRoute'
 import {
   emptySelection,
@@ -19,6 +20,7 @@ import {
   type WorkspaceController,
   type WorkspaceState,
 } from './app/workspace-controller'
+import { applyEditableBillingPeriodChange } from './features/release/edit-guard'
 
 interface WorkspaceAppProps {
   readonly controller?: WorkspaceController
@@ -131,19 +133,44 @@ export function WorkspaceApp({
         workspaceState.data === null
           ? undefined
           : (path) =>
-              path === '/berechnung' || path === '/freigabe' ? (
-                <CalculationRoute
-                  path={path}
+              path === '/freigabe' ? (
+                <ReleaseRoute
                   data={workspaceState.data!}
                   billingPeriodId={normalizedSelection.billingPeriodId}
                   onApply={(transform) => controller.update(transform)}
+                />
+              ) : path === '/berechnung' ? (
+                <CalculationRoute
+                  data={workspaceState.data!}
+                  billingPeriodId={normalizedSelection.billingPeriodId}
+                  onApply={(transform) =>
+                    controller.update((current) =>
+                      normalizedSelection.billingPeriodId === null
+                        ? transform(current)
+                        : applyEditableBillingPeriodChange(
+                            current,
+                            normalizedSelection.billingPeriodId,
+                            transform,
+                          ),
+                    )
+                  }
                 />
               ) : (
                 <WorkflowRoute
                   path={path}
                   data={workspaceState.data!}
                   selection={normalizedSelection}
-                  onApply={(transform) => controller.update(transform)}
+                  onApply={(transform) =>
+                    controller.update((current) =>
+                      normalizedSelection.billingPeriodId === null
+                        ? transform(current)
+                        : applyEditableBillingPeriodChange(
+                            current,
+                            normalizedSelection.billingPeriodId,
+                            transform,
+                          ),
+                    )
+                  }
                   onSelectionChange={(patch) =>
                     setSelection((current) => ({ ...current, ...patch }))
                   }

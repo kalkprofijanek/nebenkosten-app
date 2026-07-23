@@ -12,7 +12,7 @@ const outputFile = resolve(
   '..',
   'private-data',
   'previews',
-  'PR09_UI_VORSCHAU.html',
+  'PR10_UI_VORSCHAU.html',
 )
 
 const builtHtml = await readFile(
@@ -37,7 +37,7 @@ const [stylesheet, script] = await Promise.all([
 
 const previewNotice = `
   <div class="preview-notice" role="status">
-    <strong>Lokale PR-09-Vorschau</strong>
+    <strong>Lokale PR-10-Vorschau</strong>
     <span>Diese Zwischenansicht verwendet keine echten Daten. Änderungen bleiben nur bis zum Neuladen erhalten.</span>
   </div>`
 const noticeStyles = `

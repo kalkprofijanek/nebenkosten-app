@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('completes the PR09 workflow from workspace to locked release', async ({
+test('completes the workflow from workspace to the PR10 review gate', async ({
   page,
 }) => {
   await page.goto('/')
@@ -58,7 +58,14 @@ test('completes the PR09 workflow from workspace to locked release', async ({
   await page.getByRole('link', { name: 'Freigabe', exact: true }).click()
   await expect(
     page.getByRole('heading', {
-      name: 'Freigabe bleibt bis PR 10 gesperrt',
+      name: 'Prüfung und Freigabe',
     }),
   ).toBeVisible()
+  await expect(page.getByText(/IBAN fehlt/)).toBeVisible()
+
+  await page.getByRole('button', { name: 'Prüfung starten' }).click()
+  await expect(page.getByText('In Prüfung', { exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Für PDF freigeben' }),
+  ).toBeDisabled()
 })

@@ -5,7 +5,6 @@ import { runCalculation } from './features/calculation/calculate-preview'
 
 interface CalculationRouteProps {
   readonly data: AppDataFile
-  readonly path: string
   readonly billingPeriodId: string | null
   readonly onApply: (transform: (data: AppDataFile) => AppDataFile) => boolean
 }
@@ -19,7 +18,6 @@ function euro(cents: number): string {
 
 export function CalculationRoute({
   data,
-  path,
   billingPeriodId,
   onApply,
 }: CalculationRouteProps) {
@@ -34,25 +32,13 @@ export function CalculationRoute({
       )
     : undefined
 
-  if (path === '/freigabe') {
-    return (
-      <section className="release-panel" aria-labelledby="release-status">
-        <div>
-          <span className="status-pill status-pill--draft">Entwurf</span>
-          <h2 id="release-status">Freigabe bleibt bis PR 10 gesperrt</h2>
-          <p>
-            {result
-              ? `Letzte Kontrolldifferenz: ${euro(result.totals.controlDifferenceCents)}.`
-              : 'Führe zuerst eine Berechnung für das gewählte Abrechnungsjahr aus.'}
-          </p>
-        </div>
-        <div className="release-score" aria-label="Freigabe gesperrt">
-          <strong>PR 10</strong>
-          <span>Validatoren und Statusübergänge folgen</span>
-        </div>
-      </section>
-    )
-  }
+  const billingPeriod = data.billingData.billingPeriods.find(
+    (period) => period.id === billingPeriodId,
+  )
+  const calculationLocked =
+    billingPeriod?.status === 'READY_FOR_PDF' ||
+    billingPeriod?.status === 'FINALIZED' ||
+    billingPeriod?.status === 'SUPERSEDED'
 
   return (
     <section className="calculation-panel" aria-labelledby="calculation-title">
@@ -60,6 +46,11 @@ export function CalculationRoute({
       {error ? <p role="alert">{error}</p> : null}
       {billingPeriodId === null ? (
         <p>Wähle zuerst ein Objekt und ein Abrechnungsjahr.</p>
+      ) : calculationLocked ? (
+        <p>
+          Dieses Abrechnungsjahr ist für neue Berechnungen gesperrt. Öffne
+          zuerst kontrolliert die Prüfung.
+        </p>
       ) : (
         <button
           className="button button--primary"

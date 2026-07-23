@@ -15,6 +15,7 @@
     "@nebenkosten/import-export": "workspace:*",
     "@nebenkosten/persistence": "workspace:*",
     "@nebenkosten/schema": "workspace:*",
+    "@nebenkosten/validators": "workspace:*",
     "react": "19.2.7",
     "react-dom": "19.2.7"
   }
