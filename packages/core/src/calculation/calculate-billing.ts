@@ -14,6 +14,7 @@ import {
   type CircuitCo2Trace,
   type CircuitHeatingSplitTrace,
   type CircuitWarmWaterTrace,
+  type TenantCostBreakdown,
 } from '../contracts'
 import { calculateOccupancyDays, calculatePeriodDays } from '../periods'
 import { calculatePrepaymentCents } from '../prepayments'
@@ -549,6 +550,74 @@ function rawTenantShare(
   return operating + heating + co2
 }
 
+/**
+ * Zusätzliche, rein informative Aufschlüsselung je Mieter für die
+ * Einzelabrechnung (PR 11). Berechnet unabhängig von `rawTenantShare` und
+ * hat keinerlei Einfluss auf `shareCents`/`balanceCents` oder die
+ * Restcent-Verteilung — Einzelposten können daher in Summe geringfügig von
+ * der (verbindlichen) Gesamtsumme abweichen, wie bei jeder Einzelrundung.
+ */
+function rawTenantShareBreakdown(
+  context: OccupancyContext,
+  positions: readonly RawCostPosition[],
+  circuits: readonly RawCircuitResult[],
+  defaultsBasis: 'usable_area' | 'heated_area',
+): TenantCostBreakdown {
+  const operatingByCategory = positions
+    .filter(
+      ({ category }) =>
+        category.kind !== 'heating' &&
+        category.betrkvCategory !== 'NICHT_UML' &&
+        category.allocationKey !== 'direct' &&
+        !(category.hideWhenZero && (category.totalAmountCents ?? 0) === 0),
+    )
+    .map((position) => ({
+      costCategoryId: position.category.id,
+      amountCents: roundCentsHalfAwayFromZero(costShare(position, context)),
+    }))
+    .filter(({ amountCents }) => amountCents !== 0)
+  const circuit = circuits.find(
+    ({ buildingId }) => buildingId === context.buildingId,
+  )
+  if (!circuit) {
+    return {
+      operatingByCategory,
+      heatingBaseCents: 0,
+      heatingConsumptionCents: 0,
+      hotWaterCents: 0,
+      heatingCo2Cents: 0,
+    }
+  }
+  const baseArea =
+    defaultsBasis === 'usable_area' ? context.usableArea : context.heatedArea
+  const persons =
+    context.occupancy.kind === 'vacancy'
+      ? 0
+      : context.persons > 0
+        ? context.persons
+        : 1
+  const reduction =
+    context.occupancy.consumptionUnitsEstimated &&
+    context.occupancy.applySection12Reduction
+      ? 0.85
+      : 1
+  return {
+    operatingByCategory,
+    heatingBaseCents: roundCentsHalfAwayFromZero(
+      circuit.basePrice * baseArea * context.timeFactor * reduction,
+    ),
+    heatingConsumptionCents: roundCentsHalfAwayFromZero(
+      circuit.consumptionPrice * context.consumptionUnits * reduction,
+    ),
+    hotWaterCents: roundCentsHalfAwayFromZero(
+      circuit.hotWaterPricePerPerson * persons * context.timeFactor * reduction,
+    ),
+    heatingCo2Cents: roundCentsHalfAwayFromZero(
+      circuit.co2PricePerConsumptionUnit * context.consumptionUnits,
+    ),
+  }
+}
+
 export function calculateBilling(input: CalculationInput): CalculationOutput {
   const periodDays = calculatePeriodDays(
     input.billingPeriod.periodStart,
@@ -654,6 +723,12 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
           : hasMissingConsumption
             ? ('gelb' as const)
             : ('gruen' as const),
+      costBreakdown: rawTenantShareBreakdown(
+        context,
+        positions,
+        circuits,
+        defaultsBasis,
+      ),
     }
   })
 

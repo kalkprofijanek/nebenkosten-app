@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
+import { spawnSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -14,6 +15,23 @@ const outputFile = resolve(
   'previews',
   'PR10_UI_VORSCHAU.html',
 )
+
+/**
+ * Baut bewusst frisch mit `NEBENKOSTEN_SINGLE_CHUNK_PREVIEW=true`
+ * (siehe `vite.config.ts`), damit dynamisch nachgeladene Module
+ * (`pdfmake`/`jszip`, PR 11) in genau einem Skript landen — die
+ * Ein-Datei-Vorschau hat keinen Server, der weitere Chunk-Dateien
+ * ausliefern könnte.
+ */
+const build = spawnSync('pnpm', ['exec', 'vite', 'build'], {
+  cwd: webDirectory,
+  env: { ...process.env, NEBENKOSTEN_SINGLE_CHUNK_PREVIEW: 'true' },
+  stdio: 'inherit',
+  shell: process.platform === 'win32',
+})
+if (build.status !== 0) {
+  throw new Error('Der Vorschau-Build ist fehlgeschlagen.')
+}
 
 const builtHtml = await readFile(
   resolve(distributionDirectory, 'index.html'),

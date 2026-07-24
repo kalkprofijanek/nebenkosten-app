@@ -13,10 +13,16 @@
   "dependencies": {
     "@nebenkosten/core": "workspace:*",
     "@nebenkosten/import-export": "workspace:*",
+    "@nebenkosten/pdf": "workspace:*",
     "@nebenkosten/persistence": "workspace:*",
     "@nebenkosten/schema": "workspace:*",
     "@nebenkosten/validators": "workspace:*",
+    "jszip": "3.10.1",
+    "pdfmake": "0.3.11",
     "react": "19.2.7",
     "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/pdfmake": "0.3.3"
   }
 }

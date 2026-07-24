@@ -21,6 +21,7 @@ interface ReleaseInteraction {
   readonly billingPeriodId: string | null
   readonly confirmedWarningKeys: readonly string[]
   readonly reopenReason: string
+  readonly dispatchDate: string
   readonly actionError: string | null
 }
 
@@ -87,6 +88,7 @@ export function ReleaseRoute({
     billingPeriodId,
     confirmedWarningKeys: [],
     reopenReason: '',
+    dispatchDate: '',
     actionError: null,
   })
   const activeInteraction: ReleaseInteraction =
@@ -96,9 +98,11 @@ export function ReleaseRoute({
           billingPeriodId,
           confirmedWarningKeys: [],
           reopenReason: '',
+          dispatchDate: '',
           actionError: null,
         }
-  const { actionError, confirmedWarningKeys, reopenReason } = activeInteraction
+  const { actionError, confirmedWarningKeys, reopenReason, dispatchDate } =
+    activeInteraction
 
   if (billingPeriodId === null) {
     return (
@@ -174,6 +178,7 @@ export function ReleaseRoute({
           billingPeriodId: selectedBillingPeriodId,
           confirmedWarningKeys: [],
           reopenReason: '',
+          dispatchDate: '',
           actionError: null,
         })
       }
@@ -327,13 +332,29 @@ export function ReleaseRoute({
             >
               Wieder öffnen
             </button>
+            <label htmlFor="dispatch-date">Versanddatum</label>
+            <input
+              id="dispatch-date"
+              type="date"
+              value={dispatchDate}
+              onChange={(event) =>
+                setInteraction({
+                  ...activeInteraction,
+                  dispatchDate: event.target.value,
+                })
+              }
+            />
             <button
               className="button button--primary"
               type="button"
-              disabled
-              title="Die dokumentbasierte Finalisierung folgt in PR 11."
+              disabled={dispatchDate.trim().length === 0}
+              onClick={() =>
+                applyTransition('FINALIZED', {
+                  dispatchDate: dispatchDate.trim(),
+                })
+              }
             >
-              Finalisieren – gesperrt bis PR 11
+              Finalisieren
             </button>
           </>
         ) : null}
