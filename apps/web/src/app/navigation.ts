@@ -86,6 +86,14 @@ export const appRoutes = [
     description:
       'Prüfhinweise bearbeiten und den Abschluss kontrolliert vorbereiten.',
   },
+  {
+    path: '/pdf-export',
+    label: 'PDF und Export',
+    eyebrow: 'Dokumente',
+    title: 'PDF und Export',
+    description:
+      'Einzelabrechnungen, Gesamtabrechnung und Sammel-ZIP aus dem geprüften Stand erzeugen.',
+  },
 ] as const satisfies readonly AppRoute[]
 
 export function findRoute(path: string): AppRoute {

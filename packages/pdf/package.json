@@ -6,6 +6,18 @@
   "exports": "./src/index.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "test:coverage": "vitest run --config vitest.config.ts --coverage"
+  },
+  "dependencies": {
+    "@nebenkosten/core": "workspace:*",
+    "@nebenkosten/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/pdfmake": "0.3.3",
+    "@vitest/coverage-v8": "4.1.10",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
   }
 }

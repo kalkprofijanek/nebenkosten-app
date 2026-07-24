@@ -94,6 +94,26 @@ describe('validateBillingPeriod', () => {
     )
   })
 
+  it('meldet eine fehlende Versandadresse und akzeptiert eine vollständige', () => {
+    const data = validData()
+    data.masterData.tenancies[0] = {
+      ...data.masterData.tenancies[0]!,
+      shippingAddressStreet: null,
+    }
+    expect(codes(data)).toContain('occupancy.shipping_address_missing')
+
+    const withoutCity = validData()
+    withoutCity.masterData.tenancies[0] = {
+      ...withoutCity.masterData.tenancies[0]!,
+      shippingAddressPostalCodeAndCity: '   ',
+    }
+    expect(codes(withoutCity)).toContain('occupancy.shipping_address_missing')
+
+    expect(codes(validData())).not.toContain(
+      'occupancy.shipping_address_missing',
+    )
+  })
+
   it('deckt Kosten, Belege, Direktzuordnung und Vorjahressteigerung ab', () => {
     const data = validData()
     data.billingData.billingPeriods.push({

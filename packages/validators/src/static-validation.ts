@@ -161,6 +161,22 @@ function occupancies(data: AppDataFile, period: BillingPeriod, add: Add): void {
         ),
       )
     if (row.kind === 'tenant') {
+      const tenancy = data.masterData.tenancies.find(
+        ({ id }) => id === row.tenancyId,
+      )
+      if (
+        blank(tenancy?.shippingAddressStreet) ||
+        blank(tenancy?.shippingAddressPostalCodeAndCity)
+      )
+        add(
+          issue(
+            'error',
+            'occupancy.shipping_address_missing',
+            'occupancy',
+            'Versandadresse fehlt',
+            { entity: { type: 'Tenancy', id: row.tenancyId ?? row.id } },
+          ),
+        )
       const matches = data.billingData.prepayments.filter(
         ({ occupancyPeriodId }) => occupancyPeriodId === row.id,
       )

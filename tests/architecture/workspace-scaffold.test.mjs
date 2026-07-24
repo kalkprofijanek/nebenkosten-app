@@ -21,10 +21,17 @@ const packageNames = Object.freeze([
  * `export {}`-Platzhalter mehr). Wächst mit jedem Fach-PR;
  * Änderungen an dieser Liste sind Vertragsänderungen und gehören
  * sichtbar in den jeweiligen PR (PR 03: schema; PR 04: import-export;
- * PR 10: validators).
+ * PR 10: validators; PR 11: pdf).
  */
 const implementedPackages = Object.freeze(
-  new Set(['core', 'schema', 'validators', 'persistence', 'import-export']),
+  new Set([
+    'core',
+    'schema',
+    'validators',
+    'persistence',
+    'import-export',
+    'pdf',
+  ]),
 )
 
 /**

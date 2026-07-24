@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { App } from './App'
 import { CalculationRoute } from './CalculationRoute'
 import { ImportControl } from './ImportControl'
+import { PdfExportRoute } from './PdfExportRoute'
 import { ReleaseRoute } from './ReleaseRoute'
 import { WorkflowRoute } from './WorkflowRoute'
 import {
@@ -135,6 +136,12 @@ export function WorkspaceApp({
           : (path) =>
               path === '/freigabe' ? (
                 <ReleaseRoute
+                  data={workspaceState.data!}
+                  billingPeriodId={normalizedSelection.billingPeriodId}
+                  onApply={(transform) => controller.update(transform)}
+                />
+              ) : path === '/pdf-export' ? (
+                <PdfExportRoute
                   data={workspaceState.data!}
                   billingPeriodId={normalizedSelection.billingPeriodId}
                   onApply={(transform) => controller.update(transform)}

@@ -245,6 +245,34 @@ describe('ReleaseRoute', () => {
     )
   })
 
+  it('finalisiert erst mit gültigem Versanddatum', () => {
+    vi.mocked(validateBillingPeriod).mockReturnValue(report([]))
+    const onApply = vi.fn((transform: (data: AppDataFile) => AppDataFile) => {
+      transform(fileWithPeriod('READY_FOR_PDF'))
+      return true
+    })
+    render(
+      <ReleaseRoute
+        data={fileWithPeriod('READY_FOR_PDF')}
+        billingPeriodId="period-1"
+        onApply={onApply}
+      />,
+    )
+    const button = screen.getByRole('button', { name: 'Finalisieren' })
+    expect(button).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('Versanddatum'), {
+      target: { value: '2026-02-15' },
+    })
+    expect(button).toBeEnabled()
+    fireEvent.click(button)
+    expect(transitionBillingPeriod).toHaveBeenCalledWith(
+      expect.anything(),
+      'period-1',
+      'FINALIZED',
+      { dispatchDate: '2026-02-15' },
+    )
+  })
+
   it('hält Abschluss und Endstatus schreibgeschützt und meldet Fehler zugänglich', () => {
     vi.mocked(validateBillingPeriod).mockReturnValue(report([]))
     const data = fileWithPeriod('READY_FOR_PDF')
@@ -255,9 +283,7 @@ describe('ReleaseRoute', () => {
         onApply={() => false}
       />,
     )
-    expect(
-      screen.getByRole('button', { name: /Finalisieren.*PR 11/ }),
-    ).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Finalisieren' })).toBeDisabled()
     fireEvent.change(screen.getByLabelText('Grund für das Wiederöffnen'), {
       target: { value: 'Korrektur nötig.' },
     })

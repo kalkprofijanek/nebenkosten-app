@@ -50,7 +50,13 @@ export function validData(): AppDataFile {
         { id: 'person-1', organizationId: 'org-1', displayName: 'Testperson' },
       ],
       tenancies: [
-        { id: 'tenancy-1', unitId: 'unit-1', personIds: ['person-1'] },
+        {
+          id: 'tenancy-1',
+          unitId: 'unit-1',
+          personIds: ['person-1'],
+          shippingAddressStreet: 'Musterweg',
+          shippingAddressPostalCodeAndCity: '12345 Beispielstadt',
+        },
       ],
       allocationRules: [],
       heatingSystems: [],

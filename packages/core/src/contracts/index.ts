@@ -194,6 +194,25 @@ export interface Co2CalculationResult {
   landlordCents: number
 }
 
+export interface TenantOperatingCostItem {
+  costCategoryId: string
+  amountCents: number
+}
+
+/**
+ * Rein informative Kostenart-Aufschlüsselung je Mieter (PR 11, für die
+ * Einzelabrechnung/§259 BGB). Unabhängig von der Restcent-Verteilung der
+ * verbindlichen `shareCents`/`balanceCents` berechnet — Einzelposten können
+ * daher in Summe geringfügig von der Gesamtsumme abweichen.
+ */
+export interface TenantCostBreakdown {
+  operatingByCategory: TenantOperatingCostItem[]
+  heatingBaseCents: number
+  heatingConsumptionCents: number
+  hotWaterCents: number
+  heatingCo2Cents: number
+}
+
 export interface TenantCalculationResult {
   id: string
   isVacancy: boolean
@@ -201,6 +220,7 @@ export interface TenantCalculationResult {
   prepaymentCents: number
   balanceCents: number
   status: 'gruen' | 'gelb' | 'rot'
+  costBreakdown: TenantCostBreakdown
 }
 
 export interface CalculationOutput {
