@@ -22,9 +22,7 @@ describe('buildTenantStatement', () => {
       pageCount: number,
     ) => { text: string }
     expect(footer(1, 3).text).toContain('Seite 1/3')
-    expect(footer(1, 3).text).toContain(
-      ['DE89', '370400440532013000'].join(''),
-    )
+    expect(footer(1, 3).text).toContain(['DE89', '370400440532013000'].join(''))
   })
 
   it('interpoliert das Anschreiben mit den Mieterdaten', () => {
