@@ -6,6 +6,7 @@ import type {
   ValidationSeverity,
 } from '@nebenkosten/schema'
 import {
+  getFinalizationDocumentStatus,
   transitionBillingPeriod,
   validateBillingPeriod,
 } from '@nebenkosten/validators'
@@ -152,6 +153,10 @@ export function ReleaseRoute({
   const readOnly =
     billingPeriod.status === 'FINALIZED' ||
     billingPeriod.status === 'SUPERSEDED'
+  const documentStatus = getFinalizationDocumentStatus(
+    data,
+    selectedBillingPeriodId,
+  )
 
   function applyTransition(
     target: BillingPeriodStatus,
@@ -240,6 +245,23 @@ export function ReleaseRoute({
         </p>
       ) : null}
       {readOnly ? <p>Dieser Abrechnungsstand ist schreibgeschützt.</p> : null}
+
+      {billingPeriod.status === 'READY_FOR_PDF' && !documentStatus.complete ? (
+        <div className="privacy-note" role="status">
+          <strong>Dokumente noch unvollständig.</strong>
+          {documentStatus.missingCombinedStatement ? (
+            <p>Gesamtabrechnung fehlt.</p>
+          ) : null}
+          {documentStatus.missingTenantStatementCount > 0 ? (
+            <p>
+              {documentStatus.missingTenantStatementCount}{' '}
+              {documentStatus.missingTenantStatementCount === 1
+                ? 'Einzelabrechnung fehlt.'
+                : 'Einzelabrechnungen fehlen.'}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="validation-groups">
         {severityOrder.flatMap((severity) => {
@@ -347,7 +369,9 @@ export function ReleaseRoute({
             <button
               className="button button--primary"
               type="button"
-              disabled={dispatchDate.trim().length === 0}
+              disabled={
+                dispatchDate.trim().length === 0 || !documentStatus.complete
+              }
               onClick={() =>
                 applyTransition('FINALIZED', {
                   dispatchDate: dispatchDate.trim(),

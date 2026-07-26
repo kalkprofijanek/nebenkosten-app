@@ -8,10 +8,13 @@ import { useState } from 'react'
 import {
   buildCombinedCostStatementContext,
   buildTenantStatementContext,
-  latestCalculationOutput,
+  latestCalculationSnapshot,
   tenantOccupancies,
 } from './features/pdf/context'
-import { recordGeneratedDocument } from './features/pdf/commands'
+import {
+  recordGeneratedDocuments,
+  type RecordGeneratedDocumentInput,
+} from './features/pdf/commands'
 import {
   blobBytes,
   downloadBlob,
@@ -82,14 +85,26 @@ export function PdfExportRoute({
     )
   }
 
-  const calculation = latestCalculationOutput(data, billingPeriodId)
-  if (!calculation) {
+  let calculationSnapshot
+  try {
+    calculationSnapshot = latestCalculationSnapshot(data, billingPeriodId)
+  } catch (caught) {
+    return (
+      <p role="alert">
+        {caught instanceof Error
+          ? caught.message
+          : 'Der Berechnungsstand kann nicht für PDF verwendet werden.'}
+      </p>
+    )
+  }
+  if (!calculationSnapshot) {
     return (
       <p role="alert">
         Für dieses Abrechnungsjahr liegt noch keine Berechnung vor.
       </p>
     )
   }
+  const { output: calculation, calculationRunId } = calculationSnapshot
 
   const occupancies = tenantOccupancies(data, billingPeriodId)
   const documents = data.billingData.documents.filter(
@@ -98,20 +113,25 @@ export function PdfExportRoute({
   const currentBillingPeriodId = billingPeriodId
 
   async function record(
-    kind: 'tenant_statement' | 'combined_statement' | 'zip_bundle',
-    fileName: string,
-    bytes: Uint8Array,
-    occupancyPeriodId?: string,
+    generated: readonly {
+      readonly kind: RecordGeneratedDocumentInput['kind']
+      readonly fileName: string
+      readonly bytes: Uint8Array
+      readonly occupancyPeriodId?: string
+    }[],
   ) {
-    const hash = await sha256Hex(bytes)
-    const applied = onApply((current) =>
-      recordGeneratedDocument(current, {
+    const inputs = await Promise.all(
+      generated.map(async (item): Promise<RecordGeneratedDocumentInput> => ({
         billingPeriodId: currentBillingPeriodId,
-        kind,
-        fileName,
-        sha256: hash,
-        occupancyPeriodId,
-      }),
+        calculationRunId,
+        kind: item.kind,
+        fileName: item.fileName,
+        sha256: await sha256Hex(item.bytes),
+        occupancyPeriodId: item.occupancyPeriodId,
+      })),
+    )
+    const applied = onApply((current) =>
+      recordGeneratedDocuments(current, inputs),
     )
     if (!applied) {
       throw new Error('Der Dokumenteneintrag konnte nicht gespeichert werden.')
@@ -156,13 +176,15 @@ export function PdfExportRoute({
         context.unit.label ?? occupancyPeriod.unitId,
         personName,
       )
+      await record([
+        {
+          kind: 'tenant_statement',
+          fileName,
+          bytes: await blobBytes(blob),
+          occupancyPeriodId: occupancyPeriod.id,
+        },
+      ])
       downloadBlob(blob, fileName)
-      await record(
-        'tenant_statement',
-        fileName,
-        await blobBytes(blob),
-        occupancyPeriod.id,
-      )
     })
   }
 
@@ -177,8 +199,14 @@ export function PdfExportRoute({
       const docDefinition = buildCombinedCostStatement(context)
       const blob = await renderPdfBlob(docDefinition)
       const fileName = `NK_${billingPeriod!.year}_Kostenaufstellung.pdf`
+      await record([
+        {
+          kind: 'combined_statement',
+          fileName,
+          bytes: await blobBytes(blob),
+        },
+      ])
       downloadBlob(blob, fileName)
-      await record('combined_statement', fileName, await blobBytes(blob))
     })
   }
 
@@ -210,8 +238,20 @@ export function PdfExportRoute({
       }
       const zipBlob = await renderZipBlob(entries)
       const zipFileName = `NK_${billingPeriod!.year}_Einzel-PDFs.zip`
+      await record([
+        ...entries.map((entry, index) => ({
+          kind: 'tenant_statement' as const,
+          fileName: entry.fileName,
+          bytes: entry.bytes,
+          occupancyPeriodId: occupancies[index]!.id,
+        })),
+        {
+          kind: 'zip_bundle',
+          fileName: zipFileName,
+          bytes: await blobBytes(zipBlob),
+        },
+      ])
       downloadBlob(zipBlob, zipFileName)
-      await record('zip_bundle', zipFileName, await blobBytes(zipBlob))
     })
   }
 

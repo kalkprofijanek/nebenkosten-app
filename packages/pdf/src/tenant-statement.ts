@@ -36,8 +36,7 @@ function summaryTable(context: TenantStatementContext): Content {
   const heatingCents =
     costBreakdown.heatingBaseCents +
     costBreakdown.heatingConsumptionCents +
-    costBreakdown.hotWaterCents +
-    costBreakdown.heatingCo2Cents
+    costBreakdown.hotWaterCents
   const operatingCents = costBreakdown.operatingByCategory.reduce(
     (sum, item) => sum + item.amountCents,
     0,
@@ -45,6 +44,7 @@ function summaryTable(context: TenantStatementContext): Content {
   const label = balanceLabel(tenant.balanceCents)
   const rows: [string, string][] = [
     ['Ihre Heizkosten', formatEuroCents(heatingCents)],
+    ['Ihr CO2-Kostenanteil', formatEuroCents(costBreakdown.heatingCo2Cents)],
     ['Ihre Betriebskosten', formatEuroCents(operatingCents)],
     ['Ihr Anteil an den Gesamtkosten', formatEuroCents(tenant.shareCents)],
     ['Ihre Vorauszahlung', formatEuroCents(tenant.prepaymentCents)],
@@ -53,20 +53,26 @@ function summaryTable(context: TenantStatementContext): Content {
   return {
     table: {
       widths: ['*', 'auto'],
-      body: rows.map(([left, right], index) => [
-        {
-          text: left,
-          bold: index === 2 || index === 4,
-          fillColor: index === 4 ? LIGHT_FILL : undefined,
-        },
-        {
-          text: right,
-          alignment: 'right',
-          bold: index === 2 || index === 4,
-          fillColor: index === 4 ? LIGHT_FILL : undefined,
-          color: index === 4 && tenant.balanceCents < 0 ? '#1a6a2e' : undefined,
-        },
-      ]),
+      body: rows.map(([left, right]) => {
+        const emphasized =
+          left === 'Ihr Anteil an den Gesamtkosten' || left === label
+        const balanceRow = left === label
+        return [
+          {
+            text: left,
+            bold: emphasized,
+            fillColor: balanceRow ? LIGHT_FILL : undefined,
+          },
+          {
+            text: right,
+            alignment: 'right',
+            bold: emphasized,
+            fillColor: balanceRow ? LIGHT_FILL : undefined,
+            color:
+              balanceRow && tenant.balanceCents < 0 ? '#1a6a2e' : undefined,
+          },
+        ]
+      }),
     },
     layout: 'lightHorizontalLines',
     margin: [0, 8, 0, 8],
@@ -119,7 +125,7 @@ function costCategoryTable(context: TenantStatementContext): Content {
 }
 
 function heatingDetailTable(context: TenantStatementContext): Content[] {
-  const { calculation, occupancyPeriod, billingPeriod } = context
+  const { calculation, occupancyPeriod, unit } = context
   const tenant = calculation.tenants.find(({ id }) => id === occupancyPeriod.id)
   if (!tenant) return []
   const { costBreakdown } = tenant
@@ -130,8 +136,11 @@ function heatingDetailTable(context: TenantStatementContext): Content[] {
     costBreakdown.heatingCo2Cents
   if (heatingCents === 0 && costBreakdown.heatingCo2Cents === 0) return []
 
+  const circuitTrace = calculation.heating.trace.circuits.find(
+    (circuit) => circuit.buildingId === unit.buildingId,
+  )
   const consumptionSharePercent =
-    billingPeriod.heatingDefaults?.consumptionSharePercent ?? 70
+    circuitTrace?.split.consumptionSharePercent ?? 70
 
   return [
     {
@@ -166,12 +175,12 @@ function heatingDetailTable(context: TenantStatementContext): Content[] {
 function co2Section(context: TenantStatementContext): Content[] {
   const { calculation, occupancyPeriod, unit } = context
   const tenant = calculation.tenants.find(({ id }) => id === occupancyPeriod.id)
-  if (!tenant || tenant.costBreakdown.heatingCo2Cents === 0) return []
   const circuitTrace = calculation.heating.trace.circuits.find(
     (circuit) => circuit.buildingId === unit.buildingId,
   )
+  if (!tenant || !circuitTrace) return []
   const percent = circuitTrace?.co2.tenantPercent ?? 0
-  const emissionFree = percent === 0
+  const emissionFree = circuitTrace.co2.intensityKgPerSqmYear === 0
 
   return [
     { text: CO2_LABEL_HEADING, style: 'th', margin: [0, 8, 0, 4] },
@@ -248,7 +257,7 @@ function coverLetterPlaceholders(
     objekt: property.address?.street ?? '',
     saldo: formatEuroCents(Math.abs(balance)),
     saldo_art: balanceLabel(balance),
-    datum: formatIsoDate(new Date().toISOString().slice(0, 10)),
+    datum: formatIsoDate(context.generatedAt.toISOString().slice(0, 10)),
     frist: formatIsoDate(billingPeriod.dispatchDate),
   }
 }
@@ -315,7 +324,7 @@ export function buildTenantStatement(
         alignment: 'right',
       },
       {
-        text: formatIsoDate(new Date().toISOString().slice(0, 10)),
+        text: formatIsoDate(context.generatedAt.toISOString().slice(0, 10)),
         absolutePosition: { x: 340, y: 128 },
         fontSize: 9,
         alignment: 'right',

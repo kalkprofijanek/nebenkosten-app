@@ -149,6 +149,12 @@ test('moves a valid fictional billing period through review to PDF-ready and fin
   await expect(page.getByText('In Prüfung', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Für PDF freigeben' }).click()
   await expect(page.getByText('PDF-bereit', { exact: true })).toBeVisible()
+  await expect(page.getByText('Gesamtabrechnung fehlt.')).toBeVisible()
+  await expect(page.getByText('1 Einzelabrechnung fehlt.')).toBeVisible()
+  await page.getByLabel('Versanddatum').fill('2026-02-15')
+  await expect(
+    page.getByRole('button', { name: 'Finalisieren' }),
+  ).toBeDisabled()
 
   await page.getByRole('link', { name: 'PDF und Export', exact: true }).click()
   await expect(

@@ -28,7 +28,7 @@ function costCategoriesTable(context: CombinedCostStatementContext): Content {
       category,
       amountCents: categoryAmountCents(context, category.id),
     }))
-    .filter(({ amountCents }) => amountCents > 0)
+    .filter(({ amountCents }) => amountCents !== 0)
 
   const total = rows.reduce((sum, row) => sum + row.amountCents, 0)
 

@@ -7,6 +7,7 @@ import {
   type BillingPeriodStatus,
 } from '@nebenkosten/schema'
 import { clone } from './helpers'
+import { getFinalizationDocumentStatus } from './finalization-documents'
 import { validateBillingPeriod } from './validate'
 import { BillingPeriodTransitionError, type TransitionOptions } from './types'
 
@@ -78,6 +79,15 @@ export function transitionBillingPeriod(
     throw new BillingPeriodTransitionError(
       'transition.validation_failed',
       'Offene Fehler oder unbestätigte Warnungen verhindern den Statuswechsel.',
+      report,
+    )
+  if (
+    target === 'FINALIZED' &&
+    !getFinalizationDocumentStatus(parsed.data, billingPeriodId).complete
+  )
+    throw new BillingPeriodTransitionError(
+      'transition.documents_required',
+      'Vor der Finalisierung müssen alle Dokumente zum aktuellen Berechnungslauf erzeugt werden: Gesamtabrechnung und Einzelabrechnungen.',
       report,
     )
   if (

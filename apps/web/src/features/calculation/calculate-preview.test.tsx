@@ -86,8 +86,8 @@ describe('calculatePreview', () => {
       expect.objectContaining({
         id: '40000000-0000-4000-8000-000000000008',
         calculationRunId: '40000000-0000-4000-8000-000000000007',
-        snapshotFormatVersion: 2,
-        resultSnapshot: expect.objectContaining({ snapshotFormatVersion: 2 }),
+        snapshotFormatVersion: 3,
+        resultSnapshot: expect.objectContaining({ snapshotFormatVersion: 3 }),
       }),
     ])
   })

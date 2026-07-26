@@ -1,4 +1,7 @@
-import type { CalculationOutput } from '@nebenkosten/core'
+import {
+  CORE_SNAPSHOT_FORMAT_VERSION,
+  type CalculationOutput,
+} from '@nebenkosten/core'
 import type {
   AppDataFile,
   BillingPeriod,
@@ -9,11 +12,90 @@ import type {
   TenantStatementContext,
 } from '@nebenkosten/pdf'
 
-/** Letztes Berechnungsergebnis eines Abrechnungsjahres (Legacy: `this.erg`). */
-export function latestCalculationOutput(
+export class IncompatibleCalculationSnapshotError extends Error {
+  constructor() {
+    super(
+      'Dieser Berechnungsstand ist zu alt für die PDF-Ausgabe. Bitte das Abrechnungsjahr neu berechnen.',
+    )
+    this.name = 'IncompatibleCalculationSnapshotError'
+  }
+}
+
+export interface CalculationSnapshot {
+  readonly calculationRunId: string
+  readonly output: CalculationOutput
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function isCompatibleCalculationOutput(
+  value: unknown,
+): value is CalculationOutput {
+  if (
+    !isRecord(value) ||
+    value.snapshotFormatVersion !== CORE_SNAPSHOT_FORMAT_VERSION ||
+    !isRecord(value.totals) ||
+    !isRecord(value.heating) ||
+    !isRecord(value.co2) ||
+    !Array.isArray(value.tenants) ||
+    !Array.isArray(value.warnings)
+  )
+    return false
+
+  const trace = value.heating.trace
+  if (
+    !isFiniteNumber(value.totals.controlDifferenceCents) ||
+    !isRecord(trace) ||
+    !Array.isArray(trace.circuits) ||
+    !trace.circuits.every(
+      (circuit) =>
+        isRecord(circuit) &&
+        typeof circuit.buildingId === 'string' &&
+        isRecord(circuit.split) &&
+        isFiniteNumber(circuit.split.consumptionSharePercent) &&
+        isRecord(circuit.co2) &&
+        isFiniteNumber(circuit.co2.tenantPercent) &&
+        isFiniteNumber(circuit.co2.intensityKgPerSqmYear),
+    )
+  )
+    return false
+
+  return value.tenants.every((tenant) => {
+    if (
+      !isRecord(tenant) ||
+      typeof tenant.id !== 'string' ||
+      !isFiniteNumber(tenant.shareCents) ||
+      !isFiniteNumber(tenant.prepaymentCents) ||
+      !isFiniteNumber(tenant.balanceCents) ||
+      !isRecord(tenant.costBreakdown) ||
+      !Array.isArray(tenant.costBreakdown.operatingByCategory) ||
+      !isFiniteNumber(tenant.costBreakdown.heatingBaseCents) ||
+      !isFiniteNumber(tenant.costBreakdown.heatingConsumptionCents) ||
+      !isFiniteNumber(tenant.costBreakdown.hotWaterCents) ||
+      !isFiniteNumber(tenant.costBreakdown.heatingCo2Cents)
+    )
+      return false
+
+    return tenant.costBreakdown.operatingByCategory.every(
+      (item) =>
+        isRecord(item) &&
+        typeof item.costCategoryId === 'string' &&
+        isFiniteNumber(item.amountCents),
+    )
+  })
+}
+
+/** Letzter, für den PDF-Vertrag kompatibler Berechnungsstand. */
+export function latestCalculationSnapshot(
   data: AppDataFile,
   billingPeriodId: string,
-): CalculationOutput | undefined {
+): CalculationSnapshot | undefined {
   const runs = data.billingData.calculationRuns.filter(
     (run) => run.billingPeriodId === billingPeriodId,
   )
@@ -23,7 +105,15 @@ export function latestCalculationOutput(
     (item) => item.calculationRunId === latestRun.id,
   )
   if (!result) return undefined
-  return result.resultSnapshot as CalculationOutput
+  if (
+    result.snapshotFormatVersion !== CORE_SNAPSHOT_FORMAT_VERSION ||
+    !isCompatibleCalculationOutput(result.resultSnapshot)
+  )
+    throw new IncompatibleCalculationSnapshotError()
+  return {
+    calculationRunId: latestRun.id,
+    output: result.resultSnapshot,
+  }
 }
 
 export function tenantOccupancies(

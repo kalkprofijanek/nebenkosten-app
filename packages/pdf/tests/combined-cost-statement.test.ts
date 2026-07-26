@@ -68,4 +68,21 @@ describe('buildCombinedCostStatement', () => {
     ) as { color?: string } | undefined
     expect(controlLine?.color).toBe('#a11919')
   })
+
+  it('führt negative Kostenkorrekturen in der Gesamtabrechnung auf', () => {
+    const appData = buildFixtureAppData()
+    const category = appData.billingData.costCategories[0]!
+    appData.billingData.costEntries = [
+      {
+        id: 'negative-correction',
+        costCategoryId: category.id,
+        amountCents: -100,
+      },
+    ]
+    const context = buildFixtureCombinedContext(appData)
+
+    const doc = buildCombinedCostStatement(context)
+
+    expect(JSON.stringify(doc.content)).toContain('-1,00')
+  })
 })

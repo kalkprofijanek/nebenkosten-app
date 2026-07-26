@@ -6,8 +6,11 @@ deterministisch und frei von DOM-, Storage- und Netzwerkzugriffen.
 
 ## Versionierte Verträge
 
-- `snapshotFormatVersion: 2` kennzeichnet das erweiterte
-  Berechnungsergebnis. Gegenüber Version 1 enthält der Heizkostenblock die
+- `snapshotFormatVersion: 3` kennzeichnet den aktuellen Ergebnisvertrag mit
+  der für Einzelabrechnungen erforderlichen Kostenaufschlüsselung. Historische
+  Snapshots der Version 2 bleiben im Datenbestand erhalten, müssen vor einer
+  neuen PDF-Ausgabe aber kontrolliert neu berechnet werden.
+  Gegenüber Version 1 enthält der Heizkostenblock weiterhin die
   Betriebsstrom-Umbuchung und den maschinenlesbaren Rechenweg.
 - `heating.trace.traceFormatVersion: 1` versioniert den Heizkosten-Trace
   unabhängig vom Gesamtsnapshot. Eine spätere Änderung seiner Bedeutung oder

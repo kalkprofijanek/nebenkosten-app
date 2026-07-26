@@ -5,6 +5,7 @@ import {
   type ValidationIssue,
 } from '@nebenkosten/schema'
 import {
+  getFinalizationDocumentStatus,
   transitionBillingPeriod,
   validateBillingPeriod,
 } from '@nebenkosten/validators'
@@ -20,6 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ReleaseRoute } from './ReleaseRoute'
 
 vi.mock('@nebenkosten/validators', () => ({
+  getFinalizationDocumentStatus: vi.fn(),
   validateBillingPeriod: vi.fn(),
   transitionBillingPeriod: vi.fn(),
 }))
@@ -101,6 +103,12 @@ function report(
 
 describe('ReleaseRoute', () => {
   beforeEach(() => {
+    vi.mocked(getFinalizationDocumentStatus).mockReturnValue({
+      complete: true,
+      calculationRunId: 'run-1',
+      missingCombinedStatement: false,
+      missingTenantStatementCount: 0,
+    })
     vi.mocked(validateBillingPeriod).mockImplementation((data, id, options) => {
       void data
       void id
@@ -328,6 +336,30 @@ describe('ReleaseRoute', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Statuswechsel ist nicht zulässig.',
     )
+  })
+
+  it('blockiert die Finalisierung bis alle aktuellen Dokumente erzeugt sind', () => {
+    vi.mocked(validateBillingPeriod).mockReturnValue(report([]))
+    vi.mocked(getFinalizationDocumentStatus).mockReturnValue({
+      complete: false,
+      calculationRunId: 'run-1',
+      missingCombinedStatement: true,
+      missingTenantStatementCount: 2,
+    })
+    render(
+      <ReleaseRoute
+        data={fileWithPeriod('READY_FOR_PDF')}
+        billingPeriodId="period-1"
+        onApply={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText(/Gesamtabrechnung fehlt/)).toBeVisible()
+    expect(screen.getByText(/2 Einzelabrechnungen fehlen/)).toBeVisible()
+    fireEvent.change(screen.getByLabelText('Versanddatum'), {
+      target: { value: '2026-02-15' },
+    })
+    expect(screen.getByRole('button', { name: 'Finalisieren' })).toBeDisabled()
   })
 
   it('zeigt Audit-Historie ohne variable Details', () => {
