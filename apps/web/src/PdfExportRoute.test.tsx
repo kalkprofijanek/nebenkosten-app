@@ -318,9 +318,10 @@ describe('PdfExportRoute', () => {
 
   it('erzeugt die Gesamtabrechnung', async () => {
     renderPdfBlob.mockResolvedValue(new Blob(['pdf']))
-    const onApply = vi.fn(
-      (_transform: (data: AppDataFile) => AppDataFile) => true,
-    )
+    const onApply = vi.fn((transform: (data: AppDataFile) => AppDataFile) => {
+      void transform
+      return true
+    })
     render(
       <PdfExportRoute
         data={fixtureAppData()}
