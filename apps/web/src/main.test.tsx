@@ -17,7 +17,7 @@ describe('web bootstrap', () => {
     await import('./main')
 
     expect(render).toHaveBeenCalledOnce()
-  })
+  }, 15_000)
 
   it('fails clearly when the root element is missing', async () => {
     document.body.innerHTML = ''

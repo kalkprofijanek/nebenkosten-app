@@ -6,10 +6,11 @@ import type {
   ValidationSeverity,
 } from '@nebenkosten/schema'
 import {
+  getFinalizationDocumentStatus,
   transitionBillingPeriod,
   validateBillingPeriod,
 } from '@nebenkosten/validators'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 interface ReleaseRouteProps {
   readonly data: AppDataFile
@@ -91,6 +92,25 @@ export function ReleaseRoute({
     dispatchDate: '',
     actionError: null,
   })
+  const documentStatusResult = useMemo(() => {
+    if (billingPeriodId === null) {
+      return { status: null, error: null }
+    }
+    try {
+      return {
+        status: getFinalizationDocumentStatus(data, billingPeriodId),
+        error: null,
+      }
+    } catch (caught) {
+      return {
+        status: null,
+        error:
+          caught instanceof Error
+            ? caught.message
+            : 'Der Dokumentenstatus konnte nicht geprüft werden.',
+      }
+    }
+  }, [billingPeriodId, data])
   const activeInteraction: ReleaseInteraction =
     interaction.billingPeriodId === billingPeriodId
       ? interaction
@@ -152,6 +172,10 @@ export function ReleaseRoute({
   const readOnly =
     billingPeriod.status === 'FINALIZED' ||
     billingPeriod.status === 'SUPERSEDED'
+  if (documentStatusResult.error !== null) {
+    return <p role="alert">{documentStatusResult.error}</p>
+  }
+  const documentStatus = documentStatusResult.status!
 
   function applyTransition(
     target: BillingPeriodStatus,
@@ -240,6 +264,23 @@ export function ReleaseRoute({
         </p>
       ) : null}
       {readOnly ? <p>Dieser Abrechnungsstand ist schreibgeschützt.</p> : null}
+
+      {billingPeriod.status === 'READY_FOR_PDF' && !documentStatus.complete ? (
+        <div className="privacy-note" role="status">
+          <strong>Dokumente noch unvollständig.</strong>
+          {documentStatus.missingCombinedStatement ? (
+            <p>Gesamtabrechnung fehlt.</p>
+          ) : null}
+          {documentStatus.missingTenantStatementCount > 0 ? (
+            <p>
+              {documentStatus.missingTenantStatementCount}{' '}
+              {documentStatus.missingTenantStatementCount === 1
+                ? 'Einzelabrechnung fehlt.'
+                : 'Einzelabrechnungen fehlen.'}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="validation-groups">
         {severityOrder.flatMap((severity) => {
@@ -347,7 +388,9 @@ export function ReleaseRoute({
             <button
               className="button button--primary"
               type="button"
-              disabled={dispatchDate.trim().length === 0}
+              disabled={
+                dispatchDate.trim().length === 0 || !documentStatus.complete
+              }
               onClick={() =>
                 applyTransition('FINALIZED', {
                   dispatchDate: dispatchDate.trim(),

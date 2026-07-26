@@ -42,7 +42,7 @@ describe('PR 07 – Heizkosten- und CO2-Rechenweg', () => {
 
     const result = calculate(appData)
 
-    expect(result.snapshotFormatVersion).toBe(2)
+    expect(result.snapshotFormatVersion).toBe(3)
     expect(result.heating.operatingElectricity).toEqual({
       sourceBudgetCents: 20_000,
       intendedCents: 12_000,

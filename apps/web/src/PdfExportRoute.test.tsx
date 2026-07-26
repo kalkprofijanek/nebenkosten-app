@@ -42,10 +42,11 @@ const PERSON_ID = '50000000-0000-4000-8000-000000000006'
 const OCCUPANCY_ID = '50000000-0000-4000-8000-000000000007'
 const RUN_ID = '50000000-0000-4000-8000-000000000008'
 const RESULT_ID = '50000000-0000-4000-8000-000000000009'
+const SECOND_OCCUPANCY_ID = '50000000-0000-4000-8000-00000000000b'
 
 function calculationOutput(): CalculationOutput {
   return {
-    snapshotFormatVersion: 2,
+    snapshotFormatVersion: 3,
     periodDays: 365,
     totals: {
       recordedCostsCents: 1000,
@@ -110,6 +111,7 @@ function fixtureAppData(
   overrides: {
     shippingAddress?: boolean
     status?: 'READY_FOR_PDF' | 'FINALIZED' | 'DRAFT'
+    snapshotFormatVersion?: number
   } = {},
 ): AppDataFile {
   const empty = createEmptyAppDataFile()
@@ -203,8 +205,45 @@ function fixtureAppData(
             controlDifferenceCents: 0,
           },
           warnings: [],
-          snapshotFormatVersion: 2,
-          resultSnapshot: calculationOutput(),
+          snapshotFormatVersion: overrides.snapshotFormatVersion ?? 3,
+          resultSnapshot: {
+            ...calculationOutput(),
+            snapshotFormatVersion: overrides.snapshotFormatVersion ?? 3,
+          },
+        },
+      ],
+    },
+  }
+}
+
+function fixtureWithCollidingTenantFileNames(): AppDataFile {
+  const data = fixtureAppData()
+  const result = data.billingData.calculationResults[0]!
+  const snapshot = result.resultSnapshot as CalculationOutput
+  return {
+    ...data,
+    billingData: {
+      ...data.billingData,
+      occupancyPeriods: [
+        ...data.billingData.occupancyPeriods,
+        {
+          ...data.billingData.occupancyPeriods[0]!,
+          id: SECOND_OCCUPANCY_ID,
+        },
+      ],
+      calculationResults: [
+        {
+          ...result,
+          resultSnapshot: {
+            ...snapshot,
+            tenants: [
+              ...snapshot.tenants,
+              {
+                ...snapshot.tenants[0]!,
+                id: SECOND_OCCUPANCY_ID,
+              },
+            ],
+          },
         },
       ],
     },
@@ -247,6 +286,20 @@ describe('PdfExportRoute', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/noch keine Berechnung/)
   })
 
+  it('fordert bei einem alten Berechnungsstand eine Neuberechnung an', () => {
+    render(
+      <PdfExportRoute
+        data={fixtureAppData({ snapshotFormatVersion: 2 })}
+        billingPeriodId={PERIOD_ID}
+        onApply={() => true}
+      />,
+    )
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /Freigabe.*Prüfung.*berechne.*neu/i,
+    )
+  })
+
   it('erzeugt eine Einzelabrechnung, löst den Download aus und speichert das Dokument', async () => {
     renderPdfBlob.mockResolvedValue(new Blob(['pdf']))
     const onApply = vi.fn((transform: (data: AppDataFile) => AppDataFile) => {
@@ -270,6 +323,15 @@ describe('PdfExportRoute', () => {
     expect(renderPdfBlob).toHaveBeenCalled()
     expect(downloadBlob).toHaveBeenCalled()
     expect(onApply).toHaveBeenCalled()
+    expect(onApply.mock.invocationCallOrder[0]).toBeLessThan(
+      downloadBlob.mock.invocationCallOrder[0]!,
+    )
+    const transformed = onApply.mock.calls[0]![0](fixtureAppData())
+    expect(transformed.billingData.documents.at(-1)).toMatchObject({
+      kind: 'tenant_statement',
+      calculationRunId: RUN_ID,
+      occupancyPeriodId: OCCUPANCY_ID,
+    })
   })
 
   it('zeigt einen Fehler bei fehlender Versandadresse', async () => {
@@ -293,7 +355,10 @@ describe('PdfExportRoute', () => {
 
   it('erzeugt die Gesamtabrechnung', async () => {
     renderPdfBlob.mockResolvedValue(new Blob(['pdf']))
-    const onApply = vi.fn(() => true)
+    const onApply = vi.fn((transform: (data: AppDataFile) => AppDataFile) => {
+      void transform
+      return true
+    })
     render(
       <PdfExportRoute
         data={fixtureAppData()}
@@ -306,12 +371,36 @@ describe('PdfExportRoute', () => {
 
     await vi.waitFor(() => expect(downloadBlob).toHaveBeenCalled())
     expect(onApply).toHaveBeenCalled()
+    expect(onApply.mock.invocationCallOrder[0]).toBeLessThan(
+      downloadBlob.mock.invocationCallOrder[0]!,
+    )
+    const transformed = onApply.mock.calls[0]![0](fixtureAppData())
+    expect(transformed.billingData.documents.at(-1)).toMatchObject({
+      kind: 'combined_statement',
+      calculationRunId: RUN_ID,
+    })
   })
 
   it('erzeugt das ZIP-Bündel aller Einzelabrechnungen', async () => {
     renderPdfBlob.mockResolvedValue(new Blob(['pdf']))
     renderZipBlob.mockResolvedValue(new Blob(['zip']))
-    const onApply = vi.fn(() => true)
+    const onApply = vi.fn((transform: (data: AppDataFile) => AppDataFile) => {
+      const transformed = transform(fixtureAppData())
+      expect(transformed.billingData.documents).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            kind: 'tenant_statement',
+            calculationRunId: RUN_ID,
+            occupancyPeriodId: OCCUPANCY_ID,
+          }),
+          expect.objectContaining({
+            kind: 'zip_bundle',
+            calculationRunId: RUN_ID,
+          }),
+        ]),
+      )
+      return true
+    })
     render(
       <PdfExportRoute
         data={fixtureAppData()}
@@ -324,6 +413,45 @@ describe('PdfExportRoute', () => {
 
     await vi.waitFor(() => expect(renderZipBlob).toHaveBeenCalled())
     expect(downloadBlob).toHaveBeenCalled()
+    expect(onApply).toHaveBeenCalled()
+    expect(onApply.mock.invocationCallOrder[0]).toBeLessThan(
+      downloadBlob.mock.invocationCallOrder[0]!,
+    )
+  })
+
+  it('behält bei kollidierenden Namen jede Einzelabrechnung eindeutig im ZIP', async () => {
+    renderPdfBlob.mockResolvedValue(new Blob(['pdf']))
+    renderZipBlob.mockResolvedValue(new Blob(['zip']))
+    const data = fixtureWithCollidingTenantFileNames()
+    const onApply = vi.fn((transform: (data: AppDataFile) => AppDataFile) => {
+      const transformed = transform(data)
+      const tenantDocuments = transformed.billingData.documents.filter(
+        ({ kind }) => kind === 'tenant_statement',
+      )
+      expect(
+        tenantDocuments.map(({ occupancyPeriodId }) => occupancyPeriodId),
+      ).toEqual([OCCUPANCY_ID, SECOND_OCCUPANCY_ID])
+      expect(
+        new Set(tenantDocuments.map(({ fileName }) => fileName)).size,
+      ).toBe(2)
+      return true
+    })
+
+    render(
+      <PdfExportRoute
+        data={data}
+        billingPeriodId={PERIOD_ID}
+        onApply={onApply}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /ZIP/ }))
+
+    await vi.waitFor(() => expect(renderZipBlob).toHaveBeenCalled())
+    const entries = renderZipBlob.mock.calls[0]![0] as Array<{
+      fileName: string
+    }>
+    expect(entries).toHaveLength(2)
+    expect(new Set(entries.map(({ fileName }) => fileName)).size).toBe(2)
     expect(onApply).toHaveBeenCalled()
   })
 
@@ -348,6 +476,43 @@ describe('PdfExportRoute', () => {
     expect(screen.getByText('NK_2026_Kostenaufstellung.pdf')).toBeVisible()
   })
 
+  it('zeigt je Dokumentart den jüngsten Eintrag und klappt ältere zusammen', () => {
+    const baseData = fixtureAppData()
+    const data: AppDataFile = {
+      ...baseData,
+      billingData: {
+        ...baseData.billingData,
+        documents: [
+          {
+            id: 'doc-old',
+            billingPeriodId: PERIOD_ID,
+            kind: 'combined_statement',
+            createdAt: '2026-01-14T10:00:00.000Z',
+            fileName: 'NK_2026_Kostenaufstellung_alt.pdf',
+          },
+          {
+            id: 'doc-new',
+            billingPeriodId: PERIOD_ID,
+            kind: 'combined_statement',
+            createdAt: '2026-01-15T10:00:00.000Z',
+            fileName: 'NK_2026_Kostenaufstellung_neu.pdf',
+          },
+        ],
+      },
+    }
+
+    render(
+      <PdfExportRoute
+        data={data}
+        billingPeriodId={PERIOD_ID}
+        onApply={() => true}
+      />,
+    )
+
+    expect(screen.getByText('NK_2026_Kostenaufstellung_neu.pdf')).toBeVisible()
+    expect(screen.getByText('Ältere Dokumente (1)')).toBeVisible()
+  })
+
   it('meldet, wenn der Dokumenteneintrag nicht gespeichert werden kann', async () => {
     renderPdfBlob.mockResolvedValue(new Blob(['pdf']))
     render(
@@ -363,6 +528,7 @@ describe('PdfExportRoute', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       /nicht gespeichert/,
     )
+    expect(downloadBlob).not.toHaveBeenCalled()
   })
 
   it('meldet unbekannte Fehler generisch', async () => {

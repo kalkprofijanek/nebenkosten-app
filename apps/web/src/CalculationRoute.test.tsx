@@ -49,7 +49,7 @@ function fileWithResult(
             controlDifferenceCents: 0,
           },
           warnings: [],
-          snapshotFormatVersion: 2,
+          snapshotFormatVersion: 3,
           resultSnapshot: {},
         },
       ],

@@ -8,10 +8,13 @@ import { useState } from 'react'
 import {
   buildCombinedCostStatementContext,
   buildTenantStatementContext,
-  latestCalculationOutput,
+  latestCalculationSnapshot,
   tenantOccupancies,
 } from './features/pdf/context'
-import { recordGeneratedDocument } from './features/pdf/commands'
+import {
+  recordGeneratedDocuments,
+  type RecordGeneratedDocumentInput,
+} from './features/pdf/commands'
 import {
   blobBytes,
   downloadBlob,
@@ -28,7 +31,7 @@ interface PdfExportRouteProps {
 }
 
 function safeFileNamePart(value: string): string {
-  return value.replace(/[^\w\-äöüÄÖÜß]/gu, '_')
+  return value.normalize('NFC').replace(/[^\p{L}\p{N}_-]/gu, '_')
 }
 
 function tenantFileName(
@@ -37,6 +40,62 @@ function tenantFileName(
   personName: string,
 ): string {
   return `NK_${year}_${safeFileNamePart(unitLabel)}_${safeFileNamePart(personName)}.pdf`
+}
+
+function uniqueFileName(fileName: string, usedFileNames: Set<string>): string {
+  const normalizedFileName = fileName.toLocaleLowerCase('de-DE')
+  if (!usedFileNames.has(normalizedFileName)) {
+    usedFileNames.add(normalizedFileName)
+    return fileName
+  }
+  const extensionIndex = fileName.lastIndexOf('.')
+  const baseName =
+    extensionIndex > 0 ? fileName.slice(0, extensionIndex) : fileName
+  const extension = extensionIndex > 0 ? fileName.slice(extensionIndex) : ''
+  let suffix = 2
+  while (
+    usedFileNames.has(
+      `${baseName}_${suffix}${extension}`.toLocaleLowerCase('de-DE'),
+    )
+  )
+    suffix += 1
+  const uniqueName = `${baseName}_${suffix}${extension}`
+  usedFileNames.add(uniqueName.toLocaleLowerCase('de-DE'))
+  return uniqueName
+}
+
+function documentIdentity(
+  document: AppDataFile['billingData']['documents'][number],
+): string {
+  return document.kind === 'tenant_statement'
+    ? `${document.kind}:${document.occupancyPeriodId ?? ''}`
+    : document.kind
+}
+
+function splitCurrentAndOlderDocuments(
+  documents: AppDataFile['billingData']['documents'],
+) {
+  const latestByIdentity = new Map<
+    string,
+    AppDataFile['billingData']['documents'][number]
+  >()
+  for (const document of documents) {
+    const identity = documentIdentity(document)
+    const latest = latestByIdentity.get(identity)
+    if (
+      !latest ||
+      Date.parse(document.createdAt) >= Date.parse(latest.createdAt)
+    ) {
+      latestByIdentity.set(identity, document)
+    }
+  }
+  const currentIds = new Set(
+    Array.from(latestByIdentity.values(), ({ id }) => id),
+  )
+  return {
+    current: documents.filter(({ id }) => currentIds.has(id)),
+    older: documents.filter(({ id }) => !currentIds.has(id)),
+  }
 }
 
 export function PdfExportRoute({
@@ -82,36 +141,54 @@ export function PdfExportRoute({
     )
   }
 
-  const calculation = latestCalculationOutput(data, billingPeriodId)
-  if (!calculation) {
+  let calculationSnapshot
+  try {
+    calculationSnapshot = latestCalculationSnapshot(data, billingPeriodId)
+  } catch (caught) {
+    return (
+      <p role="alert">
+        {caught instanceof Error
+          ? caught.message
+          : 'Der Berechnungsstand kann nicht für PDF verwendet werden.'}
+      </p>
+    )
+  }
+  if (!calculationSnapshot) {
     return (
       <p role="alert">
         Für dieses Abrechnungsjahr liegt noch keine Berechnung vor.
       </p>
     )
   }
+  const { output: calculation, calculationRunId } = calculationSnapshot
 
   const occupancies = tenantOccupancies(data, billingPeriodId)
   const documents = data.billingData.documents.filter(
     (document) => document.billingPeriodId === billingPeriodId,
   )
+  const displayedDocuments = splitCurrentAndOlderDocuments(documents)
   const currentBillingPeriodId = billingPeriodId
 
   async function record(
-    kind: 'tenant_statement' | 'combined_statement' | 'zip_bundle',
-    fileName: string,
-    bytes: Uint8Array,
-    occupancyPeriodId?: string,
+    generated: readonly {
+      readonly kind: RecordGeneratedDocumentInput['kind']
+      readonly fileName: string
+      readonly bytes: Uint8Array
+      readonly occupancyPeriodId?: string
+    }[],
   ) {
-    const hash = await sha256Hex(bytes)
-    const applied = onApply((current) =>
-      recordGeneratedDocument(current, {
+    const inputs = await Promise.all(
+      generated.map(async (item): Promise<RecordGeneratedDocumentInput> => ({
         billingPeriodId: currentBillingPeriodId,
-        kind,
-        fileName,
-        sha256: hash,
-        occupancyPeriodId,
-      }),
+        calculationRunId,
+        kind: item.kind,
+        fileName: item.fileName,
+        sha256: await sha256Hex(item.bytes),
+        occupancyPeriodId: item.occupancyPeriodId,
+      })),
+    )
+    const applied = onApply((current) =>
+      recordGeneratedDocuments(current, inputs),
     )
     if (!applied) {
       throw new Error('Der Dokumenteneintrag konnte nicht gespeichert werden.')
@@ -156,13 +233,15 @@ export function PdfExportRoute({
         context.unit.label ?? occupancyPeriod.unitId,
         personName,
       )
+      await record([
+        {
+          kind: 'tenant_statement',
+          fileName,
+          bytes: await blobBytes(blob),
+          occupancyPeriodId: occupancyPeriod.id,
+        },
+      ])
       downloadBlob(blob, fileName)
-      await record(
-        'tenant_statement',
-        fileName,
-        await blobBytes(blob),
-        occupancyPeriod.id,
-      )
     })
   }
 
@@ -177,15 +256,23 @@ export function PdfExportRoute({
       const docDefinition = buildCombinedCostStatement(context)
       const blob = await renderPdfBlob(docDefinition)
       const fileName = `NK_${billingPeriod!.year}_Kostenaufstellung.pdf`
+      await record([
+        {
+          kind: 'combined_statement',
+          fileName,
+          bytes: await blobBytes(blob),
+        },
+      ])
       downloadBlob(blob, fileName)
-      await record('combined_statement', fileName, await blobBytes(blob))
     })
   }
 
   function downloadZipBundle() {
     setBusy('zip')
     void withErrorHandling(async () => {
-      const entries: ZipEntry[] = []
+      const entries: Array<ZipEntry & { readonly occupancyPeriodId: string }> =
+        []
+      const usedFileNames = new Set<string>()
       for (const occupancyPeriod of occupancies) {
         const context = buildTenantStatementContext(
           data,
@@ -198,20 +285,39 @@ export function PdfExportRoute({
         const personName =
           context.persons.map((person) => person.displayName ?? '').join('_') ||
           'Unbekannt'
-        const fileName = tenantFileName(
-          billingPeriod!.year,
-          context.unit.label ?? occupancyPeriod.unitId,
-          personName,
+        const fileName = uniqueFileName(
+          tenantFileName(
+            billingPeriod!.year,
+            context.unit.label ?? occupancyPeriod.unitId,
+            personName,
+          ),
+          usedFileNames,
         )
-        entries.push({ fileName, bytes: await blobBytes(blob) })
+        entries.push({
+          fileName,
+          bytes: await blobBytes(blob),
+          occupancyPeriodId: occupancyPeriod.id,
+        })
       }
       if (entries.length === 0) {
         throw new Error('Keine Mieter für den ZIP-Export vorhanden.')
       }
       const zipBlob = await renderZipBlob(entries)
       const zipFileName = `NK_${billingPeriod!.year}_Einzel-PDFs.zip`
+      await record([
+        ...entries.map((entry) => ({
+          kind: 'tenant_statement' as const,
+          fileName: entry.fileName,
+          bytes: entry.bytes,
+          occupancyPeriodId: entry.occupancyPeriodId,
+        })),
+        {
+          kind: 'zip_bundle',
+          fileName: zipFileName,
+          bytes: await blobBytes(zipBlob),
+        },
+      ])
       downloadBlob(zipBlob, zipFileName)
-      await record('zip_bundle', zipFileName, await blobBytes(zipBlob))
     })
   }
 
@@ -283,16 +389,35 @@ export function PdfExportRoute({
         {documents.length === 0 ? (
           <p>Noch keine Dokumente erzeugt.</p>
         ) : (
-          <ul>
-            {documents.map((document) => (
-              <li key={document.id}>
-                <time dateTime={document.createdAt}>
-                  {new Date(document.createdAt).toLocaleString('de-DE')}
-                </time>{' '}
-                <span>{document.fileName}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul>
+              {displayedDocuments.current.map((document) => (
+                <li key={document.id}>
+                  <time dateTime={document.createdAt}>
+                    {new Date(document.createdAt).toLocaleString('de-DE')}
+                  </time>{' '}
+                  <span>{document.fileName}</span>
+                </li>
+              ))}
+            </ul>
+            {displayedDocuments.older.length > 0 ? (
+              <details>
+                <summary>
+                  Ältere Dokumente ({displayedDocuments.older.length})
+                </summary>
+                <ul>
+                  {displayedDocuments.older.map((document) => (
+                    <li key={document.id}>
+                      <time dateTime={document.createdAt}>
+                        {new Date(document.createdAt).toLocaleString('de-DE')}
+                      </time>{' '}
+                      <span>{document.fileName}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
+          </>
         )}
       </section>
     </section>

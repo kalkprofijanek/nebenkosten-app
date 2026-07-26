@@ -99,3 +99,21 @@ unverändert grün.
   `FINALIZED`-Fluss in `ReleaseRoute.tsx`
 - E2E: `tests/e2e/pr11-pdf-export.spec.ts`
 - vollständige Root-CI, Privacy-Scanner und Dependency-Audit
+
+## Nachprüfung und Korrekturen
+
+Die unabhängige Codex-Nachprüfung nach dem Merge hat den PDF-Vertrag
+nachgeschärft:
+
+- `snapshotFormatVersion: 3` bindet die für PDFs notwendige
+  Mieter-Kostenaufschlüsselung. Ältere Version-2-Snapshots bleiben erhalten,
+  werden an der PDF-Grenze aber mit einer verständlichen Aufforderung zur
+  Neuberechnung abgewiesen.
+- Jede Dokument-Metadatei verweist verpflichtend auf den aktuellen
+  `calculationRunId`. ZIP-Export, enthaltene Einzelabrechnungen und
+  Audit-Einträge werden gemeinsam gespeichert, bevor der Download beginnt.
+- `FINALIZED` setzt eine Gesamtabrechnung und je Mieter-Nutzungszeitraum eine
+  Einzelabrechnung mit Hash voraus, jeweils aus dem neuesten Rechenlauf.
+- Erstellzeitpunkt, Heizkosten-Split, CO₂-Ausweis, getrennte
+  CO₂-Kostenzeile und negative Kostenkorrekturen werden deterministisch und
+  vollständig ausgegeben.

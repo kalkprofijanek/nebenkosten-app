@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest'
 import {
   buildCombinedCostStatementContext,
   buildTenantStatementContext,
-  latestCalculationOutput,
+  IncompatibleCalculationSnapshotError,
+  latestCalculationSnapshot,
   tenantOccupancies,
 } from './context'
 
@@ -20,7 +21,7 @@ const RESULT_ID = '40000000-0000-4000-8000-000000000009'
 
 function calculationOutput(): CalculationOutput {
   return {
-    snapshotFormatVersion: 2,
+    snapshotFormatVersion: 3,
     periodDays: 365,
     totals: {
       recordedCostsCents: 1000,
@@ -155,7 +156,7 @@ function fixtureAppData(): AppDataFile {
             controlDifferenceCents: 0,
           },
           warnings: [],
-          snapshotFormatVersion: 2,
+          snapshotFormatVersion: 3,
           resultSnapshot: calculationOutput(),
         },
       ],
@@ -163,24 +164,61 @@ function fixtureAppData(): AppDataFile {
   }
 }
 
-describe('latestCalculationOutput', () => {
-  it('liefert das jüngste Berechnungsergebnis', () => {
+describe('latestCalculationSnapshot', () => {
+  it('liefert den jüngsten Rechenlauf mit validiertem Snapshot', () => {
     const data = fixtureAppData()
     expect(
-      latestCalculationOutput(data, PERIOD_ID)?.totals.recordedCostsCents,
+      latestCalculationSnapshot(data, PERIOD_ID)?.output.totals
+        .recordedCostsCents,
     ).toBe(1000)
+    expect(latestCalculationSnapshot(data, PERIOD_ID)?.calculationRunId).toBe(
+      RUN_ID,
+    )
   })
 
   it('liefert undefined ohne Berechnungslauf', () => {
     const data = fixtureAppData()
     data.billingData.calculationRuns = []
-    expect(latestCalculationOutput(data, PERIOD_ID)).toBeUndefined()
+    expect(latestCalculationSnapshot(data, PERIOD_ID)).toBeUndefined()
   })
 
   it('liefert undefined ohne passendes Ergebnis', () => {
     const data = fixtureAppData()
     data.billingData.calculationResults = []
-    expect(latestCalculationOutput(data, PERIOD_ID)).toBeUndefined()
+    expect(latestCalculationSnapshot(data, PERIOD_ID)).toBeUndefined()
+  })
+
+  it('weist alte Snapshots kontrolliert zur Neuberechnung zurück', () => {
+    const data = fixtureAppData()
+    const result = data.billingData.calculationResults[0]!
+    result.snapshotFormatVersion = 2
+    const oldSnapshot = structuredClone(result.resultSnapshot) as Record<
+      string,
+      unknown
+    >
+    oldSnapshot.snapshotFormatVersion = 2
+    const tenants = oldSnapshot.tenants as Array<Record<string, unknown>>
+    delete tenants[0]!.costBreakdown
+    result.resultSnapshot = oldSnapshot
+
+    expect(() => latestCalculationSnapshot(data, PERIOD_ID)).toThrow(
+      IncompatibleCalculationSnapshotError,
+    )
+  })
+  it('weist auch unvollständige Version-3-Snapshots kontrolliert zurück', () => {
+    const data = fixtureAppData()
+    const result = data.billingData.calculationResults[0]!
+    const incompleteSnapshot = structuredClone(result.resultSnapshot) as Record<
+      string,
+      unknown
+    >
+    const heating = incompleteSnapshot.heating as Record<string, unknown>
+    delete heating.trace
+    result.resultSnapshot = incompleteSnapshot
+
+    expect(() => latestCalculationSnapshot(data, PERIOD_ID)).toThrow(
+      IncompatibleCalculationSnapshotError,
+    )
   })
 })
 
