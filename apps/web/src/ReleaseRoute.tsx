@@ -10,7 +10,7 @@ import {
   transitionBillingPeriod,
   validateBillingPeriod,
 } from '@nebenkosten/validators'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 interface ReleaseRouteProps {
   readonly data: AppDataFile
@@ -92,6 +92,25 @@ export function ReleaseRoute({
     dispatchDate: '',
     actionError: null,
   })
+  const documentStatusResult = useMemo(() => {
+    if (billingPeriodId === null) {
+      return { status: null, error: null }
+    }
+    try {
+      return {
+        status: getFinalizationDocumentStatus(data, billingPeriodId),
+        error: null,
+      }
+    } catch (caught) {
+      return {
+        status: null,
+        error:
+          caught instanceof Error
+            ? caught.message
+            : 'Der Dokumentenstatus konnte nicht geprüft werden.',
+      }
+    }
+  }, [billingPeriodId, data])
   const activeInteraction: ReleaseInteraction =
     interaction.billingPeriodId === billingPeriodId
       ? interaction
@@ -153,10 +172,10 @@ export function ReleaseRoute({
   const readOnly =
     billingPeriod.status === 'FINALIZED' ||
     billingPeriod.status === 'SUPERSEDED'
-  const documentStatus = getFinalizationDocumentStatus(
-    data,
-    selectedBillingPeriodId,
-  )
+  if (documentStatusResult.error !== null) {
+    return <p role="alert">{documentStatusResult.error}</p>
+  }
+  const documentStatus = documentStatusResult.status!
 
   function applyTransition(
     target: BillingPeriodStatus,

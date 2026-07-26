@@ -31,7 +31,7 @@ interface PdfExportRouteProps {
 }
 
 function safeFileNamePart(value: string): string {
-  return value.replace(/[^\w\-äöüÄÖÜß]/gu, '_')
+  return value.normalize('NFC').replace(/[^\p{L}\p{N}_-]/gu, '_')
 }
 
 function tenantFileName(
@@ -40,6 +40,62 @@ function tenantFileName(
   personName: string,
 ): string {
   return `NK_${year}_${safeFileNamePart(unitLabel)}_${safeFileNamePart(personName)}.pdf`
+}
+
+function uniqueFileName(fileName: string, usedFileNames: Set<string>): string {
+  const normalizedFileName = fileName.toLocaleLowerCase('de-DE')
+  if (!usedFileNames.has(normalizedFileName)) {
+    usedFileNames.add(normalizedFileName)
+    return fileName
+  }
+  const extensionIndex = fileName.lastIndexOf('.')
+  const baseName =
+    extensionIndex > 0 ? fileName.slice(0, extensionIndex) : fileName
+  const extension = extensionIndex > 0 ? fileName.slice(extensionIndex) : ''
+  let suffix = 2
+  while (
+    usedFileNames.has(
+      `${baseName}_${suffix}${extension}`.toLocaleLowerCase('de-DE'),
+    )
+  )
+    suffix += 1
+  const uniqueName = `${baseName}_${suffix}${extension}`
+  usedFileNames.add(uniqueName.toLocaleLowerCase('de-DE'))
+  return uniqueName
+}
+
+function documentIdentity(
+  document: AppDataFile['billingData']['documents'][number],
+): string {
+  return document.kind === 'tenant_statement'
+    ? `${document.kind}:${document.occupancyPeriodId ?? ''}`
+    : document.kind
+}
+
+function splitCurrentAndOlderDocuments(
+  documents: AppDataFile['billingData']['documents'],
+) {
+  const latestByIdentity = new Map<
+    string,
+    AppDataFile['billingData']['documents'][number]
+  >()
+  for (const document of documents) {
+    const identity = documentIdentity(document)
+    const latest = latestByIdentity.get(identity)
+    if (
+      !latest ||
+      Date.parse(document.createdAt) >= Date.parse(latest.createdAt)
+    ) {
+      latestByIdentity.set(identity, document)
+    }
+  }
+  const currentIds = new Set(
+    Array.from(latestByIdentity.values(), ({ id }) => id),
+  )
+  return {
+    current: documents.filter(({ id }) => currentIds.has(id)),
+    older: documents.filter(({ id }) => !currentIds.has(id)),
+  }
 }
 
 export function PdfExportRoute({
@@ -110,6 +166,7 @@ export function PdfExportRoute({
   const documents = data.billingData.documents.filter(
     (document) => document.billingPeriodId === billingPeriodId,
   )
+  const displayedDocuments = splitCurrentAndOlderDocuments(documents)
   const currentBillingPeriodId = billingPeriodId
 
   async function record(
@@ -213,7 +270,9 @@ export function PdfExportRoute({
   function downloadZipBundle() {
     setBusy('zip')
     void withErrorHandling(async () => {
-      const entries: ZipEntry[] = []
+      const entries: Array<ZipEntry & { readonly occupancyPeriodId: string }> =
+        []
+      const usedFileNames = new Set<string>()
       for (const occupancyPeriod of occupancies) {
         const context = buildTenantStatementContext(
           data,
@@ -226,12 +285,19 @@ export function PdfExportRoute({
         const personName =
           context.persons.map((person) => person.displayName ?? '').join('_') ||
           'Unbekannt'
-        const fileName = tenantFileName(
-          billingPeriod!.year,
-          context.unit.label ?? occupancyPeriod.unitId,
-          personName,
+        const fileName = uniqueFileName(
+          tenantFileName(
+            billingPeriod!.year,
+            context.unit.label ?? occupancyPeriod.unitId,
+            personName,
+          ),
+          usedFileNames,
         )
-        entries.push({ fileName, bytes: await blobBytes(blob) })
+        entries.push({
+          fileName,
+          bytes: await blobBytes(blob),
+          occupancyPeriodId: occupancyPeriod.id,
+        })
       }
       if (entries.length === 0) {
         throw new Error('Keine Mieter für den ZIP-Export vorhanden.')
@@ -239,11 +305,11 @@ export function PdfExportRoute({
       const zipBlob = await renderZipBlob(entries)
       const zipFileName = `NK_${billingPeriod!.year}_Einzel-PDFs.zip`
       await record([
-        ...entries.map((entry, index) => ({
+        ...entries.map((entry) => ({
           kind: 'tenant_statement' as const,
           fileName: entry.fileName,
           bytes: entry.bytes,
-          occupancyPeriodId: occupancies[index]!.id,
+          occupancyPeriodId: entry.occupancyPeriodId,
         })),
         {
           kind: 'zip_bundle',
@@ -323,16 +389,35 @@ export function PdfExportRoute({
         {documents.length === 0 ? (
           <p>Noch keine Dokumente erzeugt.</p>
         ) : (
-          <ul>
-            {documents.map((document) => (
-              <li key={document.id}>
-                <time dateTime={document.createdAt}>
-                  {new Date(document.createdAt).toLocaleString('de-DE')}
-                </time>{' '}
-                <span>{document.fileName}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul>
+              {displayedDocuments.current.map((document) => (
+                <li key={document.id}>
+                  <time dateTime={document.createdAt}>
+                    {new Date(document.createdAt).toLocaleString('de-DE')}
+                  </time>{' '}
+                  <span>{document.fileName}</span>
+                </li>
+              ))}
+            </ul>
+            {displayedDocuments.older.length > 0 ? (
+              <details>
+                <summary>
+                  Ältere Dokumente ({displayedDocuments.older.length})
+                </summary>
+                <ul>
+                  {displayedDocuments.older.map((document) => (
+                    <li key={document.id}>
+                      <time dateTime={document.createdAt}>
+                        {new Date(document.createdAt).toLocaleString('de-DE')}
+                      </time>{' '}
+                      <span>{document.fileName}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
+          </>
         )}
       </section>
     </section>

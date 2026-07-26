@@ -4,6 +4,7 @@ import {
   type AppDataFile,
   type DocumentKind,
 } from '@nebenkosten/schema'
+import { latestCalculationRun } from '@nebenkosten/validators'
 
 export type IdFactory = () => string
 
@@ -56,9 +57,10 @@ function validateInput(
       'Dokumente dürfen nur für ein PDF-bereites Abrechnungsjahr gespeichert werden.',
     )
 
-  const latestRun = data.billingData.calculationRuns
-    .filter(({ billingPeriodId }) => billingPeriodId === input.billingPeriodId)
-    .at(-1)
+  const latestRun = latestCalculationRun(
+    data.billingData.calculationRuns,
+    input.billingPeriodId,
+  )
   const hasResult =
     latestRun !== undefined &&
     data.billingData.calculationResults.some(

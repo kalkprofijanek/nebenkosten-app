@@ -362,6 +362,25 @@ describe('ReleaseRoute', () => {
     expect(screen.getByRole('button', { name: 'Finalisieren' })).toBeDisabled()
   })
 
+  it('zeigt ungültige Dokumentdaten als Fehler statt die Route abstürzen zu lassen', () => {
+    vi.mocked(validateBillingPeriod).mockReturnValue(report([]))
+    vi.mocked(getFinalizationDocumentStatus).mockImplementation(() => {
+      throw new Error('Dokumentenstatus konnte nicht geprüft werden.')
+    })
+
+    render(
+      <ReleaseRoute
+        data={fileWithPeriod('READY_FOR_PDF')}
+        billingPeriodId="period-1"
+        onApply={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Dokumentenstatus konnte nicht geprüft werden.',
+    )
+  })
+
   it('zeigt Audit-Historie ohne variable Details', () => {
     render(
       <ReleaseRoute

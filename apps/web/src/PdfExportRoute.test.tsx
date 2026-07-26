@@ -42,6 +42,7 @@ const PERSON_ID = '50000000-0000-4000-8000-000000000006'
 const OCCUPANCY_ID = '50000000-0000-4000-8000-000000000007'
 const RUN_ID = '50000000-0000-4000-8000-000000000008'
 const RESULT_ID = '50000000-0000-4000-8000-000000000009'
+const SECOND_OCCUPANCY_ID = '50000000-0000-4000-8000-00000000000b'
 
 function calculationOutput(): CalculationOutput {
   return {
@@ -215,6 +216,40 @@ function fixtureAppData(
   }
 }
 
+function fixtureWithCollidingTenantFileNames(): AppDataFile {
+  const data = fixtureAppData()
+  const result = data.billingData.calculationResults[0]!
+  const snapshot = result.resultSnapshot as CalculationOutput
+  return {
+    ...data,
+    billingData: {
+      ...data.billingData,
+      occupancyPeriods: [
+        ...data.billingData.occupancyPeriods,
+        {
+          ...data.billingData.occupancyPeriods[0]!,
+          id: SECOND_OCCUPANCY_ID,
+        },
+      ],
+      calculationResults: [
+        {
+          ...result,
+          resultSnapshot: {
+            ...snapshot,
+            tenants: [
+              ...snapshot.tenants,
+              {
+                ...snapshot.tenants[0]!,
+                id: SECOND_OCCUPANCY_ID,
+              },
+            ],
+          },
+        },
+      ],
+    },
+  }
+}
+
 describe('PdfExportRoute', () => {
   it('zeigt einen Hinweis ohne gewähltes Abrechnungsjahr', () => {
     render(
@@ -260,7 +295,9 @@ describe('PdfExportRoute', () => {
       />,
     )
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/neu berechnen/i)
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /Freigabe.*Prüfung.*berechne.*neu/i,
+    )
   })
 
   it('erzeugt eine Einzelabrechnung, löst den Download aus und speichert das Dokument', async () => {
@@ -377,6 +414,45 @@ describe('PdfExportRoute', () => {
     await vi.waitFor(() => expect(renderZipBlob).toHaveBeenCalled())
     expect(downloadBlob).toHaveBeenCalled()
     expect(onApply).toHaveBeenCalled()
+    expect(onApply.mock.invocationCallOrder[0]).toBeLessThan(
+      downloadBlob.mock.invocationCallOrder[0]!,
+    )
+  })
+
+  it('behält bei kollidierenden Namen jede Einzelabrechnung eindeutig im ZIP', async () => {
+    renderPdfBlob.mockResolvedValue(new Blob(['pdf']))
+    renderZipBlob.mockResolvedValue(new Blob(['zip']))
+    const data = fixtureWithCollidingTenantFileNames()
+    const onApply = vi.fn((transform: (data: AppDataFile) => AppDataFile) => {
+      const transformed = transform(data)
+      const tenantDocuments = transformed.billingData.documents.filter(
+        ({ kind }) => kind === 'tenant_statement',
+      )
+      expect(
+        tenantDocuments.map(({ occupancyPeriodId }) => occupancyPeriodId),
+      ).toEqual([OCCUPANCY_ID, SECOND_OCCUPANCY_ID])
+      expect(
+        new Set(tenantDocuments.map(({ fileName }) => fileName)).size,
+      ).toBe(2)
+      return true
+    })
+
+    render(
+      <PdfExportRoute
+        data={data}
+        billingPeriodId={PERIOD_ID}
+        onApply={onApply}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /ZIP/ }))
+
+    await vi.waitFor(() => expect(renderZipBlob).toHaveBeenCalled())
+    const entries = renderZipBlob.mock.calls[0]![0] as Array<{
+      fileName: string
+    }>
+    expect(entries).toHaveLength(2)
+    expect(new Set(entries.map(({ fileName }) => fileName)).size).toBe(2)
+    expect(onApply).toHaveBeenCalled()
   })
 
   it('zeigt bereits erzeugte Dokumente an', () => {
@@ -398,6 +474,43 @@ describe('PdfExportRoute', () => {
       />,
     )
     expect(screen.getByText('NK_2026_Kostenaufstellung.pdf')).toBeVisible()
+  })
+
+  it('zeigt je Dokumentart den jüngsten Eintrag und klappt ältere zusammen', () => {
+    const baseData = fixtureAppData()
+    const data: AppDataFile = {
+      ...baseData,
+      billingData: {
+        ...baseData.billingData,
+        documents: [
+          {
+            id: 'doc-old',
+            billingPeriodId: PERIOD_ID,
+            kind: 'combined_statement',
+            createdAt: '2026-01-14T10:00:00.000Z',
+            fileName: 'NK_2026_Kostenaufstellung_alt.pdf',
+          },
+          {
+            id: 'doc-new',
+            billingPeriodId: PERIOD_ID,
+            kind: 'combined_statement',
+            createdAt: '2026-01-15T10:00:00.000Z',
+            fileName: 'NK_2026_Kostenaufstellung_neu.pdf',
+          },
+        ],
+      },
+    }
+
+    render(
+      <PdfExportRoute
+        data={data}
+        billingPeriodId={PERIOD_ID}
+        onApply={() => true}
+      />,
+    )
+
+    expect(screen.getByText('NK_2026_Kostenaufstellung_neu.pdf')).toBeVisible()
+    expect(screen.getByText('Ältere Dokumente (1)')).toBeVisible()
   })
 
   it('meldet, wenn der Dokumenteneintrag nicht gespeichert werden kann', async () => {

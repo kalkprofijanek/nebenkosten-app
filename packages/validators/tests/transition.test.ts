@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   BillingPeriodTransitionError,
   getFinalizationDocumentStatus,
+  latestCalculationRun,
   transitionBillingPeriod,
   validateBillingPeriod,
 } from '../src/index'
@@ -67,6 +68,23 @@ function addCurrentCalculationAndDocuments(
 }
 
 describe('transitionBillingPeriod', () => {
+  it('bestimmt den jüngsten Rechenlauf nach Zeitstempel statt Array-Position', () => {
+    const runs = [
+      {
+        id: 'run-new',
+        billingPeriodId: 'period-1',
+        startedAt: '2026-07-21T10:00:00.000Z',
+      },
+      {
+        id: 'run-old',
+        billingPeriodId: 'period-1',
+        startedAt: '2026-07-21T09:00:00.000Z',
+      },
+    ]
+
+    expect(latestCalculationRun(runs, 'period-1')?.id).toBe('run-new')
+  })
+
   it('führt die Vorwärts-FSM immutable und auditierbar bis FINALIZED', () => {
     const original = validData()
     const review = transitionBillingPeriod(

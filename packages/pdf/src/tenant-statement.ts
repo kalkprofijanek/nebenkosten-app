@@ -24,6 +24,21 @@ import {
 const BLUE = '#1a3a5c'
 const LIGHT_FILL = '#eef4fb'
 
+function resolvedBuildingId(context: TenantStatementContext) {
+  const { occupancyPeriod, unit } = context
+  return occupancyPeriod.costScope?.kind === 'building'
+    ? occupancyPeriod.costScope.buildingId
+    : unit.buildingId
+}
+
+function circuitTraceFor(context: TenantStatementContext) {
+  const { calculation } = context
+  const buildingId = resolvedBuildingId(context)
+  return calculation.heating.trace.circuits.find(
+    (circuit) => circuit.buildingId === buildingId,
+  )
+}
+
 function summaryTable(context: TenantStatementContext): Content {
   const { calculation, occupancyPeriod } = context
   const tenant = calculation.tenants.find(({ id }) => id === occupancyPeriod.id)
@@ -125,7 +140,7 @@ function costCategoryTable(context: TenantStatementContext): Content {
 }
 
 function heatingDetailTable(context: TenantStatementContext): Content[] {
-  const { calculation, occupancyPeriod, unit } = context
+  const { calculation, occupancyPeriod } = context
   const tenant = calculation.tenants.find(({ id }) => id === occupancyPeriod.id)
   if (!tenant) return []
   const { costBreakdown } = tenant
@@ -134,13 +149,15 @@ function heatingDetailTable(context: TenantStatementContext): Content[] {
     costBreakdown.heatingConsumptionCents +
     costBreakdown.hotWaterCents +
     costBreakdown.heatingCo2Cents
-  if (heatingCents === 0 && costBreakdown.heatingCo2Cents === 0) return []
+  if (heatingCents === 0) return []
 
-  const circuitTrace = calculation.heating.trace.circuits.find(
-    (circuit) => circuit.buildingId === unit.buildingId,
-  )
-  const consumptionSharePercent =
-    circuitTrace?.split.consumptionSharePercent ?? 70
+  const circuitTrace = circuitTraceFor(context)
+  if (!circuitTrace) {
+    throw new Error(
+      `Kein Heizkreis-Nachweis für Nutzungszeitraum "${occupancyPeriod.id}" gefunden.`,
+    )
+  }
+  const consumptionSharePercent = circuitTrace.split.consumptionSharePercent
 
   return [
     {
@@ -157,7 +174,10 @@ function heatingDetailTable(context: TenantStatementContext): Content[] {
             formatEuroCents(costBreakdown.heatingConsumptionCents),
           ],
           ['Warmwasser', formatEuroCents(costBreakdown.hotWaterCents)],
-          ['CO2-Kosten', formatEuroCents(costBreakdown.heatingCo2Cents)],
+          [
+            'CO2-Kosten (nachrichtlich, separat ausgewiesen)',
+            formatEuroCents(costBreakdown.heatingCo2Cents),
+          ],
         ],
       },
       layout: 'lightHorizontalLines',
@@ -173,13 +193,19 @@ function heatingDetailTable(context: TenantStatementContext): Content[] {
 }
 
 function co2Section(context: TenantStatementContext): Content[] {
-  const { calculation, occupancyPeriod, unit } = context
+  const { calculation, occupancyPeriod } = context
   const tenant = calculation.tenants.find(({ id }) => id === occupancyPeriod.id)
-  const circuitTrace = calculation.heating.trace.circuits.find(
-    (circuit) => circuit.buildingId === unit.buildingId,
-  )
-  if (!tenant || !circuitTrace) return []
-  const percent = circuitTrace?.co2.tenantPercent ?? 0
+  if (!tenant) return []
+  const circuitTrace = circuitTraceFor(context)
+  if (!circuitTrace) {
+    if (resolvedBuildingId(context) !== undefined) {
+      throw new Error(
+        `Kein CO2-Nachweis für Nutzungszeitraum "${occupancyPeriod.id}" gefunden.`,
+      )
+    }
+    return []
+  }
+  const percent = circuitTrace.co2.tenantPercent
   const emissionFree = circuitTrace.co2.intensityKgPerSqmYear === 0
 
   return [
@@ -192,14 +218,10 @@ function co2Section(context: TenantStatementContext): Content[] {
             co2TenantShareLine(percent, emissionFree),
             formatEuroCents(tenant.costBreakdown.heatingCo2Cents),
           ],
-          ...(circuitTrace
-            ? [
-                [
-                  'Energieverbrauchskennwert',
-                  `${circuitTrace.co2.intensityKgPerSqmYear.toFixed(1)} kg CO2/m²·a`,
-                ],
-              ]
-            : []),
+          [
+            'Energieverbrauchskennwert',
+            `${circuitTrace.co2.intensityKgPerSqmYear.toFixed(1)} kg CO2/m²·a`,
+          ],
         ],
       },
       layout: 'lightHorizontalLines',

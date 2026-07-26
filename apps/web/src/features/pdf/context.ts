@@ -2,6 +2,7 @@ import {
   CORE_SNAPSHOT_FORMAT_VERSION,
   type CalculationOutput,
 } from '@nebenkosten/core'
+import { latestCalculationRun } from '@nebenkosten/validators'
 import type {
   AppDataFile,
   BillingPeriod,
@@ -15,7 +16,7 @@ import type {
 export class IncompatibleCalculationSnapshotError extends Error {
   constructor() {
     super(
-      'Dieser Berechnungsstand ist zu alt für die PDF-Ausgabe. Bitte das Abrechnungsjahr neu berechnen.',
+      'Dieser Berechnungsstand ist zu alt für die PDF-Ausgabe. Öffne unter „Freigabe“ zuerst kontrolliert die Prüfung, berechne das Abrechnungsjahr neu und gib es anschließend erneut für PDF frei.',
     )
     this.name = 'IncompatibleCalculationSnapshotError'
   }
@@ -96,10 +97,10 @@ export function latestCalculationSnapshot(
   data: AppDataFile,
   billingPeriodId: string,
 ): CalculationSnapshot | undefined {
-  const runs = data.billingData.calculationRuns.filter(
-    (run) => run.billingPeriodId === billingPeriodId,
+  const latestRun = latestCalculationRun(
+    data.billingData.calculationRuns,
+    billingPeriodId,
   )
-  const latestRun = runs.at(-1)
   if (!latestRun) return undefined
   const result = data.billingData.calculationResults.find(
     (item) => item.calculationRunId === latestRun.id,

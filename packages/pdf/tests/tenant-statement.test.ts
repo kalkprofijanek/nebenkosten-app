@@ -125,6 +125,103 @@ describe('buildTenantStatement', () => {
     expect(JSON.stringify(doc.content)).toContain('zu 55 %')
   })
 
+  it('verwendet die Heizkreis-Zuordnung des Nutzungszeitraums für Split und CO2-Ausweis', () => {
+    const appData = buildFixtureAppData('case-12-co2-split')
+    const traceBuildingId = appData.billingData.heatingCircuits[0]!.buildingId
+    const scopedAppData = {
+      ...appData,
+      masterData: {
+        ...appData.masterData,
+        units: appData.masterData.units.map((unit) => ({
+          ...unit,
+          buildingId: undefined,
+        })),
+      },
+      billingData: {
+        ...appData.billingData,
+        occupancyPeriods: appData.billingData.occupancyPeriods.map(
+          (occupancy) => ({
+            ...occupancy,
+            costScope: {
+              kind: 'building' as const,
+              buildingId: traceBuildingId,
+            },
+          }),
+        ),
+      },
+    }
+    const originalContext = buildFixtureTenantStatementContext(scopedAppData)
+    const context = {
+      ...originalContext,
+      calculation: {
+        ...originalContext.calculation,
+        heating: {
+          ...originalContext.calculation.heating,
+          trace: {
+            ...originalContext.calculation.heating.trace,
+            circuits: originalContext.calculation.heating.trace.circuits.map(
+              (circuit) => ({
+                ...circuit,
+                split: {
+                  ...circuit.split,
+                  consumptionSharePercent: 55,
+                  baseSharePercent: 45,
+                },
+              }),
+            ),
+          },
+        },
+      },
+    }
+
+    const doc = buildTenantStatement(context)
+    const serialized = JSON.stringify(doc.content)
+
+    expect(serialized).toContain('zu 55 %')
+    expect(serialized).toContain('CO2-Ausweis')
+  })
+
+  it('verweigert Heizkosten ohne passenden Heizkreis-Nachweis', () => {
+    const appData = buildFixtureAppData('case-12-co2-split')
+    const originalContext = buildFixtureTenantStatementContext(appData)
+    const context = {
+      ...originalContext,
+      calculation: {
+        ...originalContext.calculation,
+        heating: {
+          ...originalContext.calculation.heating,
+          trace: {
+            ...originalContext.calculation.heating.trace,
+            circuits: [],
+          },
+        },
+      },
+    }
+
+    expect(() => buildTenantStatement(context)).toThrow(/Heizkreis-Nachweis/)
+  })
+
+  it('verweigert einen zugeordneten Heizkreis ohne CO2-Nachweis auch bei null Kosten', () => {
+    const appData = buildFixtureAppData()
+    const originalContext = buildFixtureTenantStatementContext(appData)
+    const context = {
+      ...originalContext,
+      unit: { ...originalContext.unit, buildingId: 'building-without-trace' },
+      calculation: {
+        ...originalContext.calculation,
+        heating: {
+          ...originalContext.calculation.heating,
+          trace: {
+            ...originalContext.calculation.heating.trace,
+            circuits: [],
+          },
+        },
+      },
+    }
+
+    expect(() => buildTenantStatement(context)).toThrow(/CO2-Nachweis/)
+  })
+
   it('verwendet den übergebenen Erstellzeitpunkt deterministisch', () => {
     const appData = buildFixtureAppData()
     const context = {
@@ -167,6 +264,9 @@ describe('buildTenantStatement', () => {
         .replace('\u00a0', ' '),
     )
     expect(JSON.stringify(summary.body)).toContain('Ihr CO2-Kostenanteil')
+    expect(JSON.stringify(doc.content)).toContain(
+      'CO2-Kosten (nachrichtlich, separat ausgewiesen)',
+    )
   })
 
   it('zeigt den Schätzhinweis bei geschätzten Verbrauchseinheiten', () => {

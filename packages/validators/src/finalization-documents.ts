@@ -1,4 +1,5 @@
 import { appDataFileSchema, type AppDataFile } from '@nebenkosten/schema'
+import { latestCalculationRun } from './latest-calculation-run'
 
 export interface FinalizationDocumentStatus {
   readonly complete: boolean
@@ -20,9 +21,10 @@ export function getFinalizationDocumentStatus(
         occupancy.kind === 'tenant',
     )
     .map(({ id }) => id)
-  const latestRun = parsed.billingData.calculationRuns
-    .filter((run) => run.billingPeriodId === billingPeriodId)
-    .at(-1)
+  const latestRun = latestCalculationRun(
+    parsed.billingData.calculationRuns,
+    billingPeriodId,
+  )
   const hasResult =
     latestRun !== undefined &&
     parsed.billingData.calculationResults.some(
