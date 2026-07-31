@@ -570,14 +570,15 @@ function mapUser(
     const personId = context.id(['persons', property.propertyId, user.id])
     if (!state.persons.some(({ id }) => id === personId)) {
       let salutation: 'Herr' | 'Frau' | 'Familie' | 'Firma' | null | undefined
+      const legacySalutation = user.anrede === '' ? null : user.anrede
       if (
-        user.anrede == null ||
-        user.anrede === 'Herr' ||
-        user.anrede === 'Frau' ||
-        user.anrede === 'Familie' ||
-        user.anrede === 'Firma'
+        legacySalutation == null ||
+        legacySalutation === 'Herr' ||
+        legacySalutation === 'Frau' ||
+        legacySalutation === 'Familie' ||
+        legacySalutation === 'Firma'
       )
-        salutation = user.anrede
+        salutation = legacySalutation
       else {
         context.issue(
           'warning',

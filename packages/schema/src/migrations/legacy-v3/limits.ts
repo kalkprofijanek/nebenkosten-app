@@ -7,6 +7,7 @@
 // deren kumulative Kopierkosten auch bei absichtlich breiten Eingaben begrenzt.
 export const MAX_LEGACY_COLLECTION_ITEMS = 1_000
 export const MAX_LEGACY_INPUT_NODES = 10_000
+export const MAX_LEGACY_INPUT_SCALARS = 50_000
 export const MAX_LEGACY_INPUT_DEPTH = 64
 export const MAX_LEGACY_INPUT_STRING_CHARS = 10 * 1024 * 1024
 
@@ -15,6 +16,7 @@ export type LegacyInputInspection =
 
 interface InspectionBudget {
   nodes: number
+  scalars: number
   stringChars: number
   seen: WeakSet<object>
 }
@@ -24,19 +26,26 @@ function inspectValue(
   depth: number,
   budget: InspectionBudget,
 ): LegacyInputInspection {
-  budget.nodes += 1
-  if (budget.nodes > MAX_LEGACY_INPUT_NODES || depth > MAX_LEGACY_INPUT_DEPTH)
-    return 'limits-exceeded'
-
   if (typeof value === 'string') {
+    budget.scalars += 1
     budget.stringChars += value.length
-    return budget.stringChars > MAX_LEGACY_INPUT_STRING_CHARS
+    return budget.scalars > MAX_LEGACY_INPUT_SCALARS ||
+      budget.stringChars > MAX_LEGACY_INPUT_STRING_CHARS
       ? 'limits-exceeded'
       : 'ok'
   }
-  if (value === null || typeof value === 'boolean' || typeof value === 'number')
-    return 'ok'
+  if (
+    value === null ||
+    typeof value === 'boolean' ||
+    typeof value === 'number'
+  ) {
+    budget.scalars += 1
+    return budget.scalars > MAX_LEGACY_INPUT_SCALARS ? 'limits-exceeded' : 'ok'
+  }
   if (typeof value !== 'object' || budget.seen.has(value)) return 'invalid'
+  budget.nodes += 1
+  if (budget.nodes > MAX_LEGACY_INPUT_NODES || depth > MAX_LEGACY_INPUT_DEPTH)
+    return 'limits-exceeded'
   budget.seen.add(value)
 
   const isArray = Array.isArray(value)
@@ -76,6 +85,7 @@ export function inspectLegacyInput(input: unknown): LegacyInputInspection {
   try {
     return inspectValue(input, 0, {
       nodes: 0,
+      scalars: 0,
       stringChars: 0,
       seen: new WeakSet(),
     })

@@ -234,4 +234,25 @@ describe('WorkspaceApp', () => {
     ).toBe('billing_period.review_invalidated')
     controller.dispose()
   })
+
+  it('opens backup and restore from the workspace navigation', async () => {
+    const adapter = new MemoryStorageAdapter()
+    await adapter.save(createEmptyAppDataFile(), { expectedRevision: null })
+    const controller = createWorkspaceController({ adapter, debounceMs: 0 })
+    window.location.hash = '#/sicherung'
+
+    render(<WorkspaceApp controller={controller} />)
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Sicherung und Wiederherstellung',
+      }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('button', {
+        name: 'JSON-Sicherung herunterladen',
+      }),
+    ).toBeVisible()
+    controller.dispose()
+  })
 })

@@ -51,8 +51,8 @@ IndexedDB der maßgebliche Stand.
 
 Memory und IndexedDB sichern vollständige, unveränderliche Stände. Automatische
 Snapshots behalten immer die neuesten fünf sowie danach höchstens den neuesten
-Stand je UTC-Tag innerhalb von 14 Tagen. Manuelle und `before_restore`-Snapshots
-sind angeheftet.
+Stand je UTC-Tag innerhalb von 14 Tagen. Manuelle, `before_import`- und
+`before_restore`-Snapshots sind angeheftet.
 
 Vor einer Wiederherstellung wird atomar ein angehefteter
 `before_restore`-Snapshot des aktuellen Standes erzeugt. Erst danach ersetzt

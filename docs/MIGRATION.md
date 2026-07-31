@@ -89,8 +89,13 @@ anderer Wert → `operating` + `warning`.
 
 `m2_nf` → `usable_area`, `m2_nf_hzg` → `heated_area`,
 `einheiten` → `consumption_units`, `we_anzahl` → `residential_units`,
-`direkt` → `direct`; leer bleibt leer (Heizkostenarten haben in v3
-keinen Schlüssel); anderer Wert → `warning`, Feld bleibt leer.
+`direkt` → `direct`; ein leerer Legacy-String wird als nicht gesetzt (`null`)
+normalisiert (Heizkostenarten haben in v3 keinen Schlüssel); anderer Wert →
+`warning`, Feld bleibt leer.
+
+Leere optionale Entitätsverweise, Heizkreisreferenzen und Anreden werden
+ebenfalls als nicht gesetzt behandelt. Sie erzeugen weder ungültige
+Schemawerte noch irreführende Warnungen.
 
 ### 3.4 Issue-Schweregrade
 
@@ -242,10 +247,21 @@ erfunden und verwenden keine Werte aus `legacy/index.html`.
 
 Die Dateigrenze akzeptiert höchstens 10 MiB Originalbytes. Vor Zod und
 Transformation gelten zusätzlich 1.000 Elemente je Collection, 10.000
-Knoten insgesamt, 64 Ebenen und 10 MiB Text einschließlich Schlüsseln. Die
-Collection- und Knotengrenzen begrenzen zugleich die kumulativen Kopierkosten
-der unveränderlich aufgebauten Zielarrays.
+Objekt-/Array-Knoten, 50.000 skalare Werte, 64 Ebenen und 10 MiB Text
+einschließlich Schlüsseln. Die Collection- und Containergrenzen begrenzen
+zugleich die kumulativen Kopierkosten der unveränderlich aufgebauten
+Zielarrays.
 Überschreitungen werden mit `migration.input_limits_exceeded` abgewiesen.
 Proxy-/Typed-Array-Sonderfälle, Accessor-Eigenschaften, werfende
 Options-Getter und Zeitquellen bleiben innerhalb der Importgrenze und liefern
 ausschließlich redigierte Fehler.
+
+### Hauswartvertrags-Markierung
+
+Die Legacy-Buchung kann `_hauswartvertrag` entweder als Boolean-ähnlichen
+Wert oder als das historisch nachgewiesene Detailobjekt führen. Akzeptiert
+werden für dieses Objekt nur die bekannten Vertragsfelder. Die Migration
+setzt `isCaretakerContract` auf `true`, konserviert das vollständige Objekt
+unter `legacyUnmapped` und meldet ausschließlich den redigierten Code
+`migration.caretaker_contract_details_preserved`. Beliebige strukturierte
+Werte bleiben an dieser Grenze unzulässig.

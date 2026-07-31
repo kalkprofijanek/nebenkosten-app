@@ -5,8 +5,8 @@
   "type": "module",
   "packageManager": "pnpm@11.7.0",
   "scripts": {
-    "format": "prettier --write \"apps/**/*\" \"packages/**/*\" \"scripts/scan-repository-content.mjs\" \"tests/architecture/**/*\" \"tests/privacy/**/*\" \"tests/integration/**/*\" \"tests/migration/**/*\" \"tests/characterization/**/*.{ts,json,md}\" \"tests/e2e/**/*\" \"tests/setup-vitest.ts\" \"*.{json,js,ts,yaml}\" \".github/actions/**/*.yml\" \".github/dependabot.yml\" \".github/workflows/ci.yml\" \"docs/TASKS/PR-*.md\" \"docs/ROUNDING.md\" \"docs/PERSISTENCE.md\"",
-    "format:check": "prettier --check \"apps/**/*\" \"packages/**/*\" \"scripts/scan-repository-content.mjs\" \"tests/architecture/**/*\" \"tests/privacy/**/*\" \"tests/integration/**/*\" \"tests/migration/**/*\" \"tests/characterization/**/*.{ts,json,md}\" \"tests/e2e/**/*\" \"tests/setup-vitest.ts\" \"*.{json,js,ts,yaml}\" \".github/actions/**/*.yml\" \".github/dependabot.yml\" \".github/workflows/ci.yml\" \"docs/TASKS/PR-*.md\" \"docs/ROUNDING.md\" \"docs/PERSISTENCE.md\"",
+    "format": "prettier --write \"apps/**/*\" \"packages/**/*\" \"scripts/scan-repository-content.mjs\" \"scripts/run-production-acceptance.mjs\" \"tests/architecture/**/*\" \"tests/privacy/**/*\" \"tests/integration/**/*\" \"tests/migration/**/*\" \"tests/characterization/**/*.{ts,json,md}\" \"tests/e2e/**/*\" \"tests/setup-vitest.ts\" \"*.{json,js,ts,yaml}\" \".github/actions/**/*.yml\" \".github/dependabot.yml\" \".github/workflows/ci.yml\" \"docs/TASKS/PR-*.md\" \"docs/ROUNDING.md\" \"docs/PERSISTENCE.md\" \"docs/PRODUCTION-MIGRATION-RUNBOOK.md\"",
+    "format:check": "prettier --check \"apps/**/*\" \"packages/**/*\" \"scripts/scan-repository-content.mjs\" \"scripts/run-production-acceptance.mjs\" \"tests/architecture/**/*\" \"tests/privacy/**/*\" \"tests/integration/**/*\" \"tests/migration/**/*\" \"tests/characterization/**/*.{ts,json,md}\" \"tests/e2e/**/*\" \"tests/setup-vitest.ts\" \"*.{json,js,ts,yaml}\" \".github/actions/**/*.yml\" \".github/dependabot.yml\" \".github/workflows/ci.yml\" \"docs/TASKS/PR-*.md\" \"docs/ROUNDING.md\" \"docs/PERSISTENCE.md\" \"docs/PRODUCTION-MIGRATION-RUNBOOK.md\"",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc -p tsconfig.tests.json --noEmit && pnpm -r --if-present typecheck",
     "test:architecture": "node --test tests/architecture/**/*.test.mjs",
@@ -21,6 +21,7 @@
     "test": "pnpm test:architecture && pnpm test:repository && pnpm test:privacy && pnpm test:unit && pnpm test:integration && pnpm test:migration && pnpm test:characterization",
     "test:coverage": "pnpm test:repository:coverage && pnpm test:unit:coverage",
     "test:e2e": "playwright test",
+    "acceptance:production": "node scripts/run-production-acceptance.mjs",
     "build": "pnpm -r --if-present build",
     "check:repository": "node scripts/verify-repository-guardrails.mjs",
     "privacy:scan": "pnpm check:repository && node scripts/scan-repository-content.mjs",

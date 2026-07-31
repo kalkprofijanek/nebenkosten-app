@@ -92,6 +92,21 @@ function createReport(
   }
 }
 
+function omitUndefinedProperties(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => omitUndefinedProperties(entry))
+  }
+  if (value === null || typeof value !== 'object') return value
+
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([key, entry]) =>
+      entry === undefined
+        ? []
+        : [[key, omitUndefinedProperties(entry)] as const],
+    ),
+  )
+}
+
 function probeFailure(input: unknown): MigrationResult | undefined {
   const probe = probeSchemaVersion(input)
   if (probe.kind === 'newer-than-supported')
@@ -249,9 +264,9 @@ const migrateV3ToCurrentUnsafe: MigrateV3ToCurrent = (input, options) => {
     options.sourceSha256,
     options.appVersion,
   )
-  const dataResult = appDataFileSchema.safeParse(data)
+  const dataResult = appDataFileSchema.safeParse(omitUndefinedProperties(data))
   const reportResult = migrationReportSchema.safeParse(
-    createReport(context, state, migratedAt),
+    omitUndefinedProperties(createReport(context, state, migratedAt)),
   )
   if (!dataResult.success || !reportResult.success)
     return failure(

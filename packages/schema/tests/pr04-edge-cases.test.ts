@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest'
 import {
   MAX_LEGACY_COLLECTION_ITEMS,
   MAX_LEGACY_INPUT_NODES,
+  MAX_LEGACY_INPUT_SCALARS,
   migrateV3ToCurrent,
 } from '../src'
 import type { MigrationResult } from '../src'
+import { inspectLegacyInput } from '../src/migrations/legacy-v3/limits'
 import { createFictionalV3File } from './fixtures'
 
 const OPTIONS = {
@@ -159,6 +161,31 @@ describe('PR 04: fachliche Grenzfälle', () => {
     )
   })
 
+  it('behandelt leere Legacy-Referenzen und Anreden als nicht gesetzt', () => {
+    const { input, company, object, period } = fixtureParts()
+    const booking = records(object.buchungen)[0]!
+    const user = records(period.nutzer)[0]!
+    booking._heizkreis = ''
+    booking._hk = ''
+    user.anrede = ''
+    ;(company.ansprechpartner as UnknownRecord).anrede = ''
+
+    const result = expectSuccess(migrateV3ToCurrent(input, OPTIONS))
+
+    expect(result.report.issues).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'migration.invalid_energy_reference' }),
+        expect.objectContaining({ code: 'migration.unknown_salutation' }),
+      ]),
+    )
+    expect(result.data.billingData.bankBookings[0]!.legacyUnmapped).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: ['_heizkreis'] }),
+        expect.objectContaining({ path: ['_hk'] }),
+      ]),
+    )
+  })
+
   it('meldet beim Einzel-Heizkreis-Fallback echte co2- und brennstoff-Quellpfade', () => {
     const { input, period } = fixtureParts()
     const circuit = records(period.heizkreise)[0]!
@@ -299,17 +326,21 @@ describe('PR 04: fachliche Grenzfälle', () => {
     expect(result.data.billingData.billingPeriods[0]!.status).toBe('DRAFT')
     expect(result.data.billingData.costCategories[0]).toMatchObject({
       kind: 'operating',
-      allocationKey: undefined,
     })
-    expect(result.data.billingData.meterBillingStatuses).toContainEqual(
-      expect.objectContaining({
-        year: 2026,
-        billingPeriodId: undefined,
-        bookingPresent: true,
-        annualInvoicePresent: false,
-        estimateAmountCents: 123456,
-      }),
+    expect(result.data.billingData.costCategories[0]).not.toHaveProperty(
+      'allocationKey',
     )
+    const statusWithoutBillingPeriod =
+      result.data.billingData.meterBillingStatuses.find(
+        ({ year }) => year === 2026,
+      )
+    expect(statusWithoutBillingPeriod).toMatchObject({
+      year: 2026,
+      bookingPresent: true,
+      annualInvoicePresent: false,
+      estimateAmountCents: 123456,
+    })
+    expect(statusWithoutBillingPeriod).not.toHaveProperty('billingPeriodId')
     expect(reportText).not.toContain('INTERN-SONDERSTATUS')
     expect(targetText).toContain('INTERN-SONDERSTATUS')
     expect(result.report.issues).toEqual(
@@ -323,6 +354,60 @@ describe('PR 04: fachliche Grenzfälle', () => {
       ]),
     )
   })
+
+  it('konserviert strukturell falsche Hauswart-Markierungen redigiert', () => {
+    const { input, object } = fixtureParts()
+    const booking = records(object.buchungen)[0]!
+    booking._hauswartvertrag = {
+      titel: 'Fiktiver Hauswartvertrag',
+      dienstleister: 'Beispielservice',
+      netto_monat: 100,
+      aufgeteilt_am: '2025-01-01',
+      regel: 'fiktive-regel',
+    }
+
+    const result = expectSuccess(migrateV3ToCurrent(input, OPTIONS))
+    const migratedBooking = result.data.billingData.bankBookings[0]!
+
+    expect(migratedBooking.isCaretakerContract).toBe(true)
+    expect(migratedBooking.legacyUnmapped).toContainEqual({
+      path: ['_hauswartvertrag'],
+      value: {
+        titel: 'Fiktiver Hauswartvertrag',
+        dienstleister: 'Beispielservice',
+        netto_monat: 100,
+        aufgeteilt_am: '2025-01-01',
+        regel: 'fiktive-regel',
+      },
+    })
+    expect(result.report.issues).toContainEqual(
+      expect.objectContaining({
+        code: 'migration.caretaker_contract_details_preserved',
+        path: ['firmen', 0, 'objekte', 0, 'buchungen', 0, '_hauswartvertrag'],
+      }),
+    )
+    expect(JSON.stringify(result.report)).not.toContain(
+      'Fiktiver Hauswartvertrag',
+    )
+  })
+
+  it.each([{}, { beliebig: 'fiktiv' }])(
+    'weist nicht nachgewiesene Hauswart-Objekte ab',
+    (marker) => {
+      const { input, object } = fixtureParts()
+      records(object.buchungen)[0]!._hauswartvertrag = marker
+
+      const result = migrateV3ToCurrent(input, OPTIONS)
+
+      expect(result).toMatchObject({
+        ok: false,
+        reason: 'invalid_json_structure',
+        issues: [
+          expect.objectContaining({ code: 'schema.invalid_json_structure' }),
+        ],
+      })
+    },
+  )
 
   it('beachtet die Priorität monthly vor annual und bildet annual/none_agreed ab', () => {
     const { input, period } = fixtureParts()
@@ -668,10 +753,21 @@ describe('PR 04: Options- und Versionsschutz', () => {
     const chunkCount =
       Math.ceil(MAX_LEGACY_INPUT_NODES / MAX_LEGACY_COLLECTION_ITEMS) + 1
     tooManyNodes.unbekannt = Array.from({ length: chunkCount }, (_, chunk) =>
-      Array.from(
-        { length: MAX_LEGACY_COLLECTION_ITEMS },
-        (_, index) => `${chunk}-${index}`,
-      ),
+      Array.from({ length: MAX_LEGACY_COLLECTION_ITEMS }, (_, index) => ({
+        chunk,
+        index,
+      })),
+    )
+    const tooManyScalars = createFictionalV3File()
+    const scalarChunkCount =
+      Math.ceil(MAX_LEGACY_INPUT_SCALARS / MAX_LEGACY_COLLECTION_ITEMS) + 1
+    tooManyScalars.unbekannt = Array.from(
+      { length: scalarChunkCount },
+      (_, chunk) =>
+        Array.from(
+          { length: MAX_LEGACY_COLLECTION_ITEMS },
+          (_, index) => `${chunk}-${index}`,
+        ),
     )
 
     expect(migrateV3ToCurrent(tooManyCompanies, OPTIONS)).toMatchObject({
@@ -684,6 +780,22 @@ describe('PR 04: Options- und Versionsschutz', () => {
       reason: 'invalid_json_structure',
       issues: [{ code: 'migration.input_limits_exceeded' }],
     })
+    expect(migrateV3ToCurrent(tooManyScalars, OPTIONS)).toMatchObject({
+      ok: false,
+      reason: 'invalid_json_structure',
+      issues: [{ code: 'migration.input_limits_exceeded' }],
+    })
+  })
+
+  it('akzeptiert eine legitime produktionsnahe Struktur mit rund 32.000 Knoten', () => {
+    const productionScale = {
+      version: 3,
+      segments: Array.from({ length: 64 }, () =>
+        Array.from({ length: 500 }, (_, index) => index),
+      ),
+    }
+
+    expect(inspectLegacyInput(productionScale)).toBe('ok')
   })
 
   it('redigiert dynamische unbekannte Schlüssel im Bericht und konserviert nur die Originaldaten', () => {

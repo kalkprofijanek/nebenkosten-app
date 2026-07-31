@@ -105,6 +105,26 @@ export function optionalBoolean(
   )
 }
 
+export function optionalCaretakerContract(
+  context: MigrationContext,
+  value: unknown,
+  path: JsonPath,
+  relativePath: JsonPath,
+  target: LegacyUnmappedEntry[],
+): boolean | null | undefined {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    context.issue(
+      'warning',
+      'migration.caretaker_contract_details_preserved',
+      'Details eines Hauswartvertrags wurden konserviert',
+      path,
+    )
+    addUnmapped(context, target, relativePath, path, value)
+    return true
+  }
+  return optionalBoolean(context, value, path, relativePath, target)
+}
+
 export function optionalDate(
   context: MigrationContext,
   value: unknown,

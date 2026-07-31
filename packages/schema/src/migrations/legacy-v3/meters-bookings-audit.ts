@@ -10,11 +10,12 @@ import type { JsonPath } from './context'
 import { MigrationContext } from './context'
 import { requiredString, splitEnergyReference } from './mapping'
 import type { PropertyContext } from './shared'
-import { stringOrNullish, withLegacy } from './shared'
+import { entityIdOrNullish, stringOrNullish, withLegacy } from './shared'
 import type { MigrationState } from './state'
 import { addUnmapped, preserveUnknownKeys } from './unknown-fields'
 import {
   optionalBoolean,
+  optionalCaretakerContract,
   optionalCents,
   optionalDate,
   optionalInteger,
@@ -309,7 +310,12 @@ export function mapBookings(
       property.buildingIds,
     )
     const heatingTarget = primaryHeatingTarget ?? aliasHeatingTarget
-    if (booking._heizkreis != null && !primaryHeatingTarget) {
+    const hasPrimaryHeatingReference =
+      typeof booking._heizkreis === 'string' &&
+      booking._heizkreis.trim().length > 0
+    const hasAliasHeatingReference =
+      typeof booking._hk === 'string' && booking._hk.trim().length > 0
+    if (hasPrimaryHeatingReference && !primaryHeatingTarget) {
       context.issue(
         'warning',
         'migration.invalid_energy_reference',
@@ -324,7 +330,7 @@ export function mapBookings(
         booking._heizkreis,
       )
     }
-    if (booking._hk != null && !aliasHeatingTarget) {
+    if (hasAliasHeatingReference && !aliasHeatingTarget) {
       context.issue(
         'warning',
         'migration.invalid_energy_reference',
@@ -420,7 +426,7 @@ export function mapBookings(
           {
             id: split.id,
             amountCents: splitAmount,
-            costCategoryId: stringOrNullish(split.kostenart_id),
+            costCategoryId: entityIdOrNullish(split.kostenart_id),
             billingYear: optionalInteger(
               context,
               split.abr_jahr,
@@ -469,7 +475,7 @@ export function mapBookings(
           bookingText: stringOrNullish(booking.buchungstext),
           category,
           note: stringOrNullish(booking.bemerkung),
-          costCategoryId: stringOrNullish(booking.kostenart_id),
+          costCategoryId: entityIdOrNullish(booking.kostenart_id),
           billingYear: optionalInteger(
             context,
             booking.abr_jahr,
@@ -493,7 +499,7 @@ export function mapBookings(
             ['_geprueft'],
             legacy,
           ),
-          isCaretakerContract: optionalBoolean(
+          isCaretakerContract: optionalCaretakerContract(
             context,
             booking._hauswartvertrag,
             [...bookingPath, '_hauswartvertrag'],

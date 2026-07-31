@@ -7,6 +7,7 @@ import type { AppDataFile } from '@nebenkosten/schema'
 import type {
   LoadedAppData,
   RestoreOptions,
+  RestoreResult,
   SaveOptions,
   SaveResult,
   SnapshotMeta,
@@ -118,7 +119,7 @@ export class MemoryStorageAdapter implements SnapshotStorageAdapter {
   async restoreSnapshot(
     snapshotId: string,
     options: RestoreOptions,
-  ): Promise<SaveResult> {
+  ): Promise<RestoreResult> {
     return this.runExclusive(async () => {
       const current = this.requireCurrent()
       this.assertExpectedRevision(options.expectedRevision)
@@ -143,7 +144,10 @@ export class MemoryStorageAdapter implements SnapshotStorageAdapter {
 
       this.current = toStoredCurrent(encoded)
       this.snapshots = nextSnapshots
-      return cloneSaved(this.current)
+      return {
+        ...cloneSaved(this.current),
+        beforeRestoreSnapshot: { ...safetySnapshot.meta },
+      }
     })
   }
 
