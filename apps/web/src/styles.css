@@ -874,6 +874,114 @@ h1 {
   background: var(--paper);
 }
 
+.backup-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.backup-card,
+.backup-preview-note,
+.restore-proof {
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--paper);
+}
+
+.backup-card > p,
+.backup-card > div > p,
+.backup-preview-note p,
+.restore-proof p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.backup-card h2 {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 500;
+}
+
+.backup-card > .button {
+  margin-top: 1rem;
+}
+
+.backup-card__heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.backup-metadata {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.8fr) minmax(8rem, 0.5fr) minmax(0, 2fr);
+  gap: 0.75rem;
+  margin: 1.5rem 0 0;
+}
+
+.backup-metadata div {
+  min-width: 0;
+  padding: 0.85rem;
+  border-radius: 0.65rem;
+  background: #f5f7f4;
+}
+
+.backup-metadata dt {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.backup-metadata dd {
+  margin: 0.35rem 0 0;
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+}
+
+.snapshot-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.snapshot-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e4e9e4;
+  border-radius: 0.75rem;
+}
+
+.snapshot-list small,
+.snapshot-list span {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.68rem;
+  overflow-wrap: anywhere;
+}
+
+.backup-preview-note {
+  border-color: #e3cf9d;
+  background: #fff9eb;
+}
+
+.backup-preview-note p,
+.restore-proof p {
+  margin-bottom: 0;
+}
+
+.restore-proof {
+  margin-top: 1rem;
+  border-color: #bcd9c9;
+  background: var(--mint-soft);
+}
+
 .calculation-panel h2 {
   margin-top: 0;
   font-family: Georgia, 'Times New Roman', serif;
@@ -1006,7 +1114,8 @@ h1 {
   .metric-grid,
   .workflow-list,
   .main-content > form,
-  .result-grid {
+  .result-grid,
+  .backup-metadata {
     grid-template-columns: 1fr;
   }
 
@@ -1024,6 +1133,11 @@ h1 {
   }
 
   .welcome-panel {
+    display: grid;
+  }
+
+  .backup-card__heading,
+  .snapshot-list li {
     display: grid;
   }
 

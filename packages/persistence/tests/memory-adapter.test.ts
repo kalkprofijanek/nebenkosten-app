@@ -210,6 +210,11 @@ describe('MemoryStorageAdapter', () => {
     expect(restored.data.meta.savedAt).toBe(RESTORE_SAVE.toISOString())
     expect(restored.revision).not.toBe(original.revision)
     expect(restored.revision).not.toBe(changed.revision)
+    expect(restored.beforeRestoreSnapshot).toMatchObject({
+      sourceRevision: changed.revision,
+      kind: 'before_restore',
+      pinned: true,
+    })
     const snapshots = await adapter.listSnapshots()
     expect(snapshots).toContainEqual(
       expect.objectContaining({

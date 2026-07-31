@@ -21,6 +21,11 @@ export function stringOrNullish(value: unknown): string | null | undefined {
   return typeof value === 'string' || value === null ? value : undefined
 }
 
+export function entityIdOrNullish(value: unknown): string | null | undefined {
+  if (value === null || value === '') return null
+  return typeof value === 'string' ? value : undefined
+}
+
 export function mapOrganizationName(context: MigrationContext): string {
   const explicit = context.options.organizationName?.trim()
   if (explicit) return explicit

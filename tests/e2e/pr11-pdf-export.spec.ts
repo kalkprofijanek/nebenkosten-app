@@ -138,7 +138,9 @@ test('moves a valid fictional billing period through review to PDF-ready and fin
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(pdfExportReadyData())),
   })
-  await page.getByRole('button', { name: 'Import übernehmen' }).click()
+  await page
+    .getByRole('button', { name: 'Geprüften Import übernehmen' })
+    .click()
   await expect(page.getByText('Lokal gespeichert')).toBeVisible()
 
   await page.getByRole('link', { name: 'Berechnung', exact: true }).click()

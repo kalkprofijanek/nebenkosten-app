@@ -75,7 +75,7 @@ export function mapAllocationKey(
   path: JsonPath,
   legacy: LegacyUnmappedEntry[],
 ): AllocationKey | null | undefined {
-  if (value == null || value === '') return value as null | undefined
+  if (value == null || value === '') return value === '' ? null : value
   const values: Record<string, AllocationKey> = {
     m2_nf: 'usable_area',
     m2_nf_hzg: 'heated_area',
@@ -98,7 +98,7 @@ export function mapScope(
   value: unknown,
   buildingIds: ReadonlyMap<string, string>,
 ): AllocationScope | null | undefined {
-  if (value == null || value === '') return value as null | undefined
+  if (value == null || value === '') return value === '' ? null : value
   if (typeof value !== 'string') return undefined
   if (value === 'property' || value === 'gesamt') return { kind: 'property' }
   const buildingId = buildingIds.get(value)

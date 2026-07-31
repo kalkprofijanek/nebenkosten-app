@@ -1,6 +1,7 @@
 import {
   toPersistenceError,
   type PersistenceErrorCode,
+  type SnapshotMeta,
   type SnapshotStorageAdapter,
   type StorageAdapter,
 } from '@nebenkosten/persistence'
@@ -35,9 +36,28 @@ export interface WorkspaceController {
   reportExternalRevision(revision: string): void
   retrySave(): boolean
   importData(data: AppDataFile): Promise<boolean>
+  createManualSnapshot(): Promise<WorkspaceCommandResult<SnapshotMeta>>
+  listSnapshots(): Promise<WorkspaceCommandResult<readonly SnapshotMeta[]>>
+  restoreSnapshot(
+    snapshotId: string,
+    confirmed: boolean,
+  ): Promise<WorkspaceCommandResult<WorkspaceRestoreResult>>
   shouldWarnBeforeUnload(): boolean
   subscribe(listener: (state: WorkspaceState) => void): () => void
   dispose(): void
+}
+
+export type WorkspaceCommandErrorCode =
+  PersistenceErrorCode | 'confirmation_required'
+
+export type WorkspaceCommandResult<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly code: WorkspaceCommandErrorCode }
+
+export interface WorkspaceRestoreResult {
+  readonly beforeRestoreSnapshot: SnapshotMeta
+  readonly restoredRevision: string
+  readonly restoredAt: string
 }
 
 const BLOCKING_CODES = new Set<PersistenceErrorCode>([
@@ -68,7 +88,14 @@ function cloneData(data: AppDataFile): AppDataFile {
 function supportsSnapshots(
   adapter: StorageAdapter,
 ): adapter is SnapshotStorageAdapter {
-  return 'createSnapshot' in adapter
+  return (
+    'createSnapshot' in adapter &&
+    typeof adapter.createSnapshot === 'function' &&
+    'listSnapshots' in adapter &&
+    typeof adapter.listSnapshots === 'function' &&
+    'restoreSnapshot' in adapter &&
+    typeof adapter.restoreSnapshot === 'function'
+  )
 }
 
 export function createWorkspaceController({
@@ -331,7 +358,7 @@ export function createWorkspaceController({
         try {
           await adapter.createSnapshot({
             expectedRevision,
-            kind: 'manual',
+            kind: 'before_import',
           })
         } catch (error: unknown) {
           publish(classifyFailure(error, state.data, expectedRevision, false))
@@ -357,6 +384,105 @@ export function createWorkspaceController({
       })
       scheduleAutosave()
       return true
+    },
+
+    async createManualSnapshot(): Promise<
+      WorkspaceCommandResult<SnapshotMeta>
+    > {
+      if (!supportsSnapshots(adapter)) {
+        return { ok: false, code: 'unsupported_capability' }
+      }
+      if (
+        disposed ||
+        state.status !== 'ready' ||
+        state.revision === null ||
+        state.dirty ||
+        state.saving
+      ) {
+        return { ok: false, code: 'conflict' }
+      }
+      try {
+        const snapshot = await adapter.createSnapshot({
+          expectedRevision: state.revision,
+          kind: 'manual',
+        })
+        return { ok: true, value: snapshot }
+      } catch (error: unknown) {
+        return { ok: false, code: toPersistenceError(error).code }
+      }
+    },
+
+    async listSnapshots(): Promise<
+      WorkspaceCommandResult<readonly SnapshotMeta[]>
+    > {
+      if (!supportsSnapshots(adapter)) {
+        return { ok: false, code: 'unsupported_capability' }
+      }
+      try {
+        const snapshots = await adapter.listSnapshots()
+        return {
+          ok: true,
+          value: snapshots.map((snapshot) => ({ ...snapshot })),
+        }
+      } catch (error: unknown) {
+        return { ok: false, code: toPersistenceError(error).code }
+      }
+    },
+
+    async restoreSnapshot(
+      snapshotId: string,
+      confirmed: boolean,
+    ): Promise<WorkspaceCommandResult<WorkspaceRestoreResult>> {
+      if (!confirmed) {
+        return { ok: false, code: 'confirmation_required' }
+      }
+      if (!supportsSnapshots(adapter)) {
+        return { ok: false, code: 'unsupported_capability' }
+      }
+      if (
+        disposed ||
+        state.status !== 'ready' ||
+        state.data === null ||
+        state.revision === null ||
+        state.dirty ||
+        state.saving
+      ) {
+        return { ok: false, code: 'conflict' }
+      }
+
+      const expectedRevision = state.revision
+      publish({ ...state, saving: true })
+
+      try {
+        const restored = await adapter.restoreSnapshot(snapshotId, {
+          expectedRevision,
+        })
+        changeGeneration += 1
+        publish({
+          status: 'ready',
+          data: cloneData(restored.data),
+          revision: restored.revision,
+          dirty: false,
+          saving: false,
+          errorCode: null,
+        })
+        return {
+          ok: true,
+          value: {
+            beforeRestoreSnapshot: {
+              ...restored.beforeRestoreSnapshot,
+            },
+            restoredRevision: restored.revision,
+            restoredAt: restored.savedAt,
+          },
+        }
+      } catch (error: unknown) {
+        publish({
+          ...state,
+          saving: false,
+        })
+        return { ok: false, code: toPersistenceError(error).code }
+      }
     },
 
     shouldWarnBeforeUnload(): boolean {

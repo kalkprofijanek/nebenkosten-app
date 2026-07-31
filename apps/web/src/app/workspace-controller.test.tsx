@@ -4,6 +4,7 @@ import {
   PersistenceError,
   type SaveOptions,
   type SaveResult,
+  type SnapshotStorageAdapter,
   type StorageAdapter,
 } from '@nebenkosten/persistence'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -442,10 +443,177 @@ describe('workspace controller', () => {
     await controller.load()
 
     expect(await controller.importData(withVersion('imported'))).toBe(true)
-    expect(await adapter.listSnapshots()).toHaveLength(1)
+    expect(await adapter.listSnapshots()).toEqual([
+      expect.objectContaining({ kind: 'before_import', pinned: true }),
+    ])
     await vi.advanceTimersByTimeAsync(10)
 
     expect((await adapter.load())?.data.meta.appVersion).toBe('imported')
+  })
+
+  it('exposes manual snapshots only for a clean persisted revision', async () => {
+    const adapter = new MemoryStorageAdapter()
+    await adapter.save(withVersion('current'), { expectedRevision: null })
+    const controller = createWorkspaceController({ adapter, debounceMs: 10 })
+    await controller.load()
+
+    const created = await controller.createManualSnapshot()
+    const listed = await controller.listSnapshots()
+
+    expect(created).toMatchObject({
+      ok: true,
+      value: { kind: 'manual', pinned: true },
+    })
+    expect(listed).toMatchObject({
+      ok: true,
+      value: [expect.objectContaining({ kind: 'manual', pinned: true })],
+    })
+
+    controller.update(() => withVersion('dirty'))
+    expect(await controller.createManualSnapshot()).toEqual({
+      ok: false,
+      code: 'conflict',
+    })
+  })
+
+  it('reports missing snapshot capability without changing workspace state', async () => {
+    const adapter = new FakeAdapter()
+    adapter.load.mockResolvedValue({
+      data: withVersion('loaded'),
+      revision: 'revision-1',
+    })
+    const controller = createWorkspaceController({ adapter })
+    await controller.load()
+    const before = controller.getState()
+
+    expect(await controller.listSnapshots()).toEqual({
+      ok: false,
+      code: 'unsupported_capability',
+    })
+    expect(await controller.createManualSnapshot()).toEqual({
+      ok: false,
+      code: 'unsupported_capability',
+    })
+    expect(controller.getState()).toBe(before)
+  })
+
+  it('requires confirmation and returns the adapter-created before_restore proof', async () => {
+    const adapter = new MemoryStorageAdapter({
+      createId: (() => {
+        const ids = ['manual-target', 'before-restore-proof']
+        return () => ids.shift()!
+      })(),
+    })
+    const original = await adapter.save(withVersion('original'), {
+      expectedRevision: null,
+    })
+    const target = await adapter.createSnapshot({
+      expectedRevision: original.revision,
+      kind: 'manual',
+    })
+    await adapter.save(withVersion('changed'), {
+      expectedRevision: original.revision,
+    })
+    const controller = createWorkspaceController({ adapter, debounceMs: 10 })
+    await controller.load()
+    const changedRevision = controller.getState().revision
+
+    expect(await controller.restoreSnapshot(target.id, false)).toEqual({
+      ok: false,
+      code: 'confirmation_required',
+    })
+    expect(controller.getState().data?.meta.appVersion).toBe('changed')
+
+    const restored = await controller.restoreSnapshot(target.id, true)
+
+    expect(restored).toMatchObject({
+      ok: true,
+      value: {
+        beforeRestoreSnapshot: {
+          id: 'before-restore-proof',
+          kind: 'before_restore',
+          pinned: true,
+          sourceRevision: changedRevision,
+        },
+      },
+    })
+    expect(controller.getState()).toMatchObject({
+      status: 'ready',
+      data: withVersion('original'),
+      revision: expect.any(String),
+      dirty: false,
+      saving: false,
+      errorCode: null,
+    })
+  })
+
+  it('does not depend on a fallible snapshot relist after an applied restore', async () => {
+    const adapter = new MemoryStorageAdapter()
+    const original = await adapter.save(withVersion('original'), {
+      expectedRevision: null,
+    })
+    const target = await adapter.createSnapshot({
+      expectedRevision: original.revision,
+      kind: 'manual',
+    })
+    await adapter.save(withVersion('changed'), {
+      expectedRevision: original.revision,
+    })
+    const controller = createWorkspaceController({ adapter })
+    await controller.load()
+    vi.spyOn(adapter, 'listSnapshots').mockRejectedValue(
+      new Error('fiktiver Fehler nach Restore'),
+    )
+
+    const restored = await controller.restoreSnapshot(target.id, true)
+
+    expect(restored).toMatchObject({
+      ok: true,
+      value: {
+        beforeRestoreSnapshot: { kind: 'before_restore', pinned: true },
+      },
+    })
+    expect(controller.getState()).toMatchObject({
+      status: 'ready',
+      data: withVersion('original'),
+      dirty: false,
+      saving: false,
+      errorCode: null,
+    })
+  })
+
+  it('redacts adapter errors from snapshot operations', async () => {
+    class FailingSnapshotAdapter extends FakeAdapter {
+      readonly createSnapshot = vi
+        .fn<SnapshotStorageAdapter['createSnapshot']>()
+        .mockRejectedValue(new Error('C:\\private\\tenant-name.json'))
+      readonly listSnapshots = vi
+        .fn<SnapshotStorageAdapter['listSnapshots']>()
+        .mockRejectedValue(new Error('C:\\private\\tenant-name.json'))
+      readonly restoreSnapshot = vi
+        .fn<SnapshotStorageAdapter['restoreSnapshot']>()
+        .mockRejectedValue(new Error('C:\\private\\tenant-name.json'))
+    }
+    const adapter = new FailingSnapshotAdapter()
+    adapter.load.mockResolvedValue({
+      data: withVersion('loaded'),
+      revision: 'revision-1',
+    })
+    const controller = createWorkspaceController({ adapter })
+    await controller.load()
+
+    expect(await controller.listSnapshots()).toEqual({
+      ok: false,
+      code: 'io_failed',
+    })
+    expect(await controller.createManualSnapshot()).toEqual({
+      ok: false,
+      code: 'io_failed',
+    })
+    expect(await controller.restoreSnapshot('secret-id', true)).toEqual({
+      ok: false,
+      code: 'io_failed',
+    })
   })
 
   it('warns before unload only while dirty, saving, or conflicted', async () => {

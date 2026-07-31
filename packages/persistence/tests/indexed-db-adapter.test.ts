@@ -243,6 +243,11 @@ describe('IndexedDbStorageAdapter', () => {
     })
     expect(restored.data.meta.appVersion).toBe('fictional-snapshot-a')
     expect(restored.revision).not.toBe(changed.revision)
+    expect(restored.beforeRestoreSnapshot).toMatchObject({
+      sourceRevision: changed.revision,
+      kind: 'before_restore',
+      pinned: true,
+    })
     expect(await reopened.listSnapshots()).toContainEqual(snapshot)
   })
 

@@ -30,7 +30,8 @@ export interface SaveOptions {
   readonly expectedRevision: string | null
 }
 
-export type SnapshotKind = 'automatic' | 'manual' | 'before_restore'
+export type SnapshotKind =
+  'automatic' | 'manual' | 'before_import' | 'before_restore'
 
 export interface SnapshotMeta {
   readonly id: string
@@ -52,6 +53,10 @@ export interface RestoreOptions {
   readonly expectedRevision: string
 }
 
+export interface RestoreResult extends SaveResult {
+  readonly beforeRestoreSnapshot: SnapshotMeta
+}
+
 export interface StorageAdapter {
   load(): Promise<LoadedAppData | null>
   save(data: AppDataFile, options: SaveOptions): Promise<SaveResult>
@@ -63,5 +68,5 @@ export interface SnapshotStorageAdapter extends StorageAdapter {
   restoreSnapshot(
     snapshotId: string,
     options: RestoreOptions,
-  ): Promise<SaveResult>
+  ): Promise<RestoreResult>
 }

@@ -26,7 +26,17 @@ function expectSuccess(result: MigrationResult): AppDataFile {
   if (!result.ok) throw new Error(`Migration fehlgeschlagen: ${result.reason}`)
   expect(appDataFileSchema.safeParse(result.data).success).toBe(true)
   expect(migrationReportSchema.safeParse(result.report).success).toBe(true)
+  expect(collectUndefinedPaths(result.data)).toEqual([])
+  expect(collectUndefinedPaths(result.report)).toEqual([])
   return result.data
+}
+
+function collectUndefinedPaths(value: unknown, path = '$'): string[] {
+  if (value === undefined) return [path]
+  if (value === null || typeof value !== 'object') return []
+  return Object.entries(value).flatMap(([key, child]) =>
+    collectUndefinedPaths(child, `${path}.${key}`),
+  )
 }
 
 function deepFreeze(value: unknown): void {

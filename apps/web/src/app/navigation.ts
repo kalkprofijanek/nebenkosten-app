@@ -94,6 +94,14 @@ export const appRoutes = [
     description:
       'Einzelabrechnungen, Gesamtabrechnung und Sammel-ZIP aus dem geprüften Stand erzeugen.',
   },
+  {
+    path: '/sicherung',
+    label: 'Sicherung',
+    eyebrow: 'Datenschutz',
+    title: 'Sicherung und Wiederherstellung',
+    description:
+      'Den vollständigen lokalen Arbeitsstand prüfen, sichern und kontrolliert wiederherstellen.',
+  },
 ] as const satisfies readonly AppRoute[]
 
 export function findRoute(path: string): AppRoute {

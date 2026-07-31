@@ -18,6 +18,7 @@ import {
   requiredYear,
   splitEnergyReference,
 } from '../src/migrations/legacy-v3/mapping'
+import { entityIdOrNullish } from '../src/migrations/legacy-v3/shared'
 import {
   addUnmapped,
   preserveUnknownKeys,
@@ -197,12 +198,13 @@ describe('Legacy-v3 Mappinghilfen', () => {
   it('bildet Umlageschlüssel und Geltungsbereiche ab', () => {
     const { context, legacy } = setup()
     const buildings = new Map([['B1', 'building-1']])
-    expect(mapAllocationKey(context, '', ['u'], legacy)).toBe('')
+    expect(mapAllocationKey(context, '', ['u'], legacy)).toBeNull()
     expect(mapAllocationKey(context, 'm2_nf', ['u'], legacy)).toBe(
       'usable_area',
     )
     expect(mapAllocationKey(context, 'fremd', ['u'], legacy)).toBeUndefined()
     expect(mapScope(null, buildings)).toBeNull()
+    expect(mapScope('', buildings)).toBeNull()
     expect(mapScope(2, buildings)).toBeUndefined()
     expect(mapScope('gesamt', buildings)).toEqual({ kind: 'property' })
     expect(mapScope('B1', buildings)).toEqual({
@@ -213,6 +215,13 @@ describe('Legacy-v3 Mappinghilfen', () => {
       kind: 'house',
       houseKey: 'Haus-West',
     })
+  })
+
+  it('normalisiert leere optionale Entitätsverweise', () => {
+    expect(entityIdOrNullish('')).toBeNull()
+    expect(entityIdOrNullish(null)).toBeNull()
+    expect(entityIdOrNullish('kostenart-1')).toBe('kostenart-1')
+    expect(entityIdOrNullish(42)).toBeUndefined()
   })
 
   it('zerlegt Energieverweise nur bei gültigem Gebäude', () => {

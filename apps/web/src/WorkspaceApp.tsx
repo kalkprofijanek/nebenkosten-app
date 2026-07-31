@@ -5,6 +5,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { App } from './App'
+import { BackupRestoreRoute } from './BackupRestoreRoute'
 import { CalculationRoute } from './CalculationRoute'
 import { ImportControl } from './ImportControl'
 import { PdfExportRoute } from './PdfExportRoute'
@@ -139,6 +140,12 @@ export function WorkspaceApp({
                   data={workspaceState.data!}
                   billingPeriodId={normalizedSelection.billingPeriodId}
                   onApply={(transform) => controller.update(transform)}
+                />
+              ) : path === '/sicherung' ? (
+                <BackupRestoreRoute
+                  controller={controller}
+                  data={workspaceState.data!}
+                  previewMode={previewMode}
                 />
               ) : path === '/pdf-export' ? (
                 <PdfExportRoute

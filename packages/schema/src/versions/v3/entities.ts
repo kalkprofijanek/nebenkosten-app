@@ -234,6 +234,21 @@ export const v3BuchungSplitSchema = z.looseObject({
 })
 export type V3BuchungSplit = z.infer<typeof v3BuchungSplitSchema>
 
+const v3HauswartvertragInfoSchema = z
+  .strictObject({
+    titel: v3StringishSchema.optional(),
+    dienstleister: v3StringishSchema.optional(),
+    auftraggeber: v3StringishSchema.optional(),
+    objekt: v3StringishSchema.optional(),
+    netto_monat: v3NumberishSchema.optional(),
+    umlagefaehig_proz: v3NumberishSchema.optional(),
+    nicht_umlagefaehig_proz: v3NumberishSchema.optional(),
+    hinweis: v3StringishSchema.optional(),
+    aufgeteilt_am: v3StringishSchema.optional(),
+    regel: v3StringishSchema.optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0)
+
 /** Importierte Kontobuchung (behavior-map 3.12). */
 export const v3BuchungSchema = z.looseObject({
   id: v3IdSchema,
@@ -252,7 +267,9 @@ export const v3BuchungSchema = z.looseObject({
   _heizkreis: v3StringishSchema.optional(),
   _hk: v3StringishSchema.optional(),
   _geprueft: v3BooleanishSchema.optional(),
-  _hauswartvertrag: v3BooleanishSchema.optional(),
+  _hauswartvertrag: z
+    .union([v3BooleanishSchema, v3HauswartvertragInfoSchema])
+    .optional(),
   _importiert: v3StringishSchema.optional(),
 })
 export type V3Buchung = z.infer<typeof v3BuchungSchema>

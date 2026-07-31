@@ -3,7 +3,13 @@ import {
   decodeCurrentAppDataBytes,
   importLegacyV3Bytes,
 } from '@nebenkosten/import-export'
-import type { AppDataFile, MigrationResult } from '@nebenkosten/schema'
+import {
+  safeFileNameSchema,
+  type AppDataFile,
+  type MigrationReport,
+  type MigrationResult,
+} from '@nebenkosten/schema'
+import { validateBillingPeriod } from '@nebenkosten/validators'
 
 export const MAX_IMPORT_BYTES = 25 * 1024 * 1024
 
@@ -28,17 +34,45 @@ export interface ImportSummary {
   readonly persons: number
   readonly tenancies: number
   readonly billingPeriods: number
+  readonly occupancyPeriods: number
+  readonly costCategories: number
   readonly costEntries: number
   readonly heatingCircuits: number
+  readonly energySources: number
+  readonly bankBookings: number
+  readonly meters: number
   readonly warnings: number
+}
+
+export interface ImportMetadata {
+  readonly sourceFileName: string
+  readonly appVersion: string
+}
+
+export interface ImportValidationSummary {
+  readonly reference: string
+  readonly year: number
+  readonly errorCount: number
+  readonly warningCount: number
+  readonly infoCount: number
+  readonly canBecomeReady: boolean
+  readonly issueCodes: readonly string[]
 }
 
 export type ImportPreview =
   | {
       readonly ok: true
-      readonly sourceFormat: 'current-v4' | 'legacy-v3'
+      readonly sourceFormat: 'current-v4'
       readonly data: AppDataFile
       readonly summary: ImportSummary
+    }
+  | {
+      readonly ok: true
+      readonly sourceFormat: 'legacy-v3'
+      readonly data: AppDataFile
+      readonly summary: ImportSummary
+      readonly migrationReport: MigrationReport
+      readonly validationSummaries: readonly ImportValidationSummary[]
     }
   | {
       readonly ok: false
@@ -82,10 +116,32 @@ function summarize(data: AppDataFile, warnings: number): ImportSummary {
     persons: data.masterData.persons.length,
     tenancies: data.masterData.tenancies.length,
     billingPeriods: data.billingData.billingPeriods.length,
+    occupancyPeriods: data.billingData.occupancyPeriods.length,
+    costCategories: data.billingData.costCategories.length,
     costEntries: data.billingData.costEntries.length,
     heatingCircuits: data.billingData.heatingCircuits.length,
+    energySources: data.billingData.energySources.length,
+    bankBookings: data.billingData.bankBookings.length,
+    meters: data.masterData.meters.length,
     warnings,
   }
+}
+
+function summarizeValidation(
+  data: AppDataFile,
+): readonly ImportValidationSummary[] {
+  return data.billingData.billingPeriods.map((period, index) => {
+    const report = validateBillingPeriod(data, period.id)
+    return {
+      reference: `abrechnungsjahr-${index + 1}`,
+      year: period.year,
+      errorCount: report.errorCount,
+      warningCount: report.warningCount,
+      infoCount: report.infoCount,
+      canBecomeReady: report.canBecomeReady,
+      issueCodes: report.issues.map(({ code }) => code),
+    }
+  })
 }
 
 function migrationFailure(result: Extract<MigrationResult, { ok: false }>) {
@@ -107,8 +163,11 @@ function migrationFailure(result: Extract<MigrationResult, { ok: false }>) {
   }
 }
 
-async function prepareLegacy(bytes: Uint8Array): Promise<ImportPreview> {
-  const migration = await importLegacyV3Bytes(bytes)
+async function prepareLegacy(
+  bytes: Uint8Array,
+  metadata: ImportMetadata,
+): Promise<ImportPreview> {
+  const migration = await importLegacyV3Bytes(bytes, metadata)
   if (!migration.ok) {
     return { ok: false, code: migrationFailure(migration) }
   }
@@ -117,6 +176,46 @@ async function prepareLegacy(bytes: Uint8Array): Promise<ImportPreview> {
     sourceFormat: 'legacy-v3',
     data: migration.data,
     summary: summarize(migration.data, migration.report.counts.warnings),
+    migrationReport: migration.report,
+    validationSummaries: summarizeValidation(migration.data),
+  }
+}
+
+function copyMetadata(metadata: unknown): ImportMetadata | undefined {
+  try {
+    if (
+      typeof metadata !== 'object' ||
+      metadata === null ||
+      Object.getPrototypeOf(metadata) !== Object.prototype
+    )
+      return undefined
+    const descriptors = Object.getOwnPropertyDescriptors(metadata)
+    const sourceFileName = descriptors.sourceFileName
+    const appVersion = descriptors.appVersion
+    if (
+      !sourceFileName ||
+      !('value' in sourceFileName) ||
+      !appVersion ||
+      !('value' in appVersion)
+    )
+      return undefined
+    if (!safeFileNameSchema.safeParse(sourceFileName.value).success)
+      return undefined
+    const isSafeAppVersion =
+      typeof appVersion.value === 'string' &&
+      appVersion.value.length >= 1 &&
+      appVersion.value.length <= 100 &&
+      Array.from(appVersion.value).every((character) => {
+        const codePoint = character.codePointAt(0)!
+        return codePoint >= 32 && codePoint !== 127
+      })
+    if (!isSafeAppVersion) return undefined
+    return {
+      sourceFileName: sourceFileName.value as string,
+      appVersion: appVersion.value as string,
+    }
+  } catch {
+    return undefined
   }
 }
 
@@ -126,7 +225,10 @@ async function prepareLegacy(bytes: Uint8Array): Promise<ImportPreview> {
  */
 export async function prepareImport(
   source: Uint8Array,
+  metadata: ImportMetadata,
 ): Promise<ImportPreview> {
+  const copiedMetadata = copyMetadata(metadata)
+  if (!copiedMetadata) return { ok: false, code: 'invalid_source' }
   const copied = copySource(source)
   if (typeof copied === 'string') return { ok: false, code: copied }
 
@@ -146,7 +248,7 @@ export async function prepareImport(
     }
     if (error.code === 'unsupported_schema_version') {
       try {
-        return await prepareLegacy(copied)
+        return await prepareLegacy(copied, copiedMetadata)
       } catch {
         return { ok: false, code: 'processing_failed' }
       }

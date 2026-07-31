@@ -61,7 +61,9 @@ export function mapCompany(
     [...path, 'name1'],
     'Der Name einer Eigentümergesellschaft fehlt',
   )
-  const contactSalutation = company.ansprechpartner?.anrede
+  const rawContactSalutation = company.ansprechpartner?.anrede
+  const contactSalutation =
+    rawContactSalutation === '' ? null : rawContactSalutation
   const salutation =
     contactSalutation == null ||
     contactSalutation === 'Herr' ||

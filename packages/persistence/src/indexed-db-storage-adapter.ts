@@ -7,6 +7,7 @@ import type { AppDataFile } from '@nebenkosten/schema'
 import type {
   LoadedAppData,
   RestoreOptions,
+  RestoreResult,
   SaveOptions,
   SaveResult,
   SnapshotKind,
@@ -24,6 +25,7 @@ const SHA256_HEX = /^[0-9a-f]{64}$/u
 const SNAPSHOT_KINDS = new Set<SnapshotKind>([
   'automatic',
   'manual',
+  'before_import',
   'before_restore',
 ])
 
@@ -363,7 +365,7 @@ export class IndexedDbStorageAdapter {
   async restoreSnapshot(
     id: string,
     options: RestoreOptions,
-  ): Promise<SaveResult> {
+  ): Promise<RestoreResult> {
     try {
       const initial = await this.readRestoreInputs(id)
       this.assertExpectedRevision(initial.current, options.expectedRevision)
@@ -419,6 +421,7 @@ export class IndexedDbStorageAdapter {
         data: structuredClone(restored.data),
         revision: restored.revision,
         savedAt: restored.savedAt,
+        beforeRestoreSnapshot: { ...safetyMeta },
       }
     } catch (error) {
       throw persistenceFailure(error)
