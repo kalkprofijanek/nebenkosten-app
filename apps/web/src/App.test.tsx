@@ -25,7 +25,7 @@ describe('App', () => {
       screen.getByRole('heading', { name: 'Abrechnung im Blick' }),
     ).toBeVisible()
     expect(screen.getByText('Noch nicht gespeichert')).toBeVisible()
-    expect(screen.getByText('Schema v4 · PR 10')).toBeVisible()
+    expect(screen.getByText('Schema v4 · Version 1.0.0')).toBeVisible()
 
     const navigation = screen.getByRole('navigation', {
       name: 'Abrechnungsbereiche',

@@ -48,8 +48,27 @@ const CONTENT_PATTERNS = Object.freeze([
 const CREDENTIAL_ASSIGNMENT =
   /\b(?:api[_-]?key|client[_-]?secret|password|passwd|secret|token)\b\s*[:=]\s*["']?([^\s"'`]+)/giu
 
+const GITHUB_OIDC_PERMISSION = new RegExp(
+  String.raw`^\s*${['id', 'token'].join('-')}:\s*(?:none|read|write)\s*(?:#.*)?$`,
+  'u',
+)
+
 function lineNumberAt(content, offset) {
   return content.slice(0, offset).split('\n').length
+}
+
+function isGitHubOidcPermission(relativePath, content, offset) {
+  const normalizedPath = relativePath.replaceAll('\\', '/')
+  if (!/^\.github\/workflows\/[^/]+\.ya?ml$/u.test(normalizedPath)) {
+    return false
+  }
+  const lineStart = content.lastIndexOf('\n', offset - 1) + 1
+  const lineEnd = content.indexOf('\n', offset)
+  const line = content.slice(
+    lineStart,
+    lineEnd === -1 ? content.length : lineEnd,
+  )
+  return GITHUB_OIDC_PERMISSION.test(line)
 }
 
 function isPlaceholder(value) {
@@ -81,7 +100,13 @@ export function findSensitiveContent(relativePath, content) {
   for (const match of content.matchAll(CREDENTIAL_ASSIGNMENT)) {
     const value = match[1] ?? ''
     const line = lineNumberAt(content, match.index)
-    if (occupiedLines.has(line) || isPlaceholder(value)) continue
+    if (
+      occupiedLines.has(line) ||
+      isPlaceholder(value) ||
+      isGitHubOidcPermission(relativePath, content, match.index)
+    ) {
+      continue
+    }
     occupiedLines.add(line)
     findings.push(
       Object.freeze({

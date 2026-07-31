@@ -54,10 +54,10 @@ packages/
   import-export/       Legacy-v3-Importer (Byte-Eingang, Hashing, Migration)
   core/                Reine Berechnungsengine (Umlage, Heizkosten, CO₂)
   persistence/         Storage-Adapter (Memory, IndexedDB, Datei), Snapshots, Backup
-  validators/          Formelle & fachliche Prüfungen, Freigabelogik  (geplant)
-  pdf/                 Dokument-/PDF-Erzeugung aus Snapshots            (geplant)
+  validators/          Formelle & fachliche Prüfungen, Freigabelogik
+  pdf/                 Dokument-/PDF-Erzeugung aus Snapshots
   ui/                  Wiederverwendbare UI-Bausteine                   (geplant)
-  test-fixtures/       Gemeinsame, anonymisierte Fixtures               (geplant)
+  test-fixtures/       Gemeinsame, anonymisierte Fixtures
 legacy/                Sanitisierte Referenz-App + Behavior-Map
 tests/                 characterization, integration, migration, e2e, privacy, repository
 docs/                  Architektur-, Daten-, Rundungs- und Prozessdokumentation
@@ -80,7 +80,7 @@ pnpm privacy:scan  # Repository- und Inhalts-Guard
 ```
 
 Weitere Skripte: `pnpm test:coverage`, `pnpm test:e2e`, `pnpm format`. Der
-vollständige CI-Lauf entspricht `pnpm ci`. In der GitHub-CI laufen dieselben
+vollständige CI-Lauf entspricht `pnpm run ci`. In der GitHub-CI laufen dieselben
 Schritte als separate Checks (`lint`, `typecheck`, diverse `*-tests`,
 `coverage`, `build`, `e2e-smoke`, `privacy-scan`, `security-audit`,
 `repository-guardrails`).
@@ -100,9 +100,14 @@ Umgesetzt und auf `main` gemergt:
 | PR 06 | Core-Berechnungsengine          | `packages/core`                          |
 | PR 07 | Heizkosten- & CO₂-Modul         | FIFO, 70/30, Warmwasser, CO₂             |
 | PR 08 | Persistenz & Backup             | `packages/persistence`                   |
+| PR 09 | UI-Grundstruktur                | vollständiger lokaler Arbeitsablauf      |
+| PR 10 | Validatoren & Freigabe          | Prüfungen, Status- und Sperrlogik        |
+| PR 11 | PDF & Export                    | Einzel-/Gesamtabrechnung, PDF und ZIP    |
+| PR 12 | Produktionsmigration & Abnahme  | lokaler Vergleich, Backup und Rollback   |
 
-Als Nächstes (Masterplan Abschnitt 20): PR 09 UI-Grundstruktur, PR 10
-Validatoren & Freigabe, PR 11 PDF & Export, PR 12 Produktionsmigration.
+Als nächstes wird in PR 13 der reproduzierbare statische Release-Build für
+Version 1.0.0 vorbereitet. GitHub Pages und der Release-Tag werden erst nach
+gesonderter menschlicher Freigabe aktiviert.
 
 Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsystem
 (der Legacy-Wert 0,50 € bleibt nur dokumentierter Warnwert, siehe
@@ -116,11 +121,14 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 - [`docs/ROUNDING.md`](docs/ROUNDING.md) – Rundungsregeln je Rechenschritt
 - [`docs/HEATING-CO2.md`](docs/HEATING-CO2.md) – Heizkosten- und CO₂-Logik
 - [`docs/PERSISTENCE.md`](docs/PERSISTENCE.md) – Speicher- und Backup-Konzept
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) – Build, Pages und Rollback
+- [`docs/RELEASE-STATUS.md`](docs/RELEASE-STATUS.md) – offene Abschlussgates
 - [`docs/REVIEW-PROCESS.md`](docs/REVIEW-PROCESS.md) – Review- und Freigabeprozess
 - [`docs/DECISIONS/`](docs/DECISIONS) – Architecture Decision Records
 
 ## Status
 
-In aktiver, kontrollierter Migration. Noch keine Produktivfreigabe für den
-Echtbetrieb; der Mehrbenutzer-/Mandantenbetrieb (Phase 2) beginnt erst nach
-abgeschlossener Migration.
+Die kontrollierte Migration und lokale Abnahme sind mit PR 12 abgeschlossen.
+Das Repository ist öffentlich, enthält aber keine produktiven Daten. Ein
+öffentliches GitHub-Pages-Deployment und der Release-Tag `v1.0.0` stehen noch
+aus. Der Mehrbenutzer-/Mandantenbetrieb bleibt Phase 2.

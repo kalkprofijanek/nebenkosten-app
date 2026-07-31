@@ -11,6 +11,8 @@ import {
   type AppDataFile,
 } from '@nebenkosten/schema'
 
+import { APP_VERSION } from './version'
+
 export type WorkspaceStatus =
   'loading' | 'empty' | 'ready' | 'conflict' | 'blocked' | 'error'
 
@@ -83,6 +85,13 @@ function initialState(): WorkspaceState {
 
 function cloneData(data: AppDataFile): AppDataFile {
   return structuredClone(data)
+}
+
+function withCurrentAppVersion(data: AppDataFile): AppDataFile {
+  return {
+    ...data,
+    meta: { ...data.meta, appVersion: APP_VERSION },
+  }
 }
 
 function supportsSnapshots(
@@ -171,7 +180,7 @@ export function createWorkspaceController({
       return
     }
 
-    const dataToSave = cloneData(state.data)
+    const dataToSave = withCurrentAppVersion(cloneData(state.data))
     const expectedRevision = state.revision
     const savedGeneration = changeGeneration
     saveInFlight = true
@@ -251,7 +260,7 @@ export function createWorkspaceController({
       changeGeneration += 1
       publish({
         status: 'ready',
-        data: createEmptyAppDataFile(),
+        data: withCurrentAppVersion(createEmptyAppDataFile()),
         revision: null,
         dirty: true,
         saving: false,
@@ -351,7 +360,9 @@ export function createWorkspaceController({
       ) {
         return false
       }
-      const validated = appDataFileSchema.parse(cloneData(data))
+      const validated = appDataFileSchema.parse(
+        withCurrentAppVersion(cloneData(data)),
+      )
       const expectedRevision = state.revision
       if (expectedRevision !== null) {
         if (!supportsSnapshots(adapter)) return false

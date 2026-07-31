@@ -33,6 +33,21 @@ test('accepts documentation keywords and non-secret placeholders', () => {
   assert.deepEqual(findSensitiveContent('docs/example.md', content), [])
 })
 
+test('allows the GitHub OIDC permission but still rejects a generic token assignment', () => {
+  const oidcPermission = ['id-token', 'write'].join(': ')
+  const genericTokenAssignment = ['token', 'write'].join(': ')
+  assert.deepEqual(
+    findSensitiveContent('.github/workflows/pages.yml', oidcPermission),
+    [],
+  )
+  assert.deepEqual(findSensitiveContent('notes.yml', oidcPermission), [
+    { kind: 'credential assignment', line: 1, path: 'notes.yml' },
+  ])
+  assert.deepEqual(findSensitiveContent('config.yml', genericTokenAssignment), [
+    { kind: 'credential assignment', line: 1, path: 'config.yml' },
+  ])
+})
+
 test('excludes independently guarded and generated files', () => {
   assert.equal(isScannablePath('legacy/index.html'), false)
   assert.equal(isScannablePath('pnpm-lock.yaml'), false)

@@ -5,8 +5,8 @@
   "type": "module",
   "packageManager": "pnpm@11.7.0",
   "scripts": {
-    "format": "prettier --write \"apps/**/*\" \"packages/**/*\" \"scripts/scan-repository-content.mjs\" \"scripts/run-production-acceptance.mjs\" \"tests/architecture/**/*\" \"tests/privacy/**/*\" \"tests/integration/**/*\" \"tests/migration/**/*\" \"tests/characterization/**/*.{ts,json,md}\" \"tests/e2e/**/*\" \"tests/setup-vitest.ts\" \"*.{json,js,ts,yaml}\" \".github/actions/**/*.yml\" \".github/dependabot.yml\" \".github/workflows/ci.yml\" \"docs/TASKS/PR-*.md\" \"docs/ROUNDING.md\" \"docs/PERSISTENCE.md\" \"docs/PRODUCTION-MIGRATION-RUNBOOK.md\"",
-    "format:check": "prettier --check \"apps/**/*\" \"packages/**/*\" \"scripts/scan-repository-content.mjs\" \"scripts/run-production-acceptance.mjs\" \"tests/architecture/**/*\" \"tests/privacy/**/*\" \"tests/integration/**/*\" \"tests/migration/**/*\" \"tests/characterization/**/*.{ts,json,md}\" \"tests/e2e/**/*\" \"tests/setup-vitest.ts\" \"*.{json,js,ts,yaml}\" \".github/actions/**/*.yml\" \".github/dependabot.yml\" \".github/workflows/ci.yml\" \"docs/TASKS/PR-*.md\" \"docs/ROUNDING.md\" \"docs/PERSISTENCE.md\" \"docs/PRODUCTION-MIGRATION-RUNBOOK.md\"",
+    "format": "prettier --write \"apps/**/*\" \"packages/**/*\" \"scripts/scan-repository-content.mjs\" \"scripts/run-production-acceptance.mjs\" \"scripts/verify-deployment-artifact.mjs\" \"scripts/verify-deployment-archive.mjs\" \"tests/architecture/**/*\" \"tests/repository/**/*\" \"tests/privacy/**/*\" \"tests/integration/**/*\" \"tests/migration/**/*\" \"tests/characterization/**/*.{ts,json,md}\" \"tests/e2e/**/*\" \"tests/setup-vitest.ts\" \"*.{json,js,ts,yaml}\" \".github/actions/**/*.yml\" \".github/dependabot.yml\" \".github/workflows/ci.yml\" \".github/workflows/pages.yml\" \"docs/TASKS/PR-*.md\" \"docs/ROUNDING.md\" \"docs/PERSISTENCE.md\" \"docs/PRODUCTION-MIGRATION-RUNBOOK.md\" \"docs/DEPLOYMENT.md\" \"docs/RELEASE-STATUS.md\" \"README.md\" \"CHANGELOG.md\"",
+    "format:check": "prettier --check \"apps/**/*\" \"packages/**/*\" \"scripts/scan-repository-content.mjs\" \"scripts/run-production-acceptance.mjs\" \"scripts/verify-deployment-artifact.mjs\" \"scripts/verify-deployment-archive.mjs\" \"tests/architecture/**/*\" \"tests/repository/**/*\" \"tests/privacy/**/*\" \"tests/integration/**/*\" \"tests/migration/**/*\" \"tests/characterization/**/*.{ts,json,md}\" \"tests/e2e/**/*\" \"tests/setup-vitest.ts\" \"*.{json,js,ts,yaml}\" \".github/actions/**/*.yml\" \".github/dependabot.yml\" \".github/workflows/ci.yml\" \".github/workflows/pages.yml\" \"docs/TASKS/PR-*.md\" \"docs/ROUNDING.md\" \"docs/PERSISTENCE.md\" \"docs/PRODUCTION-MIGRATION-RUNBOOK.md\" \"docs/DEPLOYMENT.md\" \"docs/RELEASE-STATUS.md\" \"README.md\" \"CHANGELOG.md\"",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc -p tsconfig.tests.json --noEmit && pnpm -r --if-present typecheck",
     "test:architecture": "node --test tests/architecture/**/*.test.mjs",
@@ -23,10 +23,12 @@
     "test:e2e": "playwright test",
     "acceptance:production": "node scripts/run-production-acceptance.mjs",
     "build": "pnpm -r --if-present build",
+    "verify:deployment-artifact": "node scripts/verify-deployment-artifact.mjs apps/web/dist",
+    "verify:deployment-archive": "node scripts/verify-deployment-archive.mjs",
     "check:repository": "node scripts/verify-repository-guardrails.mjs",
     "privacy:scan": "pnpm check:repository && node scripts/scan-repository-content.mjs",
     "security:audit": "pnpm audit --audit-level high",
-    "ci": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:coverage && pnpm build && pnpm privacy:scan && pnpm security:audit"
+    "ci": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:coverage && pnpm build && pnpm verify:deployment-artifact && pnpm privacy:scan && pnpm security:audit"
   },
   "engines": {
     "node": "22.23.1"

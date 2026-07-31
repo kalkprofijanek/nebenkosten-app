@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
 
 import { appRoutes, findRoute } from './app/navigation'
+import { APP_RELEASE_LABEL } from './app/version'
 import type { WorkspaceState } from './app/workspace-controller'
 
 interface AppProps {
@@ -324,7 +325,7 @@ export function App({
             <span aria-hidden="true" />
             <div>
               <strong>Nur lokal</strong>
-              <small>Schema v4 · PR 10</small>
+              <small>{APP_RELEASE_LABEL}</small>
             </div>
           </div>
         </footer>
