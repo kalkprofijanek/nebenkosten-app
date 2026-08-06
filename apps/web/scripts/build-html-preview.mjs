@@ -4,6 +4,8 @@ import { spawnSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { replacePreviewContentSecurityPolicy } from './preview-csp.mjs'
+
 const scriptDirectory = dirname(fileURLToPath(import.meta.url))
 const webDirectory = resolve(scriptDirectory, '..')
 const distributionDirectory = resolve(webDirectory, 'dist')
@@ -96,21 +98,19 @@ const contentSecurityPolicy = [
   "form-action 'none'",
 ].join('; ')
 
-const standaloneHtml = builtHtml
-  .replace(stylesheetMatch[0], () => `<style>${styleContent}</style>`)
-  .replace(
-    scriptMatch[0],
-    () => `<script type="module">${scriptContent}</script>`,
-  )
-  .replace(
-    '<meta charset="UTF-8" />',
-    () =>
-      `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${contentSecurityPolicy}" />`,
-  )
-  .replace(
-    '<div id="root"></div>',
-    () => `<div id="root"></div>${previewNotice}`,
-  )
+const standaloneHtml = replacePreviewContentSecurityPolicy(
+  builtHtml
+    .replace(stylesheetMatch[0], () => `<style>${styleContent}</style>`)
+    .replace(
+      scriptMatch[0],
+      () => `<script type="module">${scriptContent}</script>`,
+    )
+    .replace(
+      '<div id="root"></div>',
+      () => `<div id="root"></div>${previewNotice}`,
+    ),
+  contentSecurityPolicy,
+)
 
 await mkdir(dirname(outputFile), { recursive: true })
 await writeFile(outputFile, standaloneHtml, 'utf8')
