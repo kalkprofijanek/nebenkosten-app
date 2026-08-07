@@ -5,6 +5,7 @@ import type {
 } from '@nebenkosten/schema'
 import { useState } from 'react'
 
+import { APP_VERSION } from './app/version'
 import {
   MAX_IMPORT_BYTES,
   prepareImport,
@@ -12,8 +13,6 @@ import {
   type ImportSummary,
   type ImportValidationSummary,
 } from './features/import/prepare-import'
-
-const APP_VERSION = 'pr12'
 
 const summaryLabels = {
   organizations: 'Mandanten',

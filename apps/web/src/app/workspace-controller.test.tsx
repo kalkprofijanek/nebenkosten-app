@@ -10,6 +10,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createWorkspaceController } from './workspace-controller'
+import { APP_VERSION } from './version'
 
 function withVersion(version: string): AppDataFile {
   return {
@@ -102,16 +103,20 @@ describe('workspace controller', () => {
     await controller.load()
 
     expect(controller.createNew()).toBe(true)
+    const currentVersionFile = {
+      ...createEmptyAppDataFile(),
+      meta: { appVersion: APP_VERSION },
+    }
     expect(controller.getState()).toMatchObject({
       status: 'ready',
-      data: createEmptyAppDataFile(),
+      data: currentVersionFile,
       revision: null,
       dirty: true,
     })
 
     await vi.advanceTimersByTimeAsync(50)
 
-    expect(adapter.save).toHaveBeenCalledWith(createEmptyAppDataFile(), {
+    expect(adapter.save).toHaveBeenCalledWith(currentVersionFile, {
       expectedRevision: null,
     })
     expect(controller.getState()).toMatchObject({
@@ -119,6 +124,20 @@ describe('workspace controller', () => {
       revision: 'revision-1',
       dirty: false,
     })
+  })
+
+  it('stamps imported and subsequently saved data with the current app version', async () => {
+    const adapter = new FakeAdapter()
+    adapter.load.mockResolvedValue(null)
+    adapter.save.mockImplementation(async (data) => saved(data, 'revision-1'))
+    const controller = createWorkspaceController({ adapter, debounceMs: 10 })
+    await controller.load()
+
+    expect(await controller.importData(withVersion('older-version'))).toBe(true)
+    expect(controller.getState().data?.meta.appVersion).toBe(APP_VERSION)
+    await vi.advanceTimersByTimeAsync(10)
+
+    expect(adapter.save.mock.calls[0]?.[0].meta.appVersion).toBe(APP_VERSION)
   })
 
   it('updates data immutably and debounces autosave with the loaded revision', async () => {
@@ -149,7 +168,7 @@ describe('workspace controller', () => {
     expect(adapter.save).not.toHaveBeenCalled()
     await vi.advanceTimersByTimeAsync(1)
 
-    expect(adapter.save).toHaveBeenCalledWith(withVersion('changed'), {
+    expect(adapter.save).toHaveBeenCalledWith(withVersion(APP_VERSION), {
       expectedRevision: 'revision-1',
     })
   })
@@ -175,7 +194,7 @@ describe('workspace controller', () => {
     await vi.advanceTimersByTimeAsync(1)
 
     expect(adapter.save).toHaveBeenCalledTimes(1)
-    expect(adapter.save.mock.calls[0]?.[0]).toEqual(withVersion('second'))
+    expect(adapter.save.mock.calls[0]?.[0]).toEqual(withVersion(APP_VERSION))
   })
 
   it('runs a follow-up save when data changes during an active save', async () => {
@@ -210,7 +229,7 @@ describe('workspace controller', () => {
 
     expect(adapter.save).toHaveBeenCalledTimes(2)
     expect(adapter.save.mock.calls[1]).toEqual([
-      withVersion('second'),
+      withVersion(APP_VERSION),
       { expectedRevision: 'revision-2' },
     ])
     expect(controller.getState()).toMatchObject({
@@ -431,7 +450,7 @@ describe('workspace controller', () => {
     expect(await controller.importData(withVersion('imported'))).toBe(true)
     await vi.advanceTimersByTimeAsync(10)
 
-    expect(adapter.save).toHaveBeenCalledWith(withVersion('imported'), {
+    expect(adapter.save).toHaveBeenCalledWith(withVersion(APP_VERSION), {
       expectedRevision: null,
     })
   })
@@ -448,7 +467,7 @@ describe('workspace controller', () => {
     ])
     await vi.advanceTimersByTimeAsync(10)
 
-    expect((await adapter.load())?.data.meta.appVersion).toBe('imported')
+    expect((await adapter.load())?.data.meta.appVersion).toBe(APP_VERSION)
   })
 
   it('exposes manual snapshots only for a clean persisted revision', async () => {

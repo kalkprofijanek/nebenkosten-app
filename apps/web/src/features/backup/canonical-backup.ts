@@ -1,6 +1,8 @@
 import { encodeCurrentAppData } from '@nebenkosten/import-export'
 import type { AppDataFile } from '@nebenkosten/schema'
 
+import { APP_VERSION } from '../../app/version'
+
 export interface CanonicalBackup {
   readonly bytes: Uint8Array
   readonly byteLength: number
@@ -41,9 +43,10 @@ export async function createCanonicalBackup(
   data: AppDataFile,
   options: { readonly createdAt: Date | string },
 ): Promise<CanonicalBackup> {
-  const encoded = await encodeCurrentAppData(data, {
-    savedAt: options.createdAt,
-  })
+  const encoded = await encodeCurrentAppData(
+    { ...data, meta: { ...data.meta, appVersion: APP_VERSION } },
+    { savedAt: options.createdAt },
+  )
   return {
     bytes: Uint8Array.from(encoded.bytes),
     byteLength: encoded.bytes.byteLength,

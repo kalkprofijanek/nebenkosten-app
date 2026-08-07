@@ -6,6 +6,8 @@ import {
 import type { AppDataFile } from '@nebenkosten/schema'
 import { appDataFileSchema } from '@nebenkosten/schema'
 
+import { APP_VERSION } from '../../app/version'
+
 export function calculatePreview(
   data: AppDataFile,
   billingPeriodId: string,
@@ -39,7 +41,7 @@ export function runCalculation(
           id: calculationRunId,
           billingPeriodId,
           startedAt: now().toISOString(),
-          appVersion: 'pr09',
+          appVersion: APP_VERSION,
         },
       ],
       calculationResults: [

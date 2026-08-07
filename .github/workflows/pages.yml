@@ -1,0 +1,85 @@
+name: GitHub Pages Deployment
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: pages-build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Setup workspace
+        uses: ./.github/actions/setup-workspace
+      - name: Verify repository privacy
+        run: pnpm privacy:scan
+      - name: Build static application
+        run: pnpm build
+      - name: Verify deployment artifact
+        run: pnpm verify:deployment-artifact
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - name: Create immutable GitHub Pages archive
+        run: |
+          tar --directory apps/web/dist \
+            -cvf "${RUNNER_TEMP}/artifact.tar" \
+            --exclude=.git \
+            --exclude=.github \
+            .
+      - name: Upload immutable GitHub Pages archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: github-pages
+          path: ${{ runner.temp }}/artifact.tar
+          if-no-files-found: error
+          retention-days: 1
+
+  verify:
+    name: pages-artifact-verify
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout verifier
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Download immutable GitHub Pages archive
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: github-pages
+          path: ${{ runner.temp }}/downloaded-pages
+      - name: Verify the uploaded archive bytes
+        run: >-
+          node scripts/verify-deployment-archive.mjs
+          "${RUNNER_TEMP}/downloaded-pages/artifact.tar"
+
+  deploy:
+    name: pages-deploy
+    needs: [build, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

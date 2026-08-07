@@ -118,6 +118,7 @@ jobs:
       - *checkout
       - *setup
       - run: pnpm build
+      - run: pnpm verify:deployment-artifact
 
   e2e-smoke:
     name: e2e-smoke

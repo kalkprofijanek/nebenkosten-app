@@ -5,6 +5,8 @@ import {
 import { createEmptyAppDataFile } from '@nebenkosten/schema'
 import { describe, expect, it } from 'vitest'
 
+import { APP_VERSION } from '../../app/version'
+
 import {
   createCanonicalBackup,
   downloadCanonicalBackup,
@@ -37,7 +39,10 @@ describe('canonical backup', () => {
     expect(await decodeCurrentAppDataBytes(backup.bytes)).toMatchObject({
       data: {
         schemaVersion: 4,
-        meta: { savedAt: '2026-07-26T10:11:12.000Z' },
+        meta: {
+          appVersion: APP_VERSION,
+          savedAt: '2026-07-26T10:11:12.000Z',
+        },
       },
       revision: backup.sha256,
     })
