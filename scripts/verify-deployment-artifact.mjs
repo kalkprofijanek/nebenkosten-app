@@ -48,8 +48,10 @@ const LOCAL_PATH_PATTERN =
 const REVIEWED_CREDENTIAL_ASSIGNMENTS = new Set([
   // React-DOM: Liste unterstützter HTML-Eingabetypen (Kennwort-Markierung).
   'assets/index-CtQvHfCT.js:2128f58378fb976a7f3b6f87a36bad9529b97695e4f560499daa49b0b443c03c:8',
+  'assets/index-BfCfNcqJ.js:2700d13db5986f045005ff204a8747dd632d7934a83a452391f670268e5fea3d:8',
   // pdfmake: PDF-Widget-Bitmaske für ein Kennwort-Feld.
   'assets/pdfmake-BDdWErbi.js:3197e19df8923c84338402f0cd6ad74efe1ed527f1862e71ce70d928e0d4cc50:100',
+  'assets/pdfmake-px1s6AzJ.js:7ff8033e96ecfa1c353331641d6a902e9e00a62836fd248c3edbcd37aa8ece9b:100',
 ])
 
 function normalizedLimits(options = {}) {

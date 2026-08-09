@@ -309,6 +309,75 @@ describe('WorkflowRoute', () => {
     )
   })
 
+  it('zeigt migrierte Kostenpositionen und Bankbuchungen des aktiven Jahres', () => {
+    const base = seededData()
+    const categoryId = '20000000-0000-4000-8000-000000000007'
+    const data: AppDataFile = {
+      ...base,
+      billingData: {
+        ...base.billingData,
+        costCategories: [
+          {
+            id: categoryId,
+            billingPeriodId: SEEDED_IDS.period,
+            kind: 'operating',
+            label: 'Gebäudereinigung',
+            allocationKey: 'usable_area',
+          },
+        ],
+        costEntries: [
+          {
+            id: '20000000-0000-4000-8000-000000000008',
+            costCategoryId: categoryId,
+            date: '2026-03-15',
+            description: 'Fiktive Rechnung',
+            receiptReference: 'TEST-17',
+            amountCents: 123_456,
+          },
+        ],
+        bankBookings: [
+          {
+            id: '20000000-0000-4000-8000-000000000009',
+            propertyId: SEEDED_IDS.property,
+            date: '2026-03-16',
+            amountCents: -25_050,
+            counterparty: 'Musterfirma Dienstleistung',
+            purpose: 'Testleistung März',
+            category: 'NK_UMLEGBAR',
+            billingYear: 2026,
+            costCategoryId: categoryId,
+            reviewed: true,
+          },
+          {
+            id: '20000000-0000-4000-8000-000000000010',
+            propertyId: '20000000-0000-4000-8000-000000000099',
+            amountCents: -999,
+            purpose: 'Fremdes Objekt',
+          },
+        ],
+      },
+    }
+
+    renderRoute('/kosten', data, SEEDED_SELECTION)
+
+    expect(
+      screen.getByRole('heading', { name: 'Kostenarten (1)' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: 'Kostenpositionen (1)' }),
+    ).toBeVisible()
+    expect(screen.getByText('Fiktive Rechnung')).toBeVisible()
+    expect(screen.getByText('TEST-17')).toBeVisible()
+    expect(screen.getAllByText(/1\.234,56\s€/u)).toHaveLength(2)
+    expect(
+      screen.getByRole('heading', { name: 'Bankbuchungen (1)' }),
+    ).toBeVisible()
+    expect(screen.getByText('Musterfirma Dienstleistung')).toBeVisible()
+    expect(screen.getByText('Testleistung März')).toBeVisible()
+    expect(screen.getByText(/-250,50\s€/u)).toBeVisible()
+    expect(screen.queryByText('Fremdes Objekt')).not.toBeInTheDocument()
+  })
+
   it('legt Heizsystem, Heizkreis und Energiequelle gemeinsam an', () => {
     const result = renderRoute('/heizkreise', seededData(), SEEDED_SELECTION)
 
