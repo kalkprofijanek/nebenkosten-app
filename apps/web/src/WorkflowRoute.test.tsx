@@ -126,6 +126,55 @@ describe('WorkflowRoute', () => {
     expect(result.getData().masterData.ownerCompanies).toHaveLength(0)
   })
 
+  it('bearbeitet die aktive Firma mit Anschrift und Bankdaten', () => {
+    const result = renderRoute('/firmen', seededData(), SEEDED_SELECTION)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Firma bearbeiten' }))
+    fireEvent.change(screen.getByLabelText('Firmenname bearbeiten'), {
+      target: { value: 'Aktualisierte Eigentümerin' },
+    })
+    fireEvent.change(screen.getByLabelText('Bankname bearbeiten'), {
+      target: { value: 'Fiktive Testbank' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Änderungen speichern' }),
+    )
+
+    expect(result.getData().masterData.ownerCompanies[0]).toMatchObject({
+      name: 'Aktualisierte Eigentümerin',
+      bankAccount: { bankName: 'Fiktive Testbank' },
+    })
+  })
+
+  it('verlangt eine ausdrückliche Bestätigung vor dem Löschen', () => {
+    const companyOnly = createCompany(
+      createEmptyAppDataFile(),
+      { organizationName: 'Verwaltung', ownerCompanyName: 'Firma' },
+      {
+        createId: (() => {
+          const ids = [SEEDED_IDS.organization, SEEDED_IDS.company]
+          return () => ids.shift()!
+        })(),
+      },
+    )
+    const result = renderRoute('/firmen', companyOnly, {
+      ownerCompanyId: SEEDED_IDS.company,
+      propertyId: null,
+      billingPeriodId: null,
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Firma löschen' }))
+    expect(result.getData().masterData.ownerCompanies).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Löschen bestätigen' }))
+
+    expect(result.getData().masterData.ownerCompanies).toHaveLength(0)
+    expect(result.onSelectionChange).toHaveBeenCalledWith({
+      ownerCompanyId: null,
+      propertyId: null,
+      billingPeriodId: null,
+    })
+  })
+
   it('verlangt für Objekte eine ausgewählte Firma', () => {
     renderRoute('/objekte')
 
@@ -243,6 +292,32 @@ describe('WorkflowRoute', () => {
     expect(result.onSelectionChange).toHaveBeenCalledWith(
       expect.objectContaining({ billingPeriodId: expect.any(String) }),
     )
+  })
+
+  it('bearbeitet den Zeitraum des aktiven Abrechnungsjahres', () => {
+    const result = renderRoute(
+      '/abrechnungsjahre',
+      seededData(),
+      SEEDED_SELECTION,
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Abrechnungsjahr bearbeiten' }),
+    )
+    fireEvent.change(screen.getByLabelText('Zeitraum von'), {
+      target: { value: '2026-02-01' },
+    })
+    fireEvent.change(screen.getByLabelText('Zeitraum bis'), {
+      target: { value: '2027-01-31' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Änderungen speichern' }),
+    )
+
+    expect(result.getData().billingData.billingPeriods[0]).toMatchObject({
+      periodStart: '2026-02-01',
+      periodEnd: '2027-01-31',
+    })
   })
 
   it('erfasst Nutzer samt monatlicher Vorauszahlung', () => {

@@ -31,6 +31,18 @@ export interface CreatePropertyStructureInput {
   readonly heatedAreaSqm?: number
 }
 
+export interface UpdateCompanyInput {
+  readonly organizationName: string
+  readonly ownerCompanyName: string
+  readonly additionalNameLines?: readonly string[]
+  readonly street?: string
+  readonly postalCodeAndCity?: string
+  readonly iban?: string
+  readonly bic?: string
+  readonly accountHolder?: string
+  readonly bankName?: string
+}
+
 function normalizeRequired(value: unknown, label: string): string {
   try {
     return requiredText(value, label)
@@ -221,6 +233,128 @@ export function createPropertyStructure(
               }),
         },
       ],
+    },
+  }
+  return assertValidResult(result, MasterDataCommandError)
+}
+
+export function updateCompany(
+  data: AppDataFile,
+  ownerCompanyId: string,
+  input: UpdateCompanyInput,
+): AppDataFile {
+  assertValidSource(data, MasterDataCommandError)
+  const company = data.masterData.ownerCompanies.find(
+    ({ id }) => id === ownerCompanyId,
+  )
+  if (company === undefined) {
+    throw new MasterDataCommandError(
+      'Die ausgewählte Firma ist nicht vorhanden.',
+    )
+  }
+  if (
+    !data.masterData.organizations.some(
+      ({ id }) => id === company.organizationId,
+    )
+  ) {
+    throw new MasterDataCommandError(
+      'Der zugehörige Mandant ist nicht vorhanden.',
+    )
+  }
+
+  const organizationName = normalizeRequired(
+    input.organizationName,
+    'Mandantenname',
+  )
+  const ownerCompanyName = normalizeRequired(
+    input.ownerCompanyName,
+    'Firmenname',
+  )
+  const additionalNameLines = normalizedNameLines(input.additionalNameLines)
+  const street = normalizeOptional(input.street, 'Straße')
+  const postalCodeAndCity = normalizeOptional(
+    input.postalCodeAndCity,
+    'Postleitzahl und Ort',
+  )
+  const iban = normalizeOptional(input.iban, 'IBAN')
+  const bic = normalizeOptional(input.bic, 'BIC')
+  const accountHolder = normalizeOptional(input.accountHolder, 'Kontoinhaber')
+  const bankName = normalizeOptional(input.bankName, 'Bankname')
+  const address =
+    street === undefined && postalCodeAndCity === undefined
+      ? undefined
+      : { street, postalCodeAndCity }
+  const bankAccount =
+    iban === undefined &&
+    bic === undefined &&
+    accountHolder === undefined &&
+    bankName === undefined
+      ? undefined
+      : { iban, bic, accountHolder, bankName }
+
+  const result: AppDataFile = {
+    ...data,
+    masterData: {
+      ...data.masterData,
+      organizations: data.masterData.organizations.map((organization) =>
+        organization.id === company.organizationId
+          ? { ...organization, name: organizationName }
+          : organization,
+      ),
+      ownerCompanies: data.masterData.ownerCompanies.map((item) =>
+        item.id === ownerCompanyId
+          ? {
+              ...item,
+              name: ownerCompanyName,
+              additionalNameLines: [...additionalNameLines],
+              address,
+              bankAccount,
+            }
+          : item,
+      ),
+    },
+  }
+  return assertValidResult(result, MasterDataCommandError)
+}
+
+export function deleteCompany(
+  data: AppDataFile,
+  ownerCompanyId: string,
+): AppDataFile {
+  assertValidSource(data, MasterDataCommandError)
+  const company = data.masterData.ownerCompanies.find(
+    ({ id }) => id === ownerCompanyId,
+  )
+  if (company === undefined) {
+    throw new MasterDataCommandError(
+      'Die ausgewählte Firma ist nicht vorhanden.',
+    )
+  }
+  if (
+    data.masterData.properties.some(
+      ({ ownerCompanyId: reference }) => reference === ownerCompanyId,
+    )
+  ) {
+    throw new MasterDataCommandError(
+      'Die Firma kann nicht gelöscht werden, solange ihr Objekte zugeordnet sind.',
+    )
+  }
+  const organizationStillUsed = data.masterData.ownerCompanies.some(
+    ({ id, organizationId }) =>
+      id !== ownerCompanyId && organizationId === company.organizationId,
+  )
+  const result: AppDataFile = {
+    ...data,
+    masterData: {
+      ...data.masterData,
+      ownerCompanies: data.masterData.ownerCompanies.filter(
+        ({ id }) => id !== ownerCompanyId,
+      ),
+      organizations: organizationStillUsed
+        ? data.masterData.organizations
+        : data.masterData.organizations.filter(
+            ({ id }) => id !== company.organizationId,
+          ),
     },
   }
   return assertValidResult(result, MasterDataCommandError)

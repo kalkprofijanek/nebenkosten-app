@@ -18,6 +18,8 @@ import {
   addTenantOccupancy,
   addVacancyOccupancy,
 } from './features/occupancies/commands'
+import { BillingPeriodsRoute } from './features/workflows/BillingPeriodsRoute'
+import { CompanyRoute } from './features/workflows/CompanyRoute'
 
 export interface WorkflowSelection {
   readonly ownerCompanyId: string | null
@@ -140,6 +142,31 @@ export function WorkflowRoute({
   const errorMessage = error ? <p role="alert">{error}</p> : null
 
   if (path === '/firmen') {
+    return (
+      <CompanyRoute
+        data={data}
+        selection={selection}
+        onSelectionChange={onSelectionChange}
+        onApply={onApply}
+      />
+    )
+  }
+
+  if (path === '/abrechnungsjahre') {
+    if (!selection.propertyId) {
+      return <ContextNeeded>Bitte zuerst ein Objekt auswählen.</ContextNeeded>
+    }
+    return (
+      <BillingPeriodsRoute
+        data={data}
+        selection={selection}
+        onSelectionChange={onSelectionChange}
+        onApply={onApply}
+      />
+    )
+  }
+
+  if (path === '/firmen-legacy') {
     return (
       <>
         {errorMessage}
@@ -326,7 +353,7 @@ export function WorkflowRoute({
     )
   }
 
-  if (path === '/abrechnungsjahre') {
+  if (path === '/abrechnungsjahre-legacy') {
     if (!selection.propertyId)
       return <ContextNeeded>Bitte zuerst ein Objekt auswählen.</ContextNeeded>
     const periods = data.billingData.billingPeriods.filter(

@@ -4,7 +4,11 @@ import {
   type AppDataFile,
 } from '@nebenkosten/schema'
 import { describe, expect, it } from 'vitest'
-import { createBillingPeriod } from './commands'
+import {
+  createBillingPeriod,
+  deleteBillingPeriod,
+  updateBillingPeriod,
+} from './commands'
 
 const PROPERTY_ID = '20000000-0000-4000-8000-000000000001'
 const OWNER_ID = '20000000-0000-4000-8000-000000000002'
@@ -124,5 +128,90 @@ describe('createBillingPeriod', () => {
         { createId: () => PROPERTY_ID },
       ),
     ).toThrowError('bereits verwendet')
+  })
+})
+
+describe('updateBillingPeriod', () => {
+  it('ändert Zeitraum und Jahr, ohne den Freigabestatus zu umgehen', () => {
+    const source = createBillingPeriod(
+      fileWithProperty(),
+      { propertyId: PROPERTY_ID, year: 2028 },
+      { createId: () => PERIOD_ID },
+    )
+
+    const result = updateBillingPeriod(source, PERIOD_ID, {
+      year: 2029,
+      periodStart: '2029-02-01',
+      periodEnd: '2030-01-31',
+    })
+
+    expect(result.billingData.billingPeriods[0]).toMatchObject({
+      year: 2029,
+      periodStart: '2029-02-01',
+      periodEnd: '2030-01-31',
+      status: 'DRAFT',
+    })
+    expect(source.billingData.billingPeriods[0]?.year).toBe(2028)
+  })
+
+  it('weist ungültige Zeiträume und doppelte Jahre ab', () => {
+    const first = createBillingPeriod(
+      fileWithProperty(),
+      { propertyId: PROPERTY_ID, year: 2028 },
+      { createId: () => PERIOD_ID },
+    )
+    const second = createBillingPeriod(
+      first,
+      { propertyId: PROPERTY_ID, year: 2029 },
+      { createId: () => '20000000-0000-4000-8000-000000000006' },
+    )
+
+    expect(() =>
+      updateBillingPeriod(second, PERIOD_ID, {
+        year: 2029,
+        periodStart: '2029-12-31',
+        periodEnd: '2029-01-01',
+      }),
+    ).toThrowError()
+  })
+})
+
+describe('deleteBillingPeriod', () => {
+  it('löscht einen noch ungenutzten Zeitraum', () => {
+    const source = createBillingPeriod(
+      fileWithProperty(),
+      { propertyId: PROPERTY_ID, year: 2028 },
+      { createId: () => PERIOD_ID },
+    )
+
+    expect(
+      deleteBillingPeriod(source, PERIOD_ID).billingData.billingPeriods,
+    ).toEqual([])
+  })
+
+  it('verhindert Löschen, sobald Abrechnungsdaten zugeordnet sind', () => {
+    const source = createBillingPeriod(
+      fileWithProperty(),
+      { propertyId: PROPERTY_ID, year: 2028 },
+      { createId: () => PERIOD_ID },
+    )
+    const used: AppDataFile = {
+      ...source,
+      billingData: {
+        ...source.billingData,
+        costCategories: [
+          {
+            id: '20000000-0000-4000-8000-000000000007',
+            billingPeriodId: PERIOD_ID,
+            kind: 'operating',
+            label: 'Fiktive Kostenart',
+          },
+        ],
+      },
+    }
+
+    expect(() => deleteBillingPeriod(used, PERIOD_ID)).toThrowError(
+      'Abrechnungsdaten',
+    )
   })
 })

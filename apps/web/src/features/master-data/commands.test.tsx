@@ -7,7 +7,9 @@ import { describe, expect, it } from 'vitest'
 import {
   createCompany,
   createPropertyStructure,
+  deleteCompany,
   MasterDataCommandError,
+  updateCompany,
 } from './commands'
 
 const IDS = {
@@ -242,5 +244,70 @@ describe('createPropertyStructure', () => {
       ),
     ).toThrowError(MasterDataCommandError)
     expect(source.masterData.properties).toHaveLength(0)
+  })
+})
+
+describe('updateCompany', () => {
+  it('aktualisiert Firma, Mandant, Anschrift und Bankdaten unveränderlich', () => {
+    const source = fileWithCompany()
+    const snapshot = structuredClone(source)
+
+    const result = updateCompany(source, IDS.ownerCompany, {
+      organizationName: 'Neue Verwaltung',
+      ownerCompanyName: 'Neue Eigentümerin',
+      additionalNameLines: ['Abteilung Nord'],
+      street: 'Fiktive Straße',
+      postalCodeAndCity: 'Beispielort',
+      bankName: 'Fiktive Testbank',
+    })
+
+    expect(source).toEqual(snapshot)
+    expect(result.masterData.organizations[0]?.name).toBe('Neue Verwaltung')
+    expect(result.masterData.ownerCompanies[0]).toMatchObject({
+      name: 'Neue Eigentümerin',
+      additionalNameLines: ['Abteilung Nord'],
+      address: { street: 'Fiktive Straße', postalCodeAndCity: 'Beispielort' },
+      bankAccount: { bankName: 'Fiktive Testbank' },
+    })
+  })
+
+  it('weist unbekannte Firmen und leere Pflichtfelder ab', () => {
+    expect(() =>
+      updateCompany(fileWithCompany(), IDS.property, {
+        organizationName: 'Verwaltung',
+        ownerCompanyName: 'Firma',
+      }),
+    ).toThrowError('nicht vorhanden')
+    expect(() =>
+      updateCompany(fileWithCompany(), IDS.ownerCompany, {
+        organizationName: '',
+        ownerCompanyName: 'Firma',
+      }),
+    ).toThrowError('Mandantenname')
+  })
+})
+
+describe('deleteCompany', () => {
+  it('entfernt eine ungenutzte Firma samt ausschließlich zugeordnetem Mandant', () => {
+    const result = deleteCompany(fileWithCompany(), IDS.ownerCompany)
+
+    expect(result.masterData.ownerCompanies).toEqual([])
+    expect(result.masterData.organizations).toEqual([])
+  })
+
+  it('verhindert das Löschen einer Firma mit Objekten', () => {
+    const source = createPropertyStructure(
+      fileWithCompany(),
+      {
+        ownerCompanyId: IDS.ownerCompany,
+        buildingName: 'Haus',
+        unitLabel: 'Einheit',
+      },
+      { createId: ids(IDS.property, IDS.building, IDS.unit) },
+    )
+
+    expect(() => deleteCompany(source, IDS.ownerCompany)).toThrowError(
+      'Objekte',
+    )
   })
 })

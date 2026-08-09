@@ -840,6 +840,75 @@ h1 {
   box-shadow: 0 1.2rem 3.5rem rgb(31 55 43 / 5%);
 }
 
+.record-editor {
+  margin: 1rem 0;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--paper);
+}
+
+.record-editor__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.record-editor__heading h2 {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 500;
+}
+
+.record-editor button,
+.embedded-form button,
+.danger-zone button {
+  min-height: 2.5rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.embedded-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.embedded-form label {
+  display: grid;
+  gap: 0.42rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.danger-zone {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #ead6d1;
+}
+
+.danger-zone p {
+  margin: 0 auto 0 0;
+  color: #7a2e21;
+  font-size: 0.78rem;
+}
+
+.danger-zone button:first-of-type {
+  border-color: #dfb4a9;
+  color: #7a2e21;
+}
+
 .main-content form label,
 .main-content > label {
   display: grid;
@@ -1196,6 +1265,7 @@ h1 {
   .metric-grid,
   .workflow-list,
   .main-content > form,
+  .embedded-form,
   .result-grid,
   .backup-metadata {
     grid-template-columns: 1fr;
@@ -1219,6 +1289,8 @@ h1 {
   }
 
   .backup-card__heading,
+  .record-editor__heading,
+  .danger-zone,
   .snapshot-list li {
     display: grid;
   }
