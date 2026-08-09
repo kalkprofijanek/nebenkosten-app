@@ -38,10 +38,16 @@ test('completes the workflow from workspace to the PR10 review gate', async ({
   await expect(page.getByText('Testnutzer')).toBeVisible()
 
   await page.getByRole('link', { name: 'Kosten', exact: true }).click()
-  await page.getByLabel('Kostenart').fill('Sachversicherung')
+  await page
+    .getByRole('textbox', { name: 'Kostenart', exact: true })
+    .fill('Sachversicherung')
   await page.getByLabel('Betrag in Euro').fill('120,00')
   await page.getByRole('button', { name: 'Kosten erfassen' }).click()
-  await expect(page.getByText('Sachversicherung')).toBeVisible()
+  await expect(
+    page
+      .getByRole('region', { name: 'Kostenarten (1)' })
+      .getByText('Sachversicherung'),
+  ).toBeVisible()
 
   await page.getByRole('link', { name: 'Heizkreise', exact: true }).click()
   await page.getByLabel('Heizsystem').fill('Zentralheizung')
