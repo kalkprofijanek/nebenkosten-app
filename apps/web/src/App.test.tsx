@@ -9,6 +9,7 @@ import { createEmptyAppDataFile, type AppDataFile } from '@nebenkosten/schema'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { App } from './App'
+import type { SelectionContext } from './app/selection'
 import type { WorkspaceState } from './app/workspace-controller'
 
 afterEach(() => {
@@ -207,10 +208,105 @@ describe('App', () => {
 
     render(<App initialPath="/" workspaceState={workspaceState} />)
 
-    expect(screen.getByText('3 von 8 Schritten')).toBeVisible()
+    expect(screen.getByText('3 von 10 Schritten')).toBeVisible()
     expect(screen.getAllByText('Erfasst')).toHaveLength(3)
     expect(
       screen.getByText(/Änderungen werden automatisch im lokalen Speicher/),
     ).toBeVisible()
+  })
+
+  it('zeigt und ändert den vollständigen aktiven Abrechnungskontext', () => {
+    const empty = createEmptyAppDataFile()
+    const data: AppDataFile = {
+      ...empty,
+      masterData: {
+        ...empty.masterData,
+        organizations: [{ id: 'org-1', name: 'Fiktive Verwaltung' }],
+        ownerCompanies: [
+          {
+            id: 'company-1',
+            organizationId: 'org-1',
+            name: 'Beispiel Eigentum',
+            additionalNameLines: [],
+          },
+        ],
+        properties: [
+          {
+            id: 'property-1',
+            ownerCompanyId: 'company-1',
+            internalNumber: 'OBJ-17',
+          },
+        ],
+      },
+      billingData: {
+        ...empty.billingData,
+        billingPeriods: [
+          {
+            id: 'period-1',
+            propertyId: 'property-1',
+            year: 2026,
+            periodStart: '2026-01-01',
+            periodEnd: '2026-12-31',
+            status: 'IN_REVIEW',
+          },
+        ],
+      },
+    }
+    const workspaceState: WorkspaceState = {
+      status: 'ready',
+      data,
+      revision: 'revision',
+      dirty: false,
+      saving: false,
+      errorCode: null,
+    }
+    const selection: SelectionContext = {
+      ownerCompanyId: 'company-1',
+      propertyId: 'property-1',
+      billingPeriodId: 'period-1',
+    }
+    const onSelectionChange = vi.fn()
+
+    render(
+      <App
+        initialPath="/"
+        workspaceState={workspaceState}
+        selection={selection}
+        onSelectionChange={onSelectionChange}
+      />,
+    )
+
+    expect(screen.getByLabelText('Firma im Arbeitskontext')).toHaveValue(
+      'company-1',
+    )
+    expect(screen.getByLabelText('Objekt im Arbeitskontext')).toHaveValue(
+      'property-1',
+    )
+    expect(screen.getByLabelText('Zeitraum im Arbeitskontext')).toHaveValue(
+      'period-1',
+    )
+    expect(screen.getByText('Prüfung offen')).toBeVisible()
+
+    fireEvent.change(screen.getByLabelText('Objekt im Arbeitskontext'), {
+      target: { value: 'property-1' },
+    })
+    expect(onSelectionChange).toHaveBeenCalledWith({
+      propertyId: 'property-1',
+      billingPeriodId: null,
+    })
+  })
+
+  it('öffnet auf kleinen Ansichten eine beschriftete Bereichsnavigation', () => {
+    render(<App initialPath="/" />)
+
+    const menuButton = screen.getByRole('button', { name: 'Bereiche öffnen' })
+    expect(menuButton).toHaveAttribute('aria-expanded', 'false')
+
+    fireEvent.click(menuButton)
+
+    expect(menuButton).toHaveAttribute('aria-expanded', 'true')
+    expect(
+      screen.getByRole('navigation', { name: 'Abrechnungsbereiche' }),
+    ).toHaveClass('sidebar--open')
   })
 })

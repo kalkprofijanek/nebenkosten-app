@@ -131,6 +131,10 @@ export function WorkspaceApp({
         )
       }
       workspaceState={workspaceState}
+      selection={normalizedSelection}
+      onSelectionChange={(patch) =>
+        setSelection((current) => ({ ...current, ...patch }))
+      }
       renderRoute={
         workspaceState.data === null
           ? undefined
