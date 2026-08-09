@@ -861,6 +861,23 @@ h1 {
   font-weight: 500;
 }
 
+.record-editor__heading h3 {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.record-editor__heading small {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--muted);
+}
+
+.editable-records {
+  margin-top: 1.25rem;
+}
+
 .record-editor button,
 .embedded-form button,
 .danger-zone button {

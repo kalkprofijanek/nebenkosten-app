@@ -43,6 +43,43 @@ export interface UpdateCompanyInput {
   readonly bankName?: string
 }
 
+export interface UpdatePropertyInput {
+  readonly internalNumber?: string
+  readonly externalNumber?: string
+  readonly street?: string
+  readonly postalCodeAndCity?: string
+}
+
+export interface AddBuildingInput {
+  readonly propertyId: string
+  readonly name: string
+  readonly shortName?: string
+}
+
+export interface UpdateBuildingInput {
+  readonly name: string
+  readonly shortName?: string
+}
+
+export interface AddUnitInput {
+  readonly propertyId: string
+  readonly buildingId?: string
+  readonly label: string
+  readonly location?: string
+  readonly usableAreaSqm?: number
+  readonly heatedAreaSqm?: number
+  readonly roomCount?: number
+}
+
+export interface UpdateUnitInput {
+  readonly buildingId?: string | null
+  readonly label: string
+  readonly location?: string
+  readonly usableAreaSqm?: number
+  readonly heatedAreaSqm?: number
+  readonly roomCount?: number
+}
+
 function normalizeRequired(value: unknown, label: string): string {
   try {
     return requiredText(value, label)
@@ -358,4 +395,304 @@ export function deleteCompany(
     },
   }
   return assertValidResult(result, MasterDataCommandError)
+}
+
+function normalizeOptionalRoomCount(value: unknown): number | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    throw new MasterDataCommandError(
+      'Die Raumanzahl muss eine nichtnegative Zahl sein.',
+    )
+  }
+  return value
+}
+
+export function updateProperty(
+  data: AppDataFile,
+  propertyId: string,
+  input: UpdatePropertyInput,
+): AppDataFile {
+  assertValidSource(data, MasterDataCommandError)
+  if (!data.masterData.properties.some(({ id }) => id === propertyId)) {
+    throw new MasterDataCommandError(
+      'Das ausgewählte Objekt ist nicht vorhanden.',
+    )
+  }
+  const internalNumber = normalizeOptional(
+    input.internalNumber,
+    'Interne Objektnummer',
+  )
+  const externalNumber = normalizeOptional(
+    input.externalNumber,
+    'Externe Objektnummer',
+  )
+  const street = normalizeOptional(input.street, 'Straße')
+  const postalCodeAndCity = normalizeOptional(
+    input.postalCodeAndCity,
+    'Postleitzahl und Ort',
+  )
+  const address =
+    street === undefined && postalCodeAndCity === undefined
+      ? undefined
+      : { street, postalCodeAndCity }
+  const result: AppDataFile = {
+    ...data,
+    masterData: {
+      ...data.masterData,
+      properties: data.masterData.properties.map((property) =>
+        property.id === propertyId
+          ? { ...property, internalNumber, externalNumber, address }
+          : property,
+      ),
+    },
+  }
+  return assertValidResult(result, MasterDataCommandError)
+}
+
+export function addBuilding(
+  data: AppDataFile,
+  input: AddBuildingInput,
+  dependencies: CommandDependencies = defaultCommandDependencies(),
+): AppDataFile {
+  assertValidSource(data, MasterDataCommandError)
+  if (!data.masterData.properties.some(({ id }) => id === input.propertyId)) {
+    throw new MasterDataCommandError(
+      'Das ausgewählte Objekt ist nicht vorhanden.',
+    )
+  }
+  const name = normalizeRequired(input.name, 'Gebäudename')
+  const shortName = normalizeOptional(input.shortName, 'Gebäudekürzel')
+  const [id] = reserveNewIds(
+    data,
+    1,
+    dependencies.createId,
+    MasterDataCommandError,
+  )
+  return assertValidResult(
+    {
+      ...data,
+      masterData: {
+        ...data.masterData,
+        buildings: [
+          ...data.masterData.buildings,
+          {
+            id: id!,
+            propertyId: input.propertyId,
+            name,
+            shortName,
+            mandateRefPrefixes: [],
+          },
+        ],
+      },
+    },
+    MasterDataCommandError,
+  )
+}
+
+export function updateBuilding(
+  data: AppDataFile,
+  buildingId: string,
+  input: UpdateBuildingInput,
+): AppDataFile {
+  assertValidSource(data, MasterDataCommandError)
+  if (!data.masterData.buildings.some(({ id }) => id === buildingId)) {
+    throw new MasterDataCommandError(
+      'Das ausgewählte Gebäude ist nicht vorhanden.',
+    )
+  }
+  const name = normalizeRequired(input.name, 'Gebäudename')
+  const shortName = normalizeOptional(input.shortName, 'Gebäudekürzel')
+  return assertValidResult(
+    {
+      ...data,
+      masterData: {
+        ...data.masterData,
+        buildings: data.masterData.buildings.map((building) =>
+          building.id === buildingId
+            ? { ...building, name, shortName }
+            : building,
+        ),
+      },
+    },
+    MasterDataCommandError,
+  )
+}
+
+function unitFields(input: AddUnitInput | UpdateUnitInput) {
+  return {
+    label: normalizeRequired(input.label, 'Einheitenbezeichnung'),
+    location: normalizeOptional(input.location, 'Lage'),
+    usableAreaSqm: normalizeOptionalArea(input.usableAreaSqm, 'Nutzfläche'),
+    heatedAreaSqm: normalizeOptionalArea(
+      input.heatedAreaSqm,
+      'Beheizte Fläche',
+    ),
+    roomCount: normalizeOptionalRoomCount(input.roomCount),
+  }
+}
+
+function area(value: number | undefined) {
+  return value === undefined ? undefined : { value, unit: 'm2' as const }
+}
+
+export function addUnit(
+  data: AppDataFile,
+  input: AddUnitInput,
+  dependencies: CommandDependencies = defaultCommandDependencies(),
+): AppDataFile {
+  assertValidSource(data, MasterDataCommandError)
+  if (!data.masterData.properties.some(({ id }) => id === input.propertyId)) {
+    throw new MasterDataCommandError(
+      'Das ausgewählte Objekt ist nicht vorhanden.',
+    )
+  }
+  if (
+    input.buildingId !== undefined &&
+    !data.masterData.buildings.some(
+      ({ id, propertyId }) =>
+        id === input.buildingId && propertyId === input.propertyId,
+    )
+  ) {
+    throw new MasterDataCommandError(
+      'Das ausgewählte Gebäude gehört nicht zu diesem Objekt.',
+    )
+  }
+  const fields = unitFields(input)
+  const [id] = reserveNewIds(
+    data,
+    1,
+    dependencies.createId,
+    MasterDataCommandError,
+  )
+  return assertValidResult(
+    {
+      ...data,
+      masterData: {
+        ...data.masterData,
+        units: [
+          ...data.masterData.units,
+          {
+            id: id!,
+            propertyId: input.propertyId,
+            buildingId: input.buildingId,
+            label: fields.label,
+            location: fields.location,
+            usableAreaSqm: area(fields.usableAreaSqm),
+            heatedAreaSqm: area(fields.heatedAreaSqm),
+            roomCount: fields.roomCount,
+          },
+        ],
+      },
+    },
+    MasterDataCommandError,
+  )
+}
+
+export function updateUnit(
+  data: AppDataFile,
+  unitId: string,
+  input: UpdateUnitInput,
+): AppDataFile {
+  assertValidSource(data, MasterDataCommandError)
+  const unit = data.masterData.units.find(({ id }) => id === unitId)
+  if (unit === undefined) {
+    throw new MasterDataCommandError(
+      'Die ausgewählte Einheit ist nicht vorhanden.',
+    )
+  }
+  if (
+    input.buildingId !== undefined &&
+    input.buildingId !== null &&
+    !data.masterData.buildings.some(
+      ({ id, propertyId }) =>
+        id === input.buildingId && propertyId === unit.propertyId,
+    )
+  ) {
+    throw new MasterDataCommandError(
+      'Das ausgewählte Gebäude gehört nicht zu diesem Objekt.',
+    )
+  }
+  const fields = unitFields(input)
+  return assertValidResult(
+    {
+      ...data,
+      masterData: {
+        ...data.masterData,
+        units: data.masterData.units.map((item) =>
+          item.id === unitId
+            ? {
+                ...item,
+                buildingId:
+                  input.buildingId === undefined
+                    ? item.buildingId
+                    : input.buildingId,
+                label: fields.label,
+                location: fields.location,
+                usableAreaSqm: area(fields.usableAreaSqm),
+                heatedAreaSqm: area(fields.heatedAreaSqm),
+                roomCount: fields.roomCount,
+              }
+            : item,
+        ),
+      },
+    },
+    MasterDataCommandError,
+  )
+}
+
+export function deleteProperty(
+  data: AppDataFile,
+  propertyId: string,
+): AppDataFile {
+  assertValidSource(data, MasterDataCommandError)
+  if (!data.masterData.properties.some(({ id }) => id === propertyId)) {
+    throw new MasterDataCommandError(
+      'Das ausgewählte Objekt ist nicht vorhanden.',
+    )
+  }
+  if (
+    data.billingData.billingPeriods.some(
+      ({ propertyId: reference }) => reference === propertyId,
+    )
+  ) {
+    throw new MasterDataCommandError(
+      'Das Objekt kann nicht gelöscht werden, solange Abrechnungsjahre vorhanden sind.',
+    )
+  }
+  const unitIds = new Set(
+    data.masterData.units
+      .filter(({ propertyId: reference }) => reference === propertyId)
+      .map(({ id }) => id),
+  )
+  if (
+    data.masterData.heatingSystems.some(
+      ({ propertyId: reference }) => reference === propertyId,
+    ) ||
+    data.masterData.meters.some(
+      ({ propertyId: reference }) => reference === propertyId,
+    ) ||
+    data.masterData.tenancies.some(({ unitId }) => unitIds.has(unitId))
+  ) {
+    throw new MasterDataCommandError(
+      'Das Objekt kann nicht gelöscht werden, solange abhängige Stammdaten vorhanden sind.',
+    )
+  }
+  return assertValidResult(
+    {
+      ...data,
+      masterData: {
+        ...data.masterData,
+        properties: data.masterData.properties.filter(
+          ({ id }) => id !== propertyId,
+        ),
+        buildings: data.masterData.buildings.filter(
+          ({ propertyId: reference }) => reference !== propertyId,
+        ),
+        units: data.masterData.units.filter(
+          ({ propertyId: reference }) => reference !== propertyId,
+        ),
+      },
+    },
+    MasterDataCommandError,
+  )
 }

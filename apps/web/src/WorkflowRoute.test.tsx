@@ -7,6 +7,7 @@ import {
   createPropertyStructure,
 } from './features/master-data/commands'
 import { createBillingPeriod } from './features/billing-periods/commands'
+import { addTenantOccupancy } from './features/occupancies/commands'
 import { WorkflowRoute, type WorkflowSelection } from './WorkflowRoute'
 
 afterEach(() => {
@@ -270,6 +271,40 @@ describe('WorkflowRoute', () => {
     )
   })
 
+  it('bearbeitet Objekt, Gebäude und Einheit und ergänzt die Struktur', () => {
+    const result = renderRoute('/objekte', seededData(), SEEDED_SELECTION)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Objekt bearbeiten' }))
+    fireEvent.change(screen.getByLabelText('Interne Objektnummer bearbeiten'), {
+      target: { value: 'OBJ-NEU' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Objektdaten speichern' }),
+    )
+
+    fireEvent.change(screen.getByLabelText('Neuer Gebäudename'), {
+      target: { value: 'Haus B' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Gebäude hinzufügen' }))
+
+    fireEvent.change(screen.getByLabelText('Neue Einheitenbezeichnung'), {
+      target: { value: 'Wohnung 2' },
+    })
+    fireEvent.change(screen.getByLabelText('Neue Nutzfläche in m²'), {
+      target: { value: '44,5' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Einheit hinzufügen' }))
+
+    expect(result.getData().masterData.properties[0]?.internalNumber).toBe(
+      'OBJ-NEU',
+    )
+    expect(result.getData().masterData.buildings).toHaveLength(2)
+    expect(result.getData().masterData.units.at(-1)).toMatchObject({
+      label: 'Wohnung 2',
+      usableAreaSqm: { value: 44.5, unit: 'm2' },
+    })
+  })
+
   it('legt ein Abrechnungsjahr an und unterstützt die Auswahl', () => {
     const data = seededData()
     const withoutPeriod: AppDataFile = {
@@ -359,6 +394,48 @@ describe('WorkflowRoute', () => {
     expect(result.getData().billingData.occupancyPeriods).toEqual([
       expect.objectContaining({ kind: 'vacancy', tenancyId: null }),
     ])
+  })
+
+  it('bearbeitet und löscht einen Nutzer kontrolliert', () => {
+    const occupancyIds = [
+      '30000000-0000-4000-8000-000000000011',
+      '30000000-0000-4000-8000-000000000012',
+      '30000000-0000-4000-8000-000000000013',
+      '30000000-0000-4000-8000-000000000014',
+    ]
+    const data = addTenantOccupancy(
+      seededData(),
+      {
+        billingPeriodId: SEEDED_IDS.period,
+        unitId: SEEDED_IDS.unit,
+        person: { displayName: 'Fiktiver Nutzer' },
+        occupancy: { from: '2026-01-01', persons: 1 },
+        prepayment: { mode: 'none_agreed' },
+      },
+      () => occupancyIds.shift()!,
+    )
+    const result = renderRoute('/nutzer', data, SEEDED_SELECTION)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Fiktiver Nutzer bearbeiten' }),
+    )
+    fireEvent.change(screen.getByLabelText('Anzeigename bearbeiten'), {
+      target: { value: 'Aktualisierter Nutzer' },
+    })
+    fireEvent.change(screen.getByLabelText('Personenzahl bearbeiten'), {
+      target: { value: '2' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Nutzerdaten speichern' }),
+    )
+
+    expect(result.getData().masterData.persons[0]?.displayName).toBe(
+      'Aktualisierter Nutzer',
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nutzer löschen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Löschen bestätigen' }))
+    expect(result.getData().billingData.occupancyPeriods).toEqual([])
   })
 
   it('erfasst Kostenart und Buchung atomar', () => {

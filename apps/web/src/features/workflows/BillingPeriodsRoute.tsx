@@ -4,7 +4,8 @@ import {
   deleteBillingPeriod,
   updateBillingPeriod,
 } from '../billing-periods/commands'
-import { ExistingEntries, formText, WorkflowField } from './form-support'
+import { ExistingEntries, WorkflowField } from './form-support'
+import { formText } from './form-values'
 import type { WorkflowSubRouteProps } from './route-types'
 
 export function BillingPeriodsRoute({

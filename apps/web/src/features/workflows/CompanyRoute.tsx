@@ -4,12 +4,8 @@ import {
   deleteCompany,
   updateCompany,
 } from '../master-data/commands'
-import {
-  ExistingEntries,
-  formOptionalText,
-  formText,
-  WorkflowField,
-} from './form-support'
+import { ExistingEntries, WorkflowField } from './form-support'
+import { formOptionalText, formText } from './form-values'
 import type { WorkflowSubRouteProps } from './route-types'
 
 function idFactory(values: readonly string[]) {

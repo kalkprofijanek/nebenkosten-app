@@ -7,9 +7,15 @@ import { describe, expect, it } from 'vitest'
 import {
   createCompany,
   createPropertyStructure,
+  addBuilding,
+  addUnit,
   deleteCompany,
+  deleteProperty,
   MasterDataCommandError,
+  updateBuilding,
   updateCompany,
+  updateProperty,
+  updateUnit,
 } from './commands'
 
 const IDS = {
@@ -308,6 +314,113 @@ describe('deleteCompany', () => {
 
     expect(() => deleteCompany(source, IDS.ownerCompany)).toThrowError(
       'Objekte',
+    )
+  })
+})
+
+describe('property structure maintenance', () => {
+  function fileWithPropertyStructure() {
+    return createPropertyStructure(
+      fileWithCompany(),
+      {
+        ownerCompanyId: IDS.ownerCompany,
+        internalNumber: 'OBJ-ALT',
+        buildingName: 'Haus Alt',
+        unitLabel: 'Einheit Alt',
+        usableAreaSqm: 60,
+      },
+      { createId: ids(IDS.property, IDS.building, IDS.unit) },
+    )
+  }
+
+  it('bearbeitet Objekt, Gebäude und Einheit ohne Eingabemutation', () => {
+    const source = fileWithPropertyStructure()
+    const snapshot = structuredClone(source)
+    let result = updateProperty(source, IDS.property, {
+      internalNumber: 'OBJ-NEU',
+      street: 'Fiktive Straße',
+      postalCodeAndCity: 'Beispielort',
+    })
+    result = updateBuilding(result, IDS.building, {
+      name: 'Haus Neu',
+      shortName: 'N',
+    })
+    result = updateUnit(result, IDS.unit, {
+      label: 'Einheit Neu',
+      usableAreaSqm: 75.5,
+      heatedAreaSqm: 70,
+      roomCount: 3,
+    })
+
+    expect(source).toEqual(snapshot)
+    expect(result.masterData.properties[0]).toMatchObject({
+      internalNumber: 'OBJ-NEU',
+    })
+    expect(result.masterData.buildings[0]).toMatchObject({ name: 'Haus Neu' })
+    expect(result.masterData.units[0]).toMatchObject({
+      label: 'Einheit Neu',
+      usableAreaSqm: { value: 75.5, unit: 'm2' },
+      roomCount: 3,
+    })
+  })
+
+  it('fügt weitere Gebäude und Einheiten mit geprüften Referenzen hinzu', () => {
+    const source = fileWithPropertyStructure()
+    const buildingId = '10000000-0000-4000-8000-000000000006'
+    const unitId = '10000000-0000-4000-8000-000000000007'
+    const withBuilding = addBuilding(
+      source,
+      { propertyId: IDS.property, name: 'Haus Zwei' },
+      { createId: () => buildingId },
+    )
+    const result = addUnit(
+      withBuilding,
+      {
+        propertyId: IDS.property,
+        buildingId,
+        label: 'Einheit Zwei',
+        usableAreaSqm: 44,
+      },
+      { createId: () => unitId },
+    )
+
+    expect(result.masterData.buildings).toHaveLength(2)
+    expect(result.masterData.units.at(-1)).toMatchObject({
+      id: unitId,
+      buildingId,
+      label: 'Einheit Zwei',
+    })
+  })
+
+  it('löscht ein ungenutztes Objekt samt seiner Grundstruktur', () => {
+    const result = deleteProperty(fileWithPropertyStructure(), IDS.property)
+
+    expect(result.masterData.properties).toEqual([])
+    expect(result.masterData.buildings).toEqual([])
+    expect(result.masterData.units).toEqual([])
+  })
+
+  it('verhindert das Löschen eines Objekts mit Abrechnungsjahren', () => {
+    const source = fileWithPropertyStructure()
+    const used: AppDataFile = {
+      ...source,
+      billingData: {
+        ...source.billingData,
+        billingPeriods: [
+          {
+            id: '10000000-0000-4000-8000-000000000008',
+            propertyId: IDS.property,
+            year: 2026,
+            periodStart: '2026-01-01',
+            periodEnd: '2026-12-31',
+            status: 'DRAFT',
+          },
+        ],
+      },
+    }
+
+    expect(() => deleteProperty(used, IDS.property)).toThrowError(
+      'Abrechnungsjahre',
     )
   })
 })

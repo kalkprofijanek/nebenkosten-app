@@ -20,6 +20,8 @@ import {
 } from './features/occupancies/commands'
 import { BillingPeriodsRoute } from './features/workflows/BillingPeriodsRoute'
 import { CompanyRoute } from './features/workflows/CompanyRoute'
+import { OccupanciesRoute } from './features/workflows/OccupanciesRoute'
+import { PropertyRoute } from './features/workflows/PropertyRoute'
 
 export interface WorkflowSelection {
   readonly ownerCompanyId: string | null
@@ -166,6 +168,24 @@ export function WorkflowRoute({
     )
   }
 
+  if (path === '/objekte') {
+    if (!selection.ownerCompanyId) {
+      return (
+        <ContextNeeded>
+          Bitte zuerst eine Firma auswählen oder anlegen.
+        </ContextNeeded>
+      )
+    }
+    return (
+      <PropertyRoute
+        data={data}
+        selection={selection}
+        onSelectionChange={onSelectionChange}
+        onApply={onApply}
+      />
+    )
+  }
+
   if (path === '/firmen-legacy') {
     return (
       <>
@@ -236,7 +256,7 @@ export function WorkflowRoute({
     )
   }
 
-  if (path === '/objekte') {
+  if (path === '/objekte-legacy') {
     if (!selection.ownerCompanyId)
       return (
         <ContextNeeded>
@@ -434,6 +454,17 @@ export function WorkflowRoute({
     )
 
   if (path === '/nutzer') {
+    return (
+      <OccupanciesRoute
+        data={data}
+        selection={selection}
+        onSelectionChange={onSelectionChange}
+        onApply={onApply}
+      />
+    )
+  }
+
+  if (path === '/nutzer-legacy') {
     const units = data.masterData.units.filter(
       ({ propertyId }) => propertyId === period.propertyId,
     )
