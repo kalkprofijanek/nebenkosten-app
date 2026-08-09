@@ -4,6 +4,7 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import { parseEuroCents, parseOptionalNumber } from './app/form-parsers'
 import { createBillingPeriod } from './features/billing-periods/commands'
 import { addCostCategory, addCostEntry } from './features/costs/commands'
+import { CostDataOverview } from './features/costs/CostDataOverview'
 import {
   addEnergySource,
   addHeatingCircuit,
@@ -594,15 +595,13 @@ export function WorkflowRoute({
           <Field label="Betrag in Euro" name="amount" required />
           <button type="submit">Kosten erfassen</button>
         </form>
-        <Entries empty="Noch keine Kosten erfasst.">
-          {categories.length > 0 && (
-            <ul>
-              {categories.map((category) => (
-                <li key={category.id}>{category.label}</li>
-              ))}
-            </ul>
-          )}
-        </Entries>
+        <CostDataOverview
+          categories={categories}
+          entries={data.billingData.costEntries}
+          bankBookings={data.billingData.bankBookings}
+          propertyId={period.propertyId}
+          billingYear={period.year}
+        />
       </>
     )
   }

@@ -33,6 +33,20 @@ function fictionalLegacyV3() {
                 prefix: ['FT'],
               },
             ],
+            buchungen: [
+              {
+                id: 'buchung-pr14-test',
+                datum: '2026-06-02',
+                betrag: -100,
+                auftraggeber: 'Fiktiver Dienstleister',
+                verwendungszweck: 'Fiktive Betriebskosten 2026',
+                buchungstext: 'LASTSCHRIFT',
+                kategorie: 'NK_UMLEGBAR',
+                kostenart_id: 'kosten-pr12-test',
+                abr_jahr: 2026,
+                _geprueft: true,
+              },
+            ],
             abrechnungen: [
               {
                 id: 'jahr-pr12-test',
@@ -142,6 +156,17 @@ test('migrates fictional v3 data, exports a v4 backup, and proves rollback', asy
     .getByRole('button', { name: 'Geprüften Import übernehmen' })
     .click()
   await expect(page.getByText('Lokal gespeichert')).toBeVisible()
+
+  await page.getByRole('link', { name: 'Kosten', exact: true }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Kostenpositionen (1)' }),
+  ).toBeVisible()
+  await expect(page.getByText('Fiktive Rechnung')).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Bankbuchungen (1)' }),
+  ).toBeVisible()
+  await expect(page.getByText('Fiktiver Dienstleister')).toBeVisible()
+  await expect(page.getByText('Fiktive Betriebskosten 2026')).toBeVisible()
 
   await page.getByRole('link', { name: 'Berechnung', exact: true }).click()
   await page.getByRole('button', { name: 'Abrechnung berechnen' }).click()

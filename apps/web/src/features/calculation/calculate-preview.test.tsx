@@ -80,7 +80,7 @@ describe('calculatePreview', () => {
       expect.objectContaining({
         id: '40000000-0000-4000-8000-000000000007',
         startedAt: '2026-07-19T12:00:00.000Z',
-        appVersion: '1.0.0',
+        appVersion: '1.0.1',
       }),
     ])
     expect(result.billingData.calculationResults).toEqual([
