@@ -13,7 +13,7 @@ test('keeps the complete workspace context inside a mobile viewport', async ({
 
   await page.getByRole('link', { name: 'Objekte', exact: true }).click()
   await page.getByLabel('Interne Objektnummer').fill('UI-TEST-02')
-  await page.getByLabel('Straße').fill('Testallee 20')
+  await page.getByLabel('Straße').fill('Fiktives Beispielobjekt')
   await page.getByLabel('Postleitzahl und Ort').fill('00000 Musterstadt')
   await page.getByLabel('Gebäudename').fill('Haus Süd')
   await page.getByLabel('Erste Einheit').fill('Wohnung A')
