@@ -1,15 +1,25 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
 
 import { appRoutes, findRoute } from './app/navigation'
+import {
+  emptySelection,
+  normalizeSelection,
+  type SelectionContext,
+} from './app/selection'
 import { APP_RELEASE_LABEL } from './app/version'
+import { workflowProgress } from './app/workflow-progress'
+import { buildWorkspaceContext } from './app/workspace-context'
 import type { WorkspaceState } from './app/workspace-controller'
+import { WorkspaceContextBar } from './WorkspaceContextBar'
 
 interface AppProps {
   readonly initialPath?: string
   readonly importControl?: ReactNode
   readonly onCreateWorkspace?: () => void
+  readonly onSelectionChange?: (patch: Partial<SelectionContext>) => void
   readonly previewMode?: boolean
   readonly renderRoute?: (path: string) => ReactNode
+  readonly selection?: SelectionContext
   readonly workspaceState?: WorkspaceState
 }
 
@@ -99,27 +109,19 @@ function EmptyWorkspace({
 function Dashboard({
   onCreateWorkspace,
   previewMode,
+  selection,
   workspaceState,
 }: {
   readonly onCreateWorkspace?: () => void
   readonly previewMode?: boolean
+  readonly selection: SelectionContext
   readonly workspaceState?: WorkspaceState
 }) {
   const data = workspaceState?.data
   const objectCount = data?.masterData.properties.length ?? 0
   const periodCount = data?.billingData.billingPeriods.length ?? 0
   const userCount = data?.billingData.occupancyPeriods.length ?? 0
-  const completedSteps = [
-    (data?.masterData.ownerCompanies.length ?? 0) > 0,
-    objectCount > 0,
-    periodCount > 0,
-    userCount > 0,
-    (data?.billingData.costEntries.length ?? 0) > 0,
-    (data?.billingData.heatingCircuits.length ?? 0) > 0,
-    (data?.billingData.calculationResults.length ?? 0) > 0,
-    false,
-  ]
-  const progressCount = completedSteps.filter(Boolean).length
+  const progress = workflowProgress(data, selection)
 
   return (
     <>
@@ -165,14 +167,15 @@ function Dashboard({
             <h2 id="workflow-title">Von den Stammdaten zur Freigabe</h2>
           </div>
           <span className="progress-label">
-            {progressCount} von 8 Schritten
+            {progress.completed} von {progress.total} Schritten
           </span>
         </div>
-        <div
-          className={`progress-track progress-track--${progressCount}`}
-          aria-hidden="true"
-        >
-          <span />
+        <div className="progress-track" aria-hidden="true">
+          <span
+            style={{
+              width: `${progress.total === 0 ? 0 : (progress.completed / progress.total) * 100}%`,
+            }}
+          />
         </div>
         <ol className="workflow-list">
           {workflowRoutes.map((route, index) => (
@@ -184,11 +187,9 @@ function Dashboard({
                 <span>
                   <strong>{route.label}</strong>
                   <small>
-                    {completedSteps[index]
+                    {progress.steps[index]?.status === 'done'
                       ? 'Erfasst'
-                      : index === progressCount
-                        ? 'Hier beginnt die neue Abrechnung'
-                        : 'Wartet auf vorherige Angaben'}
+                      : 'Noch offen'}
                   </small>
                 </span>
                 <span className="workflow-arrow" aria-hidden="true">
@@ -238,8 +239,10 @@ export function App({
   initialPath,
   importControl,
   onCreateWorkspace,
+  onSelectionChange,
   previewMode,
   renderRoute,
+  selection = emptySelection,
   workspaceState,
 }: AppProps) {
   const [path, setPath] = useState(
@@ -249,7 +252,23 @@ export function App({
         : globalThis.location?.pathname) ??
       '/',
   )
+  const [navigationOpen, setNavigationOpen] = useState(false)
   const route = findRoute(path)
+  const activeSelection =
+    workspaceState?.data === null || workspaceState?.data === undefined
+      ? emptySelection
+      : normalizeSelection(workspaceState.data, selection)
+  const workspaceContext = buildWorkspaceContext(
+    workspaceState?.data,
+    activeSelection,
+  )
+  const activeBillingPeriod =
+    workspaceState?.data?.billingData.billingPeriods.find(
+      ({ id }) => id === activeSelection.billingPeriodId,
+    )
+  const pageStatusLabel =
+    activeBillingPeriod === undefined ? 'Entwurf' : workspaceContext.statusLabel
+  const pageStatusClass = activeBillingPeriod?.status.toLowerCase() ?? 'draft'
 
   useEffect(() => {
     if (initialPath !== undefined) return
@@ -277,6 +296,7 @@ export function App({
       globalThis.scrollTo({ top: 0, behavior: 'smooth' })
     }
     setPath(nextPath)
+    setNavigationOpen(false)
   }
 
   return (
@@ -285,7 +305,7 @@ export function App({
         Zum Inhalt springen
       </a>
 
-      <aside className="sidebar">
+      <aside className={`sidebar${navigationOpen ? ' sidebar--open' : ''}`}>
         <a
           className="brand"
           href="#/"
@@ -299,7 +319,10 @@ export function App({
           </span>
         </a>
 
-        <nav aria-label="Abrechnungsbereiche">
+        <nav
+          aria-label="Abrechnungsbereiche"
+          className={navigationOpen ? 'sidebar--open' : undefined}
+        >
           <p className="navigation-label">Arbeitsbereiche</p>
           <ul className="navigation-list">
             {appRoutes.map((item, index) => (
@@ -333,10 +356,23 @@ export function App({
 
       <div className="workspace">
         <header className="topbar">
-          <div className="context">
-            <span>Arbeitsbestand</span>
-            <strong>Noch kein Objekt gewählt</strong>
-          </div>
+          <button
+            className="navigation-toggle"
+            type="button"
+            aria-label={
+              navigationOpen ? 'Bereiche schließen' : 'Bereiche öffnen'
+            }
+            aria-expanded={navigationOpen}
+            onClick={() => setNavigationOpen((open) => !open)}
+          >
+            <span aria-hidden="true">☰</span>
+            Bereiche
+          </button>
+          <WorkspaceContextBar
+            context={workspaceContext}
+            selection={activeSelection}
+            onSelectionChange={onSelectionChange}
+          />
           <div className="topbar-actions">
             <span className="save-state">
               <i aria-hidden="true" />
@@ -357,13 +393,16 @@ export function App({
               <h1>{route.title}</h1>
               <p>{route.description}</p>
             </div>
-            <span className="status-pill status-pill--draft">Entwurf</span>
+            <span className={`status-pill status-pill--${pageStatusClass}`}>
+              {pageStatusLabel}
+            </span>
           </header>
 
           {route.path === '/' ? (
             <Dashboard
               onCreateWorkspace={onCreateWorkspace}
               previewMode={previewMode}
+              selection={activeSelection}
               workspaceState={workspaceState}
             />
           ) : (

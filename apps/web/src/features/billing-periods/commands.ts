@@ -1,4 +1,9 @@
-import type { AppDataFile } from '@nebenkosten/schema'
+import type {
+  AppDataFile,
+  BillingNotes,
+  CoverLetter,
+  HeatingDefaults,
+} from '@nebenkosten/schema'
 import {
   assertValidResult,
   assertValidSource,
@@ -15,6 +20,15 @@ export class BillingPeriodCommandError extends Error {
 export interface CreateBillingPeriodInput {
   readonly propertyId: string
   readonly year: number
+}
+
+export interface UpdateBillingPeriodInput {
+  readonly year: number
+  readonly periodStart: string
+  readonly periodEnd: string
+  readonly notes?: BillingNotes
+  readonly coverLetter?: CoverLetter
+  readonly heatingDefaults?: HeatingDefaults
 }
 
 function normalizePropertyId(value: unknown): string {
@@ -87,6 +101,123 @@ export function createBillingPeriod(
           status: 'DRAFT',
         },
       ],
+    },
+  }
+  return assertValidResult(result, BillingPeriodCommandError)
+}
+
+export function updateBillingPeriod(
+  data: AppDataFile,
+  billingPeriodId: string,
+  input: UpdateBillingPeriodInput,
+): AppDataFile {
+  assertValidSource(data, BillingPeriodCommandError)
+  const period = data.billingData.billingPeriods.find(
+    ({ id }) => id === billingPeriodId,
+  )
+  if (period === undefined) {
+    throw new BillingPeriodCommandError(
+      'Das ausgewählte Abrechnungsjahr ist nicht vorhanden.',
+    )
+  }
+  if (period.status !== 'DRAFT') {
+    throw new BillingPeriodCommandError(
+      'Nur ein Abrechnungsjahr im Entwurf kann hier bearbeitet werden.',
+    )
+  }
+  const year = validateYear(input.year)
+  if (
+    typeof input.periodStart !== 'string' ||
+    typeof input.periodEnd !== 'string' ||
+    input.periodStart > input.periodEnd
+  ) {
+    throw new BillingPeriodCommandError('Der Abrechnungszeitraum ist ungültig.')
+  }
+  const consumptionShare = input.heatingDefaults?.consumptionSharePercent
+  const baseShare = input.heatingDefaults?.baseSharePercent
+  if (
+    consumptionShare != null &&
+    baseShare != null &&
+    Math.abs(consumptionShare + baseShare - 100) > Number.EPSILON
+  ) {
+    throw new BillingPeriodCommandError(
+      'Verbrauchs- und Grundkostenanteil müssen zusammen 100 Prozent ergeben.',
+    )
+  }
+  if (
+    data.billingData.billingPeriods.some(
+      ({ id, propertyId, year: existingYear }) =>
+        id !== billingPeriodId &&
+        propertyId === period.propertyId &&
+        existingYear === year,
+    )
+  ) {
+    throw new BillingPeriodCommandError(
+      `Das Abrechnungsjahr ${year} ist für diese Liegenschaft bereits vorhanden.`,
+    )
+  }
+  const result: AppDataFile = {
+    ...data,
+    billingData: {
+      ...data.billingData,
+      billingPeriods: data.billingData.billingPeriods.map((item) =>
+        item.id === billingPeriodId
+          ? {
+              ...item,
+              year,
+              periodStart: input.periodStart,
+              periodEnd: input.periodEnd,
+              notes: input.notes,
+              coverLetter: input.coverLetter,
+              heatingDefaults: input.heatingDefaults,
+            }
+          : item,
+      ),
+    },
+  }
+  return assertValidResult(result, BillingPeriodCommandError)
+}
+
+function referencesBillingPeriod(entity: unknown, billingPeriodId: string) {
+  return (
+    typeof entity === 'object' &&
+    entity !== null &&
+    'billingPeriodId' in entity &&
+    entity.billingPeriodId === billingPeriodId
+  )
+}
+
+export function deleteBillingPeriod(
+  data: AppDataFile,
+  billingPeriodId: string,
+): AppDataFile {
+  assertValidSource(data, BillingPeriodCommandError)
+  if (
+    !data.billingData.billingPeriods.some(({ id }) => id === billingPeriodId)
+  ) {
+    throw new BillingPeriodCommandError(
+      'Das ausgewählte Abrechnungsjahr ist nicht vorhanden.',
+    )
+  }
+  const hasDependentData = Object.entries(data.billingData).some(
+    ([key, entities]) =>
+      key !== 'billingPeriods' &&
+      entities.some((entity) =>
+        referencesBillingPeriod(entity, billingPeriodId),
+      ),
+  )
+  if (hasDependentData) {
+    throw new BillingPeriodCommandError(
+      'Das Abrechnungsjahr kann nicht gelöscht werden, solange Abrechnungsdaten zugeordnet sind.',
+    )
+  }
+  const result: AppDataFile = {
+    ...data,
+    billingData: {
+      ...data.billingData,
+      billingPeriods: data.billingData.billingPeriods.filter(
+        ({ id }) => id !== billingPeriodId,
+      ),
     },
   }
   return assertValidResult(result, BillingPeriodCommandError)

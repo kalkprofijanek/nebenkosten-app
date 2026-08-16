@@ -4,7 +4,14 @@ import {
   type AppDataFile,
 } from '@nebenkosten/schema'
 import { describe, expect, it } from 'vitest'
-import { addCostCategory, addCostEntry } from './commands'
+import {
+  addCostCategory,
+  addCostEntry,
+  deleteCostCategory,
+  deleteCostEntry,
+  updateCostCategory,
+  updateCostEntry,
+} from './commands'
 
 const IDS = {
   organization: '50000000-0000-4000-8000-000000000001',
@@ -220,6 +227,79 @@ describe('Kosten-Commands', () => {
         () => IDS.entry,
       ),
     ).toThrow(/Eingabe/i)
+  })
+
+  it('bearbeitet Kostenart und Position als getrennte Entitäten', () => {
+    const withCategory = addCostCategory(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        kind: 'operating',
+        label: 'Alte Kostenart',
+        allocationKey: 'usable_area',
+      },
+      () => IDS.category,
+    )
+    const source = addCostEntry(
+      withCategory,
+      {
+        costCategoryId: IDS.category,
+        description: 'Alte Position',
+        amountCents: 10_000,
+      },
+      () => IDS.entry,
+    )
+
+    const updatedCategory = updateCostCategory(source, IDS.category, {
+      kind: 'operating',
+      label: 'Neue Kostenart',
+      statementText: 'Text auf der Abrechnung',
+      allocationKey: 'residential_units',
+      scope: { kind: 'property' },
+      allocablePercent: 90,
+    })
+    const result = updateCostEntry(updatedCategory, IDS.entry, {
+      costCategoryId: IDS.category,
+      date: '2026-05-01',
+      description: 'Neue Position',
+      amountCents: 12_345,
+      receiptReference: 'TEST-BELEG',
+      allocablePercent: 90,
+    })
+
+    expect(result.billingData.costCategories[0]).toMatchObject({
+      label: 'Neue Kostenart',
+      allocationKey: 'residential_units',
+    })
+    expect(result.billingData.costEntries[0]).toMatchObject({
+      description: 'Neue Position',
+      amountCents: 12_345,
+    })
+  })
+
+  it('löscht Positionen, aber schützt Kostenarten mit Positionen', () => {
+    const withCategory = addCostCategory(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        kind: 'operating',
+        label: 'Kostenart',
+      },
+      () => IDS.category,
+    )
+    const withEntry = addCostEntry(
+      withCategory,
+      { costCategoryId: IDS.category, amountCents: 100 },
+      () => IDS.entry,
+    )
+
+    expect(() => deleteCostCategory(withEntry, IDS.category)).toThrowError(
+      'Positionen',
+    )
+    const withoutEntry = deleteCostEntry(withEntry, IDS.entry)
+    expect(
+      deleteCostCategory(withoutEntry, IDS.category).billingData.costCategories,
+    ).toEqual([])
   })
 
   it('weist doppelte IDs und Belegdaten außerhalb des Abrechnungsjahres zurück', () => {

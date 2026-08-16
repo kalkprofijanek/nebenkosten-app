@@ -7,8 +7,13 @@ import { describe, expect, it } from 'vitest'
 import {
   addTenantOccupancy,
   addVacancyOccupancy,
+  deleteOccupancy,
   setOccupancyPrepayment,
+  updateTenantOccupancy,
+  updateVacancyOccupancy,
 } from './commands'
+
+const TEST_USER_EMAIL = ['nutzer', 'example.invalid'].join('@')
 
 const IDS = {
   organization: '10000000-0000-4000-8000-000000000001',
@@ -366,6 +371,118 @@ describe('Nutzer-Commands', () => {
         sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
       ),
     ).toThrow(/Abrechnungszeitraum/i)
+  })
+
+  it('bearbeitet Nutzer, Versandanschrift, Zeitraum und Vorauszahlung atomar', () => {
+    const source = addTenantOccupancy(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Alter Anzeigename' },
+        occupancy: { from: '2026-01-01', persons: 1 },
+        prepayment: { mode: 'none_agreed' },
+      },
+      sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+    )
+
+    const result = updateTenantOccupancy(source, {
+      occupancyPeriodId: IDS.occupancy,
+      displayName: 'Neuer Anzeigename',
+      from: '2026-02-01',
+      to: '2026-12-31',
+      persons: 2,
+      shippingAddressStreet: 'Fiktive Straße',
+      shippingAddressPostalCodeAndCity: 'Beispielort',
+      firstName: 'Fiktiver',
+      lastName: 'Nutzer',
+      email: TEST_USER_EMAIL,
+      mandateReference: 'TEST-MANDAT',
+      monthlyRentCents: 80_000,
+      consumptionUnits: 145.5,
+      consumptionUnitsEstimated: true,
+      consumptionUnitsEstimateReason: 'Fiktive Schätzung',
+      coldWater: 20,
+      warmWater: 10,
+      applySection12Reduction: true,
+      dispatchDate: '2026-12-01',
+      note: 'Fiktive Nutzernotiz',
+      prepayment: { mode: 'monthly', monthlyAmountCents: 21_000 },
+    })
+
+    expect(source.masterData.persons[0]?.displayName).toBe('Alter Anzeigename')
+    expect(result.masterData.persons[0]?.displayName).toBe('Neuer Anzeigename')
+    expect(result.masterData.persons[0]).toMatchObject({
+      firstName: 'Fiktiver',
+      lastName: 'Nutzer',
+      email: TEST_USER_EMAIL,
+    })
+    expect(result.masterData.tenancies[0]).toMatchObject({
+      shippingAddressStreet: 'Fiktive Straße',
+      mandateReference: 'TEST-MANDAT',
+      monthlyRentCents: 80_000,
+    })
+    expect(result.billingData.occupancyPeriods[0]).toMatchObject({
+      from: '2026-02-01',
+      persons: { value: 2, unit: 'personen' },
+      consumptionUnits: { value: 145.5, unit: 'einheiten' },
+      consumptionUnitsEstimated: true,
+      coldWater: { value: 20, unit: 'm3' },
+      warmWater: { value: 10, unit: 'm3' },
+      applySection12Reduction: true,
+      dispatchDate: '2026-12-01',
+    })
+    expect(result.billingData.prepayments[0]).toMatchObject({
+      mode: 'monthly',
+      monthlyAmountCents: 21_000,
+    })
+  })
+
+  it('bearbeitet Leerstand und prüft den Zeitraum erneut', () => {
+    const source = addVacancyOccupancy(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        from: '2026-01-01',
+        to: '2026-03-31',
+      },
+      () => IDS.occupancy,
+    )
+
+    const result = updateVacancyOccupancy(source, {
+      occupancyPeriodId: IDS.occupancy,
+      from: '2026-02-01',
+      to: '2026-04-30',
+      note: 'Geprüfter Leerstand',
+    })
+
+    expect(result.billingData.occupancyPeriods[0]).toMatchObject({
+      from: '2026-02-01',
+      to: '2026-04-30',
+      note: 'Geprüfter Leerstand',
+    })
+  })
+
+  it('löscht Nutzerzeitraum und nur dessen verwaiste Stammdaten', () => {
+    const source = addTenantOccupancy(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Zu löschender Nutzer' },
+        occupancy: {},
+        prepayment: { mode: 'none_agreed' },
+      },
+      sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+    )
+
+    const result = deleteOccupancy(source, IDS.occupancy)
+
+    expect(result.billingData.occupancyPeriods).toEqual([])
+    expect(result.billingData.prepayments).toEqual([])
+    expect(result.masterData.tenancies).toEqual([])
+    expect(result.masterData.persons).toEqual([])
   })
 
   it('weist kollidierende erzeugte IDs und fehlende Vorauszahlungsreferenzen zurück', () => {

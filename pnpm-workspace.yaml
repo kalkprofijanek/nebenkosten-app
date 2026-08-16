@@ -9,5 +9,5 @@ sharedWorkspaceLockfile: true
 # Remove once every upstream dependency requires a patched version itself.
 overrides:
   brace-expansion: '>=5.0.9'
-  nanoid: '3.3.17'
+  nanoid: '3.3.18'
   postcss: '>=8.5.23'

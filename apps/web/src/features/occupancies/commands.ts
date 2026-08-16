@@ -1,5 +1,6 @@
 import {
   appDataFileSchema,
+  allocationScopeSchema,
   occupancyPeriodSchema,
   personSchema,
   prepaymentSchema,
@@ -45,6 +46,24 @@ export interface AddVacancyOccupancyInput {
 export type SetOccupancyPrepaymentInput = Readonly<
   { occupancyPeriodId: string } & AddTenantOccupancyInput['prepayment']
 >
+
+export interface UpdateTenantOccupancyInput {
+  readonly occupancyPeriodId: string
+  readonly displayName: string
+  readonly from?: string
+  readonly to?: string
+  readonly persons?: number
+  readonly shippingAddressStreet?: string
+  readonly shippingAddressPostalCodeAndCity?: string
+  readonly prepayment: AddTenantOccupancyInput['prepayment']
+}
+
+export interface UpdateVacancyOccupancyInput {
+  readonly occupancyPeriodId: string
+  readonly from?: string
+  readonly to?: string
+  readonly note?: string
+}
 
 const ADD_KEYS = [
   'billingPeriodId',
@@ -508,6 +527,304 @@ export function setOccupancyPrepayment(
       ...file.billingData,
       prepayments: file.billingData.prepayments.map((item) =>
         item.id === current.id ? replacement : item,
+      ),
+    },
+  })
+}
+
+export function updateTenantOccupancy(
+  file: AppDataFile,
+  rawInput: unknown,
+): AppDataFile {
+  const input = recordWithExactKeys(
+    rawInput,
+    [
+      'occupancyPeriodId',
+      'displayName',
+      'firstName',
+      'lastName',
+      'email',
+      'from',
+      'to',
+      'persons',
+      'mandateReference',
+      'monthlyRentCents',
+      'shippingAddressStreet',
+      'shippingAddressPostalCodeAndCity',
+      'consumptionUnits',
+      'consumptionUnitsEstimated',
+      'consumptionUnitsEstimateReason',
+      'coldWater',
+      'warmWater',
+      'applySection12Reduction',
+      'costScope',
+      'propertyTaxScope',
+      'dispatchDate',
+      'note',
+      'prepayment',
+    ],
+    'Nutzerbearbeitung',
+  )
+  const occupancyPeriodId = requiredString(input, 'occupancyPeriodId')
+  const displayName = requiredString(input, 'displayName', MAX_NAME_LENGTH)
+  const firstName = optionalString(input, 'firstName', MAX_NAME_LENGTH)
+  const lastName = optionalString(input, 'lastName', MAX_NAME_LENGTH)
+  const email = optionalString(input, 'email', MAX_EMAIL_LENGTH)
+  const from = optionalString(input, 'from', 10)
+  const to = optionalString(input, 'to', 10)
+  const persons = input.persons
+  if (
+    persons !== undefined &&
+    (typeof persons !== 'number' || !Number.isFinite(persons) || persons < 0)
+  ) {
+    throw new OccupancyCommandError('Ungültige Eingabe für Personenzahl.')
+  }
+  const optionalNonNegativeNumber = (key: string) => {
+    const value = input[key]
+    if (value === undefined) return undefined
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0)
+      throw new OccupancyCommandError(`Ungültige Eingabe für ${key}.`)
+    return value
+  }
+  const monthlyRentCents = optionalNonNegativeNumber('monthlyRentCents')
+  if (monthlyRentCents !== undefined && !Number.isSafeInteger(monthlyRentCents))
+    throw new OccupancyCommandError('Ungültige Eingabe für monthlyRentCents.')
+  const consumptionUnits = optionalNonNegativeNumber('consumptionUnits')
+  const coldWater = optionalNonNegativeNumber('coldWater')
+  const warmWater = optionalNonNegativeNumber('warmWater')
+  const consumptionUnitsEstimated = input.consumptionUnitsEstimated
+  const applySection12Reduction = input.applySection12Reduction
+  if (
+    (consumptionUnitsEstimated !== undefined &&
+      typeof consumptionUnitsEstimated !== 'boolean') ||
+    (applySection12Reduction !== undefined &&
+      typeof applySection12Reduction !== 'boolean')
+  )
+    throw new OccupancyCommandError('Ungültige boolesche Nutzereingabe.')
+  const mandateReference = optionalString(input, 'mandateReference', 500)
+  const consumptionUnitsEstimateReason = optionalString(
+    input,
+    'consumptionUnitsEstimateReason',
+    500,
+  )
+  const dispatchDate = optionalString(input, 'dispatchDate', 10)
+  const note = optionalString(input, 'note', 2_000)
+  const costScope =
+    input.costScope === undefined
+      ? undefined
+      : parseEntity(allocationScopeSchema, input.costScope, 'Kostenbereich')
+  const propertyTaxScope =
+    input.propertyTaxScope === undefined
+      ? undefined
+      : parseEntity(
+          allocationScopeSchema,
+          input.propertyTaxScope,
+          'Grundsteuerbereich',
+        )
+  const shippingAddressStreet = optionalString(
+    input,
+    'shippingAddressStreet',
+    500,
+  )
+  const shippingAddressPostalCodeAndCity = optionalString(
+    input,
+    'shippingAddressPostalCodeAndCity',
+    500,
+  )
+  const prepayment = parsePrepaymentInput(input.prepayment)
+  const occupancy = file.billingData.occupancyPeriods.find(
+    ({ id }) => id === occupancyPeriodId,
+  )
+  if (occupancy?.kind !== 'tenant' || occupancy.tenancyId == null) {
+    throw new OccupancyCommandError('Nutzerzeitraum wurde nicht gefunden.')
+  }
+  const tenancy = file.masterData.tenancies.find(
+    ({ id }) => id === occupancy.tenancyId,
+  )
+  const personId = tenancy?.personIds[0]
+  if (tenancy === undefined || personId === undefined) {
+    throw new OccupancyCommandError('Mietverhältnis wurde nicht gefunden.')
+  }
+  const period = file.billingData.billingPeriods.find(
+    ({ id }) => id === occupancy.billingPeriodId,
+  )
+  if (period === undefined) {
+    throw new OccupancyCommandError('Abrechnungsjahr wurde nicht gefunden.')
+  }
+  const range = assertDateRange(from, to, period.periodStart, period.periodEnd)
+  assertNoOverlap(
+    file.billingData.occupancyPeriods.filter(
+      ({ id }) => id !== occupancyPeriodId,
+    ),
+    occupancy.billingPeriodId,
+    occupancy.unitId,
+    range,
+    period.periodStart,
+    period.periodEnd,
+  )
+  const updated = validatedFile({
+    ...file,
+    masterData: {
+      ...file.masterData,
+      persons: file.masterData.persons.map((person) =>
+        person.id === personId
+          ? { ...person, displayName, firstName, lastName, email }
+          : person,
+      ),
+      tenancies: file.masterData.tenancies.map((item) =>
+        item.id === tenancy.id
+          ? {
+              ...item,
+              shippingAddressStreet,
+              shippingAddressPostalCodeAndCity,
+              mandateReference,
+              monthlyRentCents,
+            }
+          : item,
+      ),
+    },
+    billingData: {
+      ...file.billingData,
+      occupancyPeriods: file.billingData.occupancyPeriods.map((item) =>
+        item.id === occupancyPeriodId
+          ? {
+              ...item,
+              from,
+              to,
+              persons:
+                typeof persons === 'number'
+                  ? { value: persons, unit: 'personen' as const }
+                  : undefined,
+              consumptionUnits:
+                consumptionUnits === undefined
+                  ? undefined
+                  : { value: consumptionUnits, unit: 'einheiten' as const },
+              consumptionUnitsEstimated,
+              consumptionUnitsEstimateReason,
+              coldWater:
+                coldWater === undefined
+                  ? undefined
+                  : { value: coldWater, unit: 'm3' as const },
+              warmWater:
+                warmWater === undefined
+                  ? undefined
+                  : { value: warmWater, unit: 'm3' as const },
+              applySection12Reduction,
+              costScope,
+              propertyTaxScope,
+              dispatchDate,
+              note,
+            }
+          : item,
+      ),
+    },
+  })
+  return setOccupancyPrepayment(updated, {
+    occupancyPeriodId,
+    ...prepayment,
+  })
+}
+
+export function updateVacancyOccupancy(
+  file: AppDataFile,
+  rawInput: unknown,
+): AppDataFile {
+  const input = recordWithExactKeys(
+    rawInput,
+    ['occupancyPeriodId', 'from', 'to', 'note'],
+    'Leerstandsbearbeitung',
+  )
+  const occupancyPeriodId = requiredString(input, 'occupancyPeriodId')
+  const from = optionalString(input, 'from', 10)
+  const to = optionalString(input, 'to', 10)
+  const note = optionalString(input, 'note', 500)
+  const occupancy = file.billingData.occupancyPeriods.find(
+    ({ id }) => id === occupancyPeriodId,
+  )
+  if (occupancy?.kind !== 'vacancy') {
+    throw new OccupancyCommandError('Leerstandszeitraum wurde nicht gefunden.')
+  }
+  const period = file.billingData.billingPeriods.find(
+    ({ id }) => id === occupancy.billingPeriodId,
+  )
+  if (period === undefined) {
+    throw new OccupancyCommandError('Abrechnungsjahr wurde nicht gefunden.')
+  }
+  const range = assertDateRange(from, to, period.periodStart, period.periodEnd)
+  assertNoOverlap(
+    file.billingData.occupancyPeriods.filter(
+      ({ id }) => id !== occupancyPeriodId,
+    ),
+    occupancy.billingPeriodId,
+    occupancy.unitId,
+    range,
+    period.periodStart,
+    period.periodEnd,
+  )
+  return validatedFile({
+    ...file,
+    billingData: {
+      ...file.billingData,
+      occupancyPeriods: file.billingData.occupancyPeriods.map((item) =>
+        item.id === occupancyPeriodId ? { ...item, from, to, note } : item,
+      ),
+    },
+  })
+}
+
+export function deleteOccupancy(
+  file: AppDataFile,
+  occupancyPeriodId: string,
+): AppDataFile {
+  const occupancy = file.billingData.occupancyPeriods.find(
+    ({ id }) => id === occupancyPeriodId,
+  )
+  if (occupancy === undefined) {
+    throw new OccupancyCommandError('Nutzungszeitraum wurde nicht gefunden.')
+  }
+  if (
+    file.billingData.documents.some(
+      ({ occupancyPeriodId: reference }) => reference === occupancyPeriodId,
+    )
+  ) {
+    throw new OccupancyCommandError(
+      'Der Nutzungszeitraum kann wegen erzeugter Dokumente nicht gelöscht werden.',
+    )
+  }
+  const tenancyStillUsed =
+    occupancy.tenancyId != null &&
+    file.billingData.occupancyPeriods.some(
+      ({ id, tenancyId }) =>
+        id !== occupancyPeriodId && tenancyId === occupancy.tenancyId,
+    )
+  const tenancy = file.masterData.tenancies.find(
+    ({ id }) => id === occupancy.tenancyId,
+  )
+  const removedPersonIds = tenancyStillUsed
+    ? new Set<string>()
+    : new Set(tenancy?.personIds ?? [])
+  const personStillUsed = (personId: string) =>
+    file.masterData.tenancies.some(
+      ({ id, personIds }) => id !== tenancy?.id && personIds.includes(personId),
+    )
+  return validatedFile({
+    ...file,
+    masterData: {
+      ...file.masterData,
+      tenancies: tenancyStillUsed
+        ? file.masterData.tenancies
+        : file.masterData.tenancies.filter(({ id }) => id !== tenancy?.id),
+      persons: file.masterData.persons.filter(
+        ({ id }) => !removedPersonIds.has(id) || personStillUsed(id),
+      ),
+    },
+    billingData: {
+      ...file.billingData,
+      occupancyPeriods: file.billingData.occupancyPeriods.filter(
+        ({ id }) => id !== occupancyPeriodId,
+      ),
+      prepayments: file.billingData.prepayments.filter(
+        ({ occupancyPeriodId: reference }) => reference !== occupancyPeriodId,
       ),
     },
   })

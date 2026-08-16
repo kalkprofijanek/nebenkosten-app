@@ -549,3 +549,320 @@ export function addFuelDelivery(
     },
   })
 }
+
+function requireEntity<T extends { readonly id: string }>(
+  entities: readonly T[],
+  entityId: string,
+  label: string,
+): T {
+  const entity = entities.find(({ id }) => id === entityId)
+  if (!entity) {
+    throw new HeatingCommandError(
+      'invalid-reference',
+      `${label} wurde nicht gefunden.`,
+    )
+  }
+  return entity
+}
+
+export function updateHeatingSystem(
+  currentFile: AppDataFile,
+  heatingSystemId: string,
+  input: AddHeatingSystemInput,
+): AppDataFile {
+  const file = parseFile(currentFile)
+  requireEntity(file.masterData.heatingSystems, heatingSystemId, 'Heizsystem')
+  const withoutCurrent = {
+    ...file,
+    masterData: {
+      ...file.masterData,
+      heatingSystems: file.masterData.heatingSystems.filter(
+        ({ id }) => id !== heatingSystemId,
+      ),
+    },
+  }
+  const validated = addHeatingSystem(withoutCurrent, input, {
+    createId: () => heatingSystemId,
+  })
+  const replacement = validated.masterData.heatingSystems.at(-1)!
+  return validateResult({
+    ...validated,
+    masterData: {
+      ...validated.masterData,
+      heatingSystems: file.masterData.heatingSystems.map((entity) =>
+        entity.id === heatingSystemId ? replacement : entity,
+      ),
+    },
+  })
+}
+
+export function updateHeatingCircuit(
+  currentFile: AppDataFile,
+  heatingCircuitId: string,
+  input: AddHeatingCircuitInput,
+): AppDataFile {
+  const file = parseFile(currentFile)
+  requireEntity(file.billingData.heatingCircuits, heatingCircuitId, 'Heizkreis')
+  const withoutCurrent = {
+    ...file,
+    billingData: {
+      ...file.billingData,
+      heatingCircuits: file.billingData.heatingCircuits.filter(
+        ({ id }) => id !== heatingCircuitId,
+      ),
+    },
+  }
+  const validated = addHeatingCircuit(withoutCurrent, input, {
+    createId: () => heatingCircuitId,
+  })
+  const replacement = validated.billingData.heatingCircuits.at(-1)!
+  return validateResult({
+    ...validated,
+    billingData: {
+      ...validated.billingData,
+      heatingCircuits: file.billingData.heatingCircuits.map((entity) =>
+        entity.id === heatingCircuitId ? replacement : entity,
+      ),
+    },
+  })
+}
+
+export function updateEnergySource(
+  currentFile: AppDataFile,
+  energySourceId: string,
+  input: AddEnergySourceInput,
+): AppDataFile {
+  const file = parseFile(currentFile)
+  requireEntity(file.billingData.energySources, energySourceId, 'Energiequelle')
+  const withoutCurrent = {
+    ...file,
+    billingData: {
+      ...file.billingData,
+      energySources: file.billingData.energySources.filter(
+        ({ id }) => id !== energySourceId,
+      ),
+    },
+  }
+  const validated = addEnergySource(withoutCurrent, input, {
+    createId: () => energySourceId,
+  })
+  const replacement = validated.billingData.energySources.at(-1)!
+  return validateResult({
+    ...validated,
+    billingData: {
+      ...validated.billingData,
+      energySources: file.billingData.energySources.map((entity) =>
+        entity.id === energySourceId ? replacement : entity,
+      ),
+    },
+  })
+}
+
+export function updateFuelStock(
+  currentFile: AppDataFile,
+  fuelStockId: string,
+  input: AddFuelStockInput,
+): AppDataFile {
+  const file = parseFile(currentFile)
+  requireEntity(file.billingData.fuelStocks, fuelStockId, 'Brennstoffbestand')
+  const withoutCurrent = {
+    ...file,
+    billingData: {
+      ...file.billingData,
+      fuelStocks: file.billingData.fuelStocks.filter(
+        ({ id }) => id !== fuelStockId,
+      ),
+    },
+  }
+  const validated = addFuelStock(withoutCurrent, input, {
+    createId: () => fuelStockId,
+  })
+  const replacement = validated.billingData.fuelStocks.at(-1)!
+  return validateResult({
+    ...validated,
+    billingData: {
+      ...validated.billingData,
+      fuelStocks: file.billingData.fuelStocks.map((entity) =>
+        entity.id === fuelStockId ? replacement : entity,
+      ),
+    },
+  })
+}
+
+export function updateFuelDelivery(
+  currentFile: AppDataFile,
+  fuelDeliveryId: string,
+  input: AddFuelDeliveryInput,
+): AppDataFile {
+  const file = parseFile(currentFile)
+  requireEntity(
+    file.billingData.fuelDeliveries,
+    fuelDeliveryId,
+    'Brennstofflieferung',
+  )
+  const withoutCurrent = {
+    ...file,
+    billingData: {
+      ...file.billingData,
+      fuelDeliveries: file.billingData.fuelDeliveries.filter(
+        ({ id }) => id !== fuelDeliveryId,
+      ),
+    },
+  }
+  const validated = addFuelDelivery(withoutCurrent, input, {
+    createId: () => fuelDeliveryId,
+  })
+  const replacement = validated.billingData.fuelDeliveries.at(-1)!
+  return validateResult({
+    ...validated,
+    billingData: {
+      ...validated.billingData,
+      fuelDeliveries: file.billingData.fuelDeliveries.map((entity) =>
+        entity.id === fuelDeliveryId ? replacement : entity,
+      ),
+    },
+  })
+}
+
+export function deleteFuelDelivery(
+  currentFile: AppDataFile,
+  fuelDeliveryId: string,
+): AppDataFile {
+  const file = parseFile(currentFile)
+  requireEntity(
+    file.billingData.fuelDeliveries,
+    fuelDeliveryId,
+    'Brennstofflieferung',
+  )
+  return validateResult({
+    ...file,
+    billingData: {
+      ...file.billingData,
+      fuelDeliveries: file.billingData.fuelDeliveries.filter(
+        ({ id }) => id !== fuelDeliveryId,
+      ),
+    },
+  })
+}
+
+export function deleteFuelStock(
+  currentFile: AppDataFile,
+  fuelStockId: string,
+): AppDataFile {
+  const file = parseFile(currentFile)
+  requireEntity(file.billingData.fuelStocks, fuelStockId, 'Brennstoffbestand')
+  return validateResult({
+    ...file,
+    billingData: {
+      ...file.billingData,
+      fuelStocks: file.billingData.fuelStocks.filter(
+        ({ id }) => id !== fuelStockId,
+      ),
+    },
+  })
+}
+
+export function deleteEnergySource(
+  currentFile: AppDataFile,
+  energySourceId: string,
+): AppDataFile {
+  const file = parseFile(currentFile)
+  const source = requireEntity(
+    file.billingData.energySources,
+    energySourceId,
+    'Energiequelle',
+  )
+  if (
+    file.billingData.fuelStocks.some(
+      ({ energySourceId: reference }) => reference === energySourceId,
+    ) ||
+    file.billingData.fuelDeliveries.some(
+      ({ energySourceId: reference }) => reference === energySourceId,
+    )
+  ) {
+    throw new HeatingCommandError(
+      'invalid-reference',
+      'Die Energiequelle kann mit vorhandenen Brennstoffdaten nicht gelöscht werden.',
+    )
+  }
+  const circuit = requireEntity(
+    file.billingData.heatingCircuits,
+    source.heatingCircuitId,
+    'Heizkreis',
+  )
+  if (
+    file.masterData.meters.some(
+      ({ energySourceRef }) =>
+        energySourceRef?.heatingCircuitBuildingId === circuit.buildingId &&
+        energySourceRef.energySourceKey === source.key,
+    )
+  ) {
+    throw new HeatingCommandError(
+      'invalid-reference',
+      'Die Energiequelle kann mit verknüpften Zählern nicht gelöscht werden.',
+    )
+  }
+  return validateResult({
+    ...file,
+    billingData: {
+      ...file.billingData,
+      energySources: file.billingData.energySources.filter(
+        ({ id }) => id !== energySourceId,
+      ),
+    },
+  })
+}
+
+export function deleteHeatingCircuit(
+  currentFile: AppDataFile,
+  heatingCircuitId: string,
+): AppDataFile {
+  const file = parseFile(currentFile)
+  requireEntity(file.billingData.heatingCircuits, heatingCircuitId, 'Heizkreis')
+  if (
+    file.billingData.energySources.some(
+      ({ heatingCircuitId: reference }) => reference === heatingCircuitId,
+    )
+  ) {
+    throw new HeatingCommandError(
+      'invalid-reference',
+      'Der Heizkreis kann mit vorhandener Energiequelle nicht gelöscht werden.',
+    )
+  }
+  return validateResult({
+    ...file,
+    billingData: {
+      ...file.billingData,
+      heatingCircuits: file.billingData.heatingCircuits.filter(
+        ({ id }) => id !== heatingCircuitId,
+      ),
+    },
+  })
+}
+
+export function deleteHeatingSystem(
+  currentFile: AppDataFile,
+  heatingSystemId: string,
+): AppDataFile {
+  const file = parseFile(currentFile)
+  requireEntity(file.masterData.heatingSystems, heatingSystemId, 'Heizsystem')
+  if (
+    file.billingData.heatingCircuits.some(
+      ({ heatingSystemId: reference }) => reference === heatingSystemId,
+    )
+  ) {
+    throw new HeatingCommandError(
+      'invalid-reference',
+      'Das Heizsystem kann mit vorhandenem Heizkreis nicht gelöscht werden.',
+    )
+  }
+  return validateResult({
+    ...file,
+    masterData: {
+      ...file.masterData,
+      heatingSystems: file.masterData.heatingSystems.filter(
+        ({ id }) => id !== heatingSystemId,
+      ),
+    },
+  })
+}

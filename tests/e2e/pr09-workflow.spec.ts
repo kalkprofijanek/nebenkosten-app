@@ -39,15 +39,23 @@ test('completes the workflow from workspace to the PR10 review gate', async ({
 
   await page.getByRole('link', { name: 'Kosten', exact: true }).click()
   await page
-    .getByRole('textbox', { name: 'Kostenart', exact: true })
+    .getByRole('textbox', { name: 'Neue Kostenart', exact: true })
     .fill('Sachversicherung')
-  await page.getByLabel('Betrag in Euro').fill('120,00')
-  await page.getByRole('button', { name: 'Kosten erfassen' }).click()
+  await page.getByRole('button', { name: 'Kostenart anlegen' }).click()
   await expect(
     page
       .getByRole('region', { name: 'Kostenarten (1)' })
       .getByText('Sachversicherung'),
   ).toBeVisible()
+
+  await page.getByRole('button', { name: 'Kostenpositionen' }).click()
+  await page.getByLabel('Beschreibung').fill('Sachversicherung 2026')
+  await page.getByLabel('Betrag in Euro').fill('120,00')
+  await page.getByRole('button', { name: 'Kostenposition anlegen' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Kostenpositionen (1)' }),
+  ).toBeVisible()
+  await expect(page.getByText('Sachversicherung 2026')).toBeVisible()
 
   await page.getByRole('link', { name: 'Heizkreise', exact: true }).click()
   await page.getByLabel('Heizsystem').fill('Zentralheizung')
