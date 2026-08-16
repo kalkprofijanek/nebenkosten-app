@@ -1,6 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import type { Meter, QuantityUnit } from '@nebenkosten/schema'
-import { parseEuroCents, parseOptionalNumber } from '../../../app/form-parsers'
+import {
+  formatEuroInput,
+  parseEuroCents,
+  parseOptionalNumber,
+} from '../../../app/form-parsers'
 import {
   addMeter,
   addMeterReading,
@@ -379,7 +383,7 @@ export function MeterPanel({
               defaultValue={
                 status?.estimateAmountCents == null
                   ? ''
-                  : (status.estimateAmountCents / 100).toFixed(2)
+                  : formatEuroInput(status.estimateAmountCents)
               }
             />
             <WorkflowField

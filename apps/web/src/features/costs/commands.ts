@@ -4,8 +4,10 @@ import {
   costEntrySchema,
   uuidSchema,
   type AppDataFile,
+  type BookingLink,
   type CostCategory,
   type CostEntry,
+  type ExternalPayment,
 } from '@nebenkosten/schema'
 
 export type IdFactory = () => string
@@ -38,6 +40,8 @@ export interface AddCostEntryInput {
   readonly amountCents: number
   readonly receiptReference?: string
   readonly allocablePercent?: number
+  readonly bookingLink?: BookingLink
+  readonly externalPayment?: ExternalPayment
 }
 
 const CATEGORY_KEYS = [
@@ -59,6 +63,8 @@ const ENTRY_KEYS = [
   'amountCents',
   'receiptReference',
   'allocablePercent',
+  'bookingLink',
+  'externalPayment',
 ] as const
 const MAX_LABEL_LENGTH = 200
 const MAX_TEXT_LENGTH = 2_000
@@ -197,6 +203,51 @@ function parseEntryInput(value: unknown): AddCostEntryInput {
   const amountCents = optionalInteger(input, 'amountCents')
   if (amountCents === undefined)
     throw new CostCommandError('Ungültige Eingabe für amountCents.')
+  const bookingLinkRecord =
+    input.bookingLink === undefined
+      ? undefined
+      : recordWithExactKeys(
+          input.bookingLink,
+          ['bankBookingId', 'splitId'],
+          'Buchungsverknüpfung',
+        )
+  const externalPaymentRecord =
+    input.externalPayment === undefined
+      ? undefined
+      : recordWithExactKeys(
+          input.externalPayment,
+          ['confirmed', 'reason'],
+          'externe Zahlung',
+        )
+  if (bookingLinkRecord && externalPaymentRecord)
+    throw new CostCommandError(
+      'Bitte entweder eine Bankbuchung oder eine externe Zahlung angeben.',
+    )
+  const bookingLink: BookingLink | undefined = bookingLinkRecord
+    ? {
+        bankBookingId: requiredString(bookingLinkRecord, 'bankBookingId', 128),
+        ...defined(
+          'splitId',
+          optionalString(bookingLinkRecord, 'splitId', 128),
+        ),
+      }
+    : undefined
+  const externalPayment: ExternalPayment | undefined = externalPaymentRecord
+    ? {
+        confirmed: externalPaymentRecord.confirmed === true,
+        ...defined(
+          'reason',
+          optionalString(externalPaymentRecord, 'reason', MAX_TEXT_LENGTH),
+        ),
+      }
+    : undefined
+  if (
+    externalPayment &&
+    (!externalPayment.confirmed || !externalPayment.reason?.trim())
+  )
+    throw new CostCommandError(
+      'Eine externe Zahlung benötigt eine nachvollziehbare Begründung.',
+    )
   return {
     costCategoryId: requiredString(input, 'costCategoryId'),
     amountCents,
@@ -213,7 +264,33 @@ function parseEntryInput(value: unknown): AddCostEntryInput {
       'allocablePercent',
       optionalFiniteNumber(input, 'allocablePercent'),
     ),
+    ...defined('bookingLink', bookingLink),
+    ...defined('externalPayment', externalPayment),
   }
+}
+
+function assertPaymentReference(
+  file: AppDataFile,
+  billingPeriod: AppDataFile['billingData']['billingPeriods'][number],
+  input: AddCostEntryInput,
+): void {
+  if (!input.bookingLink) return
+  const booking = file.billingData.bankBookings.find(
+    ({ id }) => id === input.bookingLink?.bankBookingId,
+  )
+  if (
+    !booking ||
+    booking.propertyId !== billingPeriod.propertyId ||
+    (booking.billingYear != null && booking.billingYear !== billingPeriod.year)
+  )
+    throw new CostCommandError(
+      'Die ausgewählte Bankbuchung gehört nicht zu diesem Abrechnungsjahr.',
+    )
+  if (
+    input.bookingLink.splitId != null &&
+    !booking.splits?.some(({ id }) => id === input.bookingLink?.splitId)
+  )
+    throw new CostCommandError('Der ausgewählte Buchungssplit fehlt.')
 }
 
 function entityIds(file: AppDataFile): Set<string> {
@@ -303,6 +380,7 @@ export function addCostEntry(
   )
   if (!billingPeriod)
     throw new CostCommandError('Abrechnungsjahr wurde nicht gefunden.')
+  assertPaymentReference(file, billingPeriod, input)
   if (
     input.date !== undefined &&
     (input.date < billingPeriod.periodStart ||
@@ -392,6 +470,7 @@ export function updateCostEntry(
   )
   if (!period)
     throw new CostCommandError('Abrechnungsjahr wurde nicht gefunden.')
+  assertPaymentReference(file, period, input)
   if (
     input.date !== undefined &&
     (input.date < period.periodStart || input.date > period.periodEnd)

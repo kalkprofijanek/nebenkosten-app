@@ -9,7 +9,7 @@ import { mapAuditEvents } from './meters-bookings-audit'
 import type { PropertyContext } from './shared'
 import { stringOrNullish, withLegacy } from './shared'
 import type { MigrationState } from './state'
-import { buildingForUser, isVacancy } from './tenancy-helpers'
+import { buildingForUser, isVacancy, userDisplayName } from './tenancy-helpers'
 import { addUnmapped, preserveUnknownKeys } from './unknown-fields'
 import {
   optionalBoolean,
@@ -602,7 +602,7 @@ function mapUser(
           salutation,
           firstName: stringOrNullish(user.vorname),
           lastName: stringOrNullish(user.nachname),
-          displayName: stringOrNullish(user.name),
+          displayName: userDisplayName(user),
           companyOrPrivate: stringOrNullish(user.firma_privat),
           email: stringOrNullish(user.email),
         },

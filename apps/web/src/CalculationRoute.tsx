@@ -47,6 +47,8 @@ export function CalculationRoute({
     billingPeriod?.status === 'READY_FOR_PDF' ||
     billingPeriod?.status === 'FINALIZED' ||
     billingPeriod?.status === 'SUPERSEDED'
+  const controlDifferenceTooLarge =
+    result !== undefined && Math.abs(result.totals.controlDifferenceCents) > 1
 
   return (
     <section className="calculation-panel" aria-labelledby="calculation-title">
@@ -60,8 +62,12 @@ export function CalculationRoute({
           <h2 id="calculation-title">Berechnungslauf</h2>
         </div>
         {latestRun ? (
-          <span className="status-pill status-pill--ready_for_pdf">
-            Rechenstand aktuell
+          <span
+            className={`status-pill status-pill--${controlDifferenceTooLarge ? 'draft' : 'ready_for_pdf'}`}
+          >
+            {controlDifferenceTooLarge
+              ? 'Rechenstand fehlerhaft'
+              : 'Rechenstand aktuell'}
           </span>
         ) : null}
       </header>
@@ -122,7 +128,24 @@ export function CalculationRoute({
               <dt>Kontrolldifferenz</dt>
               <dd>{euro(result.totals.controlDifferenceCents)}</dd>
             </div>
+            {controlDifferenceTooLarge ? (
+              <div>
+                <dt>Noch nicht verteilt</dt>
+                <dd>{euro(Math.abs(result.totals.controlDifferenceCents))}</dd>
+              </div>
+            ) : null}
           </dl>
+          {controlDifferenceTooLarge ? (
+            <section className="calculation-warnings" role="alert">
+              <strong>Kontrolldifferenz ist größer als 1 Cent.</strong>
+              <p>
+                Prüfe die erfassten Kosten und die Heizkosten, bevor du die
+                Abrechnung freigibst.
+              </p>
+              <a href="#/kosten">Kosten prüfen</a>{' '}
+              <a href="#/heizkreise">Heizung prüfen</a>
+            </section>
+          ) : null}
           {result.warnings.length > 0 ? (
             <section
               className="calculation-warnings"
@@ -144,12 +167,12 @@ export function CalculationRoute({
                 })}
               </ul>
             </section>
-          ) : (
+          ) : !controlDifferenceTooLarge ? (
             <p className="privacy-note">
               Keine Rechenwarnungen. Die Kontrolldifferenz liegt im zulässigen
               Bereich.
             </p>
-          )}
+          ) : null}
         </>
       ) : (
         <p>Noch kein gespeichertes Ergebnis für diesen Zeitraum.</p>

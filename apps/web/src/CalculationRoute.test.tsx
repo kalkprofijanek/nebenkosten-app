@@ -57,6 +57,26 @@ function fileWithResult(
   }
 }
 
+function fileWithControlDifference(): AppDataFile {
+  const data = fileWithResult()
+  const result = data.billingData.calculationResults[0]!
+  return {
+    ...data,
+    billingData: {
+      ...data.billingData,
+      calculationResults: [
+        {
+          ...result,
+          totals: {
+            ...result.totals,
+            controlDifferenceCents: 133_101,
+          },
+        },
+      ],
+    },
+  }
+}
+
 describe('CalculationRoute', () => {
   it('fordert ohne Abrechnungsjahr zur Auswahl auf', () => {
     render(
@@ -153,6 +173,33 @@ describe('CalculationRoute', () => {
     expect(
       screen.getByRole('link', { name: 'Kosten bearbeiten' }),
     ).toHaveAttribute('href', '#/kosten')
+  })
+
+  it('kennzeichnet eine unzulässige Kontrolldifferenz statt Entwarnung zu geben', () => {
+    render(
+      <CalculationRoute
+        data={fileWithControlDifference()}
+        billingPeriodId="period-1"
+        onApply={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Kontrolldifferenz ist größer als 1 Cent',
+    )
+    expect(screen.getByText('Rechenstand fehlerhaft')).toBeVisible()
+    expect(screen.getByText('Noch nicht verteilt')).toBeVisible()
+    expect(screen.getAllByText(/1\.331,01\s€/u)).toHaveLength(2)
+    expect(
+      screen.queryByText(/Kontrolldifferenz liegt im zulässigen Bereich/i),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Kosten prüfen' })).toHaveAttribute(
+      'href',
+      '#/kosten',
+    )
+    expect(
+      screen.getByRole('link', { name: 'Heizung prüfen' }),
+    ).toHaveAttribute('href', '#/heizkreise')
   })
 
   it.each(['READY_FOR_PDF', 'FINALIZED', 'SUPERSEDED'] as const)(

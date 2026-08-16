@@ -21,6 +21,7 @@ const IDS = {
   billingPeriod: '50000000-0000-4000-8000-000000000005',
   category: '60000000-0000-4000-8000-000000000001',
   entry: '60000000-0000-4000-8000-000000000002',
+  booking: '60000000-0000-4000-8000-000000000003',
 } as const
 
 function validFile(): AppDataFile {
@@ -127,6 +128,54 @@ describe('Kosten-Commands', () => {
         allocablePercent: 100,
       },
     ])
+  })
+
+  it('speichert einen prüfbaren Zahlungsnachweis an der Kostenposition', () => {
+    const withCategory = addCostCategory(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        kind: 'operating',
+        label: 'Wasserversorgung',
+      },
+      () => IDS.category,
+    )
+    const source: AppDataFile = {
+      ...withCategory,
+      billingData: {
+        ...withCategory.billingData,
+        bankBookings: [
+          {
+            id: IDS.booking,
+            propertyId: IDS.property,
+            billingYear: 2026,
+            amountCents: -12_345,
+          },
+        ],
+      },
+    }
+
+    const linked = addCostEntry(
+      source,
+      {
+        costCategoryId: IDS.category,
+        amountCents: 12_345,
+        bookingLink: { bankBookingId: IDS.booking },
+      },
+      () => IDS.entry,
+    )
+    expect(linked.billingData.costEntries[0]?.bookingLink).toEqual({
+      bankBookingId: IDS.booking,
+    })
+
+    expect(() =>
+      updateCostEntry(linked, IDS.entry, {
+        costCategoryId: IDS.category,
+        amountCents: 12_345,
+        bookingLink: { bankBookingId: IDS.booking },
+        externalPayment: { confirmed: true, reason: 'Bar bezahlt' },
+      }),
+    ).toThrow(/entweder/i)
   })
 
   it.each([

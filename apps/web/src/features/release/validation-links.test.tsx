@@ -6,10 +6,11 @@ import { validationIssueLink } from './validation-links'
 function issue(
   area: ValidationIssue['area'],
   entity?: ValidationIssue['entity'],
+  code = 'test.issue',
 ): ValidationIssue {
   return {
     severity: 'error',
-    code: 'test.issue',
+    code,
     area,
     title: 'Testhinweis',
     entity,
@@ -44,5 +45,45 @@ describe('validationIssueLink', () => {
     expect(
       validationIssueLink(issue('master_data', { type: 'Company', id: 'c-1' })),
     ).toEqual({ href: '#/firmen', label: 'Firma bearbeiten' })
+  })
+
+  it('führt fehlende Belegzuordnungen zur tatsächlich bearbeitbaren Stelle', () => {
+    expect(
+      validationIssueLink(
+        issue(
+          'documents',
+          { type: 'CostEntry', id: 'cost-1' },
+          'documents.booking_link_missing',
+        ),
+      ),
+    ).toEqual({
+      href: '#/kosten?tab=entries&edit=cost-1',
+      label: 'Kostenposition bearbeiten',
+    })
+
+    expect(
+      validationIssueLink(
+        issue(
+          'documents',
+          { type: 'FuelDelivery', id: 'fuel-1' },
+          'documents.booking_link_missing',
+        ),
+      ),
+    ).toEqual({ href: '#/heizkreise', label: 'Lieferung bearbeiten' })
+  })
+
+  it('führt eine fehlende Versandanschrift zur Nutzerbearbeitung', () => {
+    expect(
+      validationIssueLink(
+        issue(
+          'occupancy',
+          { type: 'Tenancy', id: 'tenancy-1' },
+          'occupancy.shipping_address_missing',
+        ),
+      ),
+    ).toEqual({
+      href: '#/nutzer?edit=tenancy-1',
+      label: 'Versandanschrift ergänzen',
+    })
   })
 })

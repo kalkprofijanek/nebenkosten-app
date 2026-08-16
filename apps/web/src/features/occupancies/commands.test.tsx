@@ -230,11 +230,20 @@ describe('Nutzer-Commands', () => {
         unitId: IDS.unit,
       }),
     ).toThrow(/Abrechnungsjahr/i)
-    expect(() =>
+    expect(
       addVacancyOccupancy(validFile(), {
         billingPeriodId: IDS.billingPeriod,
         unitId: IDS.unit,
         from: '2025-12-31',
+      }).billingData.occupancyPeriods[0],
+    ).toMatchObject({ from: '2025-12-31' })
+
+    expect(() =>
+      addVacancyOccupancy(validFile(), {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        from: '2025-01-01',
+        to: '2025-12-31',
       }),
     ).toThrow(/Abrechnungszeitraum/i)
   })
@@ -326,7 +335,7 @@ describe('Nutzer-Commands', () => {
     ).toThrow(/Nutzungseinheit/i)
   })
 
-  it('weist überlappende Zeiträume und Daten außerhalb des Abrechnungsjahres zurück', () => {
+  it('weist Überschneidungen und Zeiträume ohne Anteil am Abrechnungsjahr zurück', () => {
     const first = addTenantOccupancy(
       validFile(),
       {
@@ -358,14 +367,30 @@ describe('Nutzer-Commands', () => {
       ),
     ).toThrow(/überschneidet/i)
 
+    const spanning = addTenantOccupancy(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Außerhalb' },
+        occupancy: { from: '2025-12-31', to: '2026-12-31' },
+        prepayment: { mode: 'none_agreed' },
+      },
+      sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+    )
+    expect(spanning.billingData.occupancyPeriods[0]).toMatchObject({
+      from: '2025-12-31',
+      to: '2026-12-31',
+    })
+
     expect(() =>
       addTenantOccupancy(
         validFile(),
         {
           billingPeriodId: IDS.billingPeriod,
           unitId: IDS.unit,
-          person: { displayName: 'Außerhalb' },
-          occupancy: { from: '2025-12-31', to: '2026-12-31' },
+          person: { displayName: 'Vollständig außerhalb' },
+          occupancy: { from: '2027-01-01', to: '2027-12-31' },
           prepayment: { mode: 'none_agreed' },
         },
         sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
