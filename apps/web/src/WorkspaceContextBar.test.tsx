@@ -39,6 +39,12 @@ describe('WorkspaceContextBar', () => {
     fireEvent.change(screen.getByLabelText('Zeitraum im Arbeitskontext'), {
       target: { value: '' },
     })
+    fireEvent.change(screen.getByLabelText('Firma im Arbeitskontext'), {
+      target: { value: '' },
+    })
+    fireEvent.change(screen.getByLabelText('Objekt im Arbeitskontext'), {
+      target: { value: '' },
+    })
 
     expect(onSelectionChange).toHaveBeenNthCalledWith(1, {
       ownerCompanyId: 'company-1',
@@ -53,6 +59,15 @@ describe('WorkspaceContextBar', () => {
       billingPeriodId: 'period-1',
     })
     expect(onSelectionChange).toHaveBeenNthCalledWith(4, {
+      billingPeriodId: null,
+    })
+    expect(onSelectionChange).toHaveBeenNthCalledWith(5, {
+      ownerCompanyId: null,
+      propertyId: null,
+      billingPeriodId: null,
+    })
+    expect(onSelectionChange).toHaveBeenNthCalledWith(6, {
+      propertyId: null,
       billingPeriodId: null,
     })
     expect(screen.getByText('Entwurf')).toBeVisible()
