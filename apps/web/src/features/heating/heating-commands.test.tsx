@@ -6,7 +6,17 @@ import {
   addFuelStock,
   addHeatingCircuit,
   addHeatingSystem,
+  deleteEnergySource,
+  deleteFuelDelivery,
+  deleteFuelStock,
+  deleteHeatingCircuit,
+  deleteHeatingSystem,
   HeatingCommandError,
+  updateEnergySource,
+  updateFuelDelivery,
+  updateFuelStock,
+  updateHeatingCircuit,
+  updateHeatingSystem,
   type HeatingCommandDependencies,
 } from './heating-commands'
 
@@ -449,5 +459,118 @@ describe('heating commands', () => {
         dependencies(IDS.delivery),
       ),
     ).toThrowError(/Zähler/)
+  })
+
+  it('bearbeitet Heizsystem, Heizkreis, Quelle, Bestand und Lieferung unveränderlich', () => {
+    const context = createHeatingContext()
+    const withStock = addFuelStock(
+      context,
+      {
+        energySourceId: IDS.source,
+        billingPeriodId: IDS.period,
+        openingQuantity: { value: 100, unit: 'l' },
+      },
+      dependencies(IDS.stock),
+    )
+    const withDelivery = addFuelDelivery(
+      withStock,
+      {
+        energySourceId: IDS.source,
+        billingPeriodId: IDS.period,
+        date: '2025-03-01',
+        quantity: { value: 50, unit: 'l' },
+        amountCents: 10_000,
+      },
+      dependencies(IDS.delivery),
+    )
+
+    let result = updateHeatingSystem(withDelivery, IDS.system, {
+      propertyId: IDS.property,
+      name: 'Neue Zentralheizung',
+    })
+    result = updateHeatingCircuit(result, IDS.circuit, {
+      billingPeriodId: IDS.period,
+      heatingSystemId: IDS.system,
+      buildingId: IDS.building,
+      hasCentralHotWater: false,
+      overrides: {
+        consumptionSharePercent: 60,
+        baseSharePercent: 40,
+      },
+    })
+    result = updateEnergySource(result, IDS.source, {
+      heatingCircuitId: IDS.circuit,
+      key: 'haupt',
+      name: 'Aktualisierte Quelle',
+      sourceType: 'Heizöl',
+    })
+    result = updateFuelStock(result, IDS.stock, {
+      energySourceId: IDS.source,
+      billingPeriodId: IDS.period,
+      openingQuantity: { value: 120, unit: 'l' },
+      remainingQuantity: { value: 15, unit: 'l' },
+    })
+    result = updateFuelDelivery(result, IDS.delivery, {
+      energySourceId: IDS.source,
+      billingPeriodId: IDS.period,
+      date: '2025-03-02',
+      quantity: { value: 55, unit: 'l' },
+      amountCents: 11_500,
+    })
+
+    expect(withDelivery.masterData.heatingSystems[0]?.name).toBe(
+      'Zentralheizung',
+    )
+    expect(result.masterData.heatingSystems[0]?.name).toBe(
+      'Neue Zentralheizung',
+    )
+    expect(result.billingData.heatingCircuits[0]?.overrides).toMatchObject({
+      consumptionSharePercent: 60,
+      baseSharePercent: 40,
+    })
+    expect(result.billingData.energySources[0]?.name).toBe(
+      'Aktualisierte Quelle',
+    )
+    expect(result.billingData.fuelStocks[0]?.remainingQuantity?.value).toBe(15)
+    expect(result.billingData.fuelDeliveries[0]?.amountCents).toBe(11_500)
+  })
+
+  it('löscht Heizdaten nur ohne abhängige Datensätze', () => {
+    const context = createHeatingContext()
+    expect(() => deleteHeatingSystem(context, IDS.system)).toThrowError(
+      /Heizkreis/,
+    )
+    expect(() => deleteHeatingCircuit(context, IDS.circuit)).toThrowError(
+      /Energiequelle/,
+    )
+
+    const withStock = addFuelStock(
+      context,
+      {
+        energySourceId: IDS.source,
+        billingPeriodId: IDS.period,
+        openingQuantity: { value: 100, unit: 'l' },
+      },
+      dependencies(IDS.stock),
+    )
+    const withDelivery = addFuelDelivery(
+      withStock,
+      {
+        energySourceId: IDS.source,
+        billingPeriodId: IDS.period,
+        quantity: { value: 20, unit: 'l' },
+      },
+      dependencies(IDS.delivery),
+    )
+    expect(() => deleteEnergySource(withDelivery, IDS.source)).toThrowError(
+      /Brennstoffdaten/,
+    )
+
+    const withoutDelivery = deleteFuelDelivery(withDelivery, IDS.delivery)
+    const withoutStock = deleteFuelStock(withoutDelivery, IDS.stock)
+    const withoutSource = deleteEnergySource(withoutStock, IDS.source)
+    const withoutCircuit = deleteHeatingCircuit(withoutSource, IDS.circuit)
+    const result = deleteHeatingSystem(withoutCircuit, IDS.system)
+    expect(result.masterData.heatingSystems).toEqual([])
   })
 })

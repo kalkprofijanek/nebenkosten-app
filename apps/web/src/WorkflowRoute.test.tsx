@@ -7,6 +7,11 @@ import {
   createPropertyStructure,
 } from './features/master-data/commands'
 import { createBillingPeriod } from './features/billing-periods/commands'
+import {
+  addEnergySource,
+  addHeatingCircuit,
+  addHeatingSystem,
+} from './features/heating/heating-commands'
 import { addTenantOccupancy } from './features/occupancies/commands'
 import { WorkflowRoute, type WorkflowSelection } from './WorkflowRoute'
 
@@ -81,6 +86,34 @@ function seededData(): AppDataFile {
     data,
     { propertyId: SEEDED_IDS.property, year: 2026 },
     { createId: () => SEEDED_IDS.period },
+  )
+}
+
+function seededHeatingData(): AppDataFile {
+  let data = addHeatingSystem(
+    seededData(),
+    { propertyId: SEEDED_IDS.property, name: 'Zentralheizung' },
+    { createId: () => '20000000-0000-4000-8000-000000000021' },
+  )
+  data = addHeatingCircuit(
+    data,
+    {
+      billingPeriodId: SEEDED_IDS.period,
+      heatingSystemId: '20000000-0000-4000-8000-000000000021',
+      buildingId: SEEDED_IDS.building,
+      hasCentralHotWater: false,
+    },
+    { createId: () => '20000000-0000-4000-8000-000000000022' },
+  )
+  return addEnergySource(
+    data,
+    {
+      heatingCircuitId: '20000000-0000-4000-8000-000000000022',
+      key: 'haupt',
+      name: 'Fiktive Wärmequelle',
+      sourceType: 'Heizöl',
+    },
+    { createId: () => '20000000-0000-4000-8000-000000000023' },
   )
 }
 
@@ -642,6 +675,84 @@ describe('WorkflowRoute', () => {
     expect(result.getData().masterData.heatingSystems).toHaveLength(1)
     expect(result.getData().billingData.heatingCircuits).toHaveLength(1)
     expect(result.getData().billingData.energySources).toHaveLength(1)
+  })
+
+  it('erfasst Brennstoffbestand und einzelne Lieferungen getrennt', () => {
+    const result = renderRoute(
+      '/heizkreise',
+      seededHeatingData(),
+      SEEDED_SELECTION,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Brennstoffe' }))
+    fireEvent.change(screen.getByLabelText('Anfangsbestand Menge'), {
+      target: { value: '1000' },
+    })
+    fireEvent.change(screen.getByLabelText('Restbestand Menge'), {
+      target: { value: '125' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Bestand speichern' }))
+    expect(result.getData().billingData.fuelStocks).toHaveLength(1)
+
+    cleanup()
+    const deliveryResult = renderRoute(
+      '/heizkreise',
+      result.getData(),
+      SEEDED_SELECTION,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Brennstoffe' }))
+    fireEvent.change(screen.getByLabelText('Lieferdatum'), {
+      target: { value: '2026-04-01' },
+    })
+    fireEvent.change(screen.getByLabelText('Liefermenge'), {
+      target: { value: '500' },
+    })
+    fireEvent.change(screen.getByLabelText('Lieferbetrag in Euro'), {
+      target: { value: '750,50' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Lieferung hinzufügen' }),
+    )
+    expect(
+      deliveryResult.getData().billingData.fuelDeliveries[0],
+    ).toMatchObject({
+      quantity: { value: 500, unit: 'l' },
+      amountCents: 75_050,
+    })
+  })
+
+  it('pflegt Zähler, Ablesung und Jahresstatus im aktiven Objekt', () => {
+    const result = renderRoute('/heizkreise', seededData(), SEEDED_SELECTION)
+    fireEvent.click(screen.getByRole('button', { name: 'Zähler' }))
+    fireEvent.change(screen.getByLabelText('Zählernummer'), {
+      target: { value: 'TEST-ZAEHLER' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Zähler anlegen' }))
+    expect(result.getData().masterData.meters).toHaveLength(1)
+
+    cleanup()
+    const readingResult = renderRoute(
+      '/heizkreise',
+      result.getData(),
+      SEEDED_SELECTION,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Zähler' }))
+    fireEvent.change(screen.getByLabelText('Ablesedatum'), {
+      target: { value: '2026-06-30' },
+    })
+    fireEvent.change(screen.getByLabelText('Zählerstand'), {
+      target: { value: '1234,5' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Ablesung erfassen' }))
+    fireEvent.click(screen.getByLabelText('Bankbuchung vorhanden'))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Jahresstatus speichern' }),
+    )
+
+    expect(readingResult.getData().billingData.meterReadings).toHaveLength(1)
+    expect(
+      readingResult.getData().billingData.meterBillingStatuses[0],
+    ).toMatchObject({ year: 2026, bookingPresent: true })
   })
 
   it('zeigt fehlende oder veraltete Auswahlkontexte verständlich', () => {

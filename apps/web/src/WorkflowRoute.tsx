@@ -21,6 +21,7 @@ import {
 import { BillingPeriodsRoute } from './features/workflows/BillingPeriodsRoute'
 import { CompanyRoute } from './features/workflows/CompanyRoute'
 import { CostsRoute } from './features/workflows/CostsRoute'
+import { HeatingRoute } from './features/workflows/HeatingRoute'
 import { OccupanciesRoute } from './features/workflows/OccupanciesRoute'
 import { PropertyRoute } from './features/workflows/PropertyRoute'
 
@@ -677,6 +678,17 @@ export function WorkflowRoute({
   }
 
   if (path === '/heizkreise') {
+    return (
+      <HeatingRoute
+        data={data}
+        selection={selection}
+        onSelectionChange={onSelectionChange}
+        onApply={onApply}
+      />
+    )
+  }
+
+  if (path === '/heizkreise-legacy') {
     const buildings = data.masterData.buildings.filter(
       ({ propertyId }) => propertyId === period.propertyId,
     )
