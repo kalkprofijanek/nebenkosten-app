@@ -17,7 +17,7 @@ import type { WorkflowSubRouteProps } from '../route-types'
 import type { WorkflowApply } from '../HeatingRoute'
 
 function optionalNumber(form: FormData, name: string) {
-  return parseOptionalNumber(formText(form, name)) ?? undefined
+  return parseOptionalNumber(formText(form, name)) ?? null
 }
 
 export function HeatingSetupPanel({
@@ -64,7 +64,7 @@ export function HeatingSetupPanel({
             hasCentralHotWater,
             hotWaterSharePercent: hasCentralHotWater
               ? optionalNumber(form, 'hotWaterSharePercent')
-              : undefined,
+              : null,
           },
           dependencies,
         )

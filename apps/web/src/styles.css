@@ -1326,8 +1326,6 @@ h1 {
     display: none;
   }
 
-  .workspace-context label:nth-child(1),
-  .workspace-context label:nth-child(3),
   .context-status {
     display: none;
   }
@@ -1412,9 +1410,13 @@ h1 {
   }
 
   .workspace-context {
-    flex: 1;
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
   }
 
+  .workspace-context label,
   .workspace-context label:nth-child(2) {
     display: grid;
     min-width: 0;

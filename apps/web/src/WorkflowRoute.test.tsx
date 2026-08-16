@@ -1,3 +1,4 @@
+import { encodeCurrentAppData } from '@nebenkosten/import-export'
 import { createEmptyAppDataFile, type AppDataFile } from '@nebenkosten/schema'
 import {
   cleanup,
@@ -1032,7 +1033,7 @@ describe('WorkflowRoute', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('legt Heizsystem, Heizkreis und Energiequelle gemeinsam an', () => {
+  it('legt Heizsystem, Heizkreis und Energiequelle JSON-sicher an', async () => {
     const result = renderRoute('/heizkreise', seededData(), SEEDED_SELECTION)
 
     fireEvent.change(screen.getByLabelText('Heizsystem'), {
@@ -1052,6 +1053,11 @@ describe('WorkflowRoute', () => {
     expect(result.getData().masterData.heatingSystems).toHaveLength(1)
     expect(result.getData().billingData.heatingCircuits).toHaveLength(1)
     expect(result.getData().billingData.energySources).toHaveLength(1)
+    await expect(
+      encodeCurrentAppData(result.getData(), {
+        savedAt: new Date('2026-12-31T12:00:00.000Z'),
+      }),
+    ).resolves.toMatchObject({ data: { schemaVersion: 4 } })
   })
 
   it('erfasst Brennstoffbestand und einzelne Lieferungen getrennt', () => {

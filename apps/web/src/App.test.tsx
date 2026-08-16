@@ -267,7 +267,7 @@ describe('App', () => {
     }
     const onSelectionChange = vi.fn()
 
-    render(
+    const { container } = render(
       <App
         initialPath="/"
         workspaceState={workspaceState}
@@ -285,7 +285,12 @@ describe('App', () => {
     expect(screen.getByLabelText('Zeitraum im Arbeitskontext')).toHaveValue(
       'period-1',
     )
-    expect(screen.getByText('Prüfung offen')).toBeVisible()
+    expect(container.querySelector('.context-status')?.textContent).toBe(
+      'Prüfung offen',
+    )
+    expect(
+      container.querySelector('.page-heading .status-pill')?.textContent,
+    ).toBe('Prüfung offen')
 
     fireEvent.change(screen.getByLabelText('Objekt im Arbeitskontext'), {
       target: { value: 'property-1' },

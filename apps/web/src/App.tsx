@@ -262,6 +262,13 @@ export function App({
     workspaceState?.data,
     activeSelection,
   )
+  const activeBillingPeriod =
+    workspaceState?.data?.billingData.billingPeriods.find(
+      ({ id }) => id === activeSelection.billingPeriodId,
+    )
+  const pageStatusLabel =
+    activeBillingPeriod === undefined ? 'Entwurf' : workspaceContext.statusLabel
+  const pageStatusClass = activeBillingPeriod?.status.toLowerCase() ?? 'draft'
 
   useEffect(() => {
     if (initialPath !== undefined) return
@@ -386,7 +393,9 @@ export function App({
               <h1>{route.title}</h1>
               <p>{route.description}</p>
             </div>
-            <span className="status-pill status-pill--draft">Entwurf</span>
+            <span className={`status-pill status-pill--${pageStatusClass}`}>
+              {pageStatusLabel}
+            </span>
           </header>
 
           {route.path === '/' ? (
