@@ -24,6 +24,11 @@ import type { WorkflowSubRouteProps } from './route-types'
 
 type CostTab = 'categories' | 'entries' | 'bookings'
 
+function correctionParameters(): URLSearchParams {
+  const query = globalThis.location?.hash.split('?')[1] ?? ''
+  return new URLSearchParams(query)
+}
+
 const BOOKING_CATEGORIES: ReadonlyArray<{
   readonly value: BankBookingCategory
   readonly label: string
@@ -76,6 +81,9 @@ function categoryInput(form: FormData, billingPeriodId?: string) {
 }
 
 function entryInput(form: FormData) {
+  const paymentKind = formText(form, 'paymentKind')
+  const bankBookingId = formOptionalText(form, 'bankBookingId')
+  const externalPaymentReason = formOptionalText(form, 'externalPaymentReason')
   return {
     costCategoryId: formText(form, 'costCategoryId'),
     date: formOptionalText(form, 'date'),
@@ -83,6 +91,17 @@ function entryInput(form: FormData) {
     amountCents: parseEuroCents(formText(form, 'amount')),
     receiptReference: formOptionalText(form, 'receiptReference'),
     allocablePercent: optionalPercent(form, 'allocablePercent'),
+    ...(paymentKind === 'booking' && bankBookingId
+      ? { bookingLink: { bankBookingId } }
+      : {}),
+    ...(paymentKind === 'external'
+      ? {
+          externalPayment: {
+            confirmed: true,
+            reason: externalPaymentReason,
+          },
+        }
+      : {}),
   }
 }
 
@@ -172,10 +191,18 @@ function CategoryFields({
 function EntryFields({
   entry,
   categories,
+  bookings,
 }: {
   readonly entry?: CostEntry
   readonly categories: readonly CostCategory[]
+  readonly bookings: readonly BankBooking[]
 }) {
+  const initialPaymentKind = entry?.bookingLink
+    ? 'booking'
+    : entry?.externalPayment?.confirmed
+      ? 'external'
+      : 'none'
+  const [paymentKind, setPaymentKind] = useState(initialPaymentKind)
   return (
     <>
       <label>
@@ -219,6 +246,45 @@ function EntryFields({
         name="allocablePercent"
         defaultValue={entry?.allocablePercent ?? ''}
       />
+      <label>
+        <span>Zahlungsnachweis</span>
+        <select
+          name="paymentKind"
+          value={paymentKind}
+          onChange={(event) => setPaymentKind(event.currentTarget.value)}
+        >
+          <option value="none">Noch nicht zugeordnet</option>
+          <option value="booking">Mit Bankbuchung verknüpfen</option>
+          <option value="external">Extern bezahlt</option>
+        </select>
+      </label>
+      {paymentKind === 'booking' ? (
+        <label>
+          <span>Zugehörige Bankbuchung</span>
+          <select
+            name="bankBookingId"
+            required
+            defaultValue={entry?.bookingLink?.bankBookingId ?? ''}
+          >
+            <option value="">Bitte auswählen</option>
+            {bookings.map((booking) => (
+              <option key={booking.id} value={booking.id}>
+                {booking.date ?? 'Ohne Datum'} ·{' '}
+                {booking.counterparty ?? booking.purpose ?? 'Ohne Bezeichnung'}{' '}
+                · {formatCents(booking.amountCents)}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      {paymentKind === 'external' ? (
+        <WorkflowField
+          label="Begründung der externen Zahlung"
+          name="externalPaymentReason"
+          required
+          defaultValue={entry?.externalPayment?.reason ?? ''}
+        />
+      ) : null}
     </>
   )
 }
@@ -228,9 +294,14 @@ export function CostsRoute({
   selection,
   onApply,
 }: WorkflowSubRouteProps) {
-  const [activeTab, setActiveTab] = useState<CostTab>('categories')
+  const [activeTab, setActiveTab] = useState<CostTab>(() => {
+    const tab = correctionParameters().get('tab')
+    return tab === 'entries' || tab === 'bookings' ? tab : 'categories'
+  })
   const [error, setError] = useState<string | null>(null)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(() =>
+    correctionParameters().get('edit'),
+  )
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [bookingFilter, setBookingFilter] = useState('all')
@@ -247,12 +318,18 @@ export function CostsRoute({
   const buildings = data.masterData.buildings.filter(
     ({ propertyId }) => propertyId === period.propertyId,
   )
+  const availableBookings = useMemo(
+    () =>
+      data.billingData.bankBookings.filter(
+        (booking) =>
+          booking.propertyId === period.propertyId &&
+          (booking.billingYear == null || booking.billingYear === period.year),
+      ),
+    [data.billingData.bankBookings, period.propertyId, period.year],
+  )
   const bookings = useMemo(() => {
     const query = search.trim().toLocaleLowerCase('de-DE')
-    return data.billingData.bankBookings.filter((booking) => {
-      if (booking.propertyId !== period.propertyId) return false
-      if (booking.billingYear != null && booking.billingYear !== period.year)
-        return false
+    return availableBookings.filter((booking) => {
       if (bookingFilter === 'open' && booking.reviewed === true) return false
       if (bookingFilter === 'reviewed' && booking.reviewed !== true)
         return false
@@ -261,7 +338,7 @@ export function CostsRoute({
         .filter(Boolean)
         .some((value) => value!.toLocaleLowerCase('de-DE').includes(query))
     })
-  }, [bookingFilter, data.billingData.bankBookings, period, search])
+  }, [availableBookings, bookingFilter, search])
 
   function apply(transform: Parameters<typeof onApply>[0]) {
     setError(null)
@@ -482,7 +559,11 @@ export function CostsRoute({
             <p role="alert">Bitte zuerst eine Kostenart anlegen.</p>
           ) : (
             <form noValidate onSubmit={createEntry}>
-              <EntryFields entry={undefined} categories={categories} />
+              <EntryFields
+                entry={undefined}
+                categories={categories}
+                bookings={availableBookings}
+              />
               <button type="submit">Kostenposition anlegen</button>
             </form>
           )}
@@ -536,7 +617,11 @@ export function CostsRoute({
                           noValidate
                           onSubmit={(event) => saveEntry(event, entry.id)}
                         >
-                          <EntryFields entry={entry} categories={categories} />
+                          <EntryFields
+                            entry={entry}
+                            categories={categories}
+                            bookings={availableBookings}
+                          />
                           <button type="submit">
                             Kostenposition speichern
                           </button>

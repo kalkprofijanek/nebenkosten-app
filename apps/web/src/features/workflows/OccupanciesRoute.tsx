@@ -1,5 +1,9 @@
 import { useState, type FormEvent } from 'react'
-import { parseEuroCents, parseOptionalNumber } from '../../app/form-parsers'
+import {
+  formatEuroInput,
+  parseEuroCents,
+  parseOptionalNumber,
+} from '../../app/form-parsers'
 import {
   addTenantOccupancy,
   addVacancyOccupancy,
@@ -40,8 +44,6 @@ export function OccupanciesRoute({
   onApply,
 }: WorkflowSubRouteProps) {
   const [error, setError] = useState<string | null>(null)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [deleteId, setDeleteId] = useState<string | null>(null)
   const period = data.billingData.billingPeriods.find(
     ({ id }) => id === selection.billingPeriodId,
   )!
@@ -51,6 +53,19 @@ export function OccupanciesRoute({
   const occupancies = data.billingData.occupancyPeriods.filter(
     ({ billingPeriodId }) => billingPeriodId === period.id,
   )
+  const [editingId, setEditingId] = useState<string | null>(() => {
+    const requestedId = new URLSearchParams(
+      globalThis.location?.hash.split('?')[1] ?? '',
+    ).get('edit')
+    if (requestedId === null) return null
+    return (
+      occupancies.find(
+        (occupancy) =>
+          occupancy.id === requestedId || occupancy.tenancyId === requestedId,
+      )?.id ?? null
+    )
+  })
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   function apply(transform: Parameters<typeof onApply>[0]) {
     setError(null)
@@ -289,6 +304,7 @@ export function OccupanciesRoute({
                   <button
                     type="button"
                     aria-label={`${name} bearbeiten`}
+                    aria-expanded={editingId === occupancy.id}
                     onClick={() =>
                       setEditingId(
                         editingId === occupancy.id ? null : occupancy.id,
@@ -355,7 +371,7 @@ export function OccupanciesRoute({
                       defaultValue={
                         tenancy?.monthlyRentCents == null
                           ? ''
-                          : (tenancy.monthlyRentCents / 100).toFixed(2)
+                          : formatEuroInput(tenancy.monthlyRentCents)
                       }
                     />
                     <WorkflowField
@@ -484,7 +500,7 @@ export function OccupanciesRoute({
                       label="Vorauszahlung bearbeiten"
                       name="prepaymentAmount"
                       defaultValue={
-                        amount === undefined ? '' : (amount / 100).toFixed(2)
+                        amount === undefined ? '' : formatEuroInput(amount)
                       }
                     />
                     <button type="submit">Nutzerdaten speichern</button>

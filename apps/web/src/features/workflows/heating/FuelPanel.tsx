@@ -1,6 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import type { QuantityUnit } from '@nebenkosten/schema'
-import { parseEuroCents, parseOptionalNumber } from '../../../app/form-parsers'
+import {
+  formatEuroInput,
+  parseEuroCents,
+  parseOptionalNumber,
+} from '../../../app/form-parsers'
 import {
   addFuelDelivery,
   addFuelStock,
@@ -182,7 +186,7 @@ export function FuelPanel({
           defaultValue={
             stock?.openingValueCents == null
               ? ''
-              : (stock.openingValueCents / 100).toFixed(2)
+              : formatEuroInput(stock.openingValueCents)
           }
         />
         <WorkflowField
@@ -191,7 +195,7 @@ export function FuelPanel({
           defaultValue={
             stock?.openingPricePerUnitCents == null
               ? ''
-              : (stock.openingPricePerUnitCents / 100).toFixed(2)
+              : formatEuroInput(stock.openingPricePerUnitCents)
           }
         />
         <WorkflowField
@@ -305,7 +309,7 @@ export function FuelPanel({
                       defaultValue={
                         delivery.amountCents == null
                           ? ''
-                          : (delivery.amountCents / 100).toFixed(2)
+                          : formatEuroInput(delivery.amountCents)
                       }
                     />
                     <WorkflowField

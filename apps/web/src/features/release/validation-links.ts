@@ -27,8 +27,27 @@ const areaLinks: Readonly<Record<ValidationArea, ValidationIssueLink>> = {
 }
 
 export function validationIssueLink(
-  issue: Pick<ValidationIssue, 'area' | 'entity'>,
+  issue: Pick<ValidationIssue, 'area' | 'code' | 'entity'>,
 ): ValidationIssueLink {
+  if (issue.code === 'documents.booking_link_missing') {
+    if (issue.entity?.type === 'CostEntry') {
+      return {
+        href: `#/kosten?tab=entries&edit=${encodeURIComponent(issue.entity.id)}`,
+        label: 'Kostenposition bearbeiten',
+      }
+    }
+    if (issue.entity?.type === 'FuelDelivery') {
+      return { href: '#/heizkreise', label: 'Lieferung bearbeiten' }
+    }
+  }
+
+  if (issue.code === 'occupancy.shipping_address_missing') {
+    return {
+      href: `#/nutzer?edit=${encodeURIComponent(issue.entity?.id ?? '')}`,
+      label: 'Versandanschrift ergänzen',
+    }
+  }
+
   if (issue.area === 'master_data') {
     const entityType = issue.entity?.type.toLowerCase()
     if (entityType === 'company' || entityType === 'firm') {

@@ -1101,6 +1101,11 @@ h1 {
   font-size: 0.8rem;
 }
 
+.validation-groups li {
+  display: grid;
+  gap: 0.35rem;
+}
+
 .validation-groups li label {
   display: flex;
   align-items: flex-start;
@@ -1124,6 +1129,11 @@ h1 {
   color: var(--forest-soft);
   font-size: 0.78rem;
   font-weight: 800;
+}
+
+.validation-edit-link {
+  width: fit-content;
+  max-width: 100%;
 }
 
 .document-readiness {

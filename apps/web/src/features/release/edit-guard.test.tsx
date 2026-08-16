@@ -53,6 +53,55 @@ describe('applyEditableBillingPeriodChange', () => {
     expect(data).toEqual(original)
   })
 
+  it('verwirft bei einer fachlichen Änderung den bisherigen Rechenstand des Zeitraums', () => {
+    const data = fileWithStatus('DRAFT')
+    const runId = '40000000-0000-4000-8000-000000000004'
+    const source: AppDataFile = {
+      ...data,
+      billingData: {
+        ...data.billingData,
+        calculationRuns: [
+          {
+            id: runId,
+            billingPeriodId: PERIOD_ID,
+            startedAt: '2026-07-20T10:00:00.000Z',
+          },
+        ],
+        calculationResults: [
+          {
+            id: '40000000-0000-4000-8000-000000000005',
+            calculationRunId: runId,
+            totals: {
+              recordedCostsCents: 10_000,
+              tenantTotalCents: 8_000,
+              landlordTotalCents: 2_000,
+              unallocatedCents: 0,
+              prepaymentsCents: 0,
+              controlDifferenceCents: 0,
+            },
+            warnings: [],
+            snapshotFormatVersion: 1,
+            resultSnapshot: {},
+          },
+        ],
+      },
+    }
+
+    const result = applyEditableBillingPeriodChange(
+      source,
+      PERIOD_ID,
+      (current) => ({
+        ...current,
+        meta: { ...current.meta, appVersion: 'changed' },
+      }),
+      dependencies,
+    )
+
+    expect(result.billingData.calculationRuns).toEqual([])
+    expect(result.billingData.calculationResults).toEqual([])
+    expect(source.billingData.calculationRuns).toHaveLength(1)
+  })
+
   it('setzt eine laufende Prüfung vor einer fachlichen Änderung kontrolliert zurück', () => {
     const data = fileWithStatus('IN_REVIEW')
 

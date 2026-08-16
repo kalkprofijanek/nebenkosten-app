@@ -1,6 +1,13 @@
 const GERMAN_EURO = /^-?(?:0|[1-9]\d{0,2}(?:\.\d{3})*|[1-9]\d*)(?:,\d{1,2})?$/u
 const DECIMAL = /^-?(?:0|[1-9]\d*)(?:[,.]\d+)?$/u
 
+export function formatEuroInput(cents: number): string {
+  if (!Number.isSafeInteger(cents)) {
+    throw new Error('Der Centbetrag ist ungültig.')
+  }
+  return (cents / 100).toFixed(2).replace('.', ',')
+}
+
 export function parseEuroCents(rawValue: string): number {
   const value = rawValue.trim()
   if (!GERMAN_EURO.test(value)) {

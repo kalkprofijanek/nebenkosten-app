@@ -7,7 +7,7 @@ import {
   screen,
   within,
 } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   createCompany,
@@ -26,6 +26,10 @@ import { addTenantOccupancy } from './features/occupancies/commands'
 import { WorkflowRoute, type WorkflowSelection } from './WorkflowRoute'
 
 const TEST_CONTACT_EMAIL = ['kontakt', 'example.invalid'].join('@')
+
+beforeEach(() => {
+  window.history.replaceState(null, '', '/')
+})
 
 afterEach(() => {
   cleanup()
@@ -668,11 +672,12 @@ describe('WorkflowRoute', () => {
       },
       () => occupancyIds.shift()!,
     )
+    window.location.hash = '#/nutzer?edit=30000000-0000-4000-8000-000000000012'
     const result = renderRoute('/nutzer', data, SEEDED_SELECTION)
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Fiktiver Nutzer bearbeiten' }),
-    )
+    expect(
+      screen.getByRole('button', { name: 'Nutzerdaten speichern' }),
+    ).toBeVisible()
     fireEvent.change(screen.getByLabelText('Anzeigename bearbeiten'), {
       target: { value: 'Aktualisierter Nutzer' },
     })
@@ -881,6 +886,93 @@ describe('WorkflowRoute', () => {
     expect(entryResult.getData().billingData.costEntries[0]?.amountCents).toBe(
       100_099,
     )
+  })
+
+  it('verknüpft eine Kostenposition in der Oberfläche mit ihrer Bankbuchung', () => {
+    const base = seededData()
+    const categoryId = '20000000-0000-4000-8000-000000000071'
+    const bookingId = '20000000-0000-4000-8000-000000000072'
+    const data: AppDataFile = {
+      ...base,
+      billingData: {
+        ...base.billingData,
+        costCategories: [
+          {
+            id: categoryId,
+            billingPeriodId: SEEDED_IDS.period,
+            kind: 'operating',
+            label: 'Gebäudereinigung',
+            allocationKey: 'usable_area',
+          },
+        ],
+        bankBookings: [
+          {
+            id: bookingId,
+            propertyId: SEEDED_IDS.property,
+            billingYear: 2026,
+            date: '2026-03-16',
+            amountCents: -100_099,
+            counterparty: 'Fiktiver Dienstleister',
+          },
+        ],
+      },
+    }
+    const result = renderRoute('/kosten', data, SEEDED_SELECTION)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Kostenpositionen' }))
+    fireEvent.change(screen.getByLabelText('Betrag in Euro'), {
+      target: { value: '1000,99' },
+    })
+    fireEvent.change(screen.getByLabelText('Zahlungsnachweis'), {
+      target: { value: 'booking' },
+    })
+    fireEvent.change(screen.getByLabelText('Zugehörige Bankbuchung'), {
+      target: { value: bookingId },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Kostenposition anlegen' }),
+    )
+
+    expect(result.getData().billingData.costEntries[0]?.bookingLink).toEqual({
+      bankBookingId: bookingId,
+    })
+  })
+
+  it('öffnet eine verlinkte Kostenposition direkt zur Korrektur', () => {
+    const categoryId = '20000000-0000-4000-8000-000000000073'
+    const entryId = '20000000-0000-4000-8000-000000000074'
+    const withCategory = addCostCategory(
+      seededData(),
+      {
+        billingPeriodId: SEEDED_IDS.period,
+        kind: 'operating',
+        label: 'Gebäudereinigung',
+      },
+      () => categoryId,
+    )
+    const data = addCostEntry(
+      withCategory,
+      {
+        costCategoryId: categoryId,
+        description: 'Fiktive Rechnung',
+        amountCents: 12_345,
+      },
+      () => entryId,
+    )
+    window.location.hash = `#/kosten?tab=entries&edit=${entryId}`
+
+    renderRoute('/kosten', data, SEEDED_SELECTION)
+
+    expect(
+      screen.getByRole('heading', { name: 'Kostenpositionen (1)' }),
+    ).toBeVisible()
+    const saveButton = screen.getByRole('button', {
+      name: 'Kostenposition speichern',
+    })
+    expect(saveButton).toBeVisible()
+    expect(
+      within(saveButton.closest('form')!).getByLabelText('Betrag in Euro'),
+    ).toHaveValue('123,45')
   })
 
   it('zeigt migrierte Kostenpositionen und Bankbuchungen des aktiven Jahres', () => {

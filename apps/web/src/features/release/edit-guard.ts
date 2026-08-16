@@ -70,6 +70,31 @@ function resetReview(
   })
 }
 
+function removeCalculationArtifacts(
+  data: AppDataFile,
+  billingPeriodId: string,
+): AppDataFile {
+  const obsoleteRunIds = new Set(
+    data.billingData.calculationRuns
+      .filter((run) => run.billingPeriodId === billingPeriodId)
+      .map((run) => run.id),
+  )
+  if (obsoleteRunIds.size === 0) return data
+
+  return {
+    ...data,
+    billingData: {
+      ...data.billingData,
+      calculationRuns: data.billingData.calculationRuns.filter(
+        (run) => !obsoleteRunIds.has(run.id),
+      ),
+      calculationResults: data.billingData.calculationResults.filter(
+        (result) => !obsoleteRunIds.has(result.calculationRunId),
+      ),
+    },
+  }
+}
+
 export function applyEditableBillingPeriodChange(
   data: AppDataFile,
   billingPeriodId: string,
@@ -95,7 +120,13 @@ export function applyEditableBillingPeriodChange(
     period.status === 'IN_REVIEW'
       ? resetReview(source, billingPeriodId, dependencies)
       : source
-  const result = appDataFileSchema.parse(transform(structuredClone(editable)))
+  const editableWithoutStaleCalculation = removeCalculationArtifacts(
+    editable,
+    billingPeriodId,
+  )
+  const result = appDataFileSchema.parse(
+    transform(structuredClone(editableWithoutStaleCalculation)),
+  )
   const resultingPeriod = result.billingData.billingPeriods.find(
     (item) => item.id === billingPeriodId,
   )

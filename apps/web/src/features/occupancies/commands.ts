@@ -263,7 +263,7 @@ function assertDateRange(
 ): { start: string; end: string } {
   const start = from ?? periodStart
   const end = to ?? periodEnd
-  if (start < periodStart || end > periodEnd || start > end)
+  if (start > end || end < periodStart || start > periodEnd)
     throw new OccupancyCommandError(
       'Nutzungsdaten liegen außerhalb des Abrechnungszeitraums.',
     )

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseEuroCents, parseOptionalNumber } from './form-parsers'
+import {
+  formatEuroInput,
+  parseEuroCents,
+  parseOptionalNumber,
+} from './form-parsers'
 
 describe('form parsers', () => {
   it.each([
@@ -21,5 +25,10 @@ describe('form parsers', () => {
     expect(parseOptionalNumber('')).toBeNull()
     expect(parseOptionalNumber('12,5')).toBe(12.5)
     expect(() => parseOptionalNumber('NaN')).toThrow()
+  })
+
+  it('formatiert Centwerte für die deutsche Wiedereingabe', () => {
+    expect(formatEuroInput(70_050)).toBe('700,50')
+    expect(formatEuroInput(-1)).toBe('-0,01')
   })
 })

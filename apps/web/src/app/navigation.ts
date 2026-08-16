@@ -105,5 +105,6 @@ export const appRoutes = [
 ] as const satisfies readonly AppRoute[]
 
 export function findRoute(path: string): AppRoute {
-  return appRoutes.find((route) => route.path === path) ?? appRoutes[0]
+  const routePath = path.split('?')[0]
+  return appRoutes.find((route) => route.path === routePath) ?? appRoutes[0]
 }
