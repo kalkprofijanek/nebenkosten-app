@@ -198,4 +198,124 @@ describe('meter commands', () => {
       ),
     ).toThrowError(/Objekt/)
   })
+
+  it('weist ungültige Referenzen und fehlende Jahresdaten verständlich zurück', () => {
+    expect(() =>
+      addMeter(
+        { ...baseFile(), schemaVersion: 3 } as unknown as AppDataFile,
+        {},
+      ),
+    ).toThrowError(/Datenbestand/)
+    expect(() => addMeter(baseFile(), { kind: 'unbekannt' })).toThrowError(
+      /ungültige Felder/,
+    )
+    expect(() =>
+      addMeter(
+        baseFile(),
+        {
+          propertyId: '81000000-0000-4000-8000-000000000099',
+          kind: 'general',
+          meterNumberStatus: 'open',
+        },
+        { createId: () => IDS.meter },
+      ),
+    ).toThrowError(/Objekt/)
+    expect(() =>
+      addMeter(
+        baseFile(),
+        {
+          propertyId: IDS.property,
+          kind: 'general',
+          meterNumberStatus: 'open',
+        },
+        { createId: () => IDS.property },
+      ),
+    ).toThrowError(/ID/)
+    expect(() =>
+      addMeter(
+        baseFile(),
+        {
+          propertyId: IDS.property,
+          kind: 'general',
+          meterNumberStatus: 'open',
+          note: ' ',
+        },
+        { createId: () => IDS.meter },
+      ),
+    ).toThrowError(/Zählernotiz/)
+    expect(() =>
+      addMeter(
+        baseFile(),
+        {
+          propertyId: IDS.property,
+          kind: 'heat',
+          meterNumberStatus: 'confirmed',
+          energySourceRef: {
+            heatingCircuitBuildingId: IDS.company,
+            energySourceKey: 'haupt',
+          },
+        },
+        { createId: () => IDS.meter },
+      ),
+    ).toThrowError(/Energiequellen-Zuordnung/)
+    expect(() =>
+      updateMeter(baseFile(), IDS.meter, {
+        propertyId: IDS.property,
+        kind: 'general',
+        meterNumberStatus: 'open',
+      }),
+    ).toThrowError(/nicht gefunden/)
+
+    expect(() =>
+      addMeterReading(baseFile(), {
+        meterId: IDS.meter,
+        value: { value: 1, unit: 'kWh' },
+      }),
+    ).toThrowError(/Zähler wurde nicht gefunden/)
+
+    expect(() =>
+      addMeterReading(withMeter(), {
+        meterId: IDS.meter,
+        value: { value: -1, unit: 'kWh' },
+      }),
+    ).toThrowError(/nicht negativ/)
+    expect(() =>
+      addMeterReading(withMeter(), {
+        meterId: IDS.meter,
+        billingPeriodId: IDS.period,
+        date: '2027-01-01',
+        value: { value: 1, unit: 'kWh' },
+      }),
+    ).toThrowError(/außerhalb/)
+    expect(() =>
+      updateMeterReading(withMeter(), IDS.reading, {
+        meterId: IDS.meter,
+        value: { value: 1, unit: 'kWh' },
+      }),
+    ).toThrowError(/nicht gefunden/)
+    expect(() => deleteMeterReading(withMeter(), IDS.reading)).toThrowError(
+      /nicht gefunden/,
+    )
+
+    expect(() =>
+      upsertMeterBillingStatus(withMeter(), {
+        meterId: IDS.meter,
+        billingPeriodId: IDS.period,
+        year: 2025,
+      }),
+    ).toThrowError(/selben Objekt und Jahr/)
+    expect(() =>
+      deleteMeterBillingStatus(withMeter(), IDS.status),
+    ).toThrowError(/nicht gefunden/)
+  })
+
+  it('schützt Zähler auch vor dem Löschen bei vorhandenem Jahresstatus', () => {
+    const source = upsertMeterBillingStatus(
+      withMeter(),
+      { meterId: IDS.meter, billingPeriodId: IDS.period, year: 2026 },
+      { createId: () => IDS.status },
+    )
+
+    expect(() => deleteMeter(source, IDS.meter)).toThrowError(/Jahres-/)
+  })
 })

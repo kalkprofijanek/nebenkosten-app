@@ -21,6 +21,24 @@ vi.mock('./CalculationRoute', () => ({
   ),
 }))
 
+vi.mock('./PdfExportRoute', () => ({
+  PdfExportRoute: ({
+    billingPeriodId,
+    onApply,
+  }: {
+    billingPeriodId: string | null
+    onApply: (transform: (data: AppDataFile) => AppDataFile) => boolean
+  }) => (
+    <section>
+      <h1>PDF-Testansicht</h1>
+      <output>{billingPeriodId ?? 'Kein Zeitraum'}</output>
+      <button type="button" onClick={() => onApply((current) => current)}>
+        PDF-Status anwenden
+      </button>
+    </section>
+  ),
+}))
+
 import { createWorkspaceController } from './app/workspace-controller'
 import { createCompany } from './features/master-data/commands'
 import { WorkspaceApp } from './WorkspaceApp'
@@ -69,6 +87,56 @@ describe('WorkspaceApp', () => {
     fireEvent(window, event)
 
     expect(event.defaultPrevented).toBe(true)
+    controller.dispose()
+  })
+
+  it('lässt ein sauberes Arbeitsdokument ohne Warnung schließen', async () => {
+    const adapter = new MemoryStorageAdapter()
+    await adapter.save(createEmptyAppDataFile(), { expectedRevision: null })
+    const controller = createWorkspaceController({ adapter, debounceMs: 0 })
+
+    render(<WorkspaceApp controller={controller} />)
+    await screen.findByText('Lokal gespeichert')
+
+    const event = new Event('beforeunload', { cancelable: true })
+    fireEvent(window, event)
+
+    expect(event.defaultPrevented).toBe(false)
+    controller.dispose()
+  })
+
+  it('wendet eine Berechnung auch ohne ausgewählten Zeitraum direkt an', async () => {
+    const adapter = new MemoryStorageAdapter()
+    await adapter.save(createEmptyAppDataFile(), { expectedRevision: null })
+    const controller = createWorkspaceController({ adapter, debounceMs: 0 })
+    window.location.hash = '#/berechnung'
+
+    render(<WorkspaceApp controller={controller} />)
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Testberechnung anwenden' }),
+    )
+
+    await waitFor(() => expect(controller.getState().dirty).toBe(false))
+    expect(controller.getState().data?.billingData.billingPeriods).toEqual([])
+    controller.dispose()
+  })
+
+  it('öffnet den PDF-Export auch ohne ausgewählten Zeitraum', async () => {
+    const adapter = new MemoryStorageAdapter()
+    await adapter.save(createEmptyAppDataFile(), { expectedRevision: null })
+    const controller = createWorkspaceController({ adapter, debounceMs: 0 })
+    window.location.hash = '#/pdf-export'
+
+    render(<WorkspaceApp controller={controller} />)
+
+    expect(
+      await screen.findByRole('heading', { name: 'PDF-Testansicht' }),
+    ).toBeVisible()
+    expect(
+      screen.getByText('Kein Zeitraum', { selector: 'output' }),
+    ).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'PDF-Status anwenden' }))
+    await waitFor(() => expect(controller.getState().dirty).toBe(false))
     controller.dispose()
   })
 

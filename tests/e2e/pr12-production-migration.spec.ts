@@ -158,10 +158,12 @@ test('migrates fictional v3 data, exports a v4 backup, and proves rollback', asy
   await expect(page.getByText('Lokal gespeichert')).toBeVisible()
 
   await page.getByRole('link', { name: 'Kosten', exact: true }).click()
+  await page.getByRole('button', { name: 'Kostenpositionen' }).click()
   await expect(
     page.getByRole('heading', { name: 'Kostenpositionen (1)' }),
   ).toBeVisible()
   await expect(page.getByText('Fiktive Rechnung')).toBeVisible()
+  await page.getByRole('button', { name: 'Bankbuchungen' }).click()
   await expect(
     page.getByRole('heading', { name: 'Bankbuchungen (1)' }),
   ).toBeVisible()
