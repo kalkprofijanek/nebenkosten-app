@@ -2,6 +2,7 @@ import type { AppDataFile } from '@nebenkosten/schema'
 import { useState } from 'react'
 
 import { runCalculation } from './features/calculation/calculate-preview'
+import { validationIssueLink } from './features/release/validation-links'
 
 interface CalculationRouteProps {
   readonly data: AppDataFile
@@ -14,6 +15,13 @@ function euro(cents: number): string {
     style: 'currency',
     currency: 'EUR',
   }).format(cents / 100)
+}
+
+function dateTime(value: string): string {
+  return new Intl.DateTimeFormat('de-DE', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
 }
 
 export function CalculationRoute({
@@ -42,7 +50,21 @@ export function CalculationRoute({
 
   return (
     <section className="calculation-panel" aria-labelledby="calculation-title">
-      <h2 id="calculation-title">Berechnungslauf</h2>
+      <header className="section-heading">
+        <div>
+          <p className="section-kicker">
+            {billingPeriod
+              ? `Abrechnungsjahr ${billingPeriod.year}`
+              : 'Ergebnis'}
+          </p>
+          <h2 id="calculation-title">Berechnungslauf</h2>
+        </div>
+        {latestRun ? (
+          <span className="status-pill status-pill--ready_for_pdf">
+            Rechenstand aktuell
+          </span>
+        ) : null}
+      </header>
       {error ? <p role="alert">{error}</p> : null}
       {billingPeriodId === null ? (
         <p>Wähle zuerst ein Objekt und ein Abrechnungsjahr.</p>
@@ -76,24 +98,59 @@ export function CalculationRoute({
         </button>
       )}
       {result ? (
-        <dl className="result-grid">
-          <div>
-            <dt>Erfasste Kosten</dt>
-            <dd>{euro(result.totals.recordedCostsCents)}</dd>
-          </div>
-          <div>
-            <dt>Mieteranteil</dt>
-            <dd>{euro(result.totals.tenantTotalCents)}</dd>
-          </div>
-          <div>
-            <dt>Vermieteranteil</dt>
-            <dd>{euro(result.totals.landlordTotalCents)}</dd>
-          </div>
-          <div>
-            <dt>Kontrolldifferenz</dt>
-            <dd>{euro(result.totals.controlDifferenceCents)}</dd>
-          </div>
-        </dl>
+        <>
+          <p className="calculation-meta">
+            Berechnet am{' '}
+            <time dateTime={latestRun!.startedAt}>
+              {dateTime(latestRun!.startedAt)}
+            </time>
+          </p>
+          <dl className="result-grid">
+            <div>
+              <dt>Erfasste Kosten</dt>
+              <dd>{euro(result.totals.recordedCostsCents)}</dd>
+            </div>
+            <div>
+              <dt>Mieteranteil</dt>
+              <dd>{euro(result.totals.tenantTotalCents)}</dd>
+            </div>
+            <div>
+              <dt>Vermieteranteil</dt>
+              <dd>{euro(result.totals.landlordTotalCents)}</dd>
+            </div>
+            <div>
+              <dt>Kontrolldifferenz</dt>
+              <dd>{euro(result.totals.controlDifferenceCents)}</dd>
+            </div>
+          </dl>
+          {result.warnings.length > 0 ? (
+            <section
+              className="calculation-warnings"
+              aria-labelledby="calculation-warnings-title"
+            >
+              <h3 id="calculation-warnings-title">
+                Hinweise aus der Berechnung
+              </h3>
+              <ul>
+                {result.warnings.map((warning, index) => {
+                  const editLink = validationIssueLink(warning)
+                  return (
+                    <li key={`${warning.code}:${index}`}>
+                      <strong>{warning.title}</strong>
+                      {warning.detail ? <p>{warning.detail}</p> : null}
+                      <a href={editLink.href}>{editLink.label}</a>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          ) : (
+            <p className="privacy-note">
+              Keine Rechenwarnungen. Die Kontrolldifferenz liegt im zulässigen
+              Bereich.
+            </p>
+          )}
+        </>
       ) : (
         <p>Noch kein gespeichertes Ergebnis für diesen Zeitraum.</p>
       )}

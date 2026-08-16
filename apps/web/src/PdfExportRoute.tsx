@@ -161,6 +161,9 @@ export function PdfExportRoute({
     )
   }
   const { output: calculation, calculationRunId } = calculationSnapshot
+  const calculationRun = data.billingData.calculationRuns.find(
+    ({ id }) => id === calculationRunId,
+  )!
 
   const occupancies = tenantOccupancies(data, billingPeriodId)
   const documents = data.billingData.documents.filter(
@@ -332,6 +335,30 @@ export function PdfExportRoute({
           <h2 id="pdf-export-title">PDF und Export</h2>
         </div>
       </header>
+
+      <dl className="document-readiness" aria-label="Dokumentenstand">
+        <div>
+          <dt>Verbindlicher Rechenstand</dt>
+          <dd>
+            Rechenstand vom{' '}
+            <time dateTime={calculationRun.startedAt}>
+              {new Intl.DateTimeFormat('de-DE', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              }).format(new Date(calculationRun.startedAt))}
+            </time>
+          </dd>
+        </div>
+        <div>
+          <dt>Umfang</dt>
+          <dd>
+            {occupancies.length}{' '}
+            {occupancies.length === 1
+              ? 'Einzelabrechnung erwartet'
+              : 'Einzelabrechnungen erwartet'}
+          </dd>
+        </div>
+      </dl>
 
       {error ? <p role="alert">{error}</p> : null}
 

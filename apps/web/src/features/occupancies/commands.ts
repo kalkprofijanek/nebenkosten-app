@@ -1,5 +1,6 @@
 import {
   appDataFileSchema,
+  allocationScopeSchema,
   occupancyPeriodSchema,
   personSchema,
   prepaymentSchema,
@@ -540,17 +541,35 @@ export function updateTenantOccupancy(
     [
       'occupancyPeriodId',
       'displayName',
+      'firstName',
+      'lastName',
+      'email',
       'from',
       'to',
       'persons',
+      'mandateReference',
+      'monthlyRentCents',
       'shippingAddressStreet',
       'shippingAddressPostalCodeAndCity',
+      'consumptionUnits',
+      'consumptionUnitsEstimated',
+      'consumptionUnitsEstimateReason',
+      'coldWater',
+      'warmWater',
+      'applySection12Reduction',
+      'costScope',
+      'propertyTaxScope',
+      'dispatchDate',
+      'note',
       'prepayment',
     ],
     'Nutzerbearbeitung',
   )
   const occupancyPeriodId = requiredString(input, 'occupancyPeriodId')
   const displayName = requiredString(input, 'displayName', MAX_NAME_LENGTH)
+  const firstName = optionalString(input, 'firstName', MAX_NAME_LENGTH)
+  const lastName = optionalString(input, 'lastName', MAX_NAME_LENGTH)
+  const email = optionalString(input, 'email', MAX_EMAIL_LENGTH)
   const from = optionalString(input, 'from', 10)
   const to = optionalString(input, 'to', 10)
   const persons = input.persons
@@ -560,6 +579,48 @@ export function updateTenantOccupancy(
   ) {
     throw new OccupancyCommandError('Ungültige Eingabe für Personenzahl.')
   }
+  const optionalNonNegativeNumber = (key: string) => {
+    const value = input[key]
+    if (value === undefined) return undefined
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0)
+      throw new OccupancyCommandError(`Ungültige Eingabe für ${key}.`)
+    return value
+  }
+  const monthlyRentCents = optionalNonNegativeNumber('monthlyRentCents')
+  if (monthlyRentCents !== undefined && !Number.isSafeInteger(monthlyRentCents))
+    throw new OccupancyCommandError('Ungültige Eingabe für monthlyRentCents.')
+  const consumptionUnits = optionalNonNegativeNumber('consumptionUnits')
+  const coldWater = optionalNonNegativeNumber('coldWater')
+  const warmWater = optionalNonNegativeNumber('warmWater')
+  const consumptionUnitsEstimated = input.consumptionUnitsEstimated
+  const applySection12Reduction = input.applySection12Reduction
+  if (
+    (consumptionUnitsEstimated !== undefined &&
+      typeof consumptionUnitsEstimated !== 'boolean') ||
+    (applySection12Reduction !== undefined &&
+      typeof applySection12Reduction !== 'boolean')
+  )
+    throw new OccupancyCommandError('Ungültige boolesche Nutzereingabe.')
+  const mandateReference = optionalString(input, 'mandateReference', 500)
+  const consumptionUnitsEstimateReason = optionalString(
+    input,
+    'consumptionUnitsEstimateReason',
+    500,
+  )
+  const dispatchDate = optionalString(input, 'dispatchDate', 10)
+  const note = optionalString(input, 'note', 2_000)
+  const costScope =
+    input.costScope === undefined
+      ? undefined
+      : parseEntity(allocationScopeSchema, input.costScope, 'Kostenbereich')
+  const propertyTaxScope =
+    input.propertyTaxScope === undefined
+      ? undefined
+      : parseEntity(
+          allocationScopeSchema,
+          input.propertyTaxScope,
+          'Grundsteuerbereich',
+        )
   const shippingAddressStreet = optionalString(
     input,
     'shippingAddressStreet',
@@ -606,7 +667,9 @@ export function updateTenantOccupancy(
     masterData: {
       ...file.masterData,
       persons: file.masterData.persons.map((person) =>
-        person.id === personId ? { ...person, displayName } : person,
+        person.id === personId
+          ? { ...person, displayName, firstName, lastName, email }
+          : person,
       ),
       tenancies: file.masterData.tenancies.map((item) =>
         item.id === tenancy.id
@@ -614,6 +677,8 @@ export function updateTenantOccupancy(
               ...item,
               shippingAddressStreet,
               shippingAddressPostalCodeAndCity,
+              mandateReference,
+              monthlyRentCents,
             }
           : item,
       ),
@@ -630,6 +695,25 @@ export function updateTenantOccupancy(
                 typeof persons === 'number'
                   ? { value: persons, unit: 'personen' as const }
                   : undefined,
+              consumptionUnits:
+                consumptionUnits === undefined
+                  ? undefined
+                  : { value: consumptionUnits, unit: 'einheiten' as const },
+              consumptionUnitsEstimated,
+              consumptionUnitsEstimateReason,
+              coldWater:
+                coldWater === undefined
+                  ? undefined
+                  : { value: coldWater, unit: 'm3' as const },
+              warmWater:
+                warmWater === undefined
+                  ? undefined
+                  : { value: warmWater, unit: 'm3' as const },
+              applySection12Reduction,
+              costScope,
+              propertyTaxScope,
+              dispatchDate,
+              note,
             }
           : item,
       ),

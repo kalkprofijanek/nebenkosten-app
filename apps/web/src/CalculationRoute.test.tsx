@@ -106,12 +106,53 @@ describe('CalculationRoute', () => {
 
     expect(screen.getByText((text) => text.includes('123,45'))).toBeVisible()
     expect(screen.getByText((text) => text.includes('100,00'))).toBeVisible()
+    expect(screen.getByText(/Berechnet am/)).toHaveTextContent('01.01.2026')
+    expect(screen.getByText('Rechenstand aktuell')).toBeVisible()
     fireEvent.click(
       screen.getByRole('button', { name: 'Abrechnung berechnen' }),
     )
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Abrechnungsperiode "period-1" nicht gefunden',
     )
+  })
+
+  it('zeigt Rechenwarnungen mit dem passenden Korrekturziel', () => {
+    const data = fileWithResult()
+    const result = data.billingData.calculationResults[0]!
+    const dataWithWarning: AppDataFile = {
+      ...data,
+      billingData: {
+        ...data.billingData,
+        calculationResults: [
+          {
+            ...result,
+            warnings: [
+              {
+                severity: 'warning',
+                code: 'costs.unallocated',
+                area: 'costs',
+                title: 'Kosten sind noch nicht vollständig zugeordnet',
+              },
+            ],
+          },
+        ],
+      },
+    }
+
+    render(
+      <CalculationRoute
+        data={dataWithWarning}
+        billingPeriodId="period-1"
+        onApply={vi.fn()}
+      />,
+    )
+
+    expect(
+      screen.getByText('Kosten sind noch nicht vollständig zugeordnet'),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('link', { name: 'Kosten bearbeiten' }),
+    ).toHaveAttribute('href', '#/kosten')
   })
 
   it.each(['READY_FOR_PDF', 'FINALIZED', 'SUPERSEDED'] as const)(

@@ -37,6 +37,14 @@ export interface UpdateCompanyInput {
   readonly additionalNameLines?: readonly string[]
   readonly street?: string
   readonly postalCodeAndCity?: string
+  readonly postBox?: string
+  readonly contactSalutation?: 'Herr' | 'Frau' | 'Familie' | 'Firma'
+  readonly contactFirstName?: string
+  readonly contactLastName?: string
+  readonly contactPhone?: string
+  readonly contactMobile?: string
+  readonly contactFax?: string
+  readonly contactEmail?: string
   readonly iban?: string
   readonly bic?: string
   readonly accountHolder?: string
@@ -48,6 +56,10 @@ export interface UpdatePropertyInput {
   readonly externalNumber?: string
   readonly street?: string
   readonly postalCodeAndCity?: string
+  readonly iban?: string
+  readonly bic?: string
+  readonly accountHolder?: string
+  readonly bankName?: string
 }
 
 export interface AddBuildingInput {
@@ -59,6 +71,8 @@ export interface AddBuildingInput {
 export interface UpdateBuildingInput {
   readonly name: string
   readonly shortName?: string
+  readonly defaultEnergySourceType?: string
+  readonly mandateRefPrefixes?: readonly string[]
 }
 
 export interface AddUnitInput {
@@ -317,6 +331,14 @@ export function updateCompany(
   const bic = normalizeOptional(input.bic, 'BIC')
   const accountHolder = normalizeOptional(input.accountHolder, 'Kontoinhaber')
   const bankName = normalizeOptional(input.bankName, 'Bankname')
+  const postBox = normalizeOptional(input.postBox, 'Postfach')
+  const contactSalutation = input.contactSalutation
+  const contactFirstName = normalizeOptional(input.contactFirstName, 'Vorname')
+  const contactLastName = normalizeOptional(input.contactLastName, 'Nachname')
+  const contactPhone = normalizeOptional(input.contactPhone, 'Telefon')
+  const contactMobile = normalizeOptional(input.contactMobile, 'Mobiltelefon')
+  const contactFax = normalizeOptional(input.contactFax, 'Fax')
+  const contactEmail = normalizeOptional(input.contactEmail, 'E-Mail')
   const address =
     street === undefined && postalCodeAndCity === undefined
       ? undefined
@@ -328,6 +350,24 @@ export function updateCompany(
     bankName === undefined
       ? undefined
       : { iban, bic, accountHolder, bankName }
+  const contact =
+    contactSalutation === undefined &&
+    contactFirstName === undefined &&
+    contactLastName === undefined &&
+    contactPhone === undefined &&
+    contactMobile === undefined &&
+    contactFax === undefined &&
+    contactEmail === undefined
+      ? undefined
+      : {
+          salutation: contactSalutation,
+          firstName: contactFirstName,
+          lastName: contactLastName,
+          phone: contactPhone,
+          mobile: contactMobile,
+          fax: contactFax,
+          email: contactEmail,
+        }
 
   const result: AppDataFile = {
     ...data,
@@ -345,6 +385,8 @@ export function updateCompany(
               name: ownerCompanyName,
               additionalNameLines: [...additionalNameLines],
               address,
+              postBox,
+              contact,
               bankAccount,
             }
           : item,
@@ -435,13 +477,30 @@ export function updateProperty(
     street === undefined && postalCodeAndCity === undefined
       ? undefined
       : { street, postalCodeAndCity }
+  const iban = normalizeOptional(input.iban, 'IBAN')
+  const bic = normalizeOptional(input.bic, 'BIC')
+  const accountHolder = normalizeOptional(input.accountHolder, 'Kontoinhaber')
+  const bankName = normalizeOptional(input.bankName, 'Bankname')
+  const bankAccount =
+    iban === undefined &&
+    bic === undefined &&
+    accountHolder === undefined &&
+    bankName === undefined
+      ? undefined
+      : { iban, bic, accountHolder, bankName }
   const result: AppDataFile = {
     ...data,
     masterData: {
       ...data.masterData,
       properties: data.masterData.properties.map((property) =>
         property.id === propertyId
-          ? { ...property, internalNumber, externalNumber, address }
+          ? {
+              ...property,
+              internalNumber,
+              externalNumber,
+              address,
+              bankAccount,
+            }
           : property,
       ),
     },
@@ -502,6 +561,13 @@ export function updateBuilding(
   }
   const name = normalizeRequired(input.name, 'Gebäudename')
   const shortName = normalizeOptional(input.shortName, 'Gebäudekürzel')
+  const defaultEnergySourceType = normalizeOptional(
+    input.defaultEnergySourceType,
+    'Standardenergieträger',
+  )
+  const mandateRefPrefixes = (input.mandateRefPrefixes ?? []).map((prefix) =>
+    normalizeRequired(prefix, 'Mandatsreferenz-Präfix'),
+  )
   return assertValidResult(
     {
       ...data,
@@ -509,7 +575,13 @@ export function updateBuilding(
         ...data.masterData,
         buildings: data.masterData.buildings.map((building) =>
           building.id === buildingId
-            ? { ...building, name, shortName }
+            ? {
+                ...building,
+                name,
+                shortName,
+                defaultEnergySourceType,
+                mandateRefPrefixes,
+              }
             : building,
         ),
       },

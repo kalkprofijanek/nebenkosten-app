@@ -18,6 +18,8 @@ import {
   updateUnit,
 } from './commands'
 
+const TEST_CONTACT_EMAIL = ['kontakt', 'example.invalid'].join('@')
+
 const IDS = {
   organization: '10000000-0000-4000-8000-000000000001',
   ownerCompany: '10000000-0000-4000-8000-000000000002',
@@ -264,6 +266,12 @@ describe('updateCompany', () => {
       additionalNameLines: ['Abteilung Nord'],
       street: 'Fiktive Straße',
       postalCodeAndCity: 'Beispielort',
+      postBox: 'Postfach Test',
+      contactSalutation: 'Frau',
+      contactFirstName: 'Fiktiva',
+      contactLastName: 'Kontakt',
+      contactPhone: 'TEST-TELEFON',
+      contactEmail: TEST_CONTACT_EMAIL,
       bankName: 'Fiktive Testbank',
     })
 
@@ -273,6 +281,14 @@ describe('updateCompany', () => {
       name: 'Neue Eigentümerin',
       additionalNameLines: ['Abteilung Nord'],
       address: { street: 'Fiktive Straße', postalCodeAndCity: 'Beispielort' },
+      postBox: 'Postfach Test',
+      contact: {
+        salutation: 'Frau',
+        firstName: 'Fiktiva',
+        lastName: 'Kontakt',
+        phone: 'TEST-TELEFON',
+        email: TEST_CONTACT_EMAIL,
+      },
       bankAccount: { bankName: 'Fiktive Testbank' },
     })
   })
@@ -340,10 +356,16 @@ describe('property structure maintenance', () => {
       internalNumber: 'OBJ-NEU',
       street: 'Fiktive Straße',
       postalCodeAndCity: 'Beispielort',
+      iban: 'TEST-IBAN',
+      bic: 'TEST-BIC',
+      accountHolder: 'Fiktive Eigentümerin',
+      bankName: 'Fiktive Objektbank',
     })
     result = updateBuilding(result, IDS.building, {
       name: 'Haus Neu',
       shortName: 'N',
+      defaultEnergySourceType: 'Fernwärme',
+      mandateRefPrefixes: ['N'],
     })
     result = updateUnit(result, IDS.unit, {
       label: 'Einheit Neu',
@@ -355,8 +377,13 @@ describe('property structure maintenance', () => {
     expect(source).toEqual(snapshot)
     expect(result.masterData.properties[0]).toMatchObject({
       internalNumber: 'OBJ-NEU',
+      bankAccount: { iban: 'TEST-IBAN', bankName: 'Fiktive Objektbank' },
     })
-    expect(result.masterData.buildings[0]).toMatchObject({ name: 'Haus Neu' })
+    expect(result.masterData.buildings[0]).toMatchObject({
+      name: 'Haus Neu',
+      defaultEnergySourceType: 'Fernwärme',
+      mandateRefPrefixes: ['N'],
+    })
     expect(result.masterData.units[0]).toMatchObject({
       label: 'Einheit Neu',
       usableAreaSqm: { value: 75.5, unit: 'm2' },

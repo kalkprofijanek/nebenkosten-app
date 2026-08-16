@@ -12,6 +12,8 @@ import {
 } from '@nebenkosten/validators'
 import { useMemo, useState } from 'react'
 
+import { validationIssueLink } from './features/release/validation-links'
+
 interface ReleaseRouteProps {
   readonly data: AppDataFile
   readonly billingPeriodId: string | null
@@ -279,6 +281,9 @@ export function ReleaseRoute({
                 : 'Einzelabrechnungen fehlen.'}
             </p>
           ) : null}
+          <a className="button button--quiet" href="#/pdf-export">
+            Fehlende Dokumente erzeugen
+          </a>
         </div>
       ) : null}
 
@@ -300,23 +305,33 @@ export function ReleaseRoute({
               <section key={`${severity}:${area}`} aria-label={heading}>
                 <h3>{heading}</h3>
                 <ul>
-                  {group.map((issue) => (
-                    <li key={issue.key}>
-                      <strong>{issue.title}</strong>
-                      {issue.detail ? <p>{issue.detail}</p> : null}
-                      {billingPeriod.status === 'IN_REVIEW' &&
-                      issue.severity === 'warning' ? (
-                        <label>
-                          <input
-                            type="checkbox"
-                            checked={confirmedWarningKeys.includes(issue.key)}
-                            onChange={() => toggleWarning(issue.key)}
-                          />
-                          {issue.title} ({issue.key}) bestätigen
-                        </label>
-                      ) : null}
-                    </li>
-                  ))}
+                  {group.map((issue) => {
+                    const editLink = validationIssueLink(issue)
+                    return (
+                      <li key={issue.key}>
+                        <strong>{issue.title}</strong>
+                        {issue.detail ? <p>{issue.detail}</p> : null}
+                        <a
+                          className="validation-edit-link"
+                          href={editLink.href}
+                          data-entity-id={issue.entity?.id}
+                        >
+                          {editLink.label}
+                        </a>
+                        {billingPeriod.status === 'IN_REVIEW' &&
+                        issue.severity === 'warning' ? (
+                          <label>
+                            <input
+                              type="checkbox"
+                              checked={confirmedWarningKeys.includes(issue.key)}
+                              onChange={() => toggleWarning(issue.key)}
+                            />
+                            {issue.title} ({issue.key}) bestätigen
+                          </label>
+                        ) : null}
+                      </li>
+                    )
+                  })}
                 </ul>
               </section>
             )

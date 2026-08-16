@@ -15,6 +15,8 @@ import {
 import { addTenantOccupancy } from './features/occupancies/commands'
 import { WorkflowRoute, type WorkflowSelection } from './WorkflowRoute'
 
+const TEST_CONTACT_EMAIL = ['kontakt', 'example.invalid'].join('@')
+
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
@@ -170,6 +172,12 @@ describe('WorkflowRoute', () => {
     fireEvent.change(screen.getByLabelText('Bankname bearbeiten'), {
       target: { value: 'Fiktive Testbank' },
     })
+    fireEvent.change(screen.getByLabelText('Postfach bearbeiten'), {
+      target: { value: 'Testpostfach' },
+    })
+    fireEvent.change(screen.getByLabelText('E-Mail Kontakt bearbeiten'), {
+      target: { value: TEST_CONTACT_EMAIL },
+    })
     fireEvent.click(
       screen.getByRole('button', { name: 'Änderungen speichern' }),
     )
@@ -177,6 +185,8 @@ describe('WorkflowRoute', () => {
     expect(result.getData().masterData.ownerCompanies[0]).toMatchObject({
       name: 'Aktualisierte Eigentümerin',
       bankAccount: { bankName: 'Fiktive Testbank' },
+      postBox: 'Testpostfach',
+      contact: { email: TEST_CONTACT_EMAIL },
     })
   })
 
@@ -311,6 +321,9 @@ describe('WorkflowRoute', () => {
     fireEvent.change(screen.getByLabelText('Interne Objektnummer bearbeiten'), {
       target: { value: 'OBJ-NEU' },
     })
+    fireEvent.change(screen.getByLabelText('Objekt-Bankname bearbeiten'), {
+      target: { value: 'Fiktive Objektbank' },
+    })
     fireEvent.click(
       screen.getByRole('button', { name: 'Objektdaten speichern' }),
     )
@@ -331,6 +344,9 @@ describe('WorkflowRoute', () => {
     expect(result.getData().masterData.properties[0]?.internalNumber).toBe(
       'OBJ-NEU',
     )
+    expect(
+      result.getData().masterData.properties[0]?.bankAccount?.bankName,
+    ).toBe('Fiktive Objektbank')
     expect(result.getData().masterData.buildings).toHaveLength(2)
     expect(result.getData().masterData.units.at(-1)).toMatchObject({
       label: 'Wohnung 2',
@@ -378,6 +394,15 @@ describe('WorkflowRoute', () => {
     fireEvent.change(screen.getByLabelText('Zeitraum bis'), {
       target: { value: '2027-01-31' },
     })
+    fireEvent.change(screen.getByLabelText('Allgemeiner Hinweis'), {
+      target: { value: 'Fiktiver Jahreshinweis' },
+    })
+    fireEvent.change(screen.getByLabelText('Verbrauchskostenanteil Standard'), {
+      target: { value: '70' },
+    })
+    fireEvent.change(screen.getByLabelText('Grundkostenanteil Standard'), {
+      target: { value: '30' },
+    })
     fireEvent.click(
       screen.getByRole('button', { name: 'Änderungen speichern' }),
     )
@@ -385,6 +410,11 @@ describe('WorkflowRoute', () => {
     expect(result.getData().billingData.billingPeriods[0]).toMatchObject({
       periodStart: '2026-02-01',
       periodEnd: '2027-01-31',
+      notes: { general: 'Fiktiver Jahreshinweis' },
+      heatingDefaults: {
+        consumptionSharePercent: 70,
+        baseSharePercent: 30,
+      },
     })
   })
 
@@ -458,6 +488,10 @@ describe('WorkflowRoute', () => {
     fireEvent.change(screen.getByLabelText('Personenzahl bearbeiten'), {
       target: { value: '2' },
     })
+    fireEvent.change(screen.getByLabelText('Verbrauchseinheiten bearbeiten'), {
+      target: { value: '88,5' },
+    })
+    fireEvent.click(screen.getByLabelText('§ 12 HeizKV-Kürzung anwenden'))
     fireEvent.click(
       screen.getByRole('button', { name: 'Nutzerdaten speichern' }),
     )
@@ -465,6 +499,10 @@ describe('WorkflowRoute', () => {
     expect(result.getData().masterData.persons[0]?.displayName).toBe(
       'Aktualisierter Nutzer',
     )
+    expect(result.getData().billingData.occupancyPeriods[0]).toMatchObject({
+      consumptionUnits: { value: 88.5, unit: 'einheiten' },
+      applySection12Reduction: true,
+    })
 
     fireEvent.click(screen.getByRole('button', { name: 'Nutzer löschen' }))
     fireEvent.click(screen.getByRole('button', { name: 'Löschen bestätigen' }))

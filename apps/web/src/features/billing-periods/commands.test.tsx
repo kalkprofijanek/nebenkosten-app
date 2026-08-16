@@ -143,6 +143,19 @@ describe('updateBillingPeriod', () => {
       year: 2029,
       periodStart: '2029-02-01',
       periodEnd: '2030-01-31',
+      notes: {
+        general: 'Allgemeiner Testhinweis',
+        credit: 'Testhinweis Guthaben',
+        additionalPayment: 'Testhinweis Nachzahlung',
+      },
+      coverLetter: { active: true, text: 'Fiktives Anschreiben' },
+      heatingDefaults: {
+        consumptionSharePercent: 70,
+        baseSharePercent: 30,
+        baseCostAreaBasis: 'heated_area',
+        operatingElectricitySharePercent: 3,
+        vatMode: 'brutto',
+      },
     })
 
     expect(result.billingData.billingPeriods[0]).toMatchObject({
@@ -150,6 +163,12 @@ describe('updateBillingPeriod', () => {
       periodStart: '2029-02-01',
       periodEnd: '2030-01-31',
       status: 'DRAFT',
+      notes: { general: 'Allgemeiner Testhinweis' },
+      coverLetter: { active: true, text: 'Fiktives Anschreiben' },
+      heatingDefaults: {
+        consumptionSharePercent: 70,
+        baseSharePercent: 30,
+      },
     })
     expect(source.billingData.billingPeriods[0]?.year).toBe(2028)
   })

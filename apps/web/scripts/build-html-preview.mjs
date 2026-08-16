@@ -15,7 +15,7 @@ const outputFile = resolve(
   '..',
   'private-data',
   'previews',
-  'PR10_UI_VORSCHAU.html',
+  'PR15_UI_VORSCHAU.html',
 )
 
 /**
@@ -57,7 +57,7 @@ const [stylesheet, script] = await Promise.all([
 
 const previewNotice = `
   <div class="preview-notice" role="status">
-    <strong>Lokale PR-10-Vorschau</strong>
+    <strong>Lokale PR-15-Vorschau</strong>
     <span>Diese Zwischenansicht verwendet keine echten Daten. Änderungen bleiben nur bis zum Neuladen erhalten.</span>
   </div>`
 const noticeStyles = `

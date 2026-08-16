@@ -29,6 +29,11 @@ function prepayment(form: FormData) {
   } as const
 }
 
+function optionalEuro(form: FormData, name: string) {
+  const value = formOptionalText(form, name)
+  return value === undefined ? undefined : parseEuroCents(value)
+}
+
 export function OccupanciesRoute({
   data,
   selection,
@@ -71,7 +76,12 @@ export function OccupanciesRoute({
         addTenantOccupancy(current, {
           billingPeriodId: period.id,
           unitId: formText(form, 'unitId'),
-          person: { displayName: formText(form, 'displayName') },
+          person: {
+            displayName: formText(form, 'displayName'),
+            firstName: formOptionalText(form, 'firstName'),
+            lastName: formOptionalText(form, 'lastName'),
+            email: formOptionalText(form, 'email'),
+          },
           occupancy: {
             from: formOptionalText(form, 'from'),
             to: formOptionalText(form, 'to'),
@@ -109,9 +119,14 @@ export function OccupanciesRoute({
         updateTenantOccupancy(current, {
           occupancyPeriodId: occupancyId,
           displayName: formText(form, 'displayName'),
+          firstName: formOptionalText(form, 'firstName'),
+          lastName: formOptionalText(form, 'lastName'),
+          email: formOptionalText(form, 'email'),
           from: formOptionalText(form, 'from'),
           to: formOptionalText(form, 'to'),
           persons: optionalNumber(form, 'persons'),
+          mandateReference: formOptionalText(form, 'mandateReference'),
+          monthlyRentCents: optionalEuro(form, 'monthlyRent'),
           shippingAddressStreet: formOptionalText(
             form,
             'shippingAddressStreet',
@@ -120,6 +135,29 @@ export function OccupanciesRoute({
             form,
             'shippingAddressPostalCodeAndCity',
           ),
+          consumptionUnits: optionalNumber(form, 'consumptionUnits'),
+          consumptionUnitsEstimated: form.has('consumptionUnitsEstimated'),
+          consumptionUnitsEstimateReason: formOptionalText(
+            form,
+            'consumptionUnitsEstimateReason',
+          ),
+          coldWater: optionalNumber(form, 'coldWater'),
+          warmWater: optionalNumber(form, 'warmWater'),
+          applySection12Reduction: form.has('applySection12Reduction'),
+          costScope: formOptionalText(form, 'costScopeBuildingId')
+            ? {
+                kind: 'building' as const,
+                buildingId: formText(form, 'costScopeBuildingId'),
+              }
+            : { kind: 'property' as const },
+          propertyTaxScope: formOptionalText(form, 'propertyTaxScopeBuildingId')
+            ? {
+                kind: 'building' as const,
+                buildingId: formText(form, 'propertyTaxScopeBuildingId'),
+              }
+            : { kind: 'property' as const },
+          dispatchDate: formOptionalText(form, 'dispatchDate'),
+          note: formOptionalText(form, 'note'),
           prepayment: prepayment(form),
         }),
       )
@@ -170,6 +208,9 @@ export function OccupanciesRoute({
           </select>
         </label>
         <WorkflowField label="Anzeigename" name="displayName" required />
+        <WorkflowField label="Vorname" name="firstName" />
+        <WorkflowField label="Nachname" name="lastName" />
+        <WorkflowField label="E-Mail" name="email" type="email" />
         <WorkflowField label="Einzug" name="from" type="date" />
         <WorkflowField label="Auszug" name="to" type="date" />
         <WorkflowField label="Personenzahl" name="persons" type="number" />
@@ -270,6 +311,22 @@ export function OccupanciesRoute({
                       defaultValue={person?.displayName ?? ''}
                     />
                     <WorkflowField
+                      label="Vorname bearbeiten"
+                      name="firstName"
+                      defaultValue={person?.firstName ?? ''}
+                    />
+                    <WorkflowField
+                      label="Nachname bearbeiten"
+                      name="lastName"
+                      defaultValue={person?.lastName ?? ''}
+                    />
+                    <WorkflowField
+                      label="E-Mail bearbeiten"
+                      name="email"
+                      type="email"
+                      defaultValue={person?.email ?? ''}
+                    />
+                    <WorkflowField
                       label="Einzug bearbeiten"
                       name="from"
                       type="date"
@@ -288,6 +345,20 @@ export function OccupanciesRoute({
                       defaultValue={occupancy.persons?.value ?? ''}
                     />
                     <WorkflowField
+                      label="Mandatsreferenz bearbeiten"
+                      name="mandateReference"
+                      defaultValue={tenancy?.mandateReference ?? ''}
+                    />
+                    <WorkflowField
+                      label="Monatsmiete in Euro bearbeiten"
+                      name="monthlyRent"
+                      defaultValue={
+                        tenancy?.monthlyRentCents == null
+                          ? ''
+                          : (tenancy.monthlyRentCents / 100).toFixed(2)
+                      }
+                    />
+                    <WorkflowField
                       label="Versandstraße bearbeiten"
                       name="shippingAddressStreet"
                       defaultValue={tenancy?.shippingAddressStreet ?? ''}
@@ -298,6 +369,105 @@ export function OccupanciesRoute({
                       defaultValue={
                         tenancy?.shippingAddressPostalCodeAndCity ?? ''
                       }
+                    />
+                    <WorkflowField
+                      label="Verbrauchseinheiten bearbeiten"
+                      name="consumptionUnits"
+                      defaultValue={occupancy.consumptionUnits?.value ?? ''}
+                    />
+                    <label className="checkbox-field">
+                      <input
+                        type="checkbox"
+                        name="consumptionUnitsEstimated"
+                        defaultChecked={
+                          occupancy.consumptionUnitsEstimated ?? false
+                        }
+                      />
+                      <span>Verbrauchseinheiten geschätzt</span>
+                    </label>
+                    <WorkflowField
+                      label="Schätzgrund Verbrauch bearbeiten"
+                      name="consumptionUnitsEstimateReason"
+                      defaultValue={
+                        occupancy.consumptionUnitsEstimateReason ?? ''
+                      }
+                    />
+                    <WorkflowField
+                      label="Kaltwasser in m³ bearbeiten"
+                      name="coldWater"
+                      defaultValue={occupancy.coldWater?.value ?? ''}
+                    />
+                    <WorkflowField
+                      label="Warmwasser in m³ bearbeiten"
+                      name="warmWater"
+                      defaultValue={occupancy.warmWater?.value ?? ''}
+                    />
+                    <label className="checkbox-field">
+                      <input
+                        type="checkbox"
+                        name="applySection12Reduction"
+                        defaultChecked={
+                          occupancy.applySection12Reduction ?? false
+                        }
+                      />
+                      <span>§ 12 HeizKV-Kürzung anwenden</span>
+                    </label>
+                    <label>
+                      <span>Kostenbereich bearbeiten</span>
+                      <select
+                        name="costScopeBuildingId"
+                        defaultValue={
+                          occupancy.costScope?.kind === 'building'
+                            ? occupancy.costScope.buildingId
+                            : ''
+                        }
+                      >
+                        <option value="">Gesamtes Objekt</option>
+                        {data.masterData.buildings
+                          .filter(
+                            ({ propertyId }) =>
+                              propertyId === period.propertyId,
+                          )
+                          .map((building) => (
+                            <option key={building.id} value={building.id}>
+                              {building.name}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    <label>
+                      <span>Grundsteuerbereich bearbeiten</span>
+                      <select
+                        name="propertyTaxScopeBuildingId"
+                        defaultValue={
+                          occupancy.propertyTaxScope?.kind === 'building'
+                            ? occupancy.propertyTaxScope.buildingId
+                            : ''
+                        }
+                      >
+                        <option value="">Gesamtes Objekt</option>
+                        {data.masterData.buildings
+                          .filter(
+                            ({ propertyId }) =>
+                              propertyId === period.propertyId,
+                          )
+                          .map((building) => (
+                            <option key={building.id} value={building.id}>
+                              {building.name}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    <WorkflowField
+                      label="Versanddatum bearbeiten"
+                      name="dispatchDate"
+                      type="date"
+                      defaultValue={occupancy.dispatchDate ?? ''}
+                    />
+                    <WorkflowField
+                      label="Nutzernotiz bearbeiten"
+                      name="note"
+                      defaultValue={occupancy.note ?? ''}
                     />
                     <label>
                       <span>Vorauszahlungsart bearbeiten</span>

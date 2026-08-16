@@ -101,10 +101,10 @@ export function MeterPanel({
     if (!meter) return
     const form = new FormData(event.currentTarget)
     const value = parseOptionalNumber(formText(form, 'value'))
-    if (value === null) throw new Error('Bitte einen Zählerstand eingeben.')
     if (
-      apply((current) =>
-        addMeterReading(
+      apply((current) => {
+        if (value === null) throw new Error('Bitte einen Zählerstand eingeben.')
+        return addMeterReading(
           current,
           {
             meterId: meter.id,
@@ -119,8 +119,8 @@ export function MeterPanel({
             note: formOptionalText(form, 'note'),
           },
           { createId: () => crypto.randomUUID() },
-        ),
-      )
+        )
+      })
     )
       event.currentTarget.reset()
   }
@@ -130,10 +130,10 @@ export function MeterPanel({
     if (!meter) return
     const form = new FormData(event.currentTarget)
     const value = parseOptionalNumber(formText(form, 'value'))
-    if (value === null) throw new Error('Bitte einen Zählerstand eingeben.')
     if (
-      apply((current) =>
-        updateMeterReading(current, readingId, {
+      apply((current) => {
+        if (value === null) throw new Error('Bitte einen Zählerstand eingeben.')
+        return updateMeterReading(current, readingId, {
           meterId: meter.id,
           billingPeriodId: period.id,
           date: formOptionalText(form, 'date'),
@@ -141,8 +141,8 @@ export function MeterPanel({
           source: formText(form, 'source') as
             'manual' | 'imported' | 'estimated',
           note: formOptionalText(form, 'note'),
-        }),
-      )
+        })
+      })
     )
       setEditingReadingId(null)
   }

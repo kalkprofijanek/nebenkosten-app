@@ -104,6 +104,10 @@ export function PropertyRoute({
           externalNumber: formOptionalText(form, 'externalNumber'),
           street: formOptionalText(form, 'street'),
           postalCodeAndCity: formOptionalText(form, 'postalCodeAndCity'),
+          iban: formOptionalText(form, 'iban'),
+          bic: formOptionalText(form, 'bic'),
+          accountHolder: formOptionalText(form, 'accountHolder'),
+          bankName: formOptionalText(form, 'bankName'),
         }),
       )
     )
@@ -133,6 +137,14 @@ export function PropertyRoute({
       updateBuilding(current, buildingId, {
         name: formText(form, 'name'),
         shortName: formOptionalText(form, 'shortName'),
+        defaultEnergySourceType: formOptionalText(
+          form,
+          'defaultEnergySourceType',
+        ),
+        mandateRefPrefixes: formText(form, 'mandateRefPrefixes')
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean),
       }),
     )
   }
@@ -267,6 +279,26 @@ export function PropertyRoute({
                   name="postalCodeAndCity"
                   defaultValue={property.address?.postalCodeAndCity ?? ''}
                 />
+                <WorkflowField
+                  label="Objekt-IBAN bearbeiten"
+                  name="iban"
+                  defaultValue={property.bankAccount?.iban ?? ''}
+                />
+                <WorkflowField
+                  label="Objekt-BIC bearbeiten"
+                  name="bic"
+                  defaultValue={property.bankAccount?.bic ?? ''}
+                />
+                <WorkflowField
+                  label="Objekt-Kontoinhaber bearbeiten"
+                  name="accountHolder"
+                  defaultValue={property.bankAccount?.accountHolder ?? ''}
+                />
+                <WorkflowField
+                  label="Objekt-Bankname bearbeiten"
+                  name="bankName"
+                  defaultValue={property.bankAccount?.bankName ?? ''}
+                />
                 <button type="submit">Objektdaten speichern</button>
               </form>
             ) : null}
@@ -321,6 +353,16 @@ export function PropertyRoute({
                     label="Gebäudekürzel bearbeiten"
                     name="shortName"
                     defaultValue={building.shortName ?? ''}
+                  />
+                  <WorkflowField
+                    label="Standardenergieträger bearbeiten"
+                    name="defaultEnergySourceType"
+                    defaultValue={building.defaultEnergySourceType ?? ''}
+                  />
+                  <WorkflowField
+                    label="Mandatsreferenz-Präfixe bearbeiten"
+                    name="mandateRefPrefixes"
+                    defaultValue={building.mandateRefPrefixes.join(', ')}
                   />
                   <button type="submit">Gebäude speichern</button>
                 </form>

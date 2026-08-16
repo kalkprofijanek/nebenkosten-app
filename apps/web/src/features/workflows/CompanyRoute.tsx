@@ -88,6 +88,15 @@ export function CompanyRoute({
           ].flatMap((value) => (value ? [value] : [])),
           street: formOptionalText(form, 'street'),
           postalCodeAndCity: formOptionalText(form, 'postalCodeAndCity'),
+          postBox: formOptionalText(form, 'postBox'),
+          contactSalutation: formOptionalText(form, 'contactSalutation') as
+            'Herr' | 'Frau' | 'Familie' | 'Firma' | undefined,
+          contactFirstName: formOptionalText(form, 'contactFirstName'),
+          contactLastName: formOptionalText(form, 'contactLastName'),
+          contactPhone: formOptionalText(form, 'contactPhone'),
+          contactMobile: formOptionalText(form, 'contactMobile'),
+          contactFax: formOptionalText(form, 'contactFax'),
+          contactEmail: formOptionalText(form, 'contactEmail'),
           iban: formOptionalText(form, 'iban'),
           bic: formOptionalText(form, 'bic'),
           accountHolder: formOptionalText(form, 'accountHolder'),
@@ -184,6 +193,55 @@ export function CompanyRoute({
                 label="Postleitzahl und Ort bearbeiten"
                 name="postalCodeAndCity"
                 defaultValue={company.address?.postalCodeAndCity ?? ''}
+              />
+              <WorkflowField
+                label="Postfach bearbeiten"
+                name="postBox"
+                defaultValue={company.postBox ?? ''}
+              />
+              <label>
+                <span>Anrede Kontakt bearbeiten</span>
+                <select
+                  name="contactSalutation"
+                  defaultValue={company.contact?.salutation ?? ''}
+                >
+                  <option value="">Nicht erfasst</option>
+                  <option value="Herr">Herr</option>
+                  <option value="Frau">Frau</option>
+                  <option value="Familie">Familie</option>
+                  <option value="Firma">Firma</option>
+                </select>
+              </label>
+              <WorkflowField
+                label="Vorname Kontakt bearbeiten"
+                name="contactFirstName"
+                defaultValue={company.contact?.firstName ?? ''}
+              />
+              <WorkflowField
+                label="Nachname Kontakt bearbeiten"
+                name="contactLastName"
+                defaultValue={company.contact?.lastName ?? ''}
+              />
+              <WorkflowField
+                label="Telefon Kontakt bearbeiten"
+                name="contactPhone"
+                defaultValue={company.contact?.phone ?? ''}
+              />
+              <WorkflowField
+                label="Mobil Kontakt bearbeiten"
+                name="contactMobile"
+                defaultValue={company.contact?.mobile ?? ''}
+              />
+              <WorkflowField
+                label="Fax Kontakt bearbeiten"
+                name="contactFax"
+                defaultValue={company.contact?.fax ?? ''}
+              />
+              <WorkflowField
+                label="E-Mail Kontakt bearbeiten"
+                name="contactEmail"
+                type="email"
+                defaultValue={company.contact?.email ?? ''}
               />
               <WorkflowField
                 label="IBAN bearbeiten"

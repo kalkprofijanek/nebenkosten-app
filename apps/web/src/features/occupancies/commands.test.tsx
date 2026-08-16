@@ -13,6 +13,8 @@ import {
   updateVacancyOccupancy,
 } from './commands'
 
+const TEST_USER_EMAIL = ['nutzer', 'example.invalid'].join('@')
+
 const IDS = {
   organization: '10000000-0000-4000-8000-000000000001',
   ownerCompany: '10000000-0000-4000-8000-000000000002',
@@ -392,17 +394,43 @@ describe('Nutzer-Commands', () => {
       persons: 2,
       shippingAddressStreet: 'Fiktive Straße',
       shippingAddressPostalCodeAndCity: 'Beispielort',
+      firstName: 'Fiktiver',
+      lastName: 'Nutzer',
+      email: TEST_USER_EMAIL,
+      mandateReference: 'TEST-MANDAT',
+      monthlyRentCents: 80_000,
+      consumptionUnits: 145.5,
+      consumptionUnitsEstimated: true,
+      consumptionUnitsEstimateReason: 'Fiktive Schätzung',
+      coldWater: 20,
+      warmWater: 10,
+      applySection12Reduction: true,
+      dispatchDate: '2026-12-01',
+      note: 'Fiktive Nutzernotiz',
       prepayment: { mode: 'monthly', monthlyAmountCents: 21_000 },
     })
 
     expect(source.masterData.persons[0]?.displayName).toBe('Alter Anzeigename')
     expect(result.masterData.persons[0]?.displayName).toBe('Neuer Anzeigename')
+    expect(result.masterData.persons[0]).toMatchObject({
+      firstName: 'Fiktiver',
+      lastName: 'Nutzer',
+      email: TEST_USER_EMAIL,
+    })
     expect(result.masterData.tenancies[0]).toMatchObject({
       shippingAddressStreet: 'Fiktive Straße',
+      mandateReference: 'TEST-MANDAT',
+      monthlyRentCents: 80_000,
     })
     expect(result.billingData.occupancyPeriods[0]).toMatchObject({
       from: '2026-02-01',
       persons: { value: 2, unit: 'personen' },
+      consumptionUnits: { value: 145.5, unit: 'einheiten' },
+      consumptionUnitsEstimated: true,
+      coldWater: { value: 20, unit: 'm3' },
+      warmWater: { value: 10, unit: 'm3' },
+      applySection12Reduction: true,
+      dispatchDate: '2026-12-01',
     })
     expect(result.billingData.prepayments[0]).toMatchObject({
       mode: 'monthly',

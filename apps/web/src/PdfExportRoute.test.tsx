@@ -314,6 +314,9 @@ describe('PdfExportRoute', () => {
       />,
     )
 
+    expect(screen.getByText(/Rechenstand vom/)).toHaveTextContent('15.01.2026')
+    expect(screen.getByText('1 Einzelabrechnung erwartet')).toBeVisible()
+
     const tenantItem = screen.getByText('WE 1').closest('li')!
     fireEvent.click(
       within(tenantItem).getByRole('button', { name: /Einzelabrechnung/ }),

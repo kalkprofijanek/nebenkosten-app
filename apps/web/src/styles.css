@@ -521,6 +521,22 @@ h1 {
   color: #8b5b1d;
 }
 
+.status-pill--in_review {
+  background: #fff3ce;
+  color: #755109;
+}
+
+.status-pill--ready_for_pdf {
+  background: var(--mint-soft);
+  color: var(--forest);
+}
+
+.status-pill--finalized,
+.status-pill--superseded {
+  background: #e8ece9;
+  color: #4e5c55;
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -936,7 +952,8 @@ h1 {
 }
 
 .main-content input,
-.main-content select {
+.main-content select,
+.main-content textarea {
   width: 100%;
   min-height: 2.75rem;
   padding: 0.65rem 0.75rem;
@@ -947,9 +964,34 @@ h1 {
 }
 
 .main-content input:focus,
-.main-content select:focus {
+.main-content select:focus,
+.main-content textarea:focus {
   border-color: var(--forest-soft);
   outline: 3px solid rgb(31 87 71 / 14%);
+}
+
+.main-content textarea {
+  min-height: 6.5rem;
+  resize: vertical;
+}
+
+.main-content .checkbox-field {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #d7dfd8;
+  border-radius: 0.6rem;
+  background: #f8faf8;
+}
+
+.main-content .checkbox-field input[type='checkbox'] {
+  width: 1.2rem;
+  min-height: 1.2rem;
+  flex: 0 0 1.2rem;
+  margin: 0;
+  accent-color: var(--forest);
 }
 
 .main-content form button {
@@ -1009,6 +1051,119 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 1rem;
   background: var(--paper);
+}
+
+.calculation-meta {
+  margin: 1.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.calculation-warnings,
+.validation-groups > section,
+.pdf-export-workspace > section {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: var(--paper);
+}
+
+.calculation-warnings h3,
+.validation-groups h3,
+.pdf-export-workspace h3 {
+  margin: 0 0 0.85rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 500;
+}
+
+.calculation-warnings ul,
+.validation-groups ul,
+.pdf-export-workspace ul {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.calculation-warnings li,
+.validation-groups li,
+.pdf-export-workspace li {
+  padding: 0.85rem;
+  border-radius: 0.65rem;
+  background: #f5f7f4;
+}
+
+.validation-groups li p {
+  margin: 0.35rem 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.validation-groups li label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-top: 0.7rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.validation-groups li input[type='checkbox'] {
+  width: 1.15rem;
+  min-height: 1.15rem;
+  flex: 0 0 1.15rem;
+  margin: 0.05rem 0 0;
+}
+
+.validation-edit-link,
+.calculation-warnings a {
+  display: inline-flex;
+  margin-top: 0.55rem;
+  color: var(--forest-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.document-readiness {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.document-readiness div {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: #f5f7f4;
+}
+
+.document-readiness dt {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.document-readiness dd {
+  margin: 0.4rem 0 0;
+  font-weight: 800;
+}
+
+.pdf-export-workspace .form-actions,
+.release-workspace .form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.pdf-export-workspace li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .backup-layout {
@@ -1284,6 +1439,7 @@ h1 {
   .main-content > form,
   .embedded-form,
   .result-grid,
+  .document-readiness,
   .backup-metadata {
     grid-template-columns: 1fr;
   }
@@ -1308,8 +1464,20 @@ h1 {
   .backup-card__heading,
   .record-editor__heading,
   .danger-zone,
-  .snapshot-list li {
+  .snapshot-list li,
+  .pdf-export-workspace li {
     display: grid;
+  }
+
+  .pdf-export-workspace .form-actions,
+  .release-workspace .form-actions {
+    display: grid;
+  }
+
+  .pdf-export-workspace .button,
+  .release-workspace .button,
+  .record-actions button {
+    width: 100%;
   }
 
   .release-score {

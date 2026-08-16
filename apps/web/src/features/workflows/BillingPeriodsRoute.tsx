@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react'
+import { parseOptionalNumber } from '../../app/form-parsers'
 import {
   createBillingPeriod,
   deleteBillingPeriod,
   updateBillingPeriod,
 } from '../billing-periods/commands'
 import { ExistingEntries, WorkflowField } from './form-support'
-import { formText } from './form-values'
+import { formOptionalText, formText } from './form-values'
 import type { WorkflowSubRouteProps } from './route-types'
 
 export function BillingPeriodsRoute({
@@ -63,12 +64,39 @@ export function BillingPeriodsRoute({
     event.preventDefault()
     if (!period) return
     const form = new FormData(event.currentTarget)
+    const number = (name: string) =>
+      parseOptionalNumber(formText(form, name)) ?? undefined
     if (
       apply((current) =>
         updateBillingPeriod(current, period.id, {
           year: Number(formText(form, 'year')),
           periodStart: formText(form, 'periodStart'),
           periodEnd: formText(form, 'periodEnd'),
+          notes: {
+            general: formOptionalText(form, 'noteGeneral'),
+            credit: formOptionalText(form, 'noteCredit'),
+            additionalPayment: formOptionalText(form, 'noteAdditionalPayment'),
+          },
+          coverLetter: {
+            active: form.has('coverLetterActive'),
+            text: formOptionalText(form, 'coverLetterText'),
+          },
+          heatingDefaults: {
+            consumptionSharePercent: number('consumptionSharePercent'),
+            baseSharePercent: number('baseSharePercent'),
+            baseCostAreaBasis: formOptionalText(form, 'baseCostAreaBasis') as
+              'usable_area' | 'heated_area' | undefined,
+            solarSharePercent: number('solarSharePercent'),
+            operatingElectricitySharePercent: number(
+              'operatingElectricitySharePercent',
+            ),
+            vatMode: formOptionalText(form, 'vatMode') as
+              'brutto' | 'netto' | undefined,
+            deviationJustification: formOptionalText(
+              form,
+              'deviationJustification',
+            ),
+          },
         }),
       )
     )
@@ -150,6 +178,87 @@ export function BillingPeriodsRoute({
                 type="date"
                 required
                 defaultValue={period.periodEnd}
+              />
+              <WorkflowField
+                label="Allgemeiner Hinweis"
+                name="noteGeneral"
+                defaultValue={period.notes?.general ?? ''}
+              />
+              <WorkflowField
+                label="Hinweis bei Guthaben"
+                name="noteCredit"
+                defaultValue={period.notes?.credit ?? ''}
+              />
+              <WorkflowField
+                label="Hinweis bei Nachzahlung"
+                name="noteAdditionalPayment"
+                defaultValue={period.notes?.additionalPayment ?? ''}
+              />
+              <label className="checkbox-field">
+                <input
+                  type="checkbox"
+                  name="coverLetterActive"
+                  defaultChecked={period.coverLetter?.active ?? false}
+                />
+                <span>Anschreiben aktiv</span>
+              </label>
+              <WorkflowField
+                label="Text des Anschreibens"
+                name="coverLetterText"
+                defaultValue={period.coverLetter?.text ?? ''}
+              />
+              <WorkflowField
+                label="Verbrauchskostenanteil Standard"
+                name="consumptionSharePercent"
+                defaultValue={
+                  period.heatingDefaults?.consumptionSharePercent ?? ''
+                }
+              />
+              <WorkflowField
+                label="Grundkostenanteil Standard"
+                name="baseSharePercent"
+                defaultValue={period.heatingDefaults?.baseSharePercent ?? ''}
+              />
+              <label>
+                <span>Grundkostenfläche</span>
+                <select
+                  name="baseCostAreaBasis"
+                  defaultValue={
+                    period.heatingDefaults?.baseCostAreaBasis ?? 'heated_area'
+                  }
+                >
+                  <option value="heated_area">Beheizte Fläche</option>
+                  <option value="usable_area">Nutzfläche</option>
+                </select>
+              </label>
+              <WorkflowField
+                label="Solaranteil Standard"
+                name="solarSharePercent"
+                defaultValue={period.heatingDefaults?.solarSharePercent ?? ''}
+              />
+              <WorkflowField
+                label="Betriebsstromanteil Standard"
+                name="operatingElectricitySharePercent"
+                defaultValue={
+                  period.heatingDefaults?.operatingElectricitySharePercent ?? ''
+                }
+              />
+              <label>
+                <span>Umsatzsteuer-Modus</span>
+                <select
+                  name="vatMode"
+                  defaultValue={period.heatingDefaults?.vatMode ?? 'brutto'}
+                >
+                  <option value="brutto">Brutto</option>
+                  <option value="netto">Netto</option>
+                </select>
+              </label>
+              <WorkflowField
+                label="Begründung für Abweichung"
+                name="deviationJustification"
+                defaultValue={
+                  period.heatingDefaults?.deviationJustification ?? ''
+                }
               />
               <button type="submit">Änderungen speichern</button>
             </form>

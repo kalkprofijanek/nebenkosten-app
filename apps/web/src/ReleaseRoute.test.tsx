@@ -166,6 +166,29 @@ describe('ReleaseRoute', () => {
     ).toHaveLength(2)
   })
 
+  it('verlinkt jeden Prüfhinweis direkt in den passenden Arbeitsbereich', () => {
+    render(
+      <ReleaseRoute
+        data={fileWithPeriod('IN_REVIEW')}
+        billingPeriodId="period-1"
+        onApply={vi.fn()}
+      />,
+    )
+
+    const costLink = within(
+      screen.getByRole('region', { name: /Fehler.*Kosten/i }),
+    ).getByRole('link', { name: 'Kosten bearbeiten' })
+    expect(costLink).toHaveAttribute('href', '#/kosten')
+    expect(costLink).toHaveAttribute('data-entity-id', 'cost-1')
+
+    const prepaymentLinks = within(
+      screen.getByRole('region', { name: /Warnungen.*Vorauszahlungen/i }),
+    ).getAllByRole('link', { name: 'Nutzer bearbeiten' })
+    expect(prepaymentLinks).toHaveLength(2)
+    expect(prepaymentLinks[0]).toHaveAttribute('href', '#/nutzer')
+    expect(prepaymentLinks[0]).toHaveAttribute('data-entity-id', 'tenant-1')
+  })
+
   it('startet aus DRAFT die Prüfung über den Statusautomaten', () => {
     const onApply = vi.fn((transform: (data: AppDataFile) => AppDataFile) => {
       transform(fileWithPeriod('DRAFT'))
@@ -356,6 +379,9 @@ describe('ReleaseRoute', () => {
 
     expect(screen.getByText(/Gesamtabrechnung fehlt/)).toBeVisible()
     expect(screen.getByText(/2 Einzelabrechnungen fehlen/)).toBeVisible()
+    expect(
+      screen.getByRole('link', { name: 'Fehlende Dokumente erzeugen' }),
+    ).toHaveAttribute('href', '#/pdf-export')
     fireEvent.change(screen.getByLabelText('Versanddatum'), {
       target: { value: '2026-02-15' },
     })

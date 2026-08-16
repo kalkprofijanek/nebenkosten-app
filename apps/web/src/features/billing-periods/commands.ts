@@ -1,4 +1,9 @@
-import type { AppDataFile } from '@nebenkosten/schema'
+import type {
+  AppDataFile,
+  BillingNotes,
+  CoverLetter,
+  HeatingDefaults,
+} from '@nebenkosten/schema'
 import {
   assertValidResult,
   assertValidSource,
@@ -21,6 +26,9 @@ export interface UpdateBillingPeriodInput {
   readonly year: number
   readonly periodStart: string
   readonly periodEnd: string
+  readonly notes?: BillingNotes
+  readonly coverLetter?: CoverLetter
+  readonly heatingDefaults?: HeatingDefaults
 }
 
 function normalizePropertyId(value: unknown): string {
@@ -112,6 +120,11 @@ export function updateBillingPeriod(
       'Das ausgewählte Abrechnungsjahr ist nicht vorhanden.',
     )
   }
+  if (period.status !== 'DRAFT') {
+    throw new BillingPeriodCommandError(
+      'Nur ein Abrechnungsjahr im Entwurf kann hier bearbeitet werden.',
+    )
+  }
   const year = validateYear(input.year)
   if (
     typeof input.periodStart !== 'string' ||
@@ -119,6 +132,17 @@ export function updateBillingPeriod(
     input.periodStart > input.periodEnd
   ) {
     throw new BillingPeriodCommandError('Der Abrechnungszeitraum ist ungültig.')
+  }
+  const consumptionShare = input.heatingDefaults?.consumptionSharePercent
+  const baseShare = input.heatingDefaults?.baseSharePercent
+  if (
+    consumptionShare != null &&
+    baseShare != null &&
+    Math.abs(consumptionShare + baseShare - 100) > Number.EPSILON
+  ) {
+    throw new BillingPeriodCommandError(
+      'Verbrauchs- und Grundkostenanteil müssen zusammen 100 Prozent ergeben.',
+    )
   }
   if (
     data.billingData.billingPeriods.some(
@@ -143,6 +167,9 @@ export function updateBillingPeriod(
               year,
               periodStart: input.periodStart,
               periodEnd: input.periodEnd,
+              notes: input.notes,
+              coverLetter: input.coverLetter,
+              heatingDefaults: input.heatingDefaults,
             }
           : item,
       ),
