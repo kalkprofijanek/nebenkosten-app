@@ -1431,3 +1431,111 @@ h1 {
     text-align: left;
   }
 }
+
+.workflow-tabs {
+  display: flex;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+  padding: 0.4rem;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: #eef3ef;
+}
+
+.workflow-tabs button {
+  min-height: 2.6rem;
+  flex: 1 0 max-content;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.workflow-tabs button[aria-current='page'] {
+  background: var(--paper);
+  color: var(--forest);
+  box-shadow: 0 0.25rem 0.8rem rgb(31 55 43 / 8%);
+}
+
+.editable-records {
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 72%);
+}
+
+.records-grid {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.records-grid .record-editor {
+  margin: 0;
+}
+
+.booking-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(12rem, 1fr);
+  gap: 0.8rem;
+  margin: 1rem 0;
+}
+
+.booking-filters label,
+.split-fields label {
+  display: grid;
+  gap: 0.42rem;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.split-fields {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
+
+.split-fields legend {
+  padding: 0 0.4rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.record-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.record-actions button {
+  min-height: 2.5rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+@media (max-width: 620px) {
+  .booking-filters,
+  .split-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-tabs button {
+    flex: 0 0 auto;
+  }
+}

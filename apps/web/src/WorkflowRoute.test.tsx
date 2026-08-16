@@ -438,25 +438,36 @@ describe('WorkflowRoute', () => {
     expect(result.getData().billingData.occupancyPeriods).toEqual([])
   })
 
-  it('erfasst Kostenart und Buchung atomar', () => {
+  it('erfasst Kostenarten und beliebig viele Positionen getrennt', () => {
     const result = renderRoute('/kosten', seededData(), SEEDED_SELECTION)
 
-    fireEvent.change(screen.getByLabelText('Kostenart'), {
+    fireEvent.change(screen.getByLabelText('Neue Kostenart'), {
       target: { value: 'Gebäudereinigung' },
     })
     fireEvent.change(screen.getByLabelText('Umlageschlüssel'), {
       target: { value: 'residential_units' },
     })
+    fireEvent.click(screen.getByRole('button', { name: 'Kostenart anlegen' }))
+    expect(result.getData().billingData.costCategories).toHaveLength(1)
+
+    cleanup()
+    const entryResult = renderRoute(
+      '/kosten',
+      result.getData(),
+      SEEDED_SELECTION,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Kostenpositionen' }))
     fireEvent.change(screen.getByLabelText('Belegdatum'), {
       target: { value: '2026-03-15' },
     })
     fireEvent.change(screen.getByLabelText('Betrag in Euro'), {
       target: { value: '1000,99' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Kosten erfassen' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Kostenposition anlegen' }),
+    )
 
-    expect(result.getData().billingData.costCategories).toHaveLength(1)
-    expect(result.getData().billingData.costEntries[0]?.amountCents).toBe(
+    expect(entryResult.getData().billingData.costEntries[0]?.amountCents).toBe(
       100_099,
     )
   })
@@ -515,19 +526,100 @@ describe('WorkflowRoute', () => {
     expect(
       screen.getByRole('heading', { name: 'Kostenarten (1)' }),
     ).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Kostenpositionen' }))
     expect(
       screen.getByRole('heading', { name: 'Kostenpositionen (1)' }),
     ).toBeVisible()
     expect(screen.getByText('Fiktive Rechnung')).toBeVisible()
-    expect(screen.getByText('TEST-17')).toBeVisible()
+    expect(screen.getByText(/TEST-17/u)).toBeVisible()
     expect(screen.getAllByText(/1\.234,56\s€/u)).toHaveLength(2)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bankbuchungen' }))
     expect(
       screen.getByRole('heading', { name: 'Bankbuchungen (1)' }),
     ).toBeVisible()
-    expect(screen.getByText('Musterfirma Dienstleistung')).toBeVisible()
+    expect(screen.getByText(/Musterfirma Dienstleistung/u)).toBeVisible()
     expect(screen.getByText('Testleistung März')).toBeVisible()
     expect(screen.getByText(/-250,50\s€/u)).toBeVisible()
     expect(screen.queryByText('Fremdes Objekt')).not.toBeInTheDocument()
+  })
+
+  it('klassifiziert Bankbuchungen und sperrt sie nach der Prüfung', () => {
+    const base = seededData()
+    const categoryId = '20000000-0000-4000-8000-000000000017'
+    const bookingId = '20000000-0000-4000-8000-000000000018'
+    const data: AppDataFile = {
+      ...base,
+      billingData: {
+        ...base.billingData,
+        costCategories: [
+          {
+            id: categoryId,
+            billingPeriodId: SEEDED_IDS.period,
+            kind: 'operating',
+            label: 'Fiktive Kostenart',
+            allocationKey: 'usable_area',
+          },
+        ],
+        bankBookings: [
+          {
+            id: bookingId,
+            propertyId: SEEDED_IDS.property,
+            date: '2026-04-01',
+            amountCents: -8_500,
+            purpose: 'Fiktive Bankbuchung',
+            category: 'OFFEN',
+          },
+        ],
+      },
+    }
+    const result = renderRoute('/kosten', data, SEEDED_SELECTION)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bankbuchungen' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Fiktive Bankbuchung bearbeiten' }),
+    )
+    fireEvent.change(screen.getByLabelText('Buchungskategorie bearbeiten'), {
+      target: { value: 'NK_UMLEGBAR' },
+    })
+    fireEvent.change(screen.getByLabelText('Kostenart zuordnen'), {
+      target: { value: categoryId },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Buchung speichern' }))
+
+    expect(result.getData().billingData.bankBookings[0]).toMatchObject({
+      billingYear: 2026,
+      category: 'NK_UMLEGBAR',
+      costCategoryId: categoryId,
+      reviewed: false,
+    })
+
+    cleanup()
+    const reviewedResult = renderRoute(
+      '/kosten',
+      result.getData(),
+      SEEDED_SELECTION,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Bankbuchungen' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Als geprüft markieren' }),
+    )
+    expect(reviewedResult.getData().billingData.bankBookings[0]?.reviewed).toBe(
+      true,
+    )
+
+    cleanup()
+    renderRoute('/kosten', reviewedResult.getData(), SEEDED_SELECTION)
+    fireEvent.click(screen.getByRole('button', { name: 'Bankbuchungen' }))
+    expect(
+      screen.getByRole('button', { name: 'Buchung wieder öffnen' }),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('button', {
+        name: 'Fiktive Bankbuchung bearbeiten',
+      }),
+    ).not.toBeInTheDocument()
   })
 
   it('legt Heizsystem, Heizkreis und Energiequelle gemeinsam an', () => {
@@ -595,13 +687,10 @@ describe('WorkflowRoute', () => {
         onApply={() => false}
       />,
     )
-    fireEvent.change(screen.getByLabelText('Kostenart'), {
+    fireEvent.change(screen.getByLabelText('Neue Kostenart'), {
       target: { value: 'Hausstrom' },
     })
-    fireEvent.change(screen.getByLabelText('Betrag in Euro'), {
-      target: { value: '10' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Kosten erfassen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Kostenart anlegen' }))
     expect(screen.getByRole('alert')).toHaveTextContent(
       'konnte nicht gespeichert',
     )

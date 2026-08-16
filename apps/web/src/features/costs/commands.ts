@@ -327,3 +327,151 @@ export function addCostEntry(
     },
   })
 }
+
+export function updateCostCategory(
+  file: AppDataFile,
+  costCategoryId: string,
+  rawInput: unknown,
+): AppDataFile {
+  const current = file.billingData.costCategories.find(
+    ({ id }) => id === costCategoryId,
+  )
+  if (!current) throw new CostCommandError('Kostenart wurde nicht gefunden.')
+  const updateKeys = CATEGORY_KEYS.filter((key) => key !== 'billingPeriodId')
+  const record = recordWithExactKeys(rawInput, updateKeys, 'Kostenart')
+  const input = parseCategoryInput({
+    billingPeriodId: current.billingPeriodId,
+    ...record,
+  })
+  const billingPeriod = file.billingData.billingPeriods.find(
+    ({ id }) => id === current.billingPeriodId,
+  )
+  if (!billingPeriod)
+    throw new CostCommandError('Abrechnungsjahr wurde nicht gefunden.')
+  if (input.scope?.kind === 'building') {
+    const buildingId = input.scope.buildingId
+    const building = file.masterData.buildings.find(
+      ({ id }) => id === buildingId,
+    )
+    if (!building || building.propertyId !== billingPeriod.propertyId)
+      throw new CostCommandError('Gebäude gehört nicht zum Abrechnungsobjekt.')
+  }
+  const replacement = parseEntity<CostCategory>(
+    costCategorySchema,
+    { ...current, ...input },
+    'Kostenart',
+  )
+  return validatedFile({
+    ...file,
+    billingData: {
+      ...file.billingData,
+      costCategories: file.billingData.costCategories.map((category) =>
+        category.id === costCategoryId ? replacement : category,
+      ),
+    },
+  })
+}
+
+export function updateCostEntry(
+  file: AppDataFile,
+  costEntryId: string,
+  rawInput: unknown,
+): AppDataFile {
+  const current = file.billingData.costEntries.find(
+    ({ id }) => id === costEntryId,
+  )
+  if (!current)
+    throw new CostCommandError('Kostenposition wurde nicht gefunden.')
+  const input = parseEntryInput(rawInput)
+  const category = file.billingData.costCategories.find(
+    ({ id }) => id === input.costCategoryId,
+  )
+  if (!category) throw new CostCommandError('Kostenart wurde nicht gefunden.')
+  const period = file.billingData.billingPeriods.find(
+    ({ id }) => id === category.billingPeriodId,
+  )
+  if (!period)
+    throw new CostCommandError('Abrechnungsjahr wurde nicht gefunden.')
+  if (
+    input.date !== undefined &&
+    (input.date < period.periodStart || input.date > period.periodEnd)
+  ) {
+    throw new CostCommandError(
+      'Belegdatum liegt außerhalb des Abrechnungszeitraums.',
+    )
+  }
+  const replacement = parseEntity<CostEntry>(
+    costEntrySchema,
+    { ...current, ...input },
+    'Kostenposition',
+  )
+  return validatedFile({
+    ...file,
+    billingData: {
+      ...file.billingData,
+      costEntries: file.billingData.costEntries.map((entry) =>
+        entry.id === costEntryId ? replacement : entry,
+      ),
+    },
+  })
+}
+
+export function deleteCostEntry(
+  file: AppDataFile,
+  costEntryId: string,
+): AppDataFile {
+  if (!file.billingData.costEntries.some(({ id }) => id === costEntryId)) {
+    throw new CostCommandError('Kostenposition wurde nicht gefunden.')
+  }
+  return validatedFile({
+    ...file,
+    billingData: {
+      ...file.billingData,
+      costEntries: file.billingData.costEntries.filter(
+        ({ id }) => id !== costEntryId,
+      ),
+    },
+  })
+}
+
+export function deleteCostCategory(
+  file: AppDataFile,
+  costCategoryId: string,
+): AppDataFile {
+  if (
+    !file.billingData.costCategories.some(({ id }) => id === costCategoryId)
+  ) {
+    throw new CostCommandError('Kostenart wurde nicht gefunden.')
+  }
+  if (
+    file.billingData.costEntries.some(
+      ({ costCategoryId: reference }) => reference === costCategoryId,
+    )
+  ) {
+    throw new CostCommandError(
+      'Die Kostenart kann nicht gelöscht werden, solange Positionen zugeordnet sind.',
+    )
+  }
+  if (
+    file.billingData.bankBookings.some(
+      (booking) =>
+        booking.costCategoryId === costCategoryId ||
+        booking.splits?.some(
+          ({ costCategoryId: reference }) => reference === costCategoryId,
+        ),
+    )
+  ) {
+    throw new CostCommandError(
+      'Die Kostenart kann nicht gelöscht werden, solange Bankbuchungen zugeordnet sind.',
+    )
+  }
+  return validatedFile({
+    ...file,
+    billingData: {
+      ...file.billingData,
+      costCategories: file.billingData.costCategories.filter(
+        ({ id }) => id !== costCategoryId,
+      ),
+    },
+  })
+}
