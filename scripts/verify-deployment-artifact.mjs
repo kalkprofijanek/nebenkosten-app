@@ -50,10 +50,12 @@ const REVIEWED_CREDENTIAL_ASSIGNMENTS = new Set([
   'assets/index-CtQvHfCT.js:2128f58378fb976a7f3b6f87a36bad9529b97695e4f560499daa49b0b443c03c:8',
   'assets/index-BfCfNcqJ.js:2700d13db5986f045005ff204a8747dd632d7934a83a452391f670268e5fea3d:8',
   'assets/index-Do-vMFxR.js:3a6b97aa8a3537acc48a3f0c8ab16f469408f9cd234aadee30d9a89da8753a12:8',
+  'assets/index-nTC2rkE6.js:d1e57b07c652b7a48c3b82cbd3c907024b3a4528246adcc945f8b62bca23f177:8',
   // pdfmake: PDF-Widget-Bitmaske für ein Kennwort-Feld.
   'assets/pdfmake-BDdWErbi.js:3197e19df8923c84338402f0cd6ad74efe1ed527f1862e71ce70d928e0d4cc50:100',
   'assets/pdfmake-px1s6AzJ.js:7ff8033e96ecfa1c353331641d6a902e9e00a62836fd248c3edbcd37aa8ece9b:100',
   'assets/pdfmake-DyZZ1eQR.js:e207db1e15e7ab1828fb933fce4c0947f14b052d9b1c09091b9694b79cbd7427:100',
+  'assets/pdfmake-DgDUmd0A.js:54073851416e57eb7d783f689981558db0175baa52328f47dafeb498b97c52f4:100',
 ])
 
 function normalizedLimits(options = {}) {
