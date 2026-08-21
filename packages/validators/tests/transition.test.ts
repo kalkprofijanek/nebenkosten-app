@@ -95,11 +95,11 @@ describe('transitionBillingPeriod', () => {
     )
     expect(original.billingData.billingPeriods[0]!.status).toBe('DRAFT')
     expect(review.billingData.billingPeriods[0]!.status).toBe('IN_REVIEW')
+    addCurrentCalculationAndDocuments(review)
     const ready = transitionBillingPeriod(review, 'period-1', 'READY_FOR_PDF', {
       ...OPTIONS,
       auditEventId: 'audit-2',
     })
-    addCurrentCalculationAndDocuments(ready)
     const final = transitionBillingPeriod(ready, 'period-1', 'FINALIZED', {
       ...OPTIONS,
       auditEventId: 'audit-3',
@@ -120,6 +120,7 @@ describe('transitionBillingPeriod', () => {
   it('verlangt alle aktuellen Warnungsbestätigungen für READY', () => {
     const data = validData()
     data.billingData.billingPeriods[0]!.status = 'IN_REVIEW'
+    addCurrentCalculationAndDocuments(data)
     data.billingData.costEntries[0]!.amountCents = -10_000
     data.billingData.costCategories[0]!.totalAmountCents = -10_000
     const report = validateBillingPeriod(data, 'period-1')
@@ -132,6 +133,24 @@ describe('transitionBillingPeriod', () => {
         confirmedWarningKeys: report.unconfirmedWarningKeys,
       }).billingData.billingPeriods[0]!.status,
     ).toBe('READY_FOR_PDF')
+  })
+
+  it('verlangt vor READY einen gespeicherten Berechnungslauf mit Ergebnis', () => {
+    const data = validData()
+    data.billingData.billingPeriods[0]!.status = 'IN_REVIEW'
+
+    expect(() =>
+      transitionBillingPeriod(data, 'period-1', 'READY_FOR_PDF', OPTIONS),
+    ).toThrow(/Berechnung/)
+
+    data.billingData.calculationRuns.push({
+      id: 'run-without-result',
+      billingPeriodId: 'period-1',
+      startedAt: '2026-07-21T09:00:00.000Z',
+    })
+    expect(() =>
+      transitionBillingPeriod(data, 'period-1', 'READY_FOR_PDF', OPTIONS),
+    ).toThrow(/Berechnung/)
   })
 
   it('verlangt Gründe für Rückkanten/SUPERSEDED und ein Versanddatum für FINALIZED', () => {

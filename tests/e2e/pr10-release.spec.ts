@@ -139,6 +139,10 @@ test('moves a valid fictional billing period through review to PDF-ready', async
   await page.getByRole('button', { name: 'Import übernehmen' }).click()
   await expect(page.getByText('Lokal gespeichert')).toBeVisible()
 
+  await page.getByRole('link', { name: 'Berechnung', exact: true }).click()
+  await page.getByRole('button', { name: 'Abrechnung berechnen' }).click()
+  await expect(page.getByText('Erfasste Kosten')).toBeVisible()
+
   await page.getByRole('link', { name: 'Freigabe', exact: true }).click()
   await expect(
     page.getByRole('heading', { name: 'Prüfung und Freigabe' }),

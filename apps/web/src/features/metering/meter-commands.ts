@@ -35,8 +35,22 @@ const statusInputSchema = meterBillingStatusSchema.omit({
   legacyUnmapped: true,
 })
 
+function withoutUndefinedDeep<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => withoutUndefinedDeep(item)) as T
+  }
+  if (typeof value === 'object' && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value).flatMap(([key, field]) =>
+        field === undefined ? [] : [[key, withoutUndefinedDeep(field)]],
+      ),
+    ) as T
+  }
+  return value
+}
+
 function parsedFile(file: AppDataFile): AppDataFile {
-  const result = appDataFileSchema.safeParse(file)
+  const result = appDataFileSchema.safeParse(withoutUndefinedDeep(file))
   if (!result.success)
     throw new MeterCommandError('Der Datenbestand ist ungültig.')
   return result.data

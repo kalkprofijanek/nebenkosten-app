@@ -170,8 +170,26 @@ function newId(
   return id
 }
 
+function withoutUndefinedDeep<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => withoutUndefinedDeep(item)) as T
+  }
+  if (typeof value === 'object' && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value).flatMap(([key, field]) =>
+        field === undefined ? [] : [[key, withoutUndefinedDeep(field)]],
+      ),
+    ) as T
+  }
+  return value
+}
+
 function validateResult(file: AppDataFile): AppDataFile {
-  return parse(appDataFileSchema, file, 'Der aktualisierte Datenbestand')
+  return parse(
+    appDataFileSchema,
+    withoutUndefinedDeep(file),
+    'Der aktualisierte Datenbestand',
+  )
 }
 
 function sourceContext(file: AppDataFile, energySourceId: string) {

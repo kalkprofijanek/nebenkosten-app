@@ -178,6 +178,7 @@ export function ReleaseRoute({
     return <p role="alert">{documentStatusResult.error}</p>
   }
   const documentStatus = documentStatusResult.status!
+  const hasCurrentCalculation = documentStatus.calculationRunId !== undefined
 
   function applyTransition(
     target: BillingPeriodStatus,
@@ -267,6 +268,20 @@ export function ReleaseRoute({
       ) : null}
       {readOnly ? <p>Dieser Abrechnungsstand ist schreibgeschützt.</p> : null}
 
+      {!hasCurrentCalculation &&
+      (billingPeriod.status === 'DRAFT' ||
+        billingPeriod.status === 'IN_REVIEW') ? (
+        <div className="privacy-note" role="status">
+          <strong>Aktuelle Berechnung fehlt.</strong>
+          <p>
+            Fachliche Änderungen haben den vorherigen Rechenstand verworfen.
+          </p>
+          <a className="button button--quiet" href="#/berechnung">
+            Jetzt neu berechnen
+          </a>
+        </div>
+      ) : null}
+
       {billingPeriod.status === 'READY_FOR_PDF' && !documentStatus.complete ? (
         <div className="privacy-note" role="status">
           <strong>Dokumente noch unvollständig.</strong>
@@ -354,7 +369,7 @@ export function ReleaseRoute({
           <button
             className="button button--primary"
             type="button"
-            disabled={!report.canBecomeReady}
+            disabled={!report.canBecomeReady || !hasCurrentCalculation}
             onClick={() =>
               applyTransition('READY_FOR_PDF', {
                 confirmedWarningKeys: confirmedCurrentWarningKeys,

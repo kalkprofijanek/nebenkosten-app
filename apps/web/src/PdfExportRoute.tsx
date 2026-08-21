@@ -391,9 +391,24 @@ export function PdfExportRoute({
               const unit = data.masterData.units.find(
                 ({ id }) => id === occupancyPeriod.unitId,
               )
+              const tenancy = data.masterData.tenancies.find(
+                ({ id }) => id === occupancyPeriod.tenancyId,
+              )
+              const personNames = (tenancy?.personIds ?? [])
+                .map(
+                  (personId) =>
+                    data.masterData.persons.find(({ id }) => id === personId)
+                      ?.displayName,
+                )
+                .filter((name): name is string => Boolean(name))
               return (
                 <li key={occupancyPeriod.id}>
-                  <span>{unit?.label ?? occupancyPeriod.unitId}</span>
+                  <span className="pdf-export-tenant">
+                    <strong>{unit?.label ?? occupancyPeriod.unitId}</strong>
+                    <small>
+                      {personNames.join(', ') || 'Name nicht hinterlegt'}
+                    </small>
+                  </span>
                   <button
                     className="button button--quiet"
                     type="button"

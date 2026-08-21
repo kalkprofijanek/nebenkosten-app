@@ -259,7 +259,7 @@ export function ImportControl({
               </>
             )}
             <div className="dialog-actions">
-              <button type="button" onClick={() => setPreview(null)}>
+              <button type="button" autoFocus onClick={() => setPreview(null)}>
                 Abbrechen
               </button>
               <button

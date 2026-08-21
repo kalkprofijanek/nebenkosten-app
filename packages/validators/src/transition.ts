@@ -8,6 +8,7 @@ import {
 } from '@nebenkosten/schema'
 import { clone } from './helpers'
 import { getFinalizationDocumentStatus } from './finalization-documents'
+import { latestCalculationRun } from './latest-calculation-run'
 import { validateBillingPeriod } from './validate'
 import { BillingPeriodTransitionError, type TransitionOptions } from './types'
 
@@ -71,6 +72,22 @@ export function transitionBillingPeriod(
     target === 'SUPERSEDED'
   )
     requireReason(options)
+  if (target === 'READY_FOR_PDF') {
+    const latestRun = latestCalculationRun(
+      parsed.data.billingData.calculationRuns,
+      billingPeriodId,
+    )
+    const hasResult =
+      latestRun !== undefined &&
+      parsed.data.billingData.calculationResults.some(
+        (result) => result.calculationRunId === latestRun.id,
+      )
+    if (!hasResult)
+      throw new BillingPeriodTransitionError(
+        'transition.calculation_required',
+        'Vor der PDF-Freigabe ist eine aktuelle gespeicherte Berechnung erforderlich.',
+      )
+  }
   const report = validateBillingPeriod(parsed.data, billingPeriodId, options)
   if (
     (target === 'READY_FOR_PDF' || target === 'FINALIZED') &&

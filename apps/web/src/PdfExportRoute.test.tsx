@@ -318,6 +318,7 @@ describe('PdfExportRoute', () => {
     expect(screen.getByText('1 Einzelabrechnung erwartet')).toBeVisible()
 
     const tenantItem = screen.getByText('WE 1').closest('li')!
+    expect(within(tenantItem).getByText('Anna Müller')).toBeVisible()
     fireEvent.click(
       within(tenantItem).getByRole('button', { name: /Einzelabrechnung/ }),
     )

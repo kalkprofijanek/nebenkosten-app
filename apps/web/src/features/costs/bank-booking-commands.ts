@@ -9,6 +9,25 @@ export class BankBookingCommandError extends Error {
   override readonly name = 'BankBookingCommandError'
 }
 
+export interface CreateBankBookingInput {
+  readonly propertyId: string
+  readonly date: string
+  readonly amountCents: number
+  readonly counterparty?: string
+  readonly purpose?: string
+  readonly bookingText?: string
+  readonly note?: string
+  readonly importedAt?: string
+}
+
+export interface ImportBankBookingsResult {
+  readonly data: AppDataFile
+  readonly addedCount: number
+  readonly duplicateCount: number
+}
+
+type CreateId = () => string
+
 const UPDATE_KEYS = [
   'category',
   'billingYear',
@@ -45,6 +64,12 @@ function parsedBooking(value: unknown): BankBooking {
     throw new BankBookingCommandError('Ungültige Eingabe für Bankbuchung.')
   }
   return result.data
+}
+
+function withoutUndefined<T extends object>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, field]) => field !== undefined),
+  ) as T
 }
 
 function validateSplitSum(booking: BankBooking): void {
@@ -106,6 +131,129 @@ function validateCategoryReferences(file: AppDataFile, booking: BankBooking) {
   }
 }
 
+export function bankBookingDedupeHash(
+  input: Pick<
+    CreateBankBookingInput,
+    'date' | 'amountCents' | 'counterparty' | 'purpose'
+  >,
+): string {
+  const source = JSON.stringify([
+    input.date,
+    input.amountCents,
+    (input.counterparty ?? '').slice(0, 30),
+    (input.purpose ?? '').slice(0, 40),
+  ])
+  let hash = 0xcbf29ce484222325n
+  for (const character of source) {
+    hash ^= BigInt(character.charCodeAt(0))
+    hash = BigInt.asUintN(64, hash * 0x100000001b3n)
+  }
+  return `bh${hash.toString(16).padStart(16, '0')}`
+}
+
+function bookingHashes(booking: BankBooking): readonly string[] {
+  const calculated = bankBookingDedupeHash({
+    date: booking.date ?? '',
+    amountCents: booking.amountCents,
+    counterparty: booking.counterparty ?? undefined,
+    purpose: booking.purpose ?? undefined,
+  })
+  return booking.dedupeHash && booking.dedupeHash !== calculated
+    ? [booking.dedupeHash, calculated]
+    : [calculated]
+}
+
+function createBooking(
+  input: CreateBankBookingInput,
+  id: string,
+  dedupeHash = bankBookingDedupeHash(input),
+): BankBooking {
+  return parsedBooking({
+    id,
+    propertyId: input.propertyId,
+    dedupeHash,
+    date: input.date,
+    amountCents: input.amountCents,
+    ...(input.counterparty ? { counterparty: input.counterparty } : {}),
+    ...(input.purpose ? { purpose: input.purpose } : {}),
+    ...(input.bookingText ? { bookingText: input.bookingText } : {}),
+    ...(input.note ? { note: input.note } : {}),
+    ...(input.importedAt ? { importedAt: input.importedAt } : {}),
+    category: 'OFFEN',
+    reviewed: false,
+  })
+}
+
+export function addBankBooking(
+  file: AppDataFile,
+  input: CreateBankBookingInput,
+  createId: CreateId = () => crypto.randomUUID(),
+): AppDataFile {
+  if (!file.masterData.properties.some(({ id }) => id === input.propertyId)) {
+    throw new BankBookingCommandError('Objekt wurde nicht gefunden.')
+  }
+  const dedupeHash = bankBookingDedupeHash(input)
+  if (
+    file.billingData.bankBookings.some((booking) =>
+      bookingHashes(booking).includes(dedupeHash),
+    )
+  ) {
+    throw new BankBookingCommandError('Diese Bankbuchung existiert bereits.')
+  }
+  const booking = createBooking(input, createId(), dedupeHash)
+  return validatedFile({
+    ...file,
+    billingData: {
+      ...file.billingData,
+      bankBookings: [...file.billingData.bankBookings, booking],
+    },
+  })
+}
+
+export function importBankBookings(
+  file: AppDataFile,
+  propertyId: string,
+  rows: readonly Omit<CreateBankBookingInput, 'propertyId' | 'importedAt'>[],
+  dependencies: {
+    readonly createId?: CreateId
+    readonly importedAt?: string
+  } = {},
+): ImportBankBookingsResult {
+  if (!file.masterData.properties.some(({ id }) => id === propertyId)) {
+    throw new BankBookingCommandError('Objekt wurde nicht gefunden.')
+  }
+  const createId = dependencies.createId ?? (() => crypto.randomUUID())
+  const importedAt = dependencies.importedAt ?? new Date().toISOString()
+  const knownHashes = new Set(
+    file.billingData.bankBookings.flatMap((booking) => bookingHashes(booking)),
+  )
+  const addedBookings: BankBooking[] = []
+  let addedCount = 0
+  let duplicateCount = 0
+  for (const row of rows) {
+    const input = { ...row, propertyId, importedAt }
+    const hash = bankBookingDedupeHash(input)
+    if (knownHashes.has(hash)) {
+      duplicateCount += 1
+      continue
+    }
+    knownHashes.add(hash)
+    addedBookings.push(createBooking(input, createId(), hash))
+    addedCount += 1
+  }
+  const data =
+    addedBookings.length === 0
+      ? file
+      : validatedFile({
+          ...file,
+          billingData: {
+            ...file.billingData,
+            bankBookings: [...file.billingData.bankBookings, ...addedBookings],
+          },
+        })
+  return { data, addedCount, duplicateCount }
+}
+
 export function updateBankBooking(
   file: AppDataFile,
   bookingId: string,
@@ -123,11 +271,13 @@ export function updateBankBooking(
     )
   }
   const input = strictRecord(rawInput)
-  const replacement = parsedBooking({
-    ...current,
-    ...input,
-    reviewed: false,
-  })
+  const replacement = parsedBooking(
+    withoutUndefined({
+      ...current,
+      ...input,
+      reviewed: false,
+    }),
+  )
   validateSplitSum(replacement)
   validateCategoryReferences(file, replacement)
   return validatedFile({

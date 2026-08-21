@@ -246,6 +246,7 @@ export function BackupRestoreRoute({
             <div className="dialog-actions">
               <button
                 type="button"
+                autoFocus
                 onClick={() => setRestoreTarget(null)}
                 disabled={busy}
               >

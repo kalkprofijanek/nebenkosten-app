@@ -156,6 +156,10 @@ test('migrates fictional v3 data, exports a v4 backup, and proves rollback', asy
     .getByRole('button', { name: 'Geprüften Import übernehmen' })
     .click()
   await expect(page.getByText('Lokal gespeichert')).toBeVisible()
+  await page.reload()
+  await expect(page.getByLabel('Objekt im Arbeitskontext')).toHaveValue(
+    'objekt-pr12-test',
+  )
 
   await page.getByRole('link', { name: 'Kosten', exact: true }).click()
   await page.getByRole('button', { name: 'Kostenpositionen' }).click()
@@ -230,7 +234,7 @@ test('migrates fictional v3 data, exports a v4 backup, and proves rollback', asy
   await expect(page.getByLabel('Backup-Nachweis')).toContainText('SHA-256')
 
   await page.getByRole('button', { name: 'Manuellen Snapshot anlegen' }).click()
-  await expect(page.getByText('Manuell')).toBeVisible()
+  await expect(page.getByText('Manuell', { exact: true })).toBeVisible()
 
   await page.getByRole('link', { name: 'Freigabe', exact: true }).click()
   await page
@@ -264,4 +268,10 @@ test('migrates fictional v3 data, exports a v4 backup, and proves rollback', asy
   await expect(page.getByText(/before_restore/u)).toBeVisible()
   await page.getByRole('link', { name: 'Firmen', exact: true }).click()
   await expect(page.getByText('Zusätzliche Testfirma')).toHaveCount(0)
+  await page.reload()
+  await page.getByRole('link', { name: 'Firmen', exact: true }).click()
+  await expect(page.getByText('Zusätzliche Testfirma')).toHaveCount(0)
+  await expect(
+    page.getByRole('heading', { name: 'Fiktive Testverwaltung' }),
+  ).toBeVisible()
 })

@@ -138,6 +138,12 @@ function defined<T>(
   return value === undefined ? {} : { [key]: value }
 }
 
+function withoutUndefined<T extends object>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, field]) => field !== undefined),
+  ) as T
+}
+
 function parsePrepaymentInput(
   value: unknown,
 ): AddTenantOccupancyInput['prepayment'] {
@@ -668,18 +674,24 @@ export function updateTenantOccupancy(
       ...file.masterData,
       persons: file.masterData.persons.map((person) =>
         person.id === personId
-          ? { ...person, displayName, firstName, lastName, email }
+          ? withoutUndefined({
+              ...person,
+              displayName,
+              firstName,
+              lastName,
+              email,
+            })
           : person,
       ),
       tenancies: file.masterData.tenancies.map((item) =>
         item.id === tenancy.id
-          ? {
+          ? withoutUndefined({
               ...item,
               shippingAddressStreet,
               shippingAddressPostalCodeAndCity,
               mandateReference,
               monthlyRentCents,
-            }
+            })
           : item,
       ),
     },
@@ -687,7 +699,7 @@ export function updateTenantOccupancy(
       ...file.billingData,
       occupancyPeriods: file.billingData.occupancyPeriods.map((item) =>
         item.id === occupancyPeriodId
-          ? {
+          ? withoutUndefined({
               ...item,
               from,
               to,
@@ -714,7 +726,7 @@ export function updateTenantOccupancy(
               propertyTaxScope,
               dispatchDate,
               note,
-            }
+            })
           : item,
       ),
     },

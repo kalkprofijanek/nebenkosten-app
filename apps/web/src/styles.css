@@ -1176,6 +1176,15 @@ h1 {
   gap: 1rem;
 }
 
+.pdf-export-tenant {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.pdf-export-tenant small {
+  color: var(--muted);
+}
+
 .backup-layout {
   display: grid;
   gap: 1rem;

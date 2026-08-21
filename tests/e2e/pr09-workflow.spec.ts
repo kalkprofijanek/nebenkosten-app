@@ -82,4 +82,11 @@ test('completes the workflow from workspace to the PR10 review gate', async ({
   await expect(
     page.getByRole('button', { name: 'Für PDF freigeben' }),
   ).toBeDisabled()
+
+  await page.getByRole('link', { name: 'Stammdaten bearbeiten' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Objekte verwalten' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Objekt bearbeiten' }).click()
+  await expect(page.getByLabel('IBAN bearbeiten')).toBeVisible()
 })

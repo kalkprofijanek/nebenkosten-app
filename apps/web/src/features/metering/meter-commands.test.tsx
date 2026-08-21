@@ -1,3 +1,4 @@
+import { encodeCurrentAppData } from '@nebenkosten/import-export'
 import { createEmptyAppDataFile, type AppDataFile } from '@nebenkosten/schema'
 import { describe, expect, it } from 'vitest'
 import {
@@ -69,12 +70,13 @@ function withMeter(): AppDataFile {
 }
 
 describe('meter commands', () => {
-  it('legt Zähler an und bearbeitet Stammdaten unveränderlich', () => {
+  it('legt Zähler an und bearbeitet Stammdaten unveränderlich', async () => {
     const source = withMeter()
     const result = updateMeter(source, IDS.meter, {
       propertyId: IDS.property,
       kind: 'heat',
       meterNumber: 'TEST-Z-2',
+      address: undefined,
       provider: 'Fiktiver Versorger',
       meterNumberStatus: 'confirmed',
       note: 'Fiktiver Hinweis',
@@ -86,6 +88,11 @@ describe('meter commands', () => {
       meterNumber: 'TEST-Z-2',
       meterNumberStatus: 'confirmed',
     })
+    await expect(
+      encodeCurrentAppData(result, {
+        savedAt: new Date('2026-12-31T12:00:00.000Z'),
+      }),
+    ).resolves.toBeDefined()
   })
 
   it('pflegt Ablesungen und Jahresstatus mit gültigem Objektbezug', () => {

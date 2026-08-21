@@ -246,6 +246,30 @@ describe('ReleaseRoute', () => {
     )
   })
 
+  it('verweist ohne gespeicherten Rechenlauf auf die Neuberechnung', () => {
+    vi.mocked(validateBillingPeriod).mockReturnValue(report([]))
+    vi.mocked(getFinalizationDocumentStatus).mockReturnValue({
+      complete: false,
+      missingCombinedStatement: true,
+      missingTenantStatementCount: 1,
+    })
+    render(
+      <ReleaseRoute
+        data={fileWithPeriod('IN_REVIEW')}
+        billingPeriodId="period-1"
+        onApply={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText(/Aktuelle Berechnung fehlt/)).toBeVisible()
+    expect(
+      screen.getByRole('link', { name: 'Jetzt neu berechnen' }),
+    ).toHaveAttribute('href', '#/berechnung')
+    expect(
+      screen.getByRole('button', { name: 'Für PDF freigeben' }),
+    ).toBeDisabled()
+  })
+
   it('fordert beim kontrollierten Wiederöffnen einen Grund', () => {
     vi.mocked(validateBillingPeriod).mockReturnValue(report([]))
     const onApply = vi.fn((transform: (data: AppDataFile) => AppDataFile) => {

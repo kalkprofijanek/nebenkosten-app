@@ -936,6 +936,10 @@ describe('WorkflowRoute', () => {
     expect(result.getData().billingData.costEntries[0]?.bookingLink).toEqual({
       bankBookingId: bookingId,
     })
+    expect(screen.getByLabelText('Zahlungsnachweis')).toHaveValue('none')
+    expect(
+      screen.queryByLabelText('Zugehörige Bankbuchung'),
+    ).not.toBeInTheDocument()
   })
 
   it('öffnet eine verlinkte Kostenposition direkt zur Korrektur', () => {
@@ -1123,6 +1127,112 @@ describe('WorkflowRoute', () => {
         name: 'Fiktive Bankbuchung bearbeiten',
       }),
     ).not.toBeInTheDocument()
+  })
+
+  it('zeigt gespeicherte Buchungsaufteilungen beim Wiederbearbeiten vollständig an', () => {
+    const base = seededData()
+    const categoryId = '20000000-0000-4000-8000-000000000117'
+    const secondCategoryId = '20000000-0000-4000-8000-000000000118'
+    const data: AppDataFile = {
+      ...base,
+      billingData: {
+        ...base.billingData,
+        costCategories: [
+          {
+            id: categoryId,
+            billingPeriodId: SEEDED_IDS.period,
+            kind: 'operating',
+            label: 'Wasser fiktiv',
+            allocationKey: 'usable_area',
+          },
+          {
+            id: secondCategoryId,
+            billingPeriodId: SEEDED_IDS.period,
+            kind: 'operating',
+            label: 'Abwasser fiktiv',
+            allocationKey: 'usable_area',
+          },
+        ],
+        bankBookings: [
+          {
+            id: '20000000-0000-4000-8000-000000000119',
+            propertyId: SEEDED_IDS.property,
+            date: '2026-04-01',
+            amountCents: -33_344,
+            purpose: 'Fiktive Kombirechnung',
+            category: 'NK_UMLEGBAR',
+            reviewed: false,
+            splits: [
+              {
+                id: '20000000-0000-4000-8000-000000000120',
+                amountCents: -20_000,
+                costCategoryId: categoryId,
+                billingYear: 2026,
+                category: 'NK_UMLEGBAR',
+              },
+              {
+                id: '20000000-0000-4000-8000-000000000121',
+                amountCents: -13_344,
+                costCategoryId: secondCategoryId,
+                billingYear: 2026,
+                category: 'NK_UMLEGBAR',
+              },
+            ],
+          },
+        ],
+      },
+    }
+
+    renderRoute('/kosten', data, SEEDED_SELECTION)
+    fireEvent.click(screen.getByRole('button', { name: 'Bankbuchungen' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Fiktive Kombirechnung bearbeiten' }),
+    )
+
+    expect(screen.getByLabelText('Split 1 Betrag in Euro')).toHaveValue(
+      '-200,00',
+    )
+    expect(screen.getByLabelText('Split 1 Kostenart')).toHaveValue(categoryId)
+    expect(screen.getByLabelText('Split 2 Betrag in Euro')).toHaveValue(
+      '-133,44',
+    )
+    expect(screen.getByLabelText('Split 2 Kostenart')).toHaveValue(
+      secondCategoryId,
+    )
+  })
+
+  it('erfasst eine Bankbuchung manuell im aktiven Objekt', () => {
+    const result = renderRoute('/kosten', seededData(), SEEDED_SELECTION)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bankbuchungen' }))
+    fireEvent.change(screen.getByLabelText('Datum der Buchung'), {
+      target: { value: '2026-06-15' },
+    })
+    fireEvent.change(
+      screen.getByLabelText('Betrag in Euro (Ausgabe negativ)'),
+      { target: { value: '-456,78' } },
+    )
+    fireEvent.change(screen.getByLabelText('Auftraggeber oder Empfänger'), {
+      target: { value: 'Fiktiver Versorger' },
+    })
+    fireEvent.change(screen.getByLabelText('Verwendungszweck der Buchung'), {
+      target: { value: 'Fiktive Abschlagsrechnung' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Manuelle Buchung anlegen' }),
+    )
+
+    expect(result.getData().billingData.bankBookings[0]).toMatchObject({
+      propertyId: SEEDED_IDS.property,
+      date: '2026-06-15',
+      amountCents: -45_678,
+      counterparty: 'Fiktiver Versorger',
+      purpose: 'Fiktive Abschlagsrechnung',
+      category: 'OFFEN',
+    })
+    expect(
+      screen.getByText('Die manuelle Bankbuchung wurde als „Offen“ angelegt.'),
+    ).toBeVisible()
   })
 
   it('legt Heizsystem, Heizkreis und Energiequelle JSON-sicher an', async () => {

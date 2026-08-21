@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import type {
   BankBooking,
   BankBookingCategory,
@@ -7,9 +7,16 @@ import type {
 } from '@nebenkosten/schema'
 import { parseEuroCents, parseOptionalNumber } from '../../app/form-parsers'
 import {
+  addBankBooking,
+  importBankBookings,
   setBankBookingReviewed,
   updateBankBooking,
 } from '../costs/bank-booking-commands'
+import {
+  decodeBankBookingCsv,
+  parseBankBookingCsv,
+} from '../costs/bank-booking-csv'
+import { CostDataOverview } from '../costs/CostDataOverview'
 import {
   addCostCategory,
   addCostEntry,
@@ -22,7 +29,7 @@ import { WorkflowField } from './form-support'
 import { formOptionalText, formText } from './form-values'
 import type { WorkflowSubRouteProps } from './route-types'
 
-type CostTab = 'categories' | 'entries' | 'bookings'
+type CostTab = 'overview' | 'categories' | 'entries' | 'bookings'
 
 function correctionParameters(): URLSearchParams {
   const query = globalThis.location?.hash.split('?')[1] ?? ''
@@ -305,6 +312,8 @@ export function CostsRoute({
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [bookingFilter, setBookingFilter] = useState('all')
+  const [importNotice, setImportNotice] = useState<string | null>(null)
+  const [entryFormVersion, setEntryFormVersion] = useState(0)
   const period = data.billingData.billingPeriods.find(
     ({ id }) => id === selection.billingPeriodId,
   )!
@@ -381,8 +390,64 @@ export function CostsRoute({
   function createEntry(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    if (apply((current) => addCostEntry(current, entryInput(form))))
+    if (apply((current) => addCostEntry(current, entryInput(form)))) {
       event.currentTarget.reset()
+      setEntryFormVersion((current) => current + 1)
+    }
+  }
+
+  function createManualBooking(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    if (
+      apply((current) =>
+        addBankBooking(current, {
+          propertyId: period.propertyId,
+          date: formText(form, 'bookingDate'),
+          amountCents: parseEuroCents(formText(form, 'bookingAmount')),
+          counterparty: formOptionalText(form, 'bookingCounterparty'),
+          purpose: formOptionalText(form, 'bookingPurpose'),
+          bookingText: formOptionalText(form, 'bookingText'),
+        }),
+      )
+    ) {
+      event.currentTarget.reset()
+      setImportNotice('Die manuelle Bankbuchung wurde als „Offen“ angelegt.')
+    }
+  }
+
+  async function importBookingFile(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget
+    const file = input.files?.[0]
+    if (!file) return
+    setError(null)
+    setImportNotice(null)
+    try {
+      const rows = parseBankBookingCsv(
+        decodeBankBookingCsv(new Uint8Array(await file.arrayBuffer())),
+      )
+      let addedCount = 0
+      let duplicateCount = 0
+      const accepted = apply((current) => {
+        const result = importBankBookings(current, period.propertyId, rows)
+        addedCount = result.addedCount
+        duplicateCount = result.duplicateCount
+        return result.data
+      })
+      if (accepted) {
+        setImportNotice(
+          `${addedCount} Buchungen importiert, ${duplicateCount} Duplikate übersprungen. Alle neuen Buchungen stehen auf „Offen“.`,
+        )
+      }
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Die CSV-Datei konnte nicht verarbeitet werden.',
+      )
+    } finally {
+      input.value = ''
+    }
   }
 
   function saveEntry(event: FormEvent<HTMLFormElement>, entryId: string) {
@@ -456,6 +521,13 @@ export function CostsRoute({
       <nav className="workflow-tabs" aria-label="Kostenbereiche">
         <button
           type="button"
+          aria-current={activeTab === 'overview' ? 'page' : undefined}
+          onClick={() => setActiveTab('overview')}
+        >
+          Datenübersicht
+        </button>
+        <button
+          type="button"
           aria-current={activeTab === 'categories' ? 'page' : undefined}
           onClick={() => setActiveTab('categories')}
         >
@@ -476,6 +548,16 @@ export function CostsRoute({
           Bankbuchungen
         </button>
       </nav>
+
+      {activeTab === 'overview' ? (
+        <CostDataOverview
+          categories={categories}
+          entries={entries}
+          bankBookings={data.billingData.bankBookings}
+          propertyId={period.propertyId}
+          billingYear={period.year}
+        />
+      ) : null}
 
       {activeTab === 'categories' ? (
         <>
@@ -560,6 +642,7 @@ export function CostsRoute({
           ) : (
             <form noValidate onSubmit={createEntry}>
               <EntryFields
+                key={entryFormVersion}
                 entry={undefined}
                 categories={categories}
                 bookings={availableBookings}
@@ -650,6 +733,65 @@ export function CostsRoute({
             <h2 id="bookings-title">Bankbuchungen ({bookings.length})</h2>
             <span>Offene Buchungen prüfen und zuordnen</span>
           </div>
+          <div className="records-grid">
+            <article className="record-editor">
+              <div className="record-editor__heading">
+                <div>
+                  <p className="section-kicker">Kontoauszug</p>
+                  <h3>Bankbuchungen aus CSV übernehmen</h3>
+                  <small>
+                    Die Datei bleibt auf diesem Gerät. Unterstützt werden
+                    Datum/Buchungstag, Betrag sowie optional Auftraggeber,
+                    Verwendungszweck und Buchungstext.
+                  </small>
+                </div>
+              </div>
+              <label>
+                <span>CSV-Datei mit Bankbuchungen</span>
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(event) => void importBookingFile(event)}
+                />
+              </label>
+            </article>
+            <article className="record-editor">
+              <div className="record-editor__heading">
+                <div>
+                  <p className="section-kicker">Einzelbuchung</p>
+                  <h3>Bankbuchung manuell erfassen</h3>
+                </div>
+              </div>
+              <form
+                className="embedded-form"
+                noValidate
+                onSubmit={createManualBooking}
+              >
+                <WorkflowField
+                  label="Datum der Buchung"
+                  name="bookingDate"
+                  type="date"
+                  required
+                />
+                <WorkflowField
+                  label="Betrag in Euro (Ausgabe negativ)"
+                  name="bookingAmount"
+                  required
+                />
+                <WorkflowField
+                  label="Auftraggeber oder Empfänger"
+                  name="bookingCounterparty"
+                />
+                <WorkflowField
+                  label="Verwendungszweck der Buchung"
+                  name="bookingPurpose"
+                />
+                <WorkflowField label="Buchungstext" name="bookingText" />
+                <button type="submit">Manuelle Buchung anlegen</button>
+              </form>
+            </article>
+          </div>
+          {importNotice ? <p role="status">{importNotice}</p> : null}
           <div className="booking-filters">
             <label>
               <span>Bankbuchungen durchsuchen</span>
@@ -680,6 +822,7 @@ export function CostsRoute({
                 const category = categories.find(
                   ({ id }) => id === booking.costCategoryId,
                 )
+                const [firstSplit, secondSplit] = booking.splits ?? []
                 return (
                   <article className="record-editor" key={booking.id}>
                     <div className="record-editor__heading">
@@ -760,10 +903,18 @@ export function CostsRoute({
                           <WorkflowField
                             label="Split 1 Betrag in Euro"
                             name="splitOneAmount"
+                            defaultValue={
+                              firstSplit
+                                ? editAmount(firstSplit.amountCents)
+                                : ''
+                            }
                           />
                           <label>
                             <span>Split 1 Kostenart</span>
-                            <select name="splitOneCategory">
+                            <select
+                              name="splitOneCategory"
+                              defaultValue={firstSplit?.costCategoryId ?? ''}
+                            >
                               {categories.map((option) => (
                                 <option key={option.id} value={option.id}>
                                   {option.label}
@@ -774,10 +925,18 @@ export function CostsRoute({
                           <WorkflowField
                             label="Split 2 Betrag in Euro"
                             name="splitTwoAmount"
+                            defaultValue={
+                              secondSplit
+                                ? editAmount(secondSplit.amountCents)
+                                : ''
+                            }
                           />
                           <label>
                             <span>Split 2 Kostenart</span>
-                            <select name="splitTwoCategory">
+                            <select
+                              name="splitTwoCategory"
+                              defaultValue={secondSplit?.costCategoryId ?? ''}
+                            >
                               {categories.map((option) => (
                                 <option key={option.id} value={option.id}>
                                   {option.label}

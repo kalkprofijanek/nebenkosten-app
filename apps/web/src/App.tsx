@@ -386,7 +386,7 @@ export function App({
           </div>
         </header>
 
-        <main id="main-content" className="main-content">
+        <main id="main-content" className="main-content" tabIndex={-1}>
           <header className="page-heading">
             <div>
               <p className="eyebrow">{route.eyebrow}</p>
