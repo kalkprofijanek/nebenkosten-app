@@ -73,9 +73,7 @@ test('preserves edits and explains why linked master data cannot be deleted', as
 
   await page.getByRole('link', { name: 'Firmen', exact: true }).click()
   await page.getByRole('button', { name: 'Firma bearbeiten' }).click()
-  await page
-    .getByLabel('E-Mail Kontakt bearbeiten')
-    .fill('TEST-KONTAKT-EMAIL')
+  await page.getByLabel('E-Mail Kontakt bearbeiten').fill('TEST-KONTAKT-EMAIL')
   await page.getByLabel('IBAN bearbeiten').fill('TEST-IBAN')
   await page.getByRole('button', { name: 'Änderungen speichern' }).click()
   await expect(page.getByText('Lokal gespeichert')).toBeVisible()
