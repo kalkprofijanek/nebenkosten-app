@@ -114,6 +114,12 @@ function normalizeOptional(value: unknown, label: string): string | undefined {
   }
 }
 
+function withoutUndefined<T extends object>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, field]) => field !== undefined),
+  ) as T
+}
+
 function normalizedNameLines(value: unknown): readonly string[] {
   if (value === undefined) return []
   if (!Array.isArray(value)) {
@@ -237,7 +243,7 @@ export function createPropertyStructure(
   const address =
     street === undefined && postalCodeAndCity === undefined
       ? undefined
-      : { street, postalCodeAndCity }
+      : withoutUndefined({ street, postalCodeAndCity })
 
   const result: AppDataFile = {
     ...data,
@@ -349,7 +355,7 @@ export function updateCompany(
     accountHolder === undefined &&
     bankName === undefined
       ? undefined
-      : { iban, bic, accountHolder, bankName }
+      : withoutUndefined({ iban, bic, accountHolder, bankName })
   const contact =
     contactSalutation === undefined &&
     contactFirstName === undefined &&
@@ -359,7 +365,7 @@ export function updateCompany(
     contactFax === undefined &&
     contactEmail === undefined
       ? undefined
-      : {
+      : withoutUndefined({
           salutation: contactSalutation,
           firstName: contactFirstName,
           lastName: contactLastName,
@@ -367,7 +373,7 @@ export function updateCompany(
           mobile: contactMobile,
           fax: contactFax,
           email: contactEmail,
-        }
+        })
 
   const result: AppDataFile = {
     ...data,
@@ -380,7 +386,7 @@ export function updateCompany(
       ),
       ownerCompanies: data.masterData.ownerCompanies.map((item) =>
         item.id === ownerCompanyId
-          ? {
+          ? withoutUndefined({
               ...item,
               name: ownerCompanyName,
               additionalNameLines: [...additionalNameLines],
@@ -388,7 +394,7 @@ export function updateCompany(
               postBox,
               contact,
               bankAccount,
-            }
+            })
           : item,
       ),
     },
@@ -476,7 +482,7 @@ export function updateProperty(
   const address =
     street === undefined && postalCodeAndCity === undefined
       ? undefined
-      : { street, postalCodeAndCity }
+      : withoutUndefined({ street, postalCodeAndCity })
   const iban = normalizeOptional(input.iban, 'IBAN')
   const bic = normalizeOptional(input.bic, 'BIC')
   const accountHolder = normalizeOptional(input.accountHolder, 'Kontoinhaber')
@@ -487,20 +493,20 @@ export function updateProperty(
     accountHolder === undefined &&
     bankName === undefined
       ? undefined
-      : { iban, bic, accountHolder, bankName }
+      : withoutUndefined({ iban, bic, accountHolder, bankName })
   const result: AppDataFile = {
     ...data,
     masterData: {
       ...data.masterData,
       properties: data.masterData.properties.map((property) =>
         property.id === propertyId
-          ? {
+          ? withoutUndefined({
               ...property,
               internalNumber,
               externalNumber,
               address,
               bankAccount,
-            }
+            })
           : property,
       ),
     },

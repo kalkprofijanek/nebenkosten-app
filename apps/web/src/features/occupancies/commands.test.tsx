@@ -3,6 +3,7 @@ import {
   createEmptyAppDataFile,
   type AppDataFile,
 } from '@nebenkosten/schema'
+import { encodeCurrentAppData } from '@nebenkosten/import-export'
 import { describe, expect, it } from 'vitest'
 import {
   addTenantOccupancy,
@@ -461,6 +462,37 @@ describe('Nutzer-Commands', () => {
       mode: 'monthly',
       monthlyAmountCents: 21_000,
     })
+  })
+
+  it('hält eine teilweise ergänzte Versandanschrift JSON-sicher', async () => {
+    const source = addTenantOccupancy(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Fiktiver Nutzer' },
+        occupancy: { from: '2026-01-01' },
+        prepayment: { mode: 'none_agreed' },
+      },
+      sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+    )
+
+    const result = updateTenantOccupancy(source, {
+      occupancyPeriodId: IDS.occupancy,
+      displayName: 'Fiktiver Nutzer',
+      from: '2026-01-01',
+      shippingAddressStreet: 'Fiktive Straße',
+      prepayment: { mode: 'none_agreed' },
+    })
+
+    await expect(
+      encodeCurrentAppData(result, {
+        savedAt: new Date('2026-12-31T12:00:00.000Z'),
+      }),
+    ).resolves.toBeDefined()
+    expect(result.masterData.tenancies[0]).not.toHaveProperty(
+      'shippingAddressPostalCodeAndCity',
+    )
   })
 
   it('bearbeitet Leerstand und prüft den Zeitraum erneut', () => {

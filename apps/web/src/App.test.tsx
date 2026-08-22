@@ -125,6 +125,10 @@ describe('App', () => {
     expect(
       screen.getByRole('heading', { name: 'Kosten erfassen' }),
     ).toBeVisible()
+    expect(document.querySelector('#main-content')).toHaveAttribute(
+      'tabindex',
+      '-1',
+    )
   })
 
   it.each([

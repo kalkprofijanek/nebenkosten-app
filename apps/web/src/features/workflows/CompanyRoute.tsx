@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import {
   createCompany,
   deleteCompany,
@@ -22,6 +22,7 @@ export function CompanyRoute({
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [deleteArmed, setDeleteArmed] = useState(false)
+  const createLockUntil = useRef(0)
   const company = data.masterData.ownerCompanies.find(
     ({ id }) => id === selection.ownerCompanyId,
   )
@@ -47,6 +48,7 @@ export function CompanyRoute({
 
   function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (performance.now() < createLockUntil.current) return
     const form = new FormData(event.currentTarget)
     const organizationId = crypto.randomUUID()
     const ownerCompanyId = crypto.randomUUID()
@@ -65,6 +67,7 @@ export function CompanyRoute({
         ),
       )
     ) {
+      createLockUntil.current = performance.now() + 500
       event.currentTarget.reset()
       onSelectionChange({
         ownerCompanyId,

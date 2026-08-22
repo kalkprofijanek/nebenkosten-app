@@ -3,6 +3,7 @@ import {
   createEmptyAppDataFile,
   type AppDataFile,
 } from '@nebenkosten/schema'
+import { encodeCurrentAppData } from '@nebenkosten/import-export'
 import { describe, expect, it } from 'vitest'
 import {
   createCompany,
@@ -388,6 +389,24 @@ describe('property structure maintenance', () => {
       label: 'Einheit Neu',
       usableAreaSqm: { value: 75.5, unit: 'm2' },
       roomCount: 3,
+    })
+  })
+
+  it('hält teilweise ausgefüllte Objekt-Bankdaten JSON-sicher', async () => {
+    const result = updateProperty(fileWithPropertyStructure(), IDS.property, {
+      internalNumber: 'OBJ-NEU',
+      street: 'Fiktive Straße',
+      postalCodeAndCity: 'Beispielort',
+      bankName: 'Fiktive Objektbank',
+    })
+
+    await expect(
+      encodeCurrentAppData(result, {
+        savedAt: new Date('2026-12-31T12:00:00.000Z'),
+      }),
+    ).resolves.toBeDefined()
+    expect(result.masterData.properties[0]?.bankAccount).toEqual({
+      bankName: 'Fiktive Objektbank',
     })
   })
 

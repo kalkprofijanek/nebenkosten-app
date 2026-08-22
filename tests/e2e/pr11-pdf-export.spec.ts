@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
 
 function pdfExportReadyData() {
@@ -132,6 +133,7 @@ function pdfExportReadyData() {
 test('moves a valid fictional billing period through review to PDF-ready and finalized', async ({
   page,
 }) => {
+  test.setTimeout(45_000)
   await page.goto('/')
   await page.locator('input[type="file"]').setInputFiles({
     name: 'pr11-fiktiv.json',
@@ -185,6 +187,66 @@ test('moves a valid fictional billing period through review to PDF-ready and fin
   expect(tenantPath).not.toBeNull()
   const tenantBytes = await readFile(tenantPath!)
   expect(tenantBytes.subarray(0, 5).toString('latin1')).toBe('%PDF-')
+
+  await page.getByRole('link', { name: 'Freigabe', exact: true }).click()
+  await page
+    .getByLabel('Grund für das Wiederöffnen')
+    .fill('Kostenbetrag nach Belegprüfung korrigiert')
+  await page.getByRole('button', { name: 'Wieder öffnen' }).click()
+  await expect(page.getByText('In Prüfung', { exact: true })).toBeVisible()
+
+  await page.getByRole('link', { name: 'Kosten', exact: true }).click()
+  await page.getByRole('button', { name: 'Kostenpositionen' }).click()
+  await page.getByRole('button', { name: 'FIKTIV-1 bearbeiten' }).click()
+  const entryEditor = page.locator('article').filter({
+    has: page.getByRole('heading', { name: 'FIKTIV-1' }),
+  })
+  await entryEditor
+    .getByLabel('Beschreibung')
+    .fill('Korrigierte Betriebskosten')
+  await entryEditor.getByLabel('Betrag in Euro').fill('100,00')
+  await entryEditor
+    .getByRole('button', { name: 'Kostenposition speichern' })
+    .click()
+  await expect(
+    page.getByRole('button', { name: 'Daten importieren' }),
+  ).toBeEnabled()
+
+  await page.getByRole('link', { name: 'Freigabe', exact: true }).click()
+  await expect(
+    page
+      .getByLabel('Prüfung und Freigabe')
+      .getByText('Entwurf', { exact: true }),
+  ).toBeVisible()
+  await expect(page.getByText('Aktuelle Berechnung fehlt.')).toBeVisible()
+
+  await page.getByRole('link', { name: 'Berechnung', exact: true }).click()
+  await page.getByRole('button', { name: 'Abrechnung berechnen' }).click()
+  await page.getByRole('link', { name: 'Freigabe', exact: true }).click()
+  await page.getByRole('button', { name: 'Prüfung starten' }).click()
+  await page.getByRole('button', { name: 'Für PDF freigeben' }).click()
+  await expect(page.getByText('Gesamtabrechnung fehlt.')).toBeVisible()
+  await expect(page.getByText('1 Einzelabrechnung fehlt.')).toBeVisible()
+
+  await page.getByRole('link', { name: 'PDF und Export', exact: true }).click()
+  const correctedCombinedDownload = page.waitForEvent('download')
+  await page.getByRole('button', { name: /Gesamtabrechnung/ }).click()
+  const correctedCombined = await correctedCombinedDownload
+  const correctedTenantDownload = page.waitForEvent('download')
+  await page
+    .getByRole('button', { name: 'Einzelabrechnung (PDF)', exact: true })
+    .click()
+  const correctedTenant = await correctedTenantDownload
+  const reviewDirectory = process.env['PR17_PDF_REVIEW_DIR']
+  if (reviewDirectory) {
+    await mkdir(reviewDirectory, { recursive: true })
+    await correctedCombined.saveAs(
+      join(reviewDirectory, correctedCombined.suggestedFilename()),
+    )
+    await correctedTenant.saveAs(
+      join(reviewDirectory, correctedTenant.suggestedFilename()),
+    )
+  }
 
   await page.getByRole('link', { name: 'Freigabe', exact: true }).click()
   await page.getByLabel('Versanddatum').fill('2026-02-15')

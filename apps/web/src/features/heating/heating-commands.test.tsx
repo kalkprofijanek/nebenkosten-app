@@ -1,3 +1,4 @@
+import { encodeCurrentAppData } from '@nebenkosten/import-export'
 import { createEmptyAppDataFile, type AppDataFile } from '@nebenkosten/schema'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -141,7 +142,7 @@ function createHeatingContext(): AppDataFile {
 }
 
 describe('heating commands', () => {
-  it('builds the complete heating and fuel flow immutably with injected IDs', () => {
+  it('builds the complete heating and fuel flow immutably with injected IDs', async () => {
     const original = createBaseFile()
     const originalSnapshot = structuredClone(original)
     const withSystem = addHeatingSystem(
@@ -175,7 +176,7 @@ describe('heating commands', () => {
         billingPeriodId: IDS.period,
         openingQuantity: { value: 1200.5, unit: 'kWh' },
         openingValueCents: 123_456,
-        openingPricePerUnitCents: 103,
+        openingPricePerUnitCents: undefined,
         remainingQuantity: { value: 200, unit: 'kWh' },
       },
       dependencies(IDS.stock),
@@ -191,6 +192,7 @@ describe('heating commands', () => {
         quantityManuallySet: false,
         amountCents: 81_625,
         description: 'Abschlagsrechnung',
+        receiptReference: undefined,
       },
       dependencies(IDS.delivery),
     )
@@ -220,6 +222,11 @@ describe('heating commands', () => {
       amountCents: 81_625,
       quantity: { value: 800.25, unit: 'kWh' },
     })
+    await expect(
+      encodeCurrentAppData(result, {
+        savedAt: new Date('2026-12-31T12:00:00.000Z'),
+      }),
+    ).resolves.toBeDefined()
   })
 
   it('rejects an invalid source file before requesting an ID', () => {

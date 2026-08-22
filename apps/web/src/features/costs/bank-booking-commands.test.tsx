@@ -3,8 +3,12 @@ import {
   createEmptyAppDataFile,
   type AppDataFile,
 } from '@nebenkosten/schema'
+import { encodeCurrentAppData } from '@nebenkosten/import-export'
 import { describe, expect, it } from 'vitest'
 import {
+  addBankBooking,
+  bankBookingDedupeHash,
+  importBankBookings,
   setBankBookingReviewed,
   updateBankBooking,
 } from './bank-booking-commands'
@@ -73,6 +77,95 @@ function validFile(): AppDataFile {
 }
 
 describe('bank booking commands', () => {
+  it('erfasst eine manuelle Bankbuchung mit stabilem Duplikatschutz', () => {
+    const source = validFile()
+    const created = addBankBooking(
+      source,
+      {
+        propertyId: IDS.property,
+        date: '2026-04-15',
+        amountCents: -12_345,
+        counterparty: 'Fiktiver Dienstleister',
+        purpose: 'Fiktive Rechnung 2026-04',
+      },
+      () => '70000000-0000-4000-8000-000000000009',
+    )
+
+    expect(source.billingData.bankBookings).toHaveLength(1)
+    expect(created.billingData.bankBookings[1]).toMatchObject({
+      propertyId: IDS.property,
+      date: '2026-04-15',
+      amountCents: -12_345,
+      category: 'OFFEN',
+      reviewed: false,
+    })
+    expect(created.billingData.bankBookings[1]?.dedupeHash).toBeTruthy()
+    expect(created.billingData.bankBookings[1]?.dedupeHash).toMatch(
+      /^bh[0-9a-f]{16}$/u,
+    )
+    expect(() =>
+      addBankBooking(created, {
+        propertyId: IDS.property,
+        date: '2026-04-15',
+        amountCents: -12_345,
+        counterparty: 'Fiktiver Dienstleister',
+        purpose: 'Fiktive Rechnung 2026-04',
+      }),
+    ).toThrowError(/bereits/)
+  })
+
+  it('importiert neue CSV-Zeilen und überspringt Duplikate', () => {
+    const source = validFile()
+    source.billingData.bankBookings[0] = {
+      ...source.billingData.bankBookings[0]!,
+      dedupeHash: 'legacy-hash',
+    }
+    const result = importBankBookings(
+      source,
+      IDS.property,
+      [
+        {
+          date: '2026-03-01',
+          amountCents: -10_000,
+          counterparty: 'Fiktiver Zahlungspartner',
+          purpose: 'Fiktive Leistung',
+        },
+        {
+          date: '2026-05-01',
+          amountCents: -25_000,
+          counterparty: 'Fiktive Stadtwerke',
+          purpose: 'Fiktive Jahresrechnung',
+        },
+      ],
+      {
+        createId: () => '70000000-0000-4000-8000-000000000010',
+        importedAt: '2026-08-17T10:00:00.000Z',
+      },
+    )
+
+    expect(result.addedCount).toBe(1)
+    expect(result.duplicateCount).toBe(1)
+    expect(result.data.billingData.bankBookings).toHaveLength(2)
+    expect(result.data.billingData.bankBookings[1]).toMatchObject({
+      importedAt: '2026-08-17T10:00:00.000Z',
+      category: 'OFFEN',
+    })
+  })
+
+  it('bildet den Duplikatschlüssel deterministisch aus den Buchungsdaten', () => {
+    const input = {
+      date: '2026-04-15',
+      amountCents: -12_345,
+      counterparty: 'Fiktiver Dienstleister',
+      purpose: 'Fiktive Rechnung',
+    }
+
+    expect(bankBookingDedupeHash(input)).toBe(bankBookingDedupeHash(input))
+    expect(bankBookingDedupeHash({ ...input, amountCents: -12_346 })).not.toBe(
+      bankBookingDedupeHash(input),
+    )
+  })
+
   it('klassifiziert und ordnet eine offene Buchung einer Kostenart zu', () => {
     const source = validFile()
     const result = updateBankBooking(source, IDS.booking, {
@@ -90,6 +183,23 @@ describe('bank booking commands', () => {
       costCategoryId: IDS.category,
       reviewed: false,
     })
+  })
+
+  it('hält eine Zuordnung mit leeren optionalen Feldern JSON-sicher', async () => {
+    const result = updateBankBooking(validFile(), IDS.booking, {
+      category: 'NK_UMLEGBAR',
+      billingYear: 2026,
+      costCategoryId: IDS.category,
+      allocablePercent: undefined,
+      note: undefined,
+      splits: undefined,
+    })
+
+    await expect(
+      encodeCurrentAppData(result, {
+        savedAt: new Date('2026-12-31T12:00:00.000Z'),
+      }),
+    ).resolves.toBeDefined()
   })
 
   it('speichert nur centgenaue Splits mit vollständiger Kontrollsumme', () => {
