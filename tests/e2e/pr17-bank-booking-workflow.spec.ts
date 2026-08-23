@@ -47,9 +47,12 @@ test('imports, classifies and links a bank booking without stale form state', as
   await expect(
     page.getByText('0 Buchungen importiert, 1 Duplikate übersprungen.'),
   ).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Wasser 2026' })).toHaveCount(
-    1,
-  )
+  const bookingTable = page.getByRole('table', {
+    name: 'Bankbuchungen bearbeiten',
+  })
+  await expect(
+    bookingTable.getByRole('row').filter({ hasText: 'Wasser 2026' }),
+  ).toHaveCount(1)
 
   await page.getByRole('button', { name: 'Wasser 2026 bearbeiten' }).click()
   await page
@@ -66,8 +69,8 @@ test('imports, classifies and links a bank booking without stale form state', as
   await page.getByRole('button', { name: 'Buchung speichern' }).click()
   await page.getByRole('button', { name: 'Als geprüft markieren' }).click()
   await expect(
-    page.getByRole('paragraph').filter({ hasText: /^Geprüft$/ }),
-  ).toBeVisible()
+    bookingTable.getByRole('row').filter({ hasText: 'Wasser 2026' }),
+  ).toContainText('Geprüft')
   await expect(
     page.getByRole('button', { name: 'Wasser 2026 bearbeiten' }),
   ).toHaveCount(0)

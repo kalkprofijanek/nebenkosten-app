@@ -49,11 +49,18 @@ test('handles a tenant change, vacancy and overlap correction', async ({
   await expect(
     page.getByRole('heading', { name: 'Nutzer und Leerstände (3)' }),
   ).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Anna Alt' })).toBeVisible()
+  const occupancyTable = page.getByRole('table', {
+    name: 'Nutzerzeiträume bearbeiten',
+  })
   await expect(
-    page.getByRole('heading', { name: 'Leerstand', exact: true }),
+    occupancyTable.getByRole('row').filter({ hasText: 'Anna Alt' }),
   ).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Berta Neu' })).toBeVisible()
+  await expect(
+    occupancyTable.getByRole('row').filter({ hasText: 'Leerstand' }),
+  ).toBeVisible()
+  await expect(
+    occupancyTable.getByRole('row').filter({ hasText: 'Berta Neu' }),
+  ).toBeVisible()
 
   await page.getByLabel('Leerstand von').fill('2026-06-15')
   await page.getByLabel('Leerstand bis').fill('2026-07-15')

@@ -1,4 +1,10 @@
-import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import {
+  Fragment,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from 'react'
 import type {
   BankBooking,
   BankBookingCategory,
@@ -16,6 +22,7 @@ import {
   decodeBankBookingCsv,
   parseBankBookingCsv,
 } from '../costs/bank-booking-csv'
+import { TableToolbar } from '../../components/TableToolbar'
 import { CostDataOverview } from '../costs/CostDataOverview'
 import {
   addCostCategory,
@@ -55,8 +62,28 @@ const euro = new Intl.NumberFormat('de-DE', {
   currency: 'EUR',
 })
 
+const costKindLabels: Readonly<Record<CostCategory['kind'], string>> = {
+  operating: 'Betriebskosten',
+  water: 'Wasser',
+  heating: 'Heizung',
+}
+
+const allocationKeyLabels: Readonly<Record<string, string>> = {
+  usable_area: 'Nutzfläche',
+  heated_area: 'Beheizte Fläche',
+  consumption_units: 'Verbrauchseinheiten',
+  residential_units: 'Wohneinheiten',
+  direct: 'Direkte Zuordnung',
+}
+
 function formatCents(value: number): string {
   return euro.format(value / 100)
+}
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return 'Ohne Datum'
+  const [year, month, day] = value.split('-')
+  return year && month && day ? `${day}.${month}.${year}` : value
 }
 
 function editAmount(value: number): string {
@@ -312,6 +339,10 @@ export function CostsRoute({
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [bookingFilter, setBookingFilter] = useState('all')
+  const [categorySearch, setCategorySearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [entrySearch, setEntrySearch] = useState('')
+  const [entryFilter, setEntryFilter] = useState('all')
   const [importNotice, setImportNotice] = useState<string | null>(null)
   const [entryFormVersion, setEntryFormVersion] = useState(0)
   const period = data.billingData.billingPeriods.find(
@@ -342,12 +373,49 @@ export function CostsRoute({
       if (bookingFilter === 'open' && booking.reviewed === true) return false
       if (bookingFilter === 'reviewed' && booking.reviewed !== true)
         return false
+      if (
+        bookingFilter === 'unassigned' &&
+        (booking.costCategoryId ||
+          booking.splits?.some((split) => split.costCategoryId))
+      )
+        return false
       if (!query) return true
       return [booking.counterparty, booking.purpose, booking.bookingText]
         .filter(Boolean)
         .some((value) => value!.toLocaleLowerCase('de-DE').includes(query))
     })
   }, [availableBookings, bookingFilter, search])
+  const bookingTotalCents = bookings.reduce(
+    (total, booking) => total + booking.amountCents,
+    0,
+  )
+  const visibleCategories = categories.filter((category) => {
+    if (categoryFilter !== 'all' && category.kind !== categoryFilter)
+      return false
+    const query = categorySearch.trim().toLocaleLowerCase('de-DE')
+    return (
+      !query ||
+      [category.label, category.statementText]
+        .filter(Boolean)
+        .some((value) => value!.toLocaleLowerCase('de-DE').includes(query))
+    )
+  })
+  const visibleEntries = entries.filter((entry) => {
+    if (entryFilter !== 'all' && entry.costCategoryId !== entryFilter)
+      return false
+    const query = entrySearch.trim().toLocaleLowerCase('de-DE')
+    const category = categories.find(({ id }) => id === entry.costCategoryId)
+    return (
+      !query ||
+      [entry.description, entry.receiptReference, category?.label]
+        .filter(Boolean)
+        .some((value) => value!.toLocaleLowerCase('de-DE').includes(query))
+    )
+  })
+  const visibleEntryTotalCents = visibleEntries.reduce(
+    (total, entry) => total + entry.amountCents,
+    0,
+  )
 
   function apply(transform: Parameters<typeof onApply>[0]) {
     setError(null)
@@ -576,60 +644,137 @@ export function CostsRoute({
             {categories.length === 0 ? (
               <p>Noch keine Kostenart angelegt.</p>
             ) : (
-              <div className="records-grid">
-                {categories.map((category) => (
-                  <article className="record-editor" key={category.id}>
-                    <div className="record-editor__heading">
-                      <div>
-                        <p className="section-kicker">{category.kind}</p>
-                        <h3>{category.label}</h3>
-                        <small>
-                          {category.allocationKey ?? 'Ohne Umlageschlüssel'} ·{' '}
-                          {
-                            entries.filter(
-                              ({ costCategoryId }) =>
-                                costCategoryId === category.id,
-                            ).length
-                          }{' '}
-                          Positionen
-                        </small>
-                      </div>
-                      <button
-                        type="button"
-                        aria-label={`${category.label} bearbeiten`}
-                        onClick={() =>
-                          setEditingId(
-                            editingId === category.id ? null : category.id,
-                          )
-                        }
-                      >
-                        Bearbeiten
-                      </button>
-                    </div>
-                    {editingId === category.id ? (
-                      <form
-                        className="embedded-form"
-                        noValidate
-                        onSubmit={(event) => saveCategory(event, category.id)}
-                      >
-                        <CategoryFields
-                          category={category}
-                          buildings={buildings}
-                        />
-                        <button type="submit">Kostenart speichern</button>
-                      </form>
-                    ) : null}
-                    <div className="danger-zone">
-                      <button
-                        type="button"
-                        onClick={() => setDeleteId(category.id)}
-                      >
-                        Kostenart löschen
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
+              <>
+                <TableToolbar
+                  searchLabel="Kostenarten durchsuchen"
+                  searchValue={categorySearch}
+                  onSearchChange={setCategorySearch}
+                  filterLabel="Kostenart-Typ"
+                  filterValue={categoryFilter}
+                  onFilterChange={setCategoryFilter}
+                  filterOptions={[
+                    { value: 'all', label: 'Alle Kostenarten' },
+                    { value: 'operating', label: 'Betriebskosten' },
+                    { value: 'water', label: 'Wasser' },
+                    { value: 'heating', label: 'Heizung' },
+                  ]}
+                  resultCount={visibleCategories.length}
+                  resultLabel="Kostenarten"
+                  resultSingularLabel="Kostenart"
+                />
+                <div className="data-table-wrap data-table-wrap--workspace">
+                  <table
+                    className="data-table data-table--workspace"
+                    aria-label="Kostenarten bearbeiten"
+                  >
+                    <thead>
+                      <tr>
+                        <th scope="col">Kostenart</th>
+                        <th scope="col">Typ</th>
+                        <th scope="col">Umlageschlüssel</th>
+                        <th scope="col">Bereich</th>
+                        <th scope="col">Positionen</th>
+                        <th scope="col">Aktion</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleCategories.map((category) => {
+                        const positionCount = entries.filter(
+                          ({ costCategoryId }) =>
+                            costCategoryId === category.id,
+                        ).length
+                        const scopeBuildingId =
+                          category.scope?.kind === 'building'
+                            ? category.scope.buildingId
+                            : undefined
+                        const scope = scopeBuildingId
+                          ? (buildings.find(({ id }) => id === scopeBuildingId)
+                              ?.name ?? 'Gebäude')
+                          : 'Gesamtes Objekt'
+                        return (
+                          <Fragment key={category.id}>
+                            <tr
+                              className="data-table__interactive-row"
+                              tabIndex={0}
+                              onKeyDown={(event) => {
+                                if (event.target !== event.currentTarget) return
+                                if (event.key === 'Enter') {
+                                  event.preventDefault()
+                                  setEditingId(category.id)
+                                }
+                                if (event.key === 'Escape') setEditingId(null)
+                              }}
+                            >
+                              <td>
+                                <strong>{category.label}</strong>
+                                <small>
+                                  {category.statementText ??
+                                    'Kein abweichender Abrechnungstext'}
+                                </small>
+                              </td>
+                              <td>{costKindLabels[category.kind]}</td>
+                              <td>
+                                {category.allocationKey
+                                  ? (allocationKeyLabels[
+                                      category.allocationKey
+                                    ] ?? category.allocationKey)
+                                  : 'Nicht festgelegt'}
+                              </td>
+                              <td>{scope}</td>
+                              <td>{positionCount}</td>
+                              <td className="data-table__actions">
+                                <button
+                                  type="button"
+                                  aria-label={`${category.label} bearbeiten`}
+                                  onClick={() =>
+                                    setEditingId(
+                                      editingId === category.id
+                                        ? null
+                                        : category.id,
+                                    )
+                                  }
+                                >
+                                  Bearbeiten
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteId(category.id)}
+                                >
+                                  Kostenart löschen
+                                </button>
+                              </td>
+                            </tr>
+                            {editingId === category.id ? (
+                              <tr className="data-table__detail-row">
+                                <td colSpan={6}>
+                                  <article className="record-editor record-editor--embedded">
+                                    <h3>{category.label}</h3>
+                                    <form
+                                      className="embedded-form"
+                                      noValidate
+                                      onSubmit={(event) =>
+                                        saveCategory(event, category.id)
+                                      }
+                                    >
+                                      <CategoryFields
+                                        category={category}
+                                        buildings={buildings}
+                                      />
+                                      <button type="submit">
+                                        Kostenart speichern
+                                      </button>
+                                    </form>
+                                  </article>
+                                </td>
+                              </tr>
+                            ) : null}
+                          </Fragment>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </section>
         </>
@@ -662,66 +807,146 @@ export function CostsRoute({
             {entries.length === 0 ? (
               <p>Noch keine Kostenposition erfasst.</p>
             ) : (
-              <div className="records-grid">
-                {entries.map((entry) => {
-                  const category = categories.find(
-                    ({ id }) => id === entry.costCategoryId,
-                  )
-                  const title =
-                    entry.description ??
-                    entry.receiptReference ??
-                    'Kostenposition'
-                  return (
-                    <article className="record-editor" key={entry.id}>
-                      <div className="record-editor__heading">
-                        <div>
-                          <p className="section-kicker">{category?.label}</p>
-                          <h3>{title}</h3>
-                          <small>
-                            {entry.receiptReference ?? 'Ohne Belegreferenz'} ·{' '}
-                            {formatCents(entry.amountCents)}
-                          </small>
-                        </div>
-                        <button
-                          type="button"
-                          aria-label={`${title} bearbeiten`}
-                          onClick={() =>
-                            setEditingId(
-                              editingId === entry.id ? null : entry.id,
-                            )
-                          }
-                        >
-                          Bearbeiten
-                        </button>
-                      </div>
-                      {editingId === entry.id ? (
-                        <form
-                          className="embedded-form"
-                          noValidate
-                          onSubmit={(event) => saveEntry(event, entry.id)}
-                        >
-                          <EntryFields
-                            entry={entry}
-                            categories={categories}
-                            bookings={availableBookings}
-                          />
-                          <button type="submit">
-                            Kostenposition speichern
-                          </button>
-                        </form>
-                      ) : null}
-                      <div className="danger-zone">
-                        <button
-                          type="button"
-                          onClick={() => setDeleteId(entry.id)}
-                        >
-                          Kostenposition löschen
-                        </button>
-                      </div>
-                    </article>
-                  )
-                })}
-              </div>
+              <>
+                <TableToolbar
+                  searchLabel="Kostenpositionen durchsuchen"
+                  searchValue={entrySearch}
+                  onSearchChange={setEntrySearch}
+                  filterLabel="Kostenart auswählen"
+                  filterValue={entryFilter}
+                  onFilterChange={setEntryFilter}
+                  filterOptions={[
+                    { value: 'all', label: 'Alle Kostenarten' },
+                    ...categories.map((category) => ({
+                      value: category.id,
+                      label: category.label,
+                    })),
+                  ]}
+                  resultCount={visibleEntries.length}
+                  resultLabel="Kostenpositionen"
+                  resultSingularLabel="Kostenposition"
+                  totalCents={visibleEntryTotalCents}
+                />
+                <div className="data-table-wrap data-table-wrap--workspace">
+                  <table
+                    className="data-table data-table--workspace"
+                    aria-label="Kostenpositionen bearbeiten"
+                  >
+                    <thead>
+                      <tr>
+                        <th scope="col">Datum</th>
+                        <th scope="col">Position</th>
+                        <th scope="col">Kostenart</th>
+                        <th scope="col">Beleg</th>
+                        <th scope="col">Zahlungsnachweis</th>
+                        <th scope="col">Betrag</th>
+                        <th scope="col">Aktion</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleEntries.map((entry) => {
+                        const category = categories.find(
+                          ({ id }) => id === entry.costCategoryId,
+                        )
+                        const title =
+                          entry.description ??
+                          entry.receiptReference ??
+                          'Kostenposition'
+                        return (
+                          <Fragment key={entry.id}>
+                            <tr
+                              className="data-table__interactive-row"
+                              tabIndex={0}
+                              onKeyDown={(event) => {
+                                if (event.target !== event.currentTarget) return
+                                if (event.key === 'Enter') {
+                                  event.preventDefault()
+                                  setEditingId(entry.id)
+                                }
+                                if (event.key === 'Escape') setEditingId(null)
+                              }}
+                            >
+                              <td>{formatDate(entry.date)}</td>
+                              <td>
+                                <strong>{title}</strong>
+                              </td>
+                              <td>
+                                {category?.label ?? 'Unbekannte Kostenart'}
+                              </td>
+                              <td>{entry.receiptReference ?? '–'}</td>
+                              <td>
+                                {entry.bookingLink
+                                  ? 'Bankbuchung'
+                                  : entry.externalPayment?.confirmed
+                                    ? 'Extern bestätigt'
+                                    : 'Noch offen'}
+                              </td>
+                              <td className="data-table__amount">
+                                {formatCents(entry.amountCents)}
+                              </td>
+                              <td className="data-table__actions">
+                                <button
+                                  type="button"
+                                  aria-label={`${title} bearbeiten`}
+                                  onClick={() =>
+                                    setEditingId(
+                                      editingId === entry.id ? null : entry.id,
+                                    )
+                                  }
+                                >
+                                  Bearbeiten
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteId(entry.id)}
+                                >
+                                  Kostenposition löschen
+                                </button>
+                              </td>
+                            </tr>
+                            {editingId === entry.id ? (
+                              <tr className="data-table__detail-row">
+                                <td colSpan={7}>
+                                  <article className="record-editor record-editor--embedded">
+                                    <h3>{title}</h3>
+                                    <form
+                                      className="embedded-form"
+                                      noValidate
+                                      onSubmit={(event) =>
+                                        saveEntry(event, entry.id)
+                                      }
+                                    >
+                                      <EntryFields
+                                        entry={entry}
+                                        categories={categories}
+                                        bookings={availableBookings}
+                                      />
+                                      <button type="submit">
+                                        Kostenposition speichern
+                                      </button>
+                                    </form>
+                                  </article>
+                                </td>
+                              </tr>
+                            ) : null}
+                          </Fragment>
+                        )
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <th scope="row" colSpan={5}>
+                          Summe der angezeigten Kostenpositionen
+                        </th>
+                        <td className="data-table__amount">
+                          {formatCents(visibleEntryTotalCents)}
+                        </td>
+                        <td />
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </>
             )}
           </section>
         </>
@@ -792,183 +1017,268 @@ export function CostsRoute({
             </article>
           </div>
           {importNotice ? <p role="status">{importNotice}</p> : null}
-          <div className="booking-filters">
-            <label>
-              <span>Bankbuchungen durchsuchen</span>
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
-            <label>
-              <span>Prüfstatus</span>
-              <select
-                value={bookingFilter}
-                onChange={(event) => setBookingFilter(event.target.value)}
-              >
-                <option value="all">Alle</option>
-                <option value="open">Noch zu prüfen</option>
-                <option value="reviewed">Geprüft</option>
-              </select>
-            </label>
-          </div>
+          <TableToolbar
+            searchLabel="Bankbuchungen durchsuchen"
+            searchValue={search}
+            onSearchChange={setSearch}
+            filterLabel="Prüfstatus"
+            filterValue={bookingFilter}
+            onFilterChange={setBookingFilter}
+            filterOptions={[
+              { value: 'all', label: 'Alle Buchungen' },
+              { value: 'open', label: 'Noch zu prüfen' },
+              { value: 'unassigned', label: 'Nicht zugeordnet' },
+              { value: 'reviewed', label: 'Geprüft' },
+            ]}
+            resultCount={bookings.length}
+            resultLabel="Buchungen"
+            resultSingularLabel="Buchung"
+            totalCents={bookingTotalCents}
+          />
           {bookings.length === 0 ? (
             <p>Keine passenden Bankbuchungen vorhanden.</p>
           ) : (
-            <div className="records-grid">
-              {bookings.map((booking) => {
-                const title =
-                  booking.purpose ?? booking.counterparty ?? 'Bankbuchung'
-                const category = categories.find(
-                  ({ id }) => id === booking.costCategoryId,
-                )
-                const [firstSplit, secondSplit] = booking.splits ?? []
-                return (
-                  <article className="record-editor" key={booking.id}>
-                    <div className="record-editor__heading">
-                      <div>
-                        <p className="section-kicker">
-                          {booking.reviewed ? 'Geprüft' : 'Noch zu prüfen'}
-                        </p>
-                        <h3>{title}</h3>
-                        <small>
-                          {booking.counterparty ?? 'Ohne Gegenpartei'} ·{' '}
-                          {formatCents(booking.amountCents)}
-                        </small>
-                        <small>
-                          {category?.label ?? booking.category ?? 'Offen'}
-                        </small>
-                      </div>
-                      {!booking.reviewed ? (
-                        <button
-                          type="button"
-                          aria-label={`${title} bearbeiten`}
-                          onClick={() =>
-                            setEditingId(
-                              editingId === booking.id ? null : booking.id,
-                            )
-                          }
+            <div className="data-table-wrap data-table-wrap--workspace">
+              <table
+                className="data-table data-table--workspace"
+                aria-label="Bankbuchungen bearbeiten"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col">Datum</th>
+                    <th scope="col">Buchung</th>
+                    <th scope="col">Zuordnung</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Betrag</th>
+                    <th scope="col">Aktion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.map((booking) => {
+                    const title =
+                      booking.purpose ?? booking.counterparty ?? 'Bankbuchung'
+                    const category = categories.find(
+                      ({ id }) => id === booking.costCategoryId,
+                    )
+                    const [firstSplit, secondSplit] = booking.splits ?? []
+                    const assignment =
+                      category?.label ??
+                      (booking.splits?.length
+                        ? `${booking.splits.length} Aufteilungen`
+                        : 'Nicht zugeordnet')
+                    const categoryLabel =
+                      BOOKING_CATEGORIES.find(
+                        ({ value }) => value === booking.category,
+                      )?.label ?? 'Offen'
+                    return (
+                      <Fragment key={booking.id}>
+                        <tr
+                          className="data-table__interactive-row"
+                          tabIndex={0}
+                          onKeyDown={(event) => {
+                            if (event.target !== event.currentTarget) return
+                            if (event.key === 'Escape') {
+                              setEditingId(null)
+                              return
+                            }
+                            if (event.key === 'Enter' && !booking.reviewed) {
+                              event.preventDefault()
+                              setEditingId(booking.id)
+                            }
+                          }}
                         >
-                          Bearbeiten
-                        </button>
-                      ) : null}
-                    </div>
-                    {editingId === booking.id && !booking.reviewed ? (
-                      <form
-                        className="embedded-form"
-                        noValidate
-                        onSubmit={(event) => saveBooking(event, booking)}
-                      >
-                        <label>
-                          <span>Buchungskategorie bearbeiten</span>
-                          <select
-                            name="category"
-                            defaultValue={booking.category ?? 'OFFEN'}
-                          >
-                            {BOOKING_CATEGORIES.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label>
-                          <span>Kostenart zuordnen</span>
-                          <select
-                            name="costCategoryId"
-                            defaultValue={booking.costCategoryId ?? ''}
-                          >
-                            <option value="">Keine direkte Zuordnung</option>
-                            {categories.map((option) => (
-                              <option key={option.id} value={option.id}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <WorkflowField
-                          label="Umlagefähig in Prozent"
-                          name="allocablePercent"
-                          defaultValue={booking.allocablePercent ?? ''}
-                        />
-                        <WorkflowField
-                          label="Prüfnotiz"
-                          name="note"
-                          defaultValue={booking.note ?? ''}
-                        />
-                        <fieldset className="split-fields">
-                          <legend>
-                            Optional centgenau auf zwei Kostenarten aufteilen
-                          </legend>
-                          <WorkflowField
-                            label="Split 1 Betrag in Euro"
-                            name="splitOneAmount"
-                            defaultValue={
-                              firstSplit
-                                ? editAmount(firstSplit.amountCents)
-                                : ''
-                            }
-                          />
-                          <label>
-                            <span>Split 1 Kostenart</span>
-                            <select
-                              name="splitOneCategory"
-                              defaultValue={firstSplit?.costCategoryId ?? ''}
+                          <td>{formatDate(booking.date)}</td>
+                          <td>
+                            <strong>{title}</strong>
+                            <small>
+                              {booking.counterparty ??
+                                booking.bookingText ??
+                                'Ohne Gegenpartei'}
+                            </small>
+                          </td>
+                          <td>{assignment}</td>
+                          <td>
+                            <span
+                              className={`table-status table-status--${
+                                booking.reviewed ? 'ready' : 'open'
+                              }`}
                             >
-                              {categories.map((option) => (
-                                <option key={option.id} value={option.id}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <WorkflowField
-                            label="Split 2 Betrag in Euro"
-                            name="splitTwoAmount"
-                            defaultValue={
-                              secondSplit
-                                ? editAmount(secondSplit.amountCents)
-                                : ''
-                            }
-                          />
-                          <label>
-                            <span>Split 2 Kostenart</span>
-                            <select
-                              name="splitTwoCategory"
-                              defaultValue={secondSplit?.costCategoryId ?? ''}
+                              {booking.reviewed
+                                ? `Geprüft · ${categoryLabel}`
+                                : categoryLabel}
+                            </span>
+                          </td>
+                          <td className="data-table__amount">
+                            {formatCents(booking.amountCents)}
+                          </td>
+                          <td className="data-table__actions">
+                            {!booking.reviewed ? (
+                              <button
+                                type="button"
+                                aria-label={`${title} bearbeiten`}
+                                aria-expanded={editingId === booking.id}
+                                onClick={() =>
+                                  setEditingId(
+                                    editingId === booking.id
+                                      ? null
+                                      : booking.id,
+                                  )
+                                }
+                              >
+                                Bearbeiten
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                apply((current) =>
+                                  setBankBookingReviewed(
+                                    current,
+                                    booking.id,
+                                    !booking.reviewed,
+                                  ),
+                                )
+                              }
                             >
-                              {categories.map((option) => (
-                                <option key={option.id} value={option.id}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                        </fieldset>
-                        <button type="submit">Buchung speichern</button>
-                      </form>
-                    ) : null}
-                    <div className="record-actions">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          apply((current) =>
-                            setBankBookingReviewed(
-                              current,
-                              booking.id,
-                              !booking.reviewed,
-                            ),
-                          )
-                        }
-                      >
-                        {booking.reviewed
-                          ? 'Buchung wieder öffnen'
-                          : 'Als geprüft markieren'}
-                      </button>
-                    </div>
-                  </article>
-                )
-              })}
+                              {booking.reviewed
+                                ? 'Buchung wieder öffnen'
+                                : 'Als geprüft markieren'}
+                            </button>
+                          </td>
+                        </tr>
+                        {editingId === booking.id && !booking.reviewed ? (
+                          <tr className="data-table__detail-row">
+                            <td colSpan={6}>
+                              <form
+                                className="embedded-form table-detail-form"
+                                noValidate
+                                onSubmit={(event) =>
+                                  saveBooking(event, booking)
+                                }
+                              >
+                                <label>
+                                  <span>Buchungskategorie bearbeiten</span>
+                                  <select
+                                    name="category"
+                                    defaultValue={booking.category ?? 'OFFEN'}
+                                  >
+                                    {BOOKING_CATEGORIES.map((option) => (
+                                      <option
+                                        key={option.value}
+                                        value={option.value}
+                                      >
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <label>
+                                  <span>Kostenart zuordnen</span>
+                                  <select
+                                    name="costCategoryId"
+                                    defaultValue={booking.costCategoryId ?? ''}
+                                  >
+                                    <option value="">
+                                      Keine direkte Zuordnung
+                                    </option>
+                                    {categories.map((option) => (
+                                      <option key={option.id} value={option.id}>
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <WorkflowField
+                                  label="Umlagefähig in Prozent"
+                                  name="allocablePercent"
+                                  defaultValue={booking.allocablePercent ?? ''}
+                                />
+                                <WorkflowField
+                                  label="Prüfnotiz"
+                                  name="note"
+                                  defaultValue={booking.note ?? ''}
+                                />
+                                <fieldset className="split-fields">
+                                  <legend>
+                                    Optional centgenau auf zwei Kostenarten
+                                    aufteilen
+                                  </legend>
+                                  <WorkflowField
+                                    label="Split 1 Betrag in Euro"
+                                    name="splitOneAmount"
+                                    defaultValue={
+                                      firstSplit
+                                        ? editAmount(firstSplit.amountCents)
+                                        : ''
+                                    }
+                                  />
+                                  <label>
+                                    <span>Split 1 Kostenart</span>
+                                    <select
+                                      name="splitOneCategory"
+                                      defaultValue={
+                                        firstSplit?.costCategoryId ?? ''
+                                      }
+                                    >
+                                      {categories.map((option) => (
+                                        <option
+                                          key={option.id}
+                                          value={option.id}
+                                        >
+                                          {option.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  <WorkflowField
+                                    label="Split 2 Betrag in Euro"
+                                    name="splitTwoAmount"
+                                    defaultValue={
+                                      secondSplit
+                                        ? editAmount(secondSplit.amountCents)
+                                        : ''
+                                    }
+                                  />
+                                  <label>
+                                    <span>Split 2 Kostenart</span>
+                                    <select
+                                      name="splitTwoCategory"
+                                      defaultValue={
+                                        secondSplit?.costCategoryId ?? ''
+                                      }
+                                    >
+                                      {categories.map((option) => (
+                                        <option
+                                          key={option.id}
+                                          value={option.id}
+                                        >
+                                          {option.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                </fieldset>
+                                <button type="submit">Buchung speichern</button>
+                              </form>
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
+                    )
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th scope="row" colSpan={4}>
+                      Summe der angezeigten Buchungen
+                    </th>
+                    <td className="data-table__amount">
+                      {formatCents(bookingTotalCents)}
+                    </td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           )}
         </section>

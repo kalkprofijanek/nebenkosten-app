@@ -1040,7 +1040,9 @@ describe('WorkflowRoute', () => {
     ).toBeVisible()
     expect(screen.getByText('Fiktive Rechnung')).toBeVisible()
     expect(screen.getByText(/TEST-17/u)).toBeVisible()
-    expect(screen.getAllByText(/1\.234,56\s€/u)).toHaveLength(2)
+    expect(screen.getAllByText(/1\.234,56\s€/u).length).toBeGreaterThanOrEqual(
+      2,
+    )
 
     fireEvent.click(screen.getByRole('button', { name: 'Bankbuchungen' }))
     expect(
@@ -1048,7 +1050,7 @@ describe('WorkflowRoute', () => {
     ).toBeVisible()
     expect(screen.getByText(/Musterfirma Dienstleistung/u)).toBeVisible()
     expect(screen.getByText('Testleistung März')).toBeVisible()
-    expect(screen.getByText(/-250,50\s€/u)).toBeVisible()
+    expect(screen.getAllByText(/-250,50\s€/u)[0]).toBeVisible()
     expect(screen.queryByText('Fremdes Objekt')).not.toBeInTheDocument()
   })
 
@@ -1596,6 +1598,367 @@ describe('WorkflowRoute', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Kostenart löschen' }))
     fireEvent.click(screen.getByRole('button', { name: 'Löschen bestätigen' }))
     expect(categoryResult.getData().billingData.costCategories).toEqual([])
+  })
+
+  it('zeigt Kostenarten und Kostenpositionen als filterbare Arbeitstabellen', () => {
+    let data = addCostCategory(
+      seededData(),
+      {
+        billingPeriodId: SEEDED_IDS.period,
+        kind: 'operating',
+        label: 'Fiktive Reinigung',
+        allocationKey: 'usable_area',
+      },
+      () => '20000000-0000-4000-8000-000000000191',
+    )
+    data = addCostEntry(
+      data,
+      {
+        costCategoryId: '20000000-0000-4000-8000-000000000191',
+        date: '2026-04-03',
+        description: 'Fiktive Aprilrechnung',
+        amountCents: 12_345,
+      },
+      () => '20000000-0000-4000-8000-000000000192',
+    )
+
+    renderRoute('/kosten', data, SEEDED_SELECTION)
+
+    const categoryTable = screen.getByRole('table', {
+      name: 'Kostenarten bearbeiten',
+    })
+    expect(within(categoryTable).getByText('Fiktive Reinigung')).toBeVisible()
+    expect(within(categoryTable).getByText('Nutzfläche')).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Kostenpositionen' }))
+    const entryTable = screen.getByRole('table', {
+      name: 'Kostenpositionen bearbeiten',
+    })
+    expect(within(entryTable).getByText('03.04.2026')).toBeVisible()
+    expect(within(entryTable).getAllByText(/123,45\s€/u)[0]).toBeVisible()
+    expect(screen.getByRole('status')).toHaveTextContent('1 Kostenposition')
+  })
+
+  it('durchsucht und filtert Kostenarten sowie Kostenpositionen ohne verdeckte Treffer', () => {
+    const operatingCategoryId = '20000000-0000-4000-8000-000000000195'
+    const waterCategoryId = '20000000-0000-4000-8000-000000000196'
+    let data = addCostCategory(
+      seededData(),
+      {
+        billingPeriodId: SEEDED_IDS.period,
+        kind: 'operating',
+        label: 'Fiktive Reinigung',
+        statementText: 'Treppenhaus-Testtext',
+      },
+      () => operatingCategoryId,
+    )
+    data = addCostCategory(
+      data,
+      {
+        billingPeriodId: SEEDED_IDS.period,
+        kind: 'water',
+        label: 'Fiktives Frischwasser',
+      },
+      () => waterCategoryId,
+    )
+    data = addCostEntry(
+      data,
+      {
+        costCategoryId: operatingCategoryId,
+        description: 'Rechnung Reinigung',
+        amountCents: 4_000,
+      },
+      () => '20000000-0000-4000-8000-000000000197',
+    )
+    data = addCostEntry(
+      data,
+      {
+        costCategoryId: waterCategoryId,
+        receiptReference: 'WASSER-TEST-2026',
+        amountCents: 6_000,
+      },
+      () => '20000000-0000-4000-8000-000000000198',
+    )
+
+    renderRoute('/kosten', data, SEEDED_SELECTION)
+
+    fireEvent.change(screen.getByLabelText('Kostenarten durchsuchen'), {
+      target: { value: 'treppenhaus' },
+    })
+    let categoryTable = screen.getByRole('table', {
+      name: 'Kostenarten bearbeiten',
+    })
+    expect(within(categoryTable).getByText('Fiktive Reinigung')).toBeVisible()
+    expect(
+      within(categoryTable).queryByText('Fiktives Frischwasser'),
+    ).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Kostenarten durchsuchen'), {
+      target: { value: '' },
+    })
+    fireEvent.change(screen.getByLabelText('Kostenart-Typ'), {
+      target: { value: 'water' },
+    })
+    categoryTable = screen.getByRole('table', {
+      name: 'Kostenarten bearbeiten',
+    })
+    expect(
+      within(categoryTable).getByText('Fiktives Frischwasser'),
+    ).toBeVisible()
+    expect(
+      within(categoryTable).queryByText('Fiktive Reinigung'),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Kostenpositionen' }))
+    fireEvent.change(screen.getByLabelText('Kostenpositionen durchsuchen'), {
+      target: { value: 'wasser-test' },
+    })
+    let entryTable = screen.getByRole('table', {
+      name: 'Kostenpositionen bearbeiten',
+    })
+    expect(within(entryTable).getAllByText('WASSER-TEST-2026')[0]).toBeVisible()
+    expect(
+      within(entryTable).queryByText('Rechnung Reinigung'),
+    ).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Kostenpositionen durchsuchen'), {
+      target: { value: '' },
+    })
+    fireEvent.change(screen.getByLabelText('Kostenart auswählen'), {
+      target: { value: operatingCategoryId },
+    })
+    entryTable = screen.getByRole('table', {
+      name: 'Kostenpositionen bearbeiten',
+    })
+    expect(within(entryTable).getByText('Rechnung Reinigung')).toBeVisible()
+    expect(
+      within(entryTable).queryByText('WASSER-TEST-2026'),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('40,00')
+  })
+
+  it('öffnet eine Kostenposition aus der Tabellenzeile mit Enter', () => {
+    const categoryId = '20000000-0000-4000-8000-000000000193'
+    const data = addCostEntry(
+      addCostCategory(
+        seededData(),
+        {
+          billingPeriodId: SEEDED_IDS.period,
+          kind: 'operating',
+          label: 'Fiktive Wartung',
+        },
+        () => categoryId,
+      ),
+      {
+        costCategoryId: categoryId,
+        description: 'Tastatur-Position',
+        amountCents: 5_000,
+      },
+      () => '20000000-0000-4000-8000-000000000194',
+    )
+
+    renderRoute('/kosten', data, SEEDED_SELECTION)
+    fireEvent.click(screen.getByRole('button', { name: 'Kostenpositionen' }))
+    fireEvent.keyDown(screen.getByRole('row', { name: /Tastatur-Position/u }), {
+      key: 'Enter',
+    })
+
+    expect(
+      screen.getByRole('button', { name: 'Kostenposition speichern' }),
+    ).toBeVisible()
+  })
+
+  it('filtert Bankbuchungen in einer kompakten Arbeitsliste und summiert die Treffer', () => {
+    const base = seededData()
+    const categoryId = '20000000-0000-4000-8000-000000000181'
+    const data: AppDataFile = {
+      ...base,
+      billingData: {
+        ...base.billingData,
+        costCategories: [
+          {
+            id: categoryId,
+            billingPeriodId: SEEDED_IDS.period,
+            kind: 'operating',
+            label: 'Fiktive Wartung',
+            allocationKey: 'usable_area',
+          },
+        ],
+        bankBookings: [
+          {
+            id: '20000000-0000-4000-8000-000000000182',
+            propertyId: SEEDED_IDS.property,
+            date: '2026-02-01',
+            amountCents: -1_000,
+            purpose: 'Offene Testbuchung',
+            category: 'OFFEN',
+          },
+          {
+            id: '20000000-0000-4000-8000-000000000183',
+            propertyId: SEEDED_IDS.property,
+            billingYear: 2026,
+            date: '2026-02-02',
+            amountCents: -2_000,
+            purpose: 'Zugeordnete Testbuchung',
+            category: 'NK_UMLEGBAR',
+            costCategoryId: categoryId,
+            reviewed: true,
+          },
+          {
+            id: '20000000-0000-4000-8000-000000000185',
+            propertyId: SEEDED_IDS.property,
+            billingYear: 2026,
+            date: '2026-02-03',
+            amountCents: -3_000,
+            counterparty: 'Fiktive Split-Firma',
+            bookingText: 'Nur im Buchungstext auffindbar',
+            category: 'NK_UMLEGBAR',
+            reviewed: false,
+            splits: [
+              {
+                id: '20000000-0000-4000-8000-000000000186',
+                amountCents: -3_000,
+                costCategoryId: categoryId,
+                billingYear: 2026,
+                category: 'NK_UMLEGBAR',
+              },
+            ],
+          },
+        ],
+      },
+    }
+
+    renderRoute('/kosten', data, SEEDED_SELECTION)
+    fireEvent.click(screen.getByRole('button', { name: 'Bankbuchungen' }))
+    fireEvent.change(screen.getByLabelText('Prüfstatus'), {
+      target: { value: 'unassigned' },
+    })
+
+    let table = screen.getByRole('table', {
+      name: 'Bankbuchungen bearbeiten',
+    })
+    expect(within(table).getByText('Offene Testbuchung')).toBeVisible()
+    expect(
+      within(table).queryByText('Zugeordnete Testbuchung'),
+    ).not.toBeInTheDocument()
+    expect(
+      within(table).queryByText('Fiktive Split-Firma'),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('1 Buchung')
+    expect(screen.getByRole('status')).toHaveTextContent('-10,00')
+
+    fireEvent.change(screen.getByLabelText('Prüfstatus'), {
+      target: { value: 'reviewed' },
+    })
+    table = screen.getByRole('table', { name: 'Bankbuchungen bearbeiten' })
+    expect(within(table).getByText('Zugeordnete Testbuchung')).toBeVisible()
+    expect(
+      within(table).queryByText('Offene Testbuchung'),
+    ).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Prüfstatus'), {
+      target: { value: 'open' },
+    })
+    table = screen.getByRole('table', { name: 'Bankbuchungen bearbeiten' })
+    expect(within(table).getByText('Offene Testbuchung')).toBeVisible()
+    expect(within(table).getAllByText('Fiktive Split-Firma')[0]).toBeVisible()
+    expect(
+      within(table).queryByText('Zugeordnete Testbuchung'),
+    ).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Prüfstatus'), {
+      target: { value: 'all' },
+    })
+    fireEvent.change(screen.getByLabelText('Bankbuchungen durchsuchen'), {
+      target: { value: 'nur im buchungstext' },
+    })
+    table = screen.getByRole('table', { name: 'Bankbuchungen bearbeiten' })
+    expect(within(table).getAllByText('Fiktive Split-Firma')[0]).toBeVisible()
+    expect(
+      within(table).queryByText('Offene Testbuchung'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('öffnet die primäre Buchungsaktion mit Enter', () => {
+    const base = seededData()
+    const data: AppDataFile = {
+      ...base,
+      billingData: {
+        ...base.billingData,
+        bankBookings: [
+          {
+            id: '20000000-0000-4000-8000-000000000184',
+            propertyId: SEEDED_IDS.property,
+            date: '2026-02-03',
+            amountCents: -3_000,
+            purpose: 'Per Tastatur bearbeiten',
+            category: 'OFFEN',
+          },
+        ],
+      },
+    }
+
+    renderRoute('/kosten', data, SEEDED_SELECTION)
+    fireEvent.click(screen.getByRole('button', { name: 'Bankbuchungen' }))
+    fireEvent.keyDown(
+      screen.getByRole('row', { name: /Per Tastatur bearbeiten/u }),
+      { key: 'Enter' },
+    )
+
+    expect(
+      screen.getByRole('button', { name: 'Buchung speichern' }),
+    ).toBeVisible()
+  })
+
+  it('zeigt Nutzerzeiträume tabellarisch und schließt Details mit Escape', () => {
+    const occupancyIds = [
+      '30000000-0000-4000-8000-000000000181',
+      '30000000-0000-4000-8000-000000000182',
+      '30000000-0000-4000-8000-000000000183',
+      '30000000-0000-4000-8000-000000000184',
+    ]
+    const data = addTenantOccupancy(
+      seededData(),
+      {
+        billingPeriodId: SEEDED_IDS.period,
+        unitId: SEEDED_IDS.unit,
+        person: { displayName: 'Fiktiver Tabellen-Nutzer' },
+        occupancy: { from: '2026-01-01', to: '2026-12-31', persons: 2 },
+        prepayment: { mode: 'monthly', monthlyAmountCents: 15_000 },
+      },
+      () => occupancyIds.shift()!,
+    )
+
+    renderRoute('/nutzer', data, SEEDED_SELECTION)
+    const table = screen.getByRole('table', {
+      name: 'Nutzerzeiträume bearbeiten',
+    })
+    expect(
+      within(table).getByRole('columnheader', { name: 'Einheit' }),
+    ).toBeVisible()
+    expect(
+      within(table).getByRole('columnheader', { name: 'Zeitraum' }),
+    ).toBeVisible()
+    expect(
+      within(table).getByRole('columnheader', { name: 'Vorauszahlung' }),
+    ).toBeVisible()
+    expect(
+      within(table).getByRole('columnheader', { name: 'Status' }),
+    ).toBeVisible()
+
+    const row = within(table).getByRole('row', {
+      name: /Fiktiver Tabellen-Nutzer/u,
+    })
+    expect(row).toHaveTextContent('Prüfen')
+    fireEvent.keyDown(row, { key: 'Enter' })
+    expect(
+      screen.getByRole('button', { name: 'Nutzerdaten speichern' }),
+    ).toBeVisible()
+
+    fireEvent.keyDown(row, { key: 'Escape' })
+    expect(
+      screen.queryByRole('button', { name: 'Nutzerdaten speichern' }),
+    ).not.toBeInTheDocument()
   })
 
   it('zeigt fehlende oder veraltete Auswahlkontexte verständlich', () => {
