@@ -41,4 +41,23 @@ describe('TableToolbar', () => {
     expect(screen.getByRole('status')).toHaveTextContent('3 Buchungen')
     expect(screen.getByRole('status')).toHaveTextContent('-123,45')
   })
+
+  it('zeigt Einzahl ohne Summe und verwendet ersatzweise die Mehrzahlbezeichnung', () => {
+    render(
+      <TableToolbar
+        searchLabel="Kostenarten durchsuchen"
+        searchValue="wartung"
+        onSearchChange={vi.fn()}
+        filterLabel="Kostenart-Typ"
+        filterValue="all"
+        onFilterChange={vi.fn()}
+        filterOptions={[{ value: 'all', label: 'Alle' }]}
+        resultCount={1}
+        resultLabel="Kostenarten"
+      />,
+    )
+
+    expect(screen.getByRole('status')).toHaveTextContent('1 Kostenarten')
+    expect(screen.getByRole('status').querySelector('span')).toBeNull()
+  })
 })

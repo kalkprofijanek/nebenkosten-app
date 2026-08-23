@@ -1639,6 +1639,104 @@ describe('WorkflowRoute', () => {
     expect(screen.getByRole('status')).toHaveTextContent('1 Kostenposition')
   })
 
+  it('durchsucht und filtert Kostenarten sowie Kostenpositionen ohne verdeckte Treffer', () => {
+    const operatingCategoryId = '20000000-0000-4000-8000-000000000195'
+    const waterCategoryId = '20000000-0000-4000-8000-000000000196'
+    let data = addCostCategory(
+      seededData(),
+      {
+        billingPeriodId: SEEDED_IDS.period,
+        kind: 'operating',
+        label: 'Fiktive Reinigung',
+        statementText: 'Treppenhaus-Testtext',
+      },
+      () => operatingCategoryId,
+    )
+    data = addCostCategory(
+      data,
+      {
+        billingPeriodId: SEEDED_IDS.period,
+        kind: 'water',
+        label: 'Fiktives Frischwasser',
+      },
+      () => waterCategoryId,
+    )
+    data = addCostEntry(
+      data,
+      {
+        costCategoryId: operatingCategoryId,
+        description: 'Rechnung Reinigung',
+        amountCents: 4_000,
+      },
+      () => '20000000-0000-4000-8000-000000000197',
+    )
+    data = addCostEntry(
+      data,
+      {
+        costCategoryId: waterCategoryId,
+        receiptReference: 'WASSER-TEST-2026',
+        amountCents: 6_000,
+      },
+      () => '20000000-0000-4000-8000-000000000198',
+    )
+
+    renderRoute('/kosten', data, SEEDED_SELECTION)
+
+    fireEvent.change(screen.getByLabelText('Kostenarten durchsuchen'), {
+      target: { value: 'treppenhaus' },
+    })
+    let categoryTable = screen.getByRole('table', {
+      name: 'Kostenarten bearbeiten',
+    })
+    expect(within(categoryTable).getByText('Fiktive Reinigung')).toBeVisible()
+    expect(
+      within(categoryTable).queryByText('Fiktives Frischwasser'),
+    ).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Kostenarten durchsuchen'), {
+      target: { value: '' },
+    })
+    fireEvent.change(screen.getByLabelText('Kostenart-Typ'), {
+      target: { value: 'water' },
+    })
+    categoryTable = screen.getByRole('table', {
+      name: 'Kostenarten bearbeiten',
+    })
+    expect(
+      within(categoryTable).getByText('Fiktives Frischwasser'),
+    ).toBeVisible()
+    expect(
+      within(categoryTable).queryByText('Fiktive Reinigung'),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Kostenpositionen' }))
+    fireEvent.change(screen.getByLabelText('Kostenpositionen durchsuchen'), {
+      target: { value: 'wasser-test' },
+    })
+    let entryTable = screen.getByRole('table', {
+      name: 'Kostenpositionen bearbeiten',
+    })
+    expect(within(entryTable).getAllByText('WASSER-TEST-2026')[0]).toBeVisible()
+    expect(
+      within(entryTable).queryByText('Rechnung Reinigung'),
+    ).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Kostenpositionen durchsuchen'), {
+      target: { value: '' },
+    })
+    fireEvent.change(screen.getByLabelText('Kostenart auswählen'), {
+      target: { value: operatingCategoryId },
+    })
+    entryTable = screen.getByRole('table', {
+      name: 'Kostenpositionen bearbeiten',
+    })
+    expect(within(entryTable).getByText('Rechnung Reinigung')).toBeVisible()
+    expect(
+      within(entryTable).queryByText('WASSER-TEST-2026'),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('40,00')
+  })
+
   it('öffnet eine Kostenposition aus der Tabellenzeile mit Enter', () => {
     const categoryId = '20000000-0000-4000-8000-000000000193'
     const data = addCostEntry(
@@ -1706,6 +1804,26 @@ describe('WorkflowRoute', () => {
             costCategoryId: categoryId,
             reviewed: true,
           },
+          {
+            id: '20000000-0000-4000-8000-000000000185',
+            propertyId: SEEDED_IDS.property,
+            billingYear: 2026,
+            date: '2026-02-03',
+            amountCents: -3_000,
+            counterparty: 'Fiktive Split-Firma',
+            bookingText: 'Nur im Buchungstext auffindbar',
+            category: 'NK_UMLEGBAR',
+            reviewed: false,
+            splits: [
+              {
+                id: '20000000-0000-4000-8000-000000000186',
+                amountCents: -3_000,
+                costCategoryId: categoryId,
+                billingYear: 2026,
+                category: 'NK_UMLEGBAR',
+              },
+            ],
+          },
         ],
       },
     }
@@ -1716,15 +1834,49 @@ describe('WorkflowRoute', () => {
       target: { value: 'unassigned' },
     })
 
-    const table = screen.getByRole('table', {
+    let table = screen.getByRole('table', {
       name: 'Bankbuchungen bearbeiten',
     })
     expect(within(table).getByText('Offene Testbuchung')).toBeVisible()
     expect(
       within(table).queryByText('Zugeordnete Testbuchung'),
     ).not.toBeInTheDocument()
+    expect(
+      within(table).queryByText('Fiktive Split-Firma'),
+    ).not.toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('1 Buchung')
     expect(screen.getByRole('status')).toHaveTextContent('-10,00')
+
+    fireEvent.change(screen.getByLabelText('Prüfstatus'), {
+      target: { value: 'reviewed' },
+    })
+    table = screen.getByRole('table', { name: 'Bankbuchungen bearbeiten' })
+    expect(within(table).getByText('Zugeordnete Testbuchung')).toBeVisible()
+    expect(
+      within(table).queryByText('Offene Testbuchung'),
+    ).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Prüfstatus'), {
+      target: { value: 'open' },
+    })
+    table = screen.getByRole('table', { name: 'Bankbuchungen bearbeiten' })
+    expect(within(table).getByText('Offene Testbuchung')).toBeVisible()
+    expect(within(table).getAllByText('Fiktive Split-Firma')[0]).toBeVisible()
+    expect(
+      within(table).queryByText('Zugeordnete Testbuchung'),
+    ).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Prüfstatus'), {
+      target: { value: 'all' },
+    })
+    fireEvent.change(screen.getByLabelText('Bankbuchungen durchsuchen'), {
+      target: { value: 'nur im buchungstext' },
+    })
+    table = screen.getByRole('table', { name: 'Bankbuchungen bearbeiten' })
+    expect(within(table).getAllByText('Fiktive Split-Firma')[0]).toBeVisible()
+    expect(
+      within(table).queryByText('Offene Testbuchung'),
+    ).not.toBeInTheDocument()
   })
 
   it('öffnet die primäre Buchungsaktion mit Enter', () => {

@@ -40,7 +40,19 @@ async function createCostCategory(page: Page, label: string) {
   await page.getByRole('link', { name: 'Kosten', exact: true }).click()
   await page.getByLabel('Neue Kostenart').fill(label)
   await page.getByRole('button', { name: 'Kostenart anlegen' }).click()
-  await expect(page.getByRole('heading', { name: label })).toBeVisible()
+  await expect(
+    page
+      .getByRole('table', { name: 'Kostenarten bearbeiten' })
+      .getByRole('row')
+      .filter({ hasText: label }),
+  ).toBeVisible()
+}
+
+function costCategoryRow(page: Page, label: string | RegExp) {
+  return page
+    .getByRole('table', { name: 'Kostenarten bearbeiten' })
+    .getByRole('row')
+    .filter({ hasText: label })
 }
 
 test('isolates costs when switching between properties and billing years', async ({
@@ -66,22 +78,18 @@ test('isolates costs when switching between properties and billing years', async
   await page
     .getByLabel('Zeitraum im Arbeitskontext')
     .selectOption({ label: '2026' })
-  await expect(
-    page.getByRole('heading', { name: 'Grundsteuer 2026 Objekt A' }),
-  ).toBeVisible()
-  await expect(
-    page.getByRole('heading', { name: 'Versicherung 2026 Objekt B' }),
-  ).toHaveCount(0)
+  await expect(costCategoryRow(page, 'Grundsteuer 2026 Objekt A')).toBeVisible()
+  await expect(costCategoryRow(page, 'Versicherung 2026 Objekt B')).toHaveCount(
+    0,
+  )
 
   await page
     .getByLabel('Zeitraum im Arbeitskontext')
     .selectOption({ label: '2025' })
-  await expect(
-    page.getByRole('heading', { name: 'Grundsteuer 2025 Objekt A' }),
-  ).toBeVisible()
-  await expect(
-    page.getByRole('heading', { name: 'Grundsteuer 2026 Objekt A' }),
-  ).toHaveCount(0)
+  await expect(costCategoryRow(page, 'Grundsteuer 2025 Objekt A')).toBeVisible()
+  await expect(costCategoryRow(page, 'Grundsteuer 2026 Objekt A')).toHaveCount(
+    0,
+  )
 
   await page
     .getByLabel('Objekt im Arbeitskontext')
@@ -90,7 +98,7 @@ test('isolates costs when switching between properties and billing years', async
     .getByLabel('Zeitraum im Arbeitskontext')
     .selectOption({ label: '2026' })
   await expect(
-    page.getByRole('heading', { name: 'Versicherung 2026 Objekt B' }),
+    costCategoryRow(page, 'Versicherung 2026 Objekt B'),
   ).toBeVisible()
-  await expect(page.getByRole('heading', { name: /Objekt A/ })).toHaveCount(0)
+  await expect(costCategoryRow(page, /Objekt A/)).toHaveCount(0)
 })

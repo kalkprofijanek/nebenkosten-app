@@ -160,13 +160,15 @@ test('handles malformed CSV, search and review filters without stale results', a
   })
   await expect(page.getByText(/2 Buchungen importiert/)).toBeVisible()
 
+  const bookingTable = page.getByRole('table', {
+    name: 'Bankbuchungen bearbeiten',
+  })
+  const bookingRow = (label: string) =>
+    bookingTable.getByRole('row').filter({ hasText: label })
+
   await page.getByLabel('Bankbuchungen durchsuchen').fill('winter')
-  await expect(
-    page.getByRole('heading', { name: 'Winterdienst' }),
-  ).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Gartenpflege' })).toHaveCount(
-    0,
-  )
+  await expect(bookingRow('Winterdienst')).toBeVisible()
+  await expect(bookingRow('Gartenpflege')).toHaveCount(0)
   await page.getByLabel('Bankbuchungen durchsuchen').fill('')
 
   await page.getByRole('button', { name: 'Winterdienst bearbeiten' }).click()
@@ -174,36 +176,26 @@ test('handles malformed CSV, search and review filters without stale results', a
     .getByLabel('Buchungskategorie bearbeiten')
     .selectOption('NK_NICHT_UMLEGBAR')
   await page.getByRole('button', { name: 'Buchung speichern' }).click()
-  await page
-    .locator('article')
-    .filter({ has: page.getByRole('heading', { name: 'Winterdienst' }) })
+  await bookingRow('Winterdienst')
     .getByRole('button', { name: 'Als geprüft markieren' })
     .click()
 
   await page.getByLabel('Prüfstatus').selectOption('reviewed')
-  await expect(
-    page.getByRole('heading', { name: 'Winterdienst' }),
-  ).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Gartenpflege' })).toHaveCount(
-    0,
-  )
+  await expect(bookingRow('Winterdienst')).toBeVisible()
+  await expect(bookingRow('Gartenpflege')).toHaveCount(0)
   await page.getByLabel('Prüfstatus').selectOption('open')
-  await expect(
-    page.getByRole('heading', { name: 'Gartenpflege' }),
-  ).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Winterdienst' })).toHaveCount(
-    0,
-  )
+  await expect(bookingRow('Gartenpflege')).toBeVisible()
+  await expect(bookingRow('Winterdienst')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Datenübersicht' }).click()
   await expect(
     page.getByRole('heading', { name: 'Bankbuchungen (2)' }),
   ).toBeVisible()
-  const bookingTable = page.getByRole('table', {
+  const overviewBookingTable = page.getByRole('table', {
     name: 'Bankbuchungen des aktiven Jahres und noch offene Buchungen',
   })
-  await expect(bookingTable).toContainText('Fiktive Alpha GmbH')
-  await expect(bookingTable).toContainText('Fiktive Beta GmbH')
+  await expect(overviewBookingTable).toContainText('Fiktive Alpha GmbH')
+  await expect(overviewBookingTable).toContainText('Fiktive Beta GmbH')
 })
 
 test('paginates a long booking list and keeps all totals understandable', async ({
