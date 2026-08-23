@@ -55,6 +55,7 @@ const REVIEWED_CREDENTIAL_ASSIGNMENTS = new Set([
   'assets/index-D78Ba6a6.js:f23345b5658d0c85d302c381e56a6ad6ec3f5d7634ff24a35736ae9204657b35:8',
   'assets/index-BpH5Sryc.js:4ec280efa48bfedd5eb8e0745a0b2306a87491e6ffaa87a099db52e891ce2832:8',
   'assets/index-DzqrPME8.js:06d3afe7e1c2ccff767c2e5aa9ae1ae9bc950cc3fa8e845f147e08d6d19430e8:8',
+  'assets/index-D2ymjzej.js:01ec4d577c3771db01fa4e4ff913f51eacfa342cbf80fd87d2bfcc68f5cdebee:8',
   // pdfmake: PDF-Widget-Bitmaske für ein Kennwort-Feld.
   'assets/pdfmake-BDdWErbi.js:3197e19df8923c84338402f0cd6ad74efe1ed527f1862e71ce70d928e0d4cc50:100',
   'assets/pdfmake-px1s6AzJ.js:7ff8033e96ecfa1c353331641d6a902e9e00a62836fd248c3edbcd37aa8ece9b:100',
@@ -64,6 +65,7 @@ const REVIEWED_CREDENTIAL_ASSIGNMENTS = new Set([
   'assets/pdfmake-7OZmGcKB.js:2339232330f1e2062fbe067065de431e4107c83c544d84e36b77c652bba8587a:100',
   'assets/pdfmake-B8fq3sLm.js:09e19916e0838d02f11ff5abe7019cb2ebb90295c3a9592cb90040f9a84c997b:100',
   'assets/pdfmake-CB9ZiJM4.js:1405d8e30d34c5038b2028239085e7f29c21caba855d377d923378cb2fc92d0b:100',
+  'assets/pdfmake-CTZAVS4E.js:538cea50f8bfa378c002bf49163484c0928ea2a75513c3e708890fae408b3d6b:100',
 ])
 
 function normalizedLimits(options = {}) {

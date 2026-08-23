@@ -1,4 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { Fragment, useMemo, useState, type FormEvent } from 'react'
+import { validateBillingPeriod } from '@nebenkosten/validators'
+import { TableToolbar } from '../../components/TableToolbar'
 import {
   formatEuroInput,
   parseEuroCents,
@@ -38,6 +40,17 @@ function optionalEuro(form: FormData, name: string) {
   return value === undefined ? undefined : parseEuroCents(value)
 }
 
+const euroFormatter = new Intl.NumberFormat('de-DE', {
+  style: 'currency',
+  currency: 'EUR',
+})
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return 'Offen'
+  const [year, month, day] = value.split('-')
+  return year && month && day ? `${day}.${month}.${year}` : value
+}
+
 export function OccupanciesRoute({
   data,
   selection,
@@ -66,6 +79,40 @@ export function OccupanciesRoute({
     )
   })
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [occupancyFilter, setOccupancyFilter] = useState('all')
+  const visibleOccupancies = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase('de-DE')
+    return occupancies.filter((occupancy) => {
+      if (occupancyFilter !== 'all' && occupancy.kind !== occupancyFilter)
+        return false
+      if (!query) return true
+      const unit = units.find(({ id }) => id === occupancy.unitId)
+      const tenancy = data.masterData.tenancies.find(
+        ({ id }) => id === occupancy.tenancyId,
+      )
+      const person = data.masterData.persons.find(({ id }) =>
+        tenancy?.personIds.includes(id),
+      )
+      return [unit?.label, person?.displayName, occupancy.note]
+        .filter(Boolean)
+        .some((value) => value!.toLocaleLowerCase('de-DE').includes(query))
+    })
+  }, [
+    data.masterData.persons,
+    data.masterData.tenancies,
+    occupancies,
+    occupancyFilter,
+    search,
+    units,
+  ])
+  const validationIssues = useMemo(() => {
+    try {
+      return validateBillingPeriod(data, period.id).issues
+    } catch {
+      return []
+    }
+  }, [data, period.id])
 
   function apply(transform: Parameters<typeof onApply>[0]) {
     setError(null)
@@ -267,301 +314,515 @@ export function OccupanciesRoute({
         {occupancies.length === 0 ? (
           <p>Noch keine Nutzung erfasst.</p>
         ) : (
-          occupancies.map((occupancy) => {
-            const tenancy = data.masterData.tenancies.find(
-              ({ id }) => id === occupancy.tenancyId,
-            )
-            const person = data.masterData.persons.find(({ id }) =>
-              tenancy?.personIds.includes(id),
-            )
-            const currentPrepayment = data.billingData.prepayments.find(
-              ({ occupancyPeriodId }) => occupancyPeriodId === occupancy.id,
-            )
-            const name =
-              occupancy.kind === 'vacancy'
-                ? 'Leerstand'
-                : (person?.displayName ?? 'Nutzer ohne Anzeigename')
-            const amount =
-              currentPrepayment?.mode === 'monthly'
-                ? currentPrepayment.monthlyAmountCents
-                : currentPrepayment?.mode === 'annual'
-                  ? currentPrepayment.annualAmountCents
-                  : undefined
-            return (
-              <article className="record-editor" key={occupancy.id}>
-                <div className="record-editor__heading">
-                  <div>
-                    <p className="section-kicker">
-                      {units.find(({ id }) => id === occupancy.unitId)?.label ??
-                        'Einheit'}
-                    </p>
-                    <h3>{name}</h3>
-                    <small>
-                      {occupancy.from ?? period.periodStart} –{' '}
-                      {occupancy.to ?? period.periodEnd}
-                    </small>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label={`${name} bearbeiten`}
-                    aria-expanded={editingId === occupancy.id}
-                    onClick={() =>
-                      setEditingId(
-                        editingId === occupancy.id ? null : occupancy.id,
+          <>
+            <TableToolbar
+              searchValue={search}
+              onSearchChange={setSearch}
+              searchLabel="Nutzerzeiträume durchsuchen"
+              searchPlaceholder="Einheit, Nutzer oder Notiz"
+              filterValue={occupancyFilter}
+              onFilterChange={setOccupancyFilter}
+              filterLabel="Nutzungsart"
+              filterOptions={[
+                { value: 'all', label: 'Alle Zeiträume' },
+                { value: 'tenant', label: 'Nur Nutzer' },
+                { value: 'vacancy', label: 'Nur Leerstände' },
+              ]}
+              resultCount={visibleOccupancies.length}
+              resultLabel="Zeiträume"
+              resultSingularLabel="Zeitraum"
+            />
+            {visibleOccupancies.length === 0 ? (
+              <p className="table-empty-state">
+                Für diese Suche wurden keine Zeiträume gefunden.
+              </p>
+            ) : (
+              <div className="data-table-wrap data-table-wrap--workspace">
+                <table
+                  className="data-table data-table--workspace"
+                  aria-label="Nutzerzeiträume bearbeiten"
+                >
+                  <thead>
+                    <tr>
+                      <th scope="col">Einheit</th>
+                      <th scope="col">Nutzer / Art</th>
+                      <th scope="col">Zeitraum</th>
+                      <th scope="col">Fläche</th>
+                      <th scope="col">Personen</th>
+                      <th scope="col">Vorauszahlung</th>
+                      <th scope="col">Kostenbereich</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Aktion</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleOccupancies.map((occupancy) => {
+                      const tenancy = data.masterData.tenancies.find(
+                        ({ id }) => id === occupancy.tenancyId,
                       )
-                    }
-                  >
-                    Bearbeiten
-                  </button>
-                </div>
-                {editingId === occupancy.id && occupancy.kind === 'tenant' ? (
-                  <form
-                    className="embedded-form"
-                    noValidate
-                    onSubmit={(event) => saveTenant(event, occupancy.id)}
-                  >
-                    <WorkflowField
-                      label="Anzeigename bearbeiten"
-                      name="displayName"
-                      required
-                      defaultValue={person?.displayName ?? ''}
-                    />
-                    <WorkflowField
-                      label="Vorname bearbeiten"
-                      name="firstName"
-                      defaultValue={person?.firstName ?? ''}
-                    />
-                    <WorkflowField
-                      label="Nachname bearbeiten"
-                      name="lastName"
-                      defaultValue={person?.lastName ?? ''}
-                    />
-                    <WorkflowField
-                      label="E-Mail bearbeiten"
-                      name="email"
-                      type="email"
-                      defaultValue={person?.email ?? ''}
-                    />
-                    <WorkflowField
-                      label="Einzug bearbeiten"
-                      name="from"
-                      type="date"
-                      defaultValue={occupancy.from ?? ''}
-                    />
-                    <WorkflowField
-                      label="Auszug bearbeiten"
-                      name="to"
-                      type="date"
-                      defaultValue={occupancy.to ?? ''}
-                    />
-                    <WorkflowField
-                      label="Personenzahl bearbeiten"
-                      name="persons"
-                      type="number"
-                      defaultValue={occupancy.persons?.value ?? ''}
-                    />
-                    <WorkflowField
-                      label="Mandatsreferenz bearbeiten"
-                      name="mandateReference"
-                      defaultValue={tenancy?.mandateReference ?? ''}
-                    />
-                    <WorkflowField
-                      label="Monatsmiete in Euro bearbeiten"
-                      name="monthlyRent"
-                      defaultValue={
-                        tenancy?.monthlyRentCents == null
-                          ? ''
-                          : formatEuroInput(tenancy.monthlyRentCents)
-                      }
-                    />
-                    <WorkflowField
-                      label="Versandstraße bearbeiten"
-                      name="shippingAddressStreet"
-                      defaultValue={tenancy?.shippingAddressStreet ?? ''}
-                    />
-                    <WorkflowField
-                      label="Versandort bearbeiten"
-                      name="shippingAddressPostalCodeAndCity"
-                      defaultValue={
-                        tenancy?.shippingAddressPostalCodeAndCity ?? ''
-                      }
-                    />
-                    <WorkflowField
-                      label="Verbrauchseinheiten bearbeiten"
-                      name="consumptionUnits"
-                      defaultValue={occupancy.consumptionUnits?.value ?? ''}
-                    />
-                    <label className="checkbox-field">
-                      <input
-                        type="checkbox"
-                        name="consumptionUnitsEstimated"
-                        defaultChecked={
-                          occupancy.consumptionUnitsEstimated ?? false
-                        }
-                      />
-                      <span>Verbrauchseinheiten geschätzt</span>
-                    </label>
-                    <WorkflowField
-                      label="Schätzgrund Verbrauch bearbeiten"
-                      name="consumptionUnitsEstimateReason"
-                      defaultValue={
-                        occupancy.consumptionUnitsEstimateReason ?? ''
-                      }
-                    />
-                    <WorkflowField
-                      label="Kaltwasser in m³ bearbeiten"
-                      name="coldWater"
-                      defaultValue={occupancy.coldWater?.value ?? ''}
-                    />
-                    <WorkflowField
-                      label="Warmwasser in m³ bearbeiten"
-                      name="warmWater"
-                      defaultValue={occupancy.warmWater?.value ?? ''}
-                    />
-                    <label className="checkbox-field">
-                      <input
-                        type="checkbox"
-                        name="applySection12Reduction"
-                        defaultChecked={
-                          occupancy.applySection12Reduction ?? false
-                        }
-                      />
-                      <span>§ 12 HeizKV-Kürzung anwenden</span>
-                    </label>
-                    <label>
-                      <span>Kostenbereich bearbeiten</span>
-                      <select
-                        name="costScopeBuildingId"
-                        defaultValue={
-                          occupancy.costScope?.kind === 'building'
-                            ? occupancy.costScope.buildingId
-                            : ''
-                        }
-                      >
-                        <option value="">Gesamtes Objekt</option>
-                        {data.masterData.buildings
-                          .filter(
-                            ({ propertyId }) =>
-                              propertyId === period.propertyId,
-                          )
-                          .map((building) => (
-                            <option key={building.id} value={building.id}>
-                              {building.name}
-                            </option>
-                          ))}
-                      </select>
-                    </label>
-                    <label>
-                      <span>Grundsteuerbereich bearbeiten</span>
-                      <select
-                        name="propertyTaxScopeBuildingId"
-                        defaultValue={
-                          occupancy.propertyTaxScope?.kind === 'building'
-                            ? occupancy.propertyTaxScope.buildingId
-                            : ''
-                        }
-                      >
-                        <option value="">Gesamtes Objekt</option>
-                        {data.masterData.buildings
-                          .filter(
-                            ({ propertyId }) =>
-                              propertyId === period.propertyId,
-                          )
-                          .map((building) => (
-                            <option key={building.id} value={building.id}>
-                              {building.name}
-                            </option>
-                          ))}
-                      </select>
-                    </label>
-                    <WorkflowField
-                      label="Versanddatum bearbeiten"
-                      name="dispatchDate"
-                      type="date"
-                      defaultValue={occupancy.dispatchDate ?? ''}
-                    />
-                    <WorkflowField
-                      label="Nutzernotiz bearbeiten"
-                      name="note"
-                      defaultValue={occupancy.note ?? ''}
-                    />
-                    <label>
-                      <span>Vorauszahlungsart bearbeiten</span>
-                      <select
-                        name="prepaymentMode"
-                        defaultValue={currentPrepayment?.mode ?? 'none_agreed'}
-                      >
-                        <option value="monthly">Monatlich</option>
-                        <option value="annual">Jährlich</option>
-                        <option value="none_agreed">Keine vereinbart</option>
-                      </select>
-                    </label>
-                    <WorkflowField
-                      label="Vorauszahlung bearbeiten"
-                      name="prepaymentAmount"
-                      defaultValue={
-                        amount === undefined ? '' : formatEuroInput(amount)
-                      }
-                    />
-                    <button type="submit">Nutzerdaten speichern</button>
-                  </form>
-                ) : null}
-                {editingId === occupancy.id && occupancy.kind === 'vacancy' ? (
-                  <form
-                    className="embedded-form"
-                    noValidate
-                    onSubmit={(event) => saveVacancy(event, occupancy.id)}
-                  >
-                    <WorkflowField
-                      label="Leerstand von bearbeiten"
-                      name="from"
-                      type="date"
-                      defaultValue={occupancy.from ?? ''}
-                    />
-                    <WorkflowField
-                      label="Leerstand bis bearbeiten"
-                      name="to"
-                      type="date"
-                      defaultValue={occupancy.to ?? ''}
-                    />
-                    <WorkflowField
-                      label="Leerstandsnotiz bearbeiten"
-                      name="note"
-                      defaultValue={occupancy.note ?? ''}
-                    />
-                    <button type="submit">Leerstand speichern</button>
-                  </form>
-                ) : null}
-                <div className="danger-zone">
-                  {deleteId === occupancy.id ? (
-                    <>
-                      <p>
-                        Dieser Zeitraum und seine Vorauszahlung werden entfernt.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => confirmDelete(occupancy.id)}
-                      >
-                        Löschen bestätigen
-                      </button>
-                      <button type="button" onClick={() => setDeleteId(null)}>
-                        Abbrechen
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setDeleteId(occupancy.id)}
-                    >
-                      {occupancy.kind === 'vacancy'
-                        ? 'Leerstand löschen'
-                        : 'Nutzer löschen'}
-                    </button>
-                  )}
-                </div>
-              </article>
-            )
-          })
+                      const person = data.masterData.persons.find(({ id }) =>
+                        tenancy?.personIds.includes(id),
+                      )
+                      const currentPrepayment =
+                        data.billingData.prepayments.find(
+                          ({ occupancyPeriodId }) =>
+                            occupancyPeriodId === occupancy.id,
+                        )
+                      const name =
+                        occupancy.kind === 'vacancy'
+                          ? 'Leerstand'
+                          : (person?.displayName ?? 'Nutzer ohne Anzeigename')
+                      const amount =
+                        currentPrepayment?.mode === 'monthly'
+                          ? currentPrepayment.monthlyAmountCents
+                          : currentPrepayment?.mode === 'annual'
+                            ? currentPrepayment.annualAmountCents
+                            : undefined
+                      const unit = units.find(
+                        ({ id }) => id === occupancy.unitId,
+                      )
+                      const scopeBuildingId =
+                        occupancy.costScope?.kind === 'building'
+                          ? occupancy.costScope.buildingId
+                          : undefined
+                      const scope = scopeBuildingId
+                        ? (data.masterData.buildings.find(
+                            ({ id }) => id === scopeBuildingId,
+                          )?.name ?? 'Gebäude')
+                        : 'Gesamtes Objekt'
+                      const prepayment =
+                        currentPrepayment?.mode === 'monthly'
+                          ? `${euroFormatter.format((amount ?? 0) / 100)} / Monat`
+                          : currentPrepayment?.mode === 'annual'
+                            ? `${euroFormatter.format((amount ?? 0) / 100)} / Jahr`
+                            : 'Keine vereinbart'
+                      const relatedIds = new Set([
+                        occupancy.id,
+                        occupancy.unitId,
+                        occupancy.tenancyId,
+                      ])
+                      const rowIssues = validationIssues.filter(
+                        (issue) =>
+                          issue.entity && relatedIds.has(issue.entity.id),
+                      )
+                      const hasErrors = rowIssues.some(
+                        ({ severity }) => severity === 'error',
+                      )
+                      return (
+                        <Fragment key={occupancy.id}>
+                          <tr
+                            className="data-table__interactive-row"
+                            tabIndex={0}
+                            onKeyDown={(event) => {
+                              if (event.target !== event.currentTarget) return
+                              if (event.key === 'Enter') {
+                                event.preventDefault()
+                                setEditingId(occupancy.id)
+                              }
+                              if (event.key === 'Escape') {
+                                setEditingId(null)
+                                setDeleteId(null)
+                              }
+                            }}
+                          >
+                            <td>
+                              <strong>{unit?.label ?? 'Einheit'}</strong>
+                            </td>
+                            <td>
+                              <strong>{name}</strong>
+                              <small>
+                                {occupancy.kind === 'vacancy'
+                                  ? 'Leerstand'
+                                  : 'Nutzer'}
+                              </small>
+                            </td>
+                            <td>
+                              {formatDate(occupancy.from ?? period.periodStart)}{' '}
+                              – {formatDate(occupancy.to ?? period.periodEnd)}
+                            </td>
+                            <td>{unit?.usableAreaSqm?.value ?? '–'} m²</td>
+                            <td>{occupancy.persons?.value ?? '–'}</td>
+                            <td>{prepayment}</td>
+                            <td>{scope}</td>
+                            <td>
+                              {rowIssues.length === 0 ? (
+                                <span className="table-status table-status--ready">
+                                  Vollständig
+                                </span>
+                              ) : (
+                                <>
+                                  <span className="table-status table-status--open">
+                                    {hasErrors ? 'Prüfen' : 'Hinweis'}
+                                  </span>
+                                  <small>
+                                    {rowIssues
+                                      .slice(0, 2)
+                                      .map(({ title }) => title)
+                                      .join(' · ')}
+                                  </small>
+                                </>
+                              )}
+                            </td>
+                            <td className="data-table__actions">
+                              <button
+                                type="button"
+                                aria-label={`${name} bearbeiten`}
+                                aria-expanded={editingId === occupancy.id}
+                                onClick={() =>
+                                  setEditingId(
+                                    editingId === occupancy.id
+                                      ? null
+                                      : occupancy.id,
+                                  )
+                                }
+                              >
+                                Bearbeiten
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteId(occupancy.id)}
+                              >
+                                {occupancy.kind === 'vacancy'
+                                  ? 'Leerstand löschen'
+                                  : 'Nutzer löschen'}
+                              </button>
+                            </td>
+                          </tr>
+                          {editingId === occupancy.id ||
+                          deleteId === occupancy.id ? (
+                            <tr className="data-table__detail-row">
+                              <td colSpan={9}>
+                                <div className="record-editor record-editor--embedded">
+                                  {editingId === occupancy.id &&
+                                  occupancy.kind === 'tenant' ? (
+                                    <form
+                                      className="embedded-form"
+                                      noValidate
+                                      onSubmit={(event) =>
+                                        saveTenant(event, occupancy.id)
+                                      }
+                                    >
+                                      <WorkflowField
+                                        label="Anzeigename bearbeiten"
+                                        name="displayName"
+                                        required
+                                        defaultValue={person?.displayName ?? ''}
+                                      />
+                                      <WorkflowField
+                                        label="Vorname bearbeiten"
+                                        name="firstName"
+                                        defaultValue={person?.firstName ?? ''}
+                                      />
+                                      <WorkflowField
+                                        label="Nachname bearbeiten"
+                                        name="lastName"
+                                        defaultValue={person?.lastName ?? ''}
+                                      />
+                                      <WorkflowField
+                                        label="E-Mail bearbeiten"
+                                        name="email"
+                                        type="email"
+                                        defaultValue={person?.email ?? ''}
+                                      />
+                                      <WorkflowField
+                                        label="Einzug bearbeiten"
+                                        name="from"
+                                        type="date"
+                                        defaultValue={occupancy.from ?? ''}
+                                      />
+                                      <WorkflowField
+                                        label="Auszug bearbeiten"
+                                        name="to"
+                                        type="date"
+                                        defaultValue={occupancy.to ?? ''}
+                                      />
+                                      <WorkflowField
+                                        label="Personenzahl bearbeiten"
+                                        name="persons"
+                                        type="number"
+                                        defaultValue={
+                                          occupancy.persons?.value ?? ''
+                                        }
+                                      />
+                                      <WorkflowField
+                                        label="Mandatsreferenz bearbeiten"
+                                        name="mandateReference"
+                                        defaultValue={
+                                          tenancy?.mandateReference ?? ''
+                                        }
+                                      />
+                                      <WorkflowField
+                                        label="Monatsmiete in Euro bearbeiten"
+                                        name="monthlyRent"
+                                        defaultValue={
+                                          tenancy?.monthlyRentCents == null
+                                            ? ''
+                                            : formatEuroInput(
+                                                tenancy.monthlyRentCents,
+                                              )
+                                        }
+                                      />
+                                      <WorkflowField
+                                        label="Versandstraße bearbeiten"
+                                        name="shippingAddressStreet"
+                                        defaultValue={
+                                          tenancy?.shippingAddressStreet ?? ''
+                                        }
+                                      />
+                                      <WorkflowField
+                                        label="Versandort bearbeiten"
+                                        name="shippingAddressPostalCodeAndCity"
+                                        defaultValue={
+                                          tenancy?.shippingAddressPostalCodeAndCity ??
+                                          ''
+                                        }
+                                      />
+                                      <WorkflowField
+                                        label="Verbrauchseinheiten bearbeiten"
+                                        name="consumptionUnits"
+                                        defaultValue={
+                                          occupancy.consumptionUnits?.value ??
+                                          ''
+                                        }
+                                      />
+                                      <label className="checkbox-field">
+                                        <input
+                                          type="checkbox"
+                                          name="consumptionUnitsEstimated"
+                                          defaultChecked={
+                                            occupancy.consumptionUnitsEstimated ??
+                                            false
+                                          }
+                                        />
+                                        <span>
+                                          Verbrauchseinheiten geschätzt
+                                        </span>
+                                      </label>
+                                      <WorkflowField
+                                        label="Schätzgrund Verbrauch bearbeiten"
+                                        name="consumptionUnitsEstimateReason"
+                                        defaultValue={
+                                          occupancy.consumptionUnitsEstimateReason ??
+                                          ''
+                                        }
+                                      />
+                                      <WorkflowField
+                                        label="Kaltwasser in m³ bearbeiten"
+                                        name="coldWater"
+                                        defaultValue={
+                                          occupancy.coldWater?.value ?? ''
+                                        }
+                                      />
+                                      <WorkflowField
+                                        label="Warmwasser in m³ bearbeiten"
+                                        name="warmWater"
+                                        defaultValue={
+                                          occupancy.warmWater?.value ?? ''
+                                        }
+                                      />
+                                      <label className="checkbox-field">
+                                        <input
+                                          type="checkbox"
+                                          name="applySection12Reduction"
+                                          defaultChecked={
+                                            occupancy.applySection12Reduction ??
+                                            false
+                                          }
+                                        />
+                                        <span>
+                                          § 12 HeizKV-Kürzung anwenden
+                                        </span>
+                                      </label>
+                                      <label>
+                                        <span>Kostenbereich bearbeiten</span>
+                                        <select
+                                          name="costScopeBuildingId"
+                                          defaultValue={
+                                            occupancy.costScope?.kind ===
+                                            'building'
+                                              ? occupancy.costScope.buildingId
+                                              : ''
+                                          }
+                                        >
+                                          <option value="">
+                                            Gesamtes Objekt
+                                          </option>
+                                          {data.masterData.buildings
+                                            .filter(
+                                              ({ propertyId }) =>
+                                                propertyId ===
+                                                period.propertyId,
+                                            )
+                                            .map((building) => (
+                                              <option
+                                                key={building.id}
+                                                value={building.id}
+                                              >
+                                                {building.name}
+                                              </option>
+                                            ))}
+                                        </select>
+                                      </label>
+                                      <label>
+                                        <span>
+                                          Grundsteuerbereich bearbeiten
+                                        </span>
+                                        <select
+                                          name="propertyTaxScopeBuildingId"
+                                          defaultValue={
+                                            occupancy.propertyTaxScope?.kind ===
+                                            'building'
+                                              ? occupancy.propertyTaxScope
+                                                  .buildingId
+                                              : ''
+                                          }
+                                        >
+                                          <option value="">
+                                            Gesamtes Objekt
+                                          </option>
+                                          {data.masterData.buildings
+                                            .filter(
+                                              ({ propertyId }) =>
+                                                propertyId ===
+                                                period.propertyId,
+                                            )
+                                            .map((building) => (
+                                              <option
+                                                key={building.id}
+                                                value={building.id}
+                                              >
+                                                {building.name}
+                                              </option>
+                                            ))}
+                                        </select>
+                                      </label>
+                                      <WorkflowField
+                                        label="Versanddatum bearbeiten"
+                                        name="dispatchDate"
+                                        type="date"
+                                        defaultValue={
+                                          occupancy.dispatchDate ?? ''
+                                        }
+                                      />
+                                      <WorkflowField
+                                        label="Nutzernotiz bearbeiten"
+                                        name="note"
+                                        defaultValue={occupancy.note ?? ''}
+                                      />
+                                      <label>
+                                        <span>
+                                          Vorauszahlungsart bearbeiten
+                                        </span>
+                                        <select
+                                          name="prepaymentMode"
+                                          defaultValue={
+                                            currentPrepayment?.mode ??
+                                            'none_agreed'
+                                          }
+                                        >
+                                          <option value="monthly">
+                                            Monatlich
+                                          </option>
+                                          <option value="annual">
+                                            Jährlich
+                                          </option>
+                                          <option value="none_agreed">
+                                            Keine vereinbart
+                                          </option>
+                                        </select>
+                                      </label>
+                                      <WorkflowField
+                                        label="Vorauszahlung bearbeiten"
+                                        name="prepaymentAmount"
+                                        defaultValue={
+                                          amount === undefined
+                                            ? ''
+                                            : formatEuroInput(amount)
+                                        }
+                                      />
+                                      <button type="submit">
+                                        Nutzerdaten speichern
+                                      </button>
+                                    </form>
+                                  ) : null}
+                                  {editingId === occupancy.id &&
+                                  occupancy.kind === 'vacancy' ? (
+                                    <form
+                                      className="embedded-form"
+                                      noValidate
+                                      onSubmit={(event) =>
+                                        saveVacancy(event, occupancy.id)
+                                      }
+                                    >
+                                      <WorkflowField
+                                        label="Leerstand von bearbeiten"
+                                        name="from"
+                                        type="date"
+                                        defaultValue={occupancy.from ?? ''}
+                                      />
+                                      <WorkflowField
+                                        label="Leerstand bis bearbeiten"
+                                        name="to"
+                                        type="date"
+                                        defaultValue={occupancy.to ?? ''}
+                                      />
+                                      <WorkflowField
+                                        label="Leerstandsnotiz bearbeiten"
+                                        name="note"
+                                        defaultValue={occupancy.note ?? ''}
+                                      />
+                                      <button type="submit">
+                                        Leerstand speichern
+                                      </button>
+                                    </form>
+                                  ) : null}
+                                  <div className="danger-zone">
+                                    {deleteId === occupancy.id ? (
+                                      <>
+                                        <p>
+                                          Dieser Zeitraum und seine
+                                          Vorauszahlung werden entfernt.
+                                        </p>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            confirmDelete(occupancy.id)
+                                          }
+                                        >
+                                          Löschen bestätigen
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setDeleteId(null)}
+                                        >
+                                          Abbrechen
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setDeleteId(occupancy.id)
+                                        }
+                                      >
+                                        {occupancy.kind === 'vacancy'
+                                          ? 'Leerstand löschen'
+                                          : 'Nutzer löschen'}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          ) : null}
+                        </Fragment>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </section>
     </>

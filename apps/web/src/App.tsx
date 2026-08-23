@@ -1,4 +1,5 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
+import { validateBillingPeriod } from '@nebenkosten/validators'
 
 import { appRoutes, findRoute } from './app/navigation'
 import {
@@ -269,6 +270,39 @@ export function App({
   const pageStatusLabel =
     activeBillingPeriod === undefined ? 'Entwurf' : workspaceContext.statusLabel
   const pageStatusClass = activeBillingPeriod?.status.toLowerCase() ?? 'draft'
+  const activeCategoryIds = new Set(
+    workspaceState?.data?.billingData.costCategories
+      .filter(
+        ({ billingPeriodId }) => billingPeriodId === activeBillingPeriod?.id,
+      )
+      .map(({ id }) => id) ?? [],
+  )
+  const activeCostEntries =
+    workspaceState?.data?.billingData.costEntries.filter(({ costCategoryId }) =>
+      activeCategoryIds.has(costCategoryId),
+    ) ?? []
+  const openBookingCount =
+    workspaceState?.data?.billingData.bankBookings.filter(
+      (booking) =>
+        booking.propertyId === activeBillingPeriod?.propertyId &&
+        (booking.billingYear == null ||
+          booking.billingYear === activeBillingPeriod?.year) &&
+        booking.reviewed !== true,
+    ).length ?? 0
+  let validationErrorCount = 0
+  let validationWarningCount = 0
+  if (workspaceState?.data && activeBillingPeriod) {
+    try {
+      const report = validateBillingPeriod(
+        workspaceState.data,
+        activeBillingPeriod.id,
+      )
+      validationErrorCount = report.errorCount
+      validationWarningCount = report.warningCount
+    } catch {
+      validationErrorCount = 1
+    }
+  }
 
   useEffect(() => {
     if (initialPath !== undefined) return
@@ -397,6 +431,36 @@ export function App({
               {pageStatusLabel}
             </span>
           </header>
+
+          {activeBillingPeriod ? (
+            <section
+              className="workspace-status-strip"
+              aria-label="Arbeitsstand des Abrechnungsjahres"
+            >
+              <span>
+                <strong>{activeCostEntries.length}</strong> Kostenpositionen
+              </span>
+              <span>
+                <strong>{openBookingCount}</strong> Offene Bankbuchungen
+              </span>
+              <span
+                className={
+                  validationErrorCount > 0
+                    ? 'workspace-status-strip__issues'
+                    : undefined
+                }
+              >
+                <strong>{validationErrorCount}</strong> Fehler ·{' '}
+                <strong>{validationWarningCount}</strong> Warnungen
+              </span>
+              <a
+                href="#/freigabe"
+                onClick={(event) => navigate(event, '/freigabe')}
+              >
+                Zur Freigabeprüfung
+              </a>
+            </section>
+          ) : null}
 
           {route.path === '/' ? (
             <Dashboard

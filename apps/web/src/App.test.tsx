@@ -295,6 +295,14 @@ describe('App', () => {
     expect(
       container.querySelector('.page-heading .status-pill')?.textContent,
     ).toBe('Prüfung offen')
+    const statusStrip = screen.getByRole('region', {
+      name: 'Arbeitsstand des Abrechnungsjahres',
+    })
+    expect(statusStrip).toHaveTextContent('Kostenpositionen')
+    expect(statusStrip).toHaveTextContent('Offene Bankbuchungen')
+    expect(
+      within(statusStrip).getByRole('link', { name: 'Zur Freigabeprüfung' }),
+    ).toHaveAttribute('href', '#/freigabe')
 
     fireEvent.change(screen.getByLabelText('Objekt im Arbeitskontext'), {
       target: { value: 'property-1' },
