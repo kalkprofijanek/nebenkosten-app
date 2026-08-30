@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { Fragment, useState, type FormEvent } from 'react'
 import { parseOptionalNumber } from '../../app/form-parsers'
+import { TableToolbar } from '../../components/TableToolbar'
 import {
   addBuilding,
   addUnit,
@@ -9,7 +10,7 @@ import {
   updateProperty,
   updateUnit,
 } from '../master-data/commands'
-import { ExistingEntries, WorkflowField } from './form-support'
+import { WorkflowField } from './form-support'
 import { formOptionalText, formText } from './form-values'
 import type { WorkflowSubRouteProps } from './route-types'
 
@@ -31,6 +32,13 @@ export function PropertyRoute({
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [deleteArmed, setDeleteArmed] = useState(false)
+  const [propertySearch, setPropertySearch] = useState('')
+  const [buildingSearch, setBuildingSearch] = useState('')
+  const [unitSearch, setUnitSearch] = useState('')
+  const [editingBuildingId, setEditingBuildingId] = useState<string | null>(
+    null,
+  )
+  const [editingUnitId, setEditingUnitId] = useState<string | null>(null)
   const properties = data.masterData.properties.filter(
     ({ ownerCompanyId }) => ownerCompanyId === selection.ownerCompanyId,
   )
@@ -41,6 +49,40 @@ export function PropertyRoute({
   const units = data.masterData.units.filter(
     ({ propertyId }) => propertyId === property?.id,
   )
+  const normalizedPropertySearch = propertySearch
+    .trim()
+    .toLocaleLowerCase('de-DE')
+  const filteredProperties = properties.filter((item) =>
+    [
+      item.internalNumber,
+      item.externalNumber,
+      item.address?.street,
+      item.address?.postalCodeAndCity,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase('de-DE')
+      .includes(normalizedPropertySearch),
+  )
+  const normalizedBuildingSearch = buildingSearch
+    .trim()
+    .toLocaleLowerCase('de-DE')
+  const filteredBuildings = buildings.filter((item) =>
+    [item.name, item.shortName, item.defaultEnergySourceType]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase('de-DE')
+      .includes(normalizedBuildingSearch),
+  )
+  const normalizedUnitSearch = unitSearch.trim().toLocaleLowerCase('de-DE')
+  const filteredUnits = units.filter((item) => {
+    const building = buildings.find(({ id }) => id === item.buildingId)
+    return [item.label, item.location, building?.name]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase('de-DE')
+      .includes(normalizedUnitSearch)
+  })
 
   function apply(transform: Parameters<typeof onApply>[0]) {
     setError(null)
@@ -133,20 +175,23 @@ export function PropertyRoute({
   function saveBuilding(event: FormEvent<HTMLFormElement>, buildingId: string) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    apply((current) =>
-      updateBuilding(current, buildingId, {
-        name: formText(form, 'name'),
-        shortName: formOptionalText(form, 'shortName'),
-        defaultEnergySourceType: formOptionalText(
-          form,
-          'defaultEnergySourceType',
-        ),
-        mandateRefPrefixes: formText(form, 'mandateRefPrefixes')
-          .split(',')
-          .map((value) => value.trim())
-          .filter(Boolean),
-      }),
+    if (
+      apply((current) =>
+        updateBuilding(current, buildingId, {
+          name: formText(form, 'name'),
+          shortName: formOptionalText(form, 'shortName'),
+          defaultEnergySourceType: formOptionalText(
+            form,
+            'defaultEnergySourceType',
+          ),
+          mandateRefPrefixes: formText(form, 'mandateRefPrefixes')
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean),
+        }),
+      )
     )
+      setEditingBuildingId(null)
   }
 
   function createUnit(event: FormEvent<HTMLFormElement>) {
@@ -172,16 +217,19 @@ export function PropertyRoute({
   function saveUnit(event: FormEvent<HTMLFormElement>, unitId: string) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    apply((current) =>
-      updateUnit(current, unitId, {
-        buildingId: formOptionalText(form, 'buildingId') ?? null,
-        label: formText(form, 'label'),
-        location: formOptionalText(form, 'location'),
-        usableAreaSqm: number(form, 'usableAreaSqm'),
-        heatedAreaSqm: number(form, 'heatedAreaSqm'),
-        roomCount: number(form, 'roomCount'),
-      }),
+    if (
+      apply((current) =>
+        updateUnit(current, unitId, {
+          buildingId: formOptionalText(form, 'buildingId') ?? null,
+          label: formText(form, 'label'),
+          location: formOptionalText(form, 'location'),
+          usableAreaSqm: number(form, 'usableAreaSqm'),
+          heatedAreaSqm: number(form, 'heatedAreaSqm'),
+          roomCount: number(form, 'roomCount'),
+        }),
+      )
     )
+      setEditingUnitId(null)
   }
 
   function confirmDelete() {
@@ -230,6 +278,106 @@ export function PropertyRoute({
           ))}
         </select>
       </label>
+      <section className="data-panel" aria-labelledby="properties-title">
+        <div className="data-panel__heading">
+          <div>
+            <p className="section-kicker">Bestandsübersicht</p>
+            <h2 id="properties-title">Objekte</h2>
+          </div>
+          <span>Gebäude, Einheiten und Flächen auf einen Blick</span>
+        </div>
+        <TableToolbar
+          searchLabel="Objekte durchsuchen"
+          searchValue={propertySearch}
+          searchPlaceholder="Nummer, Straße oder Ort"
+          onSearchChange={setPropertySearch}
+          resultCount={filteredProperties.length}
+          resultLabel="Objekte"
+          resultSingularLabel="Objekt"
+        />
+        {filteredProperties.length === 0 ? (
+          <p className="table-empty-state">
+            Kein Objekt für diese Suche gefunden.
+          </p>
+        ) : (
+          <div className="data-table-wrap data-table-wrap--workspace">
+            <table
+              className="data-table data-table--workspace"
+              aria-label="Objektübersicht"
+            >
+              <thead>
+                <tr>
+                  <th>Objekt</th>
+                  <th>Anschrift</th>
+                  <th>Gebäude</th>
+                  <th>Einheiten</th>
+                  <th>Nutzfläche</th>
+                  <th>Aktion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProperties.map((item) => {
+                  const itemBuildings = data.masterData.buildings.filter(
+                    ({ propertyId }) => propertyId === item.id,
+                  )
+                  const itemUnits = data.masterData.units.filter(
+                    ({ propertyId }) => propertyId === item.id,
+                  )
+                  const totalArea = itemUnits.reduce(
+                    (sum, unit) => sum + (unit.usableAreaSqm?.value ?? 0),
+                    0,
+                  )
+                  const label =
+                    item.internalNumber ??
+                    item.address?.street ??
+                    'Objekt ohne Bezeichnung'
+                  const isActive = item.id === selection.propertyId
+                  return (
+                    <tr key={item.id} className="data-table__interactive-row">
+                      <td>
+                        <strong>{label}</strong>
+                        <small>
+                          {item.externalNumber ?? 'Keine externe Nr.'}
+                        </small>
+                      </td>
+                      <td>
+                        {item.address?.street ?? 'Nicht erfasst'}
+                        <small>
+                          {item.address?.postalCodeAndCity ?? 'Ort fehlt'}
+                        </small>
+                      </td>
+                      <td>{itemBuildings.length}</td>
+                      <td>{itemUnits.length}</td>
+                      <td className="data-table__amount">
+                        {totalArea.toLocaleString('de-DE')} m²
+                      </td>
+                      <td className="data-table__actions">
+                        <button
+                          type="button"
+                          aria-label={`${label} auswählen`}
+                          disabled={isActive}
+                          onClick={() => {
+                            setEditing(false)
+                            setDeleteArmed(false)
+                            setEditingBuildingId(null)
+                            setEditingUnitId(null)
+                            onSelectionChange({
+                              propertyId: item.id,
+                              billingPeriodId: null,
+                            })
+                          }}
+                        >
+                          {isActive ? 'Ausgewählt' : 'Auswählen'}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {!property ? null : (
         <>
@@ -335,39 +483,124 @@ export function PropertyRoute({
               <WorkflowField label="Neues Gebäudekürzel" name="shortName" />
               <button type="submit">Gebäude hinzufügen</button>
             </form>
-            <div className="editable-record-list">
-              {buildings.map((building) => (
-                <form
-                  key={building.id}
-                  className="embedded-form"
-                  noValidate
-                  onSubmit={(event) => saveBuilding(event, building.id)}
+            <TableToolbar
+              searchLabel="Gebäude durchsuchen"
+              searchValue={buildingSearch}
+              searchPlaceholder="Name, Kürzel oder Energieträger"
+              onSearchChange={setBuildingSearch}
+              resultCount={filteredBuildings.length}
+              resultLabel="Gebäude"
+            />
+            {filteredBuildings.length === 0 ? (
+              <p className="table-empty-state">
+                Kein Gebäude für diese Suche gefunden.
+              </p>
+            ) : (
+              <div className="data-table-wrap data-table-wrap--workspace">
+                <table
+                  className="data-table data-table--workspace"
+                  aria-label="Gebäudeübersicht"
                 >
-                  <WorkflowField
-                    label="Gebäudename bearbeiten"
-                    name="name"
-                    required
-                    defaultValue={building.name}
-                  />
-                  <WorkflowField
-                    label="Gebäudekürzel bearbeiten"
-                    name="shortName"
-                    defaultValue={building.shortName ?? ''}
-                  />
-                  <WorkflowField
-                    label="Standardenergieträger bearbeiten"
-                    name="defaultEnergySourceType"
-                    defaultValue={building.defaultEnergySourceType ?? ''}
-                  />
-                  <WorkflowField
-                    label="Mandatsreferenz-Präfixe bearbeiten"
-                    name="mandateRefPrefixes"
-                    defaultValue={building.mandateRefPrefixes.join(', ')}
-                  />
-                  <button type="submit">Gebäude speichern</button>
-                </form>
-              ))}
-            </div>
+                  <thead>
+                    <tr>
+                      <th>Gebäude</th>
+                      <th>Kürzel</th>
+                      <th>Einheiten</th>
+                      <th>Energieträger</th>
+                      <th>Mandatspräfixe</th>
+                      <th>Aktion</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredBuildings.map((building) => {
+                      const unitCount = units.filter(
+                        ({ buildingId }) => buildingId === building.id,
+                      ).length
+                      const isEditing = editingBuildingId === building.id
+                      return (
+                        <Fragment key={building.id}>
+                          <tr className="data-table__interactive-row">
+                            <td>
+                              <strong>{building.name}</strong>
+                            </td>
+                            <td>{building.shortName ?? '—'}</td>
+                            <td>{unitCount}</td>
+                            <td>
+                              {building.defaultEnergySourceType ?? 'Offen'}
+                            </td>
+                            <td>
+                              {building.mandateRefPrefixes.join(', ') || '—'}
+                            </td>
+                            <td className="data-table__actions">
+                              <button
+                                type="button"
+                                aria-label={`Gebäude ${building.name} bearbeiten`}
+                                onClick={() => {
+                                  setEditingUnitId(null)
+                                  setEditingBuildingId(
+                                    isEditing ? null : building.id,
+                                  )
+                                }}
+                              >
+                                {isEditing ? 'Schließen' : 'Bearbeiten'}
+                              </button>
+                            </td>
+                          </tr>
+                          {isEditing ? (
+                            <tr className="data-table__detail-row">
+                              <td colSpan={6}>
+                                <form
+                                  className="embedded-form record-editor--embedded"
+                                  noValidate
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Escape') {
+                                      event.preventDefault()
+                                      setEditingBuildingId(null)
+                                    }
+                                  }}
+                                  onSubmit={(event) =>
+                                    saveBuilding(event, building.id)
+                                  }
+                                >
+                                  <WorkflowField
+                                    label="Gebäudename bearbeiten"
+                                    name="name"
+                                    required
+                                    defaultValue={building.name}
+                                  />
+                                  <WorkflowField
+                                    label="Gebäudekürzel bearbeiten"
+                                    name="shortName"
+                                    defaultValue={building.shortName ?? ''}
+                                  />
+                                  <WorkflowField
+                                    label="Standardenergieträger bearbeiten"
+                                    name="defaultEnergySourceType"
+                                    defaultValue={
+                                      building.defaultEnergySourceType ?? ''
+                                    }
+                                  />
+                                  <WorkflowField
+                                    label="Mandatsreferenz-Präfixe bearbeiten"
+                                    name="mandateRefPrefixes"
+                                    defaultValue={building.mandateRefPrefixes.join(
+                                      ', ',
+                                    )}
+                                  />
+                                  <button type="submit">
+                                    Gebäude speichern
+                                  </button>
+                                </form>
+                              </td>
+                            </tr>
+                          ) : null}
+                        </Fragment>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
 
           <section className="record-editor" aria-labelledby="units-title">
@@ -405,75 +638,151 @@ export function PropertyRoute({
               />
               <button type="submit">Einheit hinzufügen</button>
             </form>
-            <div className="editable-record-list">
-              {units.map((unit) => (
-                <form
-                  key={unit.id}
-                  className="embedded-form"
-                  noValidate
-                  onSubmit={(event) => saveUnit(event, unit.id)}
+            <TableToolbar
+              searchLabel="Einheiten durchsuchen"
+              searchValue={unitSearch}
+              searchPlaceholder="Bezeichnung, Lage oder Gebäude"
+              onSearchChange={setUnitSearch}
+              resultCount={filteredUnits.length}
+              resultLabel="Einheiten"
+              resultSingularLabel="Einheit"
+            />
+            {filteredUnits.length === 0 ? (
+              <p className="table-empty-state">
+                Keine Einheit für diese Suche gefunden.
+              </p>
+            ) : (
+              <div className="data-table-wrap data-table-wrap--workspace">
+                <table
+                  className="data-table data-table--workspace"
+                  aria-label="Einheitenübersicht"
                 >
-                  <label>
-                    <span>Gebäudezuordnung bearbeiten</span>
-                    <select
-                      name="buildingId"
-                      defaultValue={unit.buildingId ?? ''}
-                    >
-                      <option value="">Ohne Gebäude</option>
-                      {buildings.map((building) => (
-                        <option key={building.id} value={building.id}>
-                          {building.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <WorkflowField
-                    label="Einheitenbezeichnung bearbeiten"
-                    name="label"
-                    required
-                    defaultValue={unit.label ?? ''}
-                  />
-                  <WorkflowField
-                    label="Lage bearbeiten"
-                    name="location"
-                    defaultValue={unit.location ?? ''}
-                  />
-                  <WorkflowField
-                    label="Nutzfläche bearbeiten"
-                    name="usableAreaSqm"
-                    defaultValue={unit.usableAreaSqm?.value ?? ''}
-                  />
-                  <WorkflowField
-                    label="Beheizte Fläche bearbeiten"
-                    name="heatedAreaSqm"
-                    defaultValue={unit.heatedAreaSqm?.value ?? ''}
-                  />
-                  <WorkflowField
-                    label="Raumanzahl bearbeiten"
-                    name="roomCount"
-                    type="number"
-                    defaultValue={unit.roomCount ?? ''}
-                  />
-                  <button type="submit">Einheit speichern</button>
-                </form>
-              ))}
-            </div>
+                  <thead>
+                    <tr>
+                      <th>Einheit</th>
+                      <th>Gebäude</th>
+                      <th>Lage</th>
+                      <th>Nutzfläche</th>
+                      <th>Beheizte Fläche</th>
+                      <th>Räume</th>
+                      <th>Aktion</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUnits.map((unit) => {
+                      const building = buildings.find(
+                        ({ id }) => id === unit.buildingId,
+                      )
+                      const isEditing = editingUnitId === unit.id
+                      const unitLabel = unit.label ?? 'Einheit ohne Bezeichnung'
+                      return (
+                        <Fragment key={unit.id}>
+                          <tr className="data-table__interactive-row">
+                            <td>
+                              <strong>{unitLabel}</strong>
+                            </td>
+                            <td>{building?.name ?? 'Ohne Gebäude'}</td>
+                            <td>{unit.location ?? '—'}</td>
+                            <td className="data-table__amount">
+                              {unit.usableAreaSqm?.value === undefined
+                                ? '—'
+                                : `${unit.usableAreaSqm.value.toLocaleString('de-DE')} m²`}
+                            </td>
+                            <td className="data-table__amount">
+                              {unit.heatedAreaSqm?.value === undefined
+                                ? '—'
+                                : `${unit.heatedAreaSqm.value.toLocaleString('de-DE')} m²`}
+                            </td>
+                            <td>{unit.roomCount ?? '—'}</td>
+                            <td className="data-table__actions">
+                              <button
+                                type="button"
+                                aria-label={`Einheit ${unitLabel} bearbeiten`}
+                                onClick={() => {
+                                  setEditingBuildingId(null)
+                                  setEditingUnitId(isEditing ? null : unit.id)
+                                }}
+                              >
+                                {isEditing ? 'Schließen' : 'Bearbeiten'}
+                              </button>
+                            </td>
+                          </tr>
+                          {isEditing ? (
+                            <tr className="data-table__detail-row">
+                              <td colSpan={7}>
+                                <form
+                                  className="embedded-form record-editor--embedded"
+                                  noValidate
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Escape') {
+                                      event.preventDefault()
+                                      setEditingUnitId(null)
+                                    }
+                                  }}
+                                  onSubmit={(event) => saveUnit(event, unit.id)}
+                                >
+                                  <label>
+                                    <span>Gebäudezuordnung bearbeiten</span>
+                                    <select
+                                      name="buildingId"
+                                      defaultValue={unit.buildingId ?? ''}
+                                    >
+                                      <option value="">Ohne Gebäude</option>
+                                      {buildings.map((item) => (
+                                        <option key={item.id} value={item.id}>
+                                          {item.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+                                  <WorkflowField
+                                    label="Einheitenbezeichnung bearbeiten"
+                                    name="label"
+                                    required
+                                    defaultValue={unit.label ?? ''}
+                                  />
+                                  <WorkflowField
+                                    label="Lage bearbeiten"
+                                    name="location"
+                                    defaultValue={unit.location ?? ''}
+                                  />
+                                  <WorkflowField
+                                    label="Nutzfläche bearbeiten"
+                                    name="usableAreaSqm"
+                                    defaultValue={
+                                      unit.usableAreaSqm?.value ?? ''
+                                    }
+                                  />
+                                  <WorkflowField
+                                    label="Beheizte Fläche bearbeiten"
+                                    name="heatedAreaSqm"
+                                    defaultValue={
+                                      unit.heatedAreaSqm?.value ?? ''
+                                    }
+                                  />
+                                  <WorkflowField
+                                    label="Raumanzahl bearbeiten"
+                                    name="roomCount"
+                                    type="number"
+                                    defaultValue={unit.roomCount ?? ''}
+                                  />
+                                  <button type="submit">
+                                    Einheit speichern
+                                  </button>
+                                </form>
+                              </td>
+                            </tr>
+                          ) : null}
+                        </Fragment>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         </>
       )}
-      <ExistingEntries empty="Noch kein Objekt angelegt.">
-        {properties.length > 0 && (
-          <ul>
-            {properties.map((item) => (
-              <li key={item.id}>
-                {item.internalNumber ??
-                  item.address?.street ??
-                  'Objekt ohne Bezeichnung'}
-              </li>
-            ))}
-          </ul>
-        )}
-      </ExistingEntries>
     </>
   )
 }
