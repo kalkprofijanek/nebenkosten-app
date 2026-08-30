@@ -1,10 +1,11 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { TableToolbar } from '../../components/TableToolbar'
 import {
   createCompany,
   deleteCompany,
   updateCompany,
 } from '../master-data/commands'
-import { ExistingEntries, WorkflowField } from './form-support'
+import { WorkflowField } from './form-support'
 import { formOptionalText, formText } from './form-values'
 import type { WorkflowSubRouteProps } from './route-types'
 
@@ -22,6 +23,7 @@ export function CompanyRoute({
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [deleteArmed, setDeleteArmed] = useState(false)
+  const [search, setSearch] = useState('')
   const createLockUntil = useRef(0)
   const company = data.masterData.ownerCompanies.find(
     ({ id }) => id === selection.ownerCompanyId,
@@ -29,6 +31,25 @@ export function CompanyRoute({
   const organization = data.masterData.organizations.find(
     ({ id }) => id === company?.organizationId,
   )
+  const normalizedSearch = search.trim().toLocaleLowerCase('de-DE')
+  const companies = data.masterData.ownerCompanies.filter((item) => {
+    const itemOrganization = data.masterData.organizations.find(
+      ({ id }) => id === item.organizationId,
+    )
+    return [
+      item.name,
+      itemOrganization?.name,
+      item.address?.street,
+      item.address?.postalCodeAndCity,
+      item.contact?.firstName,
+      item.contact?.lastName,
+      item.contact?.email,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase('de-DE')
+      .includes(normalizedSearch)
+  })
 
   function apply(transform: Parameters<typeof onApply>[0]) {
     setError(null)
@@ -154,6 +175,103 @@ export function CompanyRoute({
           ))}
         </select>
       </label>
+      <section className="data-panel" aria-labelledby="companies-title">
+        <div className="data-panel__heading">
+          <div>
+            <p className="section-kicker">Arbeitsübersicht</p>
+            <h2 id="companies-title">Firmen</h2>
+          </div>
+          <span>Zeile auswählen, anschließend Details bearbeiten</span>
+        </div>
+        <TableToolbar
+          searchLabel="Firmen durchsuchen"
+          searchValue={search}
+          searchPlaceholder="Name, Anschrift oder Kontakt"
+          onSearchChange={setSearch}
+          resultCount={companies.length}
+          resultLabel="Firmen"
+          resultSingularLabel="Firma"
+        />
+        {companies.length === 0 ? (
+          <p className="table-empty-state">
+            Keine Firma für diese Suche gefunden.
+          </p>
+        ) : (
+          <div className="data-table-wrap data-table-wrap--workspace">
+            <table
+              className="data-table data-table--workspace"
+              aria-label="Firmenübersicht"
+            >
+              <thead>
+                <tr>
+                  <th>Firma</th>
+                  <th>Mandant</th>
+                  <th>Anschrift</th>
+                  <th>Kontakt</th>
+                  <th>Bank</th>
+                  <th>Aktion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {companies.map((item) => {
+                  const itemOrganization = data.masterData.organizations.find(
+                    ({ id }) => id === item.organizationId,
+                  )
+                  const isActive = item.id === selection.ownerCompanyId
+                  const contactName = [
+                    item.contact?.firstName,
+                    item.contact?.lastName,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+                  return (
+                    <tr key={item.id} className="data-table__interactive-row">
+                      <td>
+                        <strong>{item.name}</strong>
+                        {isActive ? (
+                          <span className="table-status table-status--ready">
+                            Aktiv
+                          </span>
+                        ) : null}
+                      </td>
+                      <td>{itemOrganization?.name ?? 'Nicht zugeordnet'}</td>
+                      <td>
+                        {item.address?.street ?? 'Nicht erfasst'}
+                        <small>
+                          {item.address?.postalCodeAndCity ?? 'Ort fehlt'}
+                        </small>
+                      </td>
+                      <td>
+                        {contactName || 'Nicht erfasst'}
+                        <small>{item.contact?.email ?? 'E-Mail fehlt'}</small>
+                      </td>
+                      <td>{item.bankAccount?.iban ? 'Erfasst' : 'Offen'}</td>
+                      <td className="data-table__actions">
+                        <button
+                          type="button"
+                          aria-label={`${item.name} auswählen`}
+                          disabled={isActive}
+                          onClick={() => {
+                            setEditing(false)
+                            setDeleteArmed(false)
+                            onSelectionChange({
+                              ownerCompanyId: item.id,
+                              propertyId: null,
+                              billingPeriodId: null,
+                            })
+                          }}
+                        >
+                          {isActive ? 'Ausgewählt' : 'Auswählen'}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
       {!company ? null : (
         <section
           className="record-editor"
@@ -291,15 +409,6 @@ export function CompanyRoute({
           </div>
         </section>
       )}
-      <ExistingEntries empty="Noch keine Firma angelegt.">
-        {data.masterData.ownerCompanies.length > 0 && (
-          <ul>
-            {data.masterData.ownerCompanies.map((item) => (
-              <li key={item.id}>{item.name}</li>
-            ))}
-          </ul>
-        )}
-      </ExistingEntries>
     </>
   )
 }

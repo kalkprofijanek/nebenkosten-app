@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { parseOptionalNumber } from '../../app/form-parsers'
+import { TableToolbar } from '../../components/TableToolbar'
 import {
   createBillingPeriod,
   deleteBillingPeriod,
   updateBillingPeriod,
 } from '../billing-periods/commands'
-import { ExistingEntries, WorkflowField } from './form-support'
+import { WorkflowField } from './form-support'
 import { formOptionalText, formText } from './form-values'
 import type { WorkflowSubRouteProps } from './route-types'
 
@@ -18,10 +19,38 @@ export function BillingPeriodsRoute({
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [deleteArmed, setDeleteArmed] = useState(false)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const periods = data.billingData.billingPeriods.filter(
     ({ propertyId }) => propertyId === selection.propertyId,
   )
   const period = periods.find(({ id }) => id === selection.billingPeriodId)
+  const normalizedSearch = search.trim().toLocaleLowerCase('de-DE')
+  const filteredPeriods = periods.filter(
+    (item) =>
+      (statusFilter === 'all' || item.status === statusFilter) &&
+      [item.year, item.periodStart, item.periodEnd, item.status]
+        .join(' ')
+        .toLocaleLowerCase('de-DE')
+        .includes(normalizedSearch),
+  )
+
+  function statusLabel(status: string) {
+    switch (status) {
+      case 'DRAFT':
+        return 'Entwurf'
+      case 'IN_REVIEW':
+        return 'In Prüfung'
+      case 'READY_FOR_PDF':
+        return 'PDF-bereit'
+      case 'FINALIZED':
+        return 'Finalisiert'
+      case 'SUPERSEDED':
+        return 'Ersetzt'
+      default:
+        return status
+    }
+  }
 
   function apply(transform: Parameters<typeof onApply>[0]) {
     setError(null)
@@ -142,6 +171,109 @@ export function BillingPeriodsRoute({
           ))}
         </select>
       </label>
+      <section className="data-panel" aria-labelledby="periods-title">
+        <div className="data-panel__heading">
+          <div>
+            <p className="section-kicker">Jahresübersicht</p>
+            <h2 id="periods-title">Abrechnungsjahre</h2>
+          </div>
+          <span>Status und Datenumfang je Jahr</span>
+        </div>
+        <TableToolbar
+          searchLabel="Abrechnungsjahre durchsuchen"
+          searchValue={search}
+          searchPlaceholder="Jahr, Zeitraum oder Status"
+          onSearchChange={setSearch}
+          filterLabel="Status"
+          filterValue={statusFilter}
+          onFilterChange={setStatusFilter}
+          filterOptions={[
+            { value: 'all', label: 'Alle Status' },
+            { value: 'DRAFT', label: 'Entwurf' },
+            { value: 'IN_REVIEW', label: 'In Prüfung' },
+            { value: 'READY_FOR_PDF', label: 'PDF-bereit' },
+            { value: 'FINALIZED', label: 'Finalisiert' },
+            { value: 'SUPERSEDED', label: 'Ersetzt' },
+          ]}
+          resultCount={filteredPeriods.length}
+          resultLabel="Abrechnungsjahre"
+          resultSingularLabel="Abrechnungsjahr"
+        />
+        {filteredPeriods.length === 0 ? (
+          <p className="table-empty-state">
+            Kein Abrechnungsjahr für diese Suche gefunden.
+          </p>
+        ) : (
+          <div className="data-table-wrap data-table-wrap--workspace">
+            <table
+              className="data-table data-table--workspace"
+              aria-label="Abrechnungsjahre"
+            >
+              <thead>
+                <tr>
+                  <th>Jahr</th>
+                  <th>Zeitraum</th>
+                  <th>Status</th>
+                  <th>Kostenarten</th>
+                  <th>Buchungen</th>
+                  <th>Aktion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPeriods.map((item) => {
+                  const categories = data.billingData.costCategories.filter(
+                    ({ billingPeriodId }) => billingPeriodId === item.id,
+                  )
+                  const categoryIds = new Set(categories.map(({ id }) => id))
+                  const entryCount = data.billingData.costEntries.filter(
+                    ({ costCategoryId }) => categoryIds.has(costCategoryId),
+                  ).length
+                  const isActive = item.id === selection.billingPeriodId
+                  return (
+                    <tr key={item.id} className="data-table__interactive-row">
+                      <td>
+                        <strong>{item.year}</strong>
+                      </td>
+                      <td>
+                        {item.periodStart}
+                        <small>bis {item.periodEnd}</small>
+                      </td>
+                      <td>
+                        <span
+                          className={`table-status ${
+                            item.status === 'READY_FOR_PDF' ||
+                            item.status === 'FINALIZED'
+                              ? 'table-status--ready'
+                              : 'table-status--open'
+                          }`}
+                        >
+                          {statusLabel(item.status)}
+                        </span>
+                      </td>
+                      <td>{categories.length}</td>
+                      <td>{entryCount}</td>
+                      <td className="data-table__actions">
+                        <button
+                          type="button"
+                          aria-label={`${item.year} auswählen`}
+                          disabled={isActive}
+                          onClick={() => {
+                            setEditing(false)
+                            setDeleteArmed(false)
+                            onSelectionChange({ billingPeriodId: item.id })
+                          }}
+                        >
+                          {isActive ? 'Ausgewählt' : 'Auswählen'}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
       {!period ? null : (
         <section
           className="record-editor"
@@ -285,17 +417,6 @@ export function BillingPeriodsRoute({
           </div>
         </section>
       )}
-      <ExistingEntries empty="Noch kein Abrechnungsjahr angelegt.">
-        {periods.length > 0 && (
-          <ul>
-            {periods.map((item) => (
-              <li key={item.id}>
-                {item.year} · {item.status}
-              </li>
-            ))}
-          </ul>
-        )}
-      </ExistingEntries>
     </>
   )
 }

@@ -8,10 +8,10 @@ interface TableToolbarProps {
   readonly searchValue: string
   readonly searchPlaceholder?: string
   readonly onSearchChange: (value: string) => void
-  readonly filterLabel: string
-  readonly filterValue: string
-  readonly onFilterChange: (value: string) => void
-  readonly filterOptions: readonly TableFilterOption[]
+  readonly filterLabel?: string
+  readonly filterValue?: string
+  readonly onFilterChange?: (value: string) => void
+  readonly filterOptions?: readonly TableFilterOption[]
   readonly resultCount: number
   readonly resultLabel: string
   readonly resultSingularLabel?: string
@@ -48,19 +48,24 @@ export function TableToolbar({
           onChange={(event) => onSearchChange(event.currentTarget.value)}
         />
       </label>
-      <label>
-        <span>{filterLabel}</span>
-        <select
-          value={filterValue}
-          onChange={(event) => onFilterChange(event.currentTarget.value)}
-        >
-          {filterOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      {filterLabel &&
+      filterValue !== undefined &&
+      onFilterChange &&
+      filterOptions ? (
+        <label>
+          <span>{filterLabel}</span>
+          <select
+            value={filterValue}
+            onChange={(event) => onFilterChange(event.currentTarget.value)}
+          >
+            {filterOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       <output className="table-toolbar__result" aria-live="polite">
         <strong>
           {resultCount}{' '}

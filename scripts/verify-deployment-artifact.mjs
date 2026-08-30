@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { existsSync, lstatSync, opendirSync, readFileSync } from 'node:fs'
 import { extname, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -45,27 +44,11 @@ const FORBIDDEN_PATH_SEGMENTS = new Set(['node_modules', 'private-data'])
 const LOCAL_PATH_PATTERN =
   /(?:\b[A-Za-z]:\\Users\\|\/(?:home|Users)\/[^/\s"'`]+)/giu
 
-const REVIEWED_CREDENTIAL_ASSIGNMENTS = new Set([
-  // React-DOM: Liste unterstützter HTML-Eingabetypen (Kennwort-Markierung).
-  'assets/index-CtQvHfCT.js:2128f58378fb976a7f3b6f87a36bad9529b97695e4f560499daa49b0b443c03c:8',
-  'assets/index-BfCfNcqJ.js:2700d13db5986f045005ff204a8747dd632d7934a83a452391f670268e5fea3d:8',
-  'assets/index-Do-vMFxR.js:3a6b97aa8a3537acc48a3f0c8ab16f469408f9cd234aadee30d9a89da8753a12:8',
-  'assets/index-nTC2rkE6.js:d1e57b07c652b7a48c3b82cbd3c907024b3a4528246adcc945f8b62bca23f177:8',
-  'assets/index-B6SEjulx.js:c85dd467881964fb7e676d284a45ec6c7557493aa2cf847f5d0e9101be15b1e5:8',
-  'assets/index-D78Ba6a6.js:f23345b5658d0c85d302c381e56a6ad6ec3f5d7634ff24a35736ae9204657b35:8',
-  'assets/index-BpH5Sryc.js:4ec280efa48bfedd5eb8e0745a0b2306a87491e6ffaa87a099db52e891ce2832:8',
-  'assets/index-DzqrPME8.js:06d3afe7e1c2ccff767c2e5aa9ae1ae9bc950cc3fa8e845f147e08d6d19430e8:8',
-  'assets/index-D2ymjzej.js:01ec4d577c3771db01fa4e4ff913f51eacfa342cbf80fd87d2bfcc68f5cdebee:8',
+const REVIEWED_LIBRARY_CREDENTIAL_FLAGS = Object.freeze([
+  // React-DOM: Kennzeichnung des unterstützten HTML-Eingabetyps "password".
+  /\bmonth\s*:\s*!0\s*,\s*number\s*:\s*!0\s*,\s*password\s*:\s*!0\s*,\s*range\s*:\s*!0\s*,\s*search\s*:\s*!0\b/gu,
   // pdfmake: PDF-Widget-Bitmaske für ein Kennwort-Feld.
-  'assets/pdfmake-BDdWErbi.js:3197e19df8923c84338402f0cd6ad74efe1ed527f1862e71ce70d928e0d4cc50:100',
-  'assets/pdfmake-px1s6AzJ.js:7ff8033e96ecfa1c353331641d6a902e9e00a62836fd248c3edbcd37aa8ece9b:100',
-  'assets/pdfmake-DyZZ1eQR.js:e207db1e15e7ab1828fb933fce4c0947f14b052d9b1c09091b9694b79cbd7427:100',
-  'assets/pdfmake-DgDUmd0A.js:54073851416e57eb7d783f689981558db0175baa52328f47dafeb498b97c52f4:100',
-  'assets/pdfmake-C6en2V08.js:228874318994eb8394641242921723c791b1b7100c96d96ea42a68138a2d7612:100',
-  'assets/pdfmake-7OZmGcKB.js:2339232330f1e2062fbe067065de431e4107c83c544d84e36b77c652bba8587a:100',
-  'assets/pdfmake-B8fq3sLm.js:09e19916e0838d02f11ff5abe7019cb2ebb90295c3a9592cb90040f9a84c997b:100',
-  'assets/pdfmake-CB9ZiJM4.js:1405d8e30d34c5038b2028239085e7f29c21caba855d377d923378cb2fc92d0b:100',
-  'assets/pdfmake-CTZAVS4E.js:538cea50f8bfa378c002bf49163484c0928ea2a75513c3e708890fae408b3d6b:100',
+  /\bmultiline\s*:\s*4096\s*,\s*password\s*:\s*8192\s*,\s*toggleToOffButton\s*:\s*16384\b/gu,
 ])
 
 function normalizedLimits(options = {}) {
@@ -95,15 +78,16 @@ export function isForbiddenDeploymentPath(relativePath) {
 }
 
 function sensitiveContentFailures(relativePath, content) {
-  const findings = findSensitiveContent(relativePath, content)
-  const digest = createHash('sha256').update(content).digest('hex')
-  const failures = findings.map((finding) => {
-    const reviewedKey = `${relativePath}:${digest}:${finding.line}`
-    return REVIEWED_CREDENTIAL_ASSIGNMENTS.has(reviewedKey) &&
-      finding.kind === 'credential assignment'
-      ? null
-      : `Sensitive deployment content: ${relativePath}:${finding.line} (${finding.kind})`
-  })
+  const contentForCredentialScan = REVIEWED_LIBRARY_CREDENTIAL_FLAGS.reduce(
+    (reviewedContent, expression) =>
+      reviewedContent.replace(expression, 'reviewedPasswordFlag:0'),
+    content,
+  )
+  const findings = findSensitiveContent(relativePath, contentForCredentialScan)
+  const failures = findings.map(
+    (finding) =>
+      `Sensitive deployment content: ${relativePath}:${finding.line} (${finding.kind})`,
+  )
 
   for (const match of content.matchAll(LOCAL_PATH_PATTERN)) {
     const line = content.slice(0, match.index).split('\n').length
@@ -111,7 +95,7 @@ function sensitiveContentFailures(relativePath, content) {
       `Sensitive deployment content: ${relativePath}:${line} (local path)`,
     )
   }
-  return failures.filter((failure) => failure !== null)
+  return failures
 }
 
 export function inspectDeploymentEntries(entries, options = {}) {

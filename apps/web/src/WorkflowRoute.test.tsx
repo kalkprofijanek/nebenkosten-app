@@ -204,6 +204,37 @@ describe('WorkflowRoute', () => {
     })
   })
 
+  it('zeigt Firmen als durchsuchbare Arbeitstabelle und wechselt die Auswahl aus der Zeile', () => {
+    const result = renderRoute('/firmen', seededData(), {
+      ...SEEDED_SELECTION,
+      ownerCompanyId: null,
+      propertyId: null,
+      billingPeriodId: null,
+    })
+
+    expect(screen.getByRole('table', { name: 'Firmenübersicht' })).toBeVisible()
+    expect(screen.getByRole('status')).toHaveTextContent('1 Firma')
+
+    fireEvent.change(screen.getByLabelText('Firmen durchsuchen'), {
+      target: { value: 'nicht vorhanden' },
+    })
+    expect(
+      screen.getByText('Keine Firma für diese Suche gefunden.'),
+    ).toBeVisible()
+
+    fireEvent.change(screen.getByLabelText('Firmen durchsuchen'), {
+      target: { value: 'Muster' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Muster GmbH auswählen' }),
+    )
+    expect(result.onSelectionChange).toHaveBeenCalledWith({
+      ownerCompanyId: SEEDED_IDS.company,
+      propertyId: null,
+      billingPeriodId: null,
+    })
+  })
+
   it('verlangt eine ausdrückliche Bestätigung vor dem Löschen', () => {
     const companyOnly = createCompany(
       createEmptyAppDataFile(),
@@ -368,6 +399,57 @@ describe('WorkflowRoute', () => {
     })
   })
 
+  it('zeigt Objekte, Gebäude und Einheiten kompakt und öffnet nur die gewählte Detailzeile', () => {
+    const result = renderRoute('/objekte', seededData(), {
+      ...SEEDED_SELECTION,
+      propertyId: null,
+      billingPeriodId: null,
+    })
+
+    expect(screen.getByRole('table', { name: 'Objektübersicht' })).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'OBJ-1 auswählen' }))
+    expect(result.onSelectionChange).toHaveBeenCalledWith({
+      propertyId: SEEDED_IDS.property,
+      billingPeriodId: null,
+    })
+
+    cleanup()
+    renderRoute('/objekte', seededData(), SEEDED_SELECTION)
+    expect(
+      screen.getByRole('table', { name: 'Gebäudeübersicht' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('table', { name: 'Einheitenübersicht' }),
+    ).toBeVisible()
+    expect(screen.queryByLabelText('Gebäudename bearbeiten')).toBeNull()
+    expect(
+      screen.queryByLabelText('Einheitenbezeichnung bearbeiten'),
+    ).toBeNull()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Gebäude Haus A bearbeiten' }),
+    )
+    expect(screen.getByLabelText('Gebäudename bearbeiten')).toHaveValue(
+      'Haus A',
+    )
+    expect(
+      screen.queryByLabelText('Einheitenbezeichnung bearbeiten'),
+    ).toBeNull()
+
+    fireEvent.keyDown(screen.getByLabelText('Gebäudename bearbeiten'), {
+      key: 'Escape',
+    })
+    expect(screen.queryByLabelText('Gebäudename bearbeiten')).toBeNull()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Einheit Wohnung 1 bearbeiten' }),
+    )
+    expect(screen.queryByLabelText('Gebäudename bearbeiten')).toBeNull()
+    expect(
+      screen.getByLabelText('Einheitenbezeichnung bearbeiten'),
+    ).toHaveValue('Wohnung 1')
+  })
+
   it('pflegt alle optionalen Objekt-, Gebäude- und Einheitsangaben', () => {
     const result = renderRoute('/objekte', seededData(), SEEDED_SELECTION)
 
@@ -394,6 +476,9 @@ describe('WorkflowRoute', () => {
       screen.getByRole('button', { name: 'Objektdaten speichern' }),
     )
 
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Gebäude Haus A bearbeiten' }),
+    )
     fireEvent.change(
       screen.getByLabelText('Standardenergieträger bearbeiten'),
       {
@@ -405,6 +490,9 @@ describe('WorkflowRoute', () => {
       { target: { value: 'TEST-A, TEST-B' } },
     )
     fireEvent.click(screen.getByRole('button', { name: 'Gebäude speichern' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Einheit Wohnung 1 bearbeiten' }),
+    )
     fireEvent.change(screen.getByLabelText('Lage bearbeiten'), {
       target: { value: 'Testlage' },
     })
@@ -540,6 +628,70 @@ describe('WorkflowRoute', () => {
         deviationJustification: 'Fiktive Begründung',
       },
     })
+  })
+
+  it('zeigt Abrechnungsjahre als filterbare Tabelle und übernimmt die Zeilenauswahl', () => {
+    const result = renderRoute('/abrechnungsjahre', seededData(), {
+      ...SEEDED_SELECTION,
+      billingPeriodId: null,
+    })
+
+    expect(
+      screen.getByRole('table', { name: 'Abrechnungsjahre' }),
+    ).toBeVisible()
+    expect(screen.getByRole('status')).toHaveTextContent('1 Abrechnungsjahr')
+    fireEvent.click(screen.getByRole('button', { name: '2026 auswählen' }))
+    expect(result.onSelectionChange).toHaveBeenCalledWith({
+      billingPeriodId: SEEDED_IDS.period,
+    })
+
+    fireEvent.change(screen.getByLabelText('Abrechnungsjahre durchsuchen'), {
+      target: { value: '2030' },
+    })
+    expect(
+      screen.getByText('Kein Abrechnungsjahr für diese Suche gefunden.'),
+    ).toBeVisible()
+  })
+
+  it('übersetzt und filtert jeden fachlichen Abrechnungsstatus', () => {
+    const data = seededData()
+    const period = data.billingData.billingPeriods[0]!
+    const statuses = [
+      ['IN_REVIEW', 'In Prüfung'],
+      ['READY_FOR_PDF', 'PDF-bereit'],
+      ['FINALIZED', 'Finalisiert'],
+      ['SUPERSEDED', 'Ersetzt'],
+    ] as const
+    const statusPeriods = statuses.map(([status], index) => ({
+      ...period,
+      id: `30000000-0000-4000-8000-${String(index + 10).padStart(12, '0')}`,
+      year: 2027 + index,
+      status,
+    }))
+    const withStatuses: AppDataFile = {
+      ...data,
+      billingData: {
+        ...data.billingData,
+        billingPeriods: [period, ...statusPeriods],
+      },
+    }
+
+    renderRoute('/abrechnungsjahre', withStatuses, {
+      ...SEEDED_SELECTION,
+      billingPeriodId: null,
+    })
+
+    const table = screen.getByRole('table', { name: 'Abrechnungsjahre' })
+    for (const [, label] of statuses) {
+      expect(within(table).getByText(label)).toBeVisible()
+    }
+
+    fireEvent.change(screen.getByLabelText('Status'), {
+      target: { value: 'FINALIZED' },
+    })
+    expect(screen.getByRole('status')).toHaveTextContent('1 Abrechnungsjahr')
+    expect(within(table).getByText('Finalisiert')).toBeVisible()
+    expect(within(table).queryByText('In Prüfung')).toBeNull()
   })
 
   it('meldet unvollständige Objektanlage und abgelehnte Speicherung', () => {

@@ -60,4 +60,21 @@ describe('TableToolbar', () => {
     expect(screen.getByRole('status')).toHaveTextContent('1 Kostenarten')
     expect(screen.getByRole('status').querySelector('span')).toBeNull()
   })
+
+  it('unterstuetzt reine Suchleisten ohne bedeutungslosen Schnellfilter', () => {
+    render(
+      <TableToolbar
+        searchLabel="Firmen durchsuchen"
+        searchValue=""
+        onSearchChange={vi.fn()}
+        resultCount={2}
+        resultLabel="Firmen"
+        resultSingularLabel="Firma"
+      />,
+    )
+
+    expect(screen.getByLabelText('Firmen durchsuchen')).toBeVisible()
+    expect(screen.queryByRole('combobox')).toBeNull()
+    expect(screen.getByRole('status')).toHaveTextContent('2 Firmen')
+  })
 })
