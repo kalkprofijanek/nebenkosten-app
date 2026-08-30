@@ -94,6 +94,46 @@ test('redacts sensitive values while reporting their artifact path', () => {
   )
 })
 
+test('accepts reviewed library flags without hiding real credentials', () => {
+  const passwordName = ['pass', 'word'].join('')
+  const tokenName = ['to', 'ken'].join('')
+  const reviewedLibraryCode = [
+    `const inputTypes={month:!0,number:!0,${passwordName}:!0,range:!0,search:!0}`,
+    `const widgetFlags={multiline:4096,${passwordName}:8192,toggleToOffButton:16384}`,
+  ].join(';')
+  const reviewedResult = inspectDeploymentEntries([
+    textEntry('index.html', '<main></main>'),
+    textEntry('assets/vendor.js', reviewedLibraryCode),
+  ])
+
+  assert.deepEqual(reviewedResult.failures, [])
+
+  const credentialResult = inspectDeploymentEntries([
+    textEntry('index.html', '<main></main>'),
+    textEntry(
+      'assets/vendor.js',
+      `${reviewedLibraryCode};const ${passwordName}="not-a-real-value";const ${tokenName}="not-a-real-value"`,
+    ),
+  ])
+
+  assert.ok(
+    credentialResult.failures.includes(
+      'Sensitive deployment content: assets/vendor.js:1 (credential assignment)',
+    ),
+  )
+
+  const numericCredentialResult = inspectDeploymentEntries([
+    textEntry('index.html', '<main></main>'),
+    textEntry('assets/app.js', `const config={${passwordName}:8192}`),
+  ])
+
+  assert.ok(
+    numericCredentialResult.failures.includes(
+      'Sensitive deployment content: assets/app.js:1 (credential assignment)',
+    ),
+  )
+})
+
 test('enforces file-count, per-file and total-size budgets', () => {
   const entries = [
     textEntry('index.html', '<main></main>'),
