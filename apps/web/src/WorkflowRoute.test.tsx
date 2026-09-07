@@ -2083,7 +2083,7 @@ describe('WorkflowRoute', () => {
 
     renderRoute('/nutzer', data, SEEDED_SELECTION)
     const table = screen.getByRole('table', {
-      name: 'Nutzerzeiträume bearbeiten',
+      name: /^Belegung /u,
     })
     expect(
       within(table).getByRole('columnheader', { name: 'Einheit' }),

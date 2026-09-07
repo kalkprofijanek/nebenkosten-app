@@ -47,10 +47,10 @@ test('handles a tenant change, vacancy and overlap correction', async ({
   await page.getByRole('button', { name: 'Nutzer anlegen' }).click()
 
   await expect(
-    page.getByRole('heading', { name: 'Nutzer und Leerstände (3)' }),
+    page.getByRole('heading', { name: 'Wohnungen und Belegungen (1)' }),
   ).toBeVisible()
   const occupancyTable = page.getByRole('table', {
-    name: 'Nutzerzeiträume bearbeiten',
+    name: 'Belegung Wohnung 1',
   })
   await expect(
     occupancyTable.getByRole('row').filter({ hasText: 'Anna Alt' }),
@@ -69,7 +69,7 @@ test('handles a tenant change, vacancy and overlap correction', async ({
     page.getByRole('alert').filter({ hasText: /überschneidet/u }),
   ).toBeVisible()
   await expect(
-    page.getByRole('heading', { name: 'Nutzer und Leerstände (3)' }),
+    page.getByRole('heading', { name: 'Wohnungen und Belegungen (1)' }),
   ).toBeVisible()
 
   await page.getByRole('button', { name: 'Anna Alt bearbeiten' }).click()
