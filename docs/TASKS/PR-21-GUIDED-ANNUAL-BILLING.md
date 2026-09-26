@@ -62,7 +62,7 @@ fachlichen Vertrag und gegebenenfalls eine Schema-Migration.
 - 359 Oberflächentests, 725 Pakettests, 18 Integrationstests, 10 Migrationstests
   und 258 Charakterisierungstests bestanden; Architektur-/Repository-/Datenschutztests
   ebenfalls bestanden.
-- Oberflächenabdeckung: 89,65 % Statements, 81,14 % Zweige, 91,90 % Funktionen,
+- Oberflächenabdeckung: 89,68 % Statements, 81,17 % Zweige, 91,90 % Funktionen,
   90,99 % Zeilen. Alle Paket-Schwellen von mindestens 80 % eingehalten.
 - Fünf Browserprüfungen bestanden: Assistent und Heizkostenablauf jeweils Desktop/Mobil
   sowie PDF-Erzeugung mit Korrektur und Finalisierung; Sicherungsdownload geprüft.
@@ -76,5 +76,7 @@ Vitest und die zugehörige Coverage-Erweiterung wurden gemeinsam von 4.1.10 auf
 4.1.11 aktualisiert, um auch [GHSA-82fw-gwwq-j7x9](https://github.com/advisories/GHSA-82fw-gwwq-j7x9)
 im Testwerkzeug zu schließen.
 Der erneute Audit mit `--audit-level low` meldet keine bekannten Schwachstellen.
+Der vollständige Projektlauf `pnpm run ci` ist auch mit den aktualisierten
+Entwicklungswerkzeugen erfolgreich abgeschlossen.
 
 Push, Pull Request, Merge und Deployment sind nicht Teil der lokalen Umsetzung.
