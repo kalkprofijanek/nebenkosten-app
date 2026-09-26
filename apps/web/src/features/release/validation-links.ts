@@ -17,7 +17,7 @@ const areaLinks: Readonly<Record<ValidationArea, ValidationIssueLink>> = {
   heating: { href: '#/heizkreise', label: 'Heizung bearbeiten' },
   hot_water: { href: '#/heizkreise', label: 'Heizung bearbeiten' },
   co2: { href: '#/heizkreise', label: 'Heizung bearbeiten' },
-  meters: { href: '#/heizkreise', label: 'Zähler bearbeiten' },
+  meters: { href: '#/heizkreise?tab=meters', label: 'Zähler bearbeiten' },
   prepayments: { href: '#/nutzer', label: 'Nutzer bearbeiten' },
   totals: { href: '#/berechnung', label: 'Berechnung prüfen' },
   documents: { href: '#/pdf-export', label: 'Dokumente bearbeiten' },
@@ -29,15 +29,18 @@ const areaLinks: Readonly<Record<ValidationArea, ValidationIssueLink>> = {
 export function validationIssueLink(
   issue: Pick<ValidationIssue, 'area' | 'code' | 'entity'>,
 ): ValidationIssueLink {
+  if (
+    issue.entity?.type === 'FuelDelivery' ||
+    issue.code === 'heating.delivery_missing'
+  ) {
+    return { href: '#/heizkreise?tab=fuel', label: 'Lieferung bearbeiten' }
+  }
   if (issue.code === 'documents.booking_link_missing') {
     if (issue.entity?.type === 'CostEntry') {
       return {
         href: `#/kosten?tab=entries&edit=${encodeURIComponent(issue.entity.id)}`,
         label: 'Kostenposition bearbeiten',
       }
-    }
-    if (issue.entity?.type === 'FuelDelivery') {
-      return { href: '#/heizkreise', label: 'Lieferung bearbeiten' }
     }
   }
 

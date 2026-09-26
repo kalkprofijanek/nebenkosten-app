@@ -212,7 +212,7 @@ describe('App', () => {
 
     render(<App initialPath="/" workspaceState={workspaceState} />)
 
-    expect(screen.getByText('3 von 10 Schritten')).toBeVisible()
+    expect(screen.getByText('3 von 11 Schritten')).toBeVisible()
     expect(screen.getAllByText('Erfasst')).toHaveLength(3)
     expect(
       screen.getByText(/Änderungen werden automatisch im lokalen Speicher/),

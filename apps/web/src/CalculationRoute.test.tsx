@@ -127,7 +127,7 @@ describe('CalculationRoute', () => {
     expect(screen.getByText((text) => text.includes('123,45'))).toBeVisible()
     expect(screen.getByText((text) => text.includes('100,00'))).toBeVisible()
     expect(screen.getByText(/Berechnet am/)).toHaveTextContent('01.01.2026')
-    expect(screen.getByText('Rechenstand aktuell')).toBeVisible()
+    expect(screen.getByText('Gespeicherter Rechenstand')).toBeVisible()
     fireEvent.click(
       screen.getByRole('button', { name: 'Abrechnung berechnen' }),
     )

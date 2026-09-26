@@ -147,6 +147,23 @@ function Dashboard({
         </section>
       ) : null}
 
+      {data ? (
+        <section
+          className="welcome-panel"
+          aria-label="Jahresabrechnung beginnen"
+        >
+          <div>
+            <h2>Deine Jahresabrechnung in acht Schritten</h2>
+            <p>
+              Prüfe Belegung und Verbrauch, erfasse Kosten und kontrolliere die
+              Vorschau vor der Freigabe.
+            </p>
+          </div>
+          <a className="button button--primary" href="#/jahresabrechnung">
+            Jahresabrechnung starten
+          </a>
+        </section>
+      ) : null}
       <section className="metric-grid" aria-label="Aktueller Datenstand">
         {[
           [String(objectCount), 'Objekte'],

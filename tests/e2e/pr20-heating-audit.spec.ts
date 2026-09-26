@@ -88,7 +88,7 @@ async function setup(page: Page) {
     ['Fiktiv Wärmepumpenhaus', 'WP 1'],
     ['Fiktiv Wärmepumpenhaus', 'WP 2'],
   ]) {
-    await select(page, 'Gebäude der neuen Einheit', { label: building })
+    await select(page, 'Gebäude der neuen Einheit', { label: building! })
     await fill(page, {
       'Neue Einheitenbezeichnung': label!,
       'Neue Nutzfläche in m²': '60',
@@ -112,7 +112,7 @@ async function occupancies(page: Page) {
     ['WP 1', 'Fiktiv WP Eins', '2026-01-01', '2026-12-31'],
     ['WP 2', 'Fiktiv WP Zwei', '2026-01-01', '2026-12-31'],
   ]) {
-    await select(page, 'Einheit', { label: unit })
+    await select(page, 'Einheit', { label: unit! })
     await fill(page, {
       Anzeigename: name!,
       Einzug: from!,
@@ -139,7 +139,7 @@ async function heating(page: Page) {
     ['Fiktiv Ölhaus', 'Fiktives Heizöl', 'oil', '10'],
     ['Fiktiv Wärmepumpenhaus', 'Fiktiver Wärmepumpenstrom', 'electricity', '1'],
   ]) {
-    await select(page, 'Gebäude', { label: building })
+    await select(page, 'Gebäude', { label: building! })
     await fill(page, {
       Heizsystem: source!,
       Quellenschlüssel: kind!,

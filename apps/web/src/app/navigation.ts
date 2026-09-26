@@ -17,6 +17,14 @@ export const appRoutes = [
       'Alle Schritte von den Stammdaten bis zur Freigabe an einem Ort.',
   },
   {
+    path: '/jahresabrechnung',
+    label: 'Jahresabrechnung',
+    eyebrow: 'Schritt für Schritt',
+    title: 'Jahresabrechnung erstellen',
+    description:
+      'Von der Belegung über Verbrauch und Kosten bis zur geprüften Einzelabrechnung.',
+  },
+  {
     path: '/firmen',
     label: 'Firmen',
     eyebrow: 'Stammdaten',

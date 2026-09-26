@@ -5,6 +5,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { App } from './App'
+import { AnnualBillingRoute } from './AnnualBillingRoute'
 import { BackupRestoreRoute } from './BackupRestoreRoute'
 import { CalculationRoute } from './CalculationRoute'
 import { ImportControl } from './ImportControl'
@@ -139,7 +140,16 @@ export function WorkspaceApp({
         workspaceState.data === null
           ? undefined
           : (path) =>
-              path === '/freigabe' ? (
+              path === '/jahresabrechnung' ? (
+                <AnnualBillingRoute
+                  data={workspaceState.data!}
+                  selection={normalizedSelection}
+                  onApply={(transform) => controller.update(transform)}
+                  onSelectionChange={(patch) =>
+                    setSelection((current) => ({ ...current, ...patch }))
+                  }
+                />
+              ) : path === '/freigabe' ? (
                 <ReleaseRoute
                   data={workspaceState.data!}
                   billingPeriodId={normalizedSelection.billingPeriodId}

@@ -28,7 +28,7 @@ describe('validationIssueLink', () => {
     ['heating', '#/heizkreise', 'Heizung bearbeiten'],
     ['hot_water', '#/heizkreise', 'Heizung bearbeiten'],
     ['co2', '#/heizkreise', 'Heizung bearbeiten'],
-    ['meters', '#/heizkreise', 'Zähler bearbeiten'],
+    ['meters', '#/heizkreise?tab=meters', 'Zähler bearbeiten'],
     ['totals', '#/berechnung', 'Berechnung prüfen'],
     ['documents', '#/pdf-export', 'Dokumente bearbeiten'],
     ['migration', '#/sicherung', 'Datenbestand prüfen'],
@@ -40,6 +40,19 @@ describe('validationIssueLink', () => {
       expect(validationIssueLink(issue(area))).toEqual({ href, label })
     },
   )
+
+  it('führt Brennstoffbefunde und fehlende Lieferungen zur Brennstofferfassung', () => {
+    expect(
+      validationIssueLink(
+        issue('heating', { type: 'FuelDelivery', id: 'f-1' }),
+      ),
+    ).toEqual({ href: '#/heizkreise?tab=fuel', label: 'Lieferung bearbeiten' })
+    expect(
+      validationIssueLink(
+        issue('heating', undefined, 'heating.delivery_missing'),
+      ),
+    ).toEqual({ href: '#/heizkreise?tab=fuel', label: 'Lieferung bearbeiten' })
+  })
 
   it('führt Firmenbefunde gezielt zur Firmenverwaltung', () => {
     expect(
@@ -69,7 +82,7 @@ describe('validationIssueLink', () => {
           'documents.booking_link_missing',
         ),
       ),
-    ).toEqual({ href: '#/heizkreise', label: 'Lieferung bearbeiten' })
+    ).toEqual({ href: '#/heizkreise?tab=fuel', label: 'Lieferung bearbeiten' })
   })
 
   it('führt eine fehlende Versandanschrift zur Nutzerbearbeitung', () => {

@@ -1,0 +1,63 @@
+.billing-journey {
+  min-width: 0;
+}
+.journey-context,
+.journey-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+.journey-steps {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+.journey-steps button {
+  width: 100%;
+  height: 100%;
+  text-align: left;
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.8rem;
+  border: 1px solid #d5ddd9;
+  border-radius: 0.65rem;
+  background: #fff;
+  color: #263b33;
+}
+.journey-steps button[aria-current='step'] {
+  border: 2px solid #24634d;
+  background: #edf6f0;
+}
+.journey-steps small {
+  color: #52665e;
+}
+.journey-note,
+.journey-checks {
+  padding: 1rem;
+  background: #f1f5f3;
+  border-radius: 0.7rem;
+  margin: 1rem 0;
+}
+.journey-content {
+  min-width: 0;
+}
+.journey-editor {
+  min-width: 0;
+  margin-top: 1.5rem;
+}
+.journey-actions a {
+  text-decoration: underline;
+}
+@media (max-width: 700px) {
+  .journey-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .journey-actions > * {
+    flex: 1 1 auto;
+  }
+}

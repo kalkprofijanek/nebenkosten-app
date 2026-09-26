@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FuelPanel } from './heating/FuelPanel'
 import { HeatingSetupPanel } from './heating/HeatingSetupPanel'
 import { MeterPanel } from './heating/MeterPanel'
@@ -8,10 +8,49 @@ export type WorkflowApply = (
   transform: Parameters<WorkflowSubRouteProps['onApply']>[0],
 ) => boolean
 
-export function HeatingRoute(props: WorkflowSubRouteProps) {
-  const [activeTab, setActiveTab] = useState<'setup' | 'fuel' | 'meters'>(
-    'setup',
+export type HeatingTab = 'setup' | 'fuel' | 'meters'
+
+function hashTab(): HeatingTab {
+  const value = new URLSearchParams(window.location.hash.split('?')[1]).get(
+    'tab',
   )
+  return value === 'fuel' || value === 'meters' ? value : 'setup'
+}
+
+interface HeatingRouteProps extends WorkflowSubRouteProps {
+  readonly initialTab?: HeatingTab
+}
+
+export function HeatingRoute(props: HeatingRouteProps) {
+  const [activeTab, setActiveTab] = useState<HeatingTab>(
+    () =>
+      props.initialTab ??
+      (window.location.hash.split('?')[0] === '#/heizkreise'
+        ? hashTab()
+        : 'setup'),
+  )
+  useEffect(() => {
+    function followHash() {
+      if (
+        props.initialTab === undefined &&
+        window.location.hash.split('?')[0] === '#/heizkreise'
+      ) {
+        setActiveTab(hashTab())
+      }
+    }
+    window.addEventListener('hashchange', followHash)
+    return () => window.removeEventListener('hashchange', followHash)
+  }, [props.initialTab])
+
+  function selectTab(tab: HeatingTab) {
+    setActiveTab(tab)
+    if (
+      props.initialTab === undefined &&
+      window.location.hash.split('?')[0] === '#/heizkreise'
+    ) {
+      window.location.hash = `/heizkreise?tab=${tab}`
+    }
+  }
   const [error, setError] = useState<string | null>(null)
 
   const apply: WorkflowApply = (transform) => {
@@ -37,21 +76,21 @@ export function HeatingRoute(props: WorkflowSubRouteProps) {
         <button
           type="button"
           aria-current={activeTab === 'setup' ? 'page' : undefined}
-          onClick={() => setActiveTab('setup')}
+          onClick={() => selectTab('setup')}
         >
           Heizkreise
         </button>
         <button
           type="button"
           aria-current={activeTab === 'fuel' ? 'page' : undefined}
-          onClick={() => setActiveTab('fuel')}
+          onClick={() => selectTab('fuel')}
         >
           Brennstoffe
         </button>
         <button
           type="button"
           aria-current={activeTab === 'meters' ? 'page' : undefined}
-          onClick={() => setActiveTab('meters')}
+          onClick={() => selectTab('meters')}
         >
           Zähler
         </button>

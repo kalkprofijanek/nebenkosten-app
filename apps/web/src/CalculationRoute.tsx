@@ -1,5 +1,7 @@
 import type { AppDataFile } from '@nebenkosten/schema'
 import { useState } from 'react'
+import { latestCalculationRun } from '@nebenkosten/validators'
+import { StatementPreview } from './features/calculation/StatementPreview'
 
 import { runCalculation } from './features/calculation/calculate-preview'
 import { validationIssueLink } from './features/release/validation-links'
@@ -33,7 +35,7 @@ export function CalculationRoute({
   const runs = data.billingData.calculationRuns.filter(
     (run) => run.billingPeriodId === billingPeriodId,
   )
-  const latestRun = runs.at(-1)
+  const latestRun = latestCalculationRun(runs, billingPeriodId ?? '')
   const result = latestRun
     ? data.billingData.calculationResults.find(
         (item) => item.calculationRunId === latestRun.id,
@@ -67,7 +69,7 @@ export function CalculationRoute({
           >
             {controlDifferenceTooLarge
               ? 'Rechenstand fehlerhaft'
-              : 'Rechenstand aktuell'}
+              : 'Gespeicherter Rechenstand'}
           </span>
         ) : null}
       </header>
@@ -103,6 +105,9 @@ export function CalculationRoute({
           Abrechnung berechnen
         </button>
       )}
+      {billingPeriodId ? (
+        <StatementPreview data={data} billingPeriodId={billingPeriodId} />
+      ) : null}
       {result ? (
         <>
           <p className="calculation-meta">
