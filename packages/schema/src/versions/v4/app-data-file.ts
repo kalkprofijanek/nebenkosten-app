@@ -1,5 +1,5 @@
 /**
- * Aktuelles Dateiformat (Schema-Version 5).
+ * Aktuelles Dateiformat (Schema-Version 4).
  *
  * Die Datei trennt Stammdaten und abrechnungsjahresbezogene Daten
  * (Masterplan 5.2) in zwei getrennte Container. Jede Datei trägt eine
@@ -13,7 +13,6 @@
  */
 import { z } from 'zod'
 import {
-  CURRENT_SCHEMA_VERSION,
   isoTimestampSchema,
   sha256HexSchema,
 } from '../../primitives'
@@ -31,11 +30,7 @@ import {
   energySourceSchema,
   fuelDeliverySchema,
   fuelStockSchema,
-  heatingCircuitSchema,
   heatingSystemSchema,
-  meterBillingStatusSchema,
-  meterReadingSchema,
-  meterSchema,
   occupancyPeriodSchema,
   organizationSchema,
   ownerCompanySchema,
@@ -45,7 +40,9 @@ import {
   tenancySchema,
   unitSchema,
 } from '../../entities'
-import { v4AppDataFileSchema } from '../v4/app-data-file'
+
+import { v4HeatingCircuitSchema } from './heating'
+import { v4MeterBillingStatusSchema, v4MeterSchema, v4MeterReadingSchema } from './metering'
 
 /** Stammdaten-Container (jahresunabhängig, Masterplan 5.2). */
 export const masterDataSchema = z.strictObject({
@@ -58,7 +55,7 @@ export const masterDataSchema = z.strictObject({
   tenancies: z.array(tenancySchema),
   allocationRules: z.array(allocationRuleSchema),
   heatingSystems: z.array(heatingSystemSchema),
-  meters: z.array(meterSchema),
+  meters: z.array(v4MeterSchema),
 })
 export type MasterData = z.infer<typeof masterDataSchema>
 
@@ -70,12 +67,12 @@ export const billingDataSchema = z.strictObject({
   costCategories: z.array(costCategorySchema),
   costEntries: z.array(costEntrySchema),
   bankBookings: z.array(bankBookingSchema),
-  heatingCircuits: z.array(heatingCircuitSchema),
+  heatingCircuits: z.array(v4HeatingCircuitSchema),
   energySources: z.array(energySourceSchema),
   fuelStocks: z.array(fuelStockSchema),
   fuelDeliveries: z.array(fuelDeliverySchema),
-  meterReadings: z.array(meterReadingSchema),
-  meterBillingStatuses: z.array(meterBillingStatusSchema),
+  meterReadings: z.array(v4MeterReadingSchema),
+  meterBillingStatuses: z.array(v4MeterBillingStatusSchema),
   calculationRuns: z.array(calculationRunSchema),
   calculationResults: z.array(calculationResultSchema),
   documents: z.array(documentSchema),
@@ -101,56 +98,11 @@ export const fileMetaSchema = z.strictObject({
 export type FileMeta = z.infer<typeof fileMetaSchema>
 
 /** Wurzelstruktur des aktuellen Dateiformats. */
-export const appDataFileSchema = z.strictObject({
-  schemaVersion: z.literal(CURRENT_SCHEMA_VERSION),
+export const v4AppDataFileSchema = z.strictObject({
+  schemaVersion: z.literal(4),
   meta: fileMetaSchema,
   masterData: masterDataSchema,
   billingData: billingDataSchema,
 })
-export type AppDataFile = z.infer<typeof appDataFileSchema>
+export type V4AppDataFile = z.infer<typeof v4AppDataFileSchema>
 
-export { v4AppDataFileSchema }
-
-/** Lossless structural migration. New v5 fields stay absent and disabled. */
-export function migrateV4ToV5(input: unknown): AppDataFile {
-  const source = v4AppDataFileSchema.parse(input)
-  return appDataFileSchema.parse({ ...source, schemaVersion: CURRENT_SCHEMA_VERSION })
-}
-
-/** Leere, gültige Datei (Hilfsfunktion für Tests und neue Bestände). */
-export function createEmptyAppDataFile(): AppDataFile {
-  return {
-    schemaVersion: CURRENT_SCHEMA_VERSION,
-    meta: {},
-    masterData: {
-      organizations: [],
-      ownerCompanies: [],
-      properties: [],
-      buildings: [],
-      units: [],
-      persons: [],
-      tenancies: [],
-      allocationRules: [],
-      heatingSystems: [],
-      meters: [],
-    },
-    billingData: {
-      billingPeriods: [],
-      occupancyPeriods: [],
-      prepayments: [],
-      costCategories: [],
-      costEntries: [],
-      bankBookings: [],
-      heatingCircuits: [],
-      energySources: [],
-      fuelStocks: [],
-      fuelDeliveries: [],
-      meterReadings: [],
-      meterBillingStatuses: [],
-      calculationRuns: [],
-      calculationResults: [],
-      documents: [],
-      auditEvents: [],
-    },
-  }
-}

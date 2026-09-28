@@ -14,5 +14,7 @@
 export * from './primitives'
 export * from './entities'
 export * from './versions/current'
+export * from './versions/v4'
+export * from './versions/v4'
 export * from './versions/v3'
 export * from './migrations'

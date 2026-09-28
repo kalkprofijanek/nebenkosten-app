@@ -12,7 +12,7 @@ import {
 } from '../primitives'
 
 /** Zählerart (Legacy `art`): Allgemeinstrom oder Wärmeerzeugung. */
-export const meterKindSchema = z.enum(['general', 'heat'])
+export const meterKindSchema = z.enum(['general', 'heat', 'unit_heat'])
 export type MeterKind = z.infer<typeof meterKindSchema>
 
 /**
@@ -60,6 +60,7 @@ export const meterReadingSchema = z.strictObject({
   meterId: entityIdSchema,
   billingPeriodId: entityIdSchema.nullish(),
   date: isoDateSchema.nullish(),
+  boundary: z.enum(['start_of_day', 'end_of_day']).nullish(),
   value: quantitySchema,
   source: z.enum(['manual', 'imported', 'estimated']).nullish(),
   note: z.string().nullish(),

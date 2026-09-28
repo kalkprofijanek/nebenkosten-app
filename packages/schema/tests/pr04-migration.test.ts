@@ -79,7 +79,7 @@ describe('PR 04: v3 -> v4 Migration', () => {
     expect(first).toEqual(second)
     expect(JSON.stringify(input)).toBe(originalJson)
     expect(data).toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       meta: {
         savedAt: '2026-01-02T03:04:05.000Z',
         appVersion: 'pr04-test',

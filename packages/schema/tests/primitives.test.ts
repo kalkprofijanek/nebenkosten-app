@@ -16,7 +16,7 @@ import {
 describe('Schema-Versionskonstanten', () => {
   it('sind explizit und aufsteigend', () => {
     expect(LEGACY_V3_SCHEMA_VERSION).toBe(3)
-    expect(CURRENT_SCHEMA_VERSION).toBe(4)
+    expect(CURRENT_SCHEMA_VERSION).toBe(5)
     expect(CURRENT_SCHEMA_VERSION).toBeGreaterThan(LEGACY_V3_SCHEMA_VERSION)
   })
 })

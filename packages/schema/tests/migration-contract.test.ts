@@ -131,8 +131,8 @@ describe('migrateV3ToCurrent (Vertrag und Implementierung in PR 04)', () => {
 
     expect(result).toMatchObject({
       ok: true,
-      data: { schemaVersion: 4 },
-      report: { detectedSchemaVersion: 3, targetSchemaVersion: 4 },
+      data: { schemaVersion: 5 },
+      report: { detectedSchemaVersion: 3, targetSchemaVersion: 5 },
     })
   })
 

@@ -84,7 +84,7 @@ export function toAppDataFile(
   appVersion: string | undefined,
 ): AppDataFile {
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     meta: {
       savedAt,
       appVersion,

@@ -91,17 +91,18 @@ describe('probeSchemaVersion (Versions-Erkennung, Masterplan 9.2)', () => {
     })
   })
 
-  it('erkennt das aktuelle Format', () => {
+  it('erkennt aktuelle und explizit migrierbare Formate', () => {
     expect(probeSchemaVersion({ schemaVersion: 4 })).toEqual({
-      kind: 'current',
+      kind: 'migratable-v4',
       schemaVersion: 4,
     })
+    expect(probeSchemaVersion({ schemaVersion: 5 })).toEqual({ kind: 'current', schemaVersion: 5 })
   })
 
   it('markiert neuere Versionen als nicht unterstützt (nie überschreiben)', () => {
-    expect(probeSchemaVersion({ schemaVersion: 5 })).toEqual({
+    expect(probeSchemaVersion({ schemaVersion: 6 })).toEqual({
       kind: 'newer-than-supported',
-      schemaVersion: 5,
+      schemaVersion: 6,
     })
     expect(probeSchemaVersion({ version: 7 })).toEqual({
       kind: 'newer-than-supported',
