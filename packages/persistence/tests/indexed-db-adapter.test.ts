@@ -110,6 +110,83 @@ afterEach(async () => {
 })
 
 describe('IndexedDbStorageAdapter', () => {
+  it('previews v4 without writes, blocks normal save, and atomically migrates with original-byte backup', async () => {
+    const fixture = createFictionalDatabaseFixture('v4-migration')
+    const adapter = createAdapter(fixture)
+    await adapter.load()
+    const legacy = { ...createLosslessFictionalFile('v4'), schemaVersion: 4 }
+    const sourceBytes = new TextEncoder().encode(JSON.stringify(legacy))
+    const digest = await crypto.subtle.digest(
+      'SHA-256',
+      Uint8Array.from(sourceBytes),
+    )
+    const revision = Array.from(new Uint8Array(digest), (byte) =>
+      byte.toString(16).padStart(2, '0'),
+    ).join('')
+    const savedAt = legacy.meta.savedAt as string
+    await replaceCurrentRecord(fixture, {
+      revision,
+      bytes: sourceBytes,
+      savedAt,
+    })
+
+    const preview = await adapter.load()
+    expect(preview).toMatchObject({
+      data: { schemaVersion: 5 },
+      revision,
+      migration: { sourceSchemaVersion: 4, targetSchemaVersion: 5 },
+    })
+    const manualV4 = await adapter.createSnapshot({
+      expectedRevision: revision,
+      kind: 'manual',
+    })
+    expect(manualV4.schemaVersion).toBe(4)
+    await expect(
+      adapter.save(preview!.data, { expectedRevision: revision }),
+    ).rejects.toMatchObject({ code: 'migration_required' })
+    await expect(
+      adapter.migrateStoredData({
+        expectedRevision: revision,
+        confirmed: false,
+      }),
+    ).rejects.toMatchObject({ code: 'confirmation_required' })
+    expect(await adapter.load()).toMatchObject({
+      revision,
+      migration: { sourceSchemaVersion: 4, targetSchemaVersion: 5 },
+    })
+
+    const result = await adapter.migrateStoredData({
+      expectedRevision: revision,
+      confirmed: true,
+    })
+    expect(result.data.schemaVersion).toBe(5)
+    expect(result.beforeMigrationSnapshot).toMatchObject({
+      kind: 'before_migration',
+      schemaVersion: 4,
+      sourceRevision: revision,
+      byteLength: sourceBytes.byteLength,
+    })
+    const backups = await adapter.listSnapshots()
+    expect(backups).toContainEqual(
+      expect.objectContaining({
+        kind: 'before_migration',
+        schemaVersion: 4,
+        sha256: revision,
+      }),
+    )
+    expect(await adapter.load()).toMatchObject({ data: { schemaVersion: 5 } })
+    const beforeMigration = backups.find(
+      ({ kind }) => kind === 'before_migration',
+    )!
+    const restored = await adapter.restoreSnapshot(beforeMigration.id, {
+      expectedRevision: result.revision,
+    })
+    expect(restored).toMatchObject({
+      data: { schemaVersion: 5 },
+      migration: { sourceSchemaVersion: 4, targetSchemaVersion: 5 },
+    })
+  })
+
   it('bootstraps an empty database and can reopen it without inventing data', async () => {
     const fixture = createFictionalDatabaseFixture('bootstrap')
     const first = createAdapter(fixture)
@@ -403,7 +480,7 @@ describe('IndexedDbStorageAdapter', () => {
     await replaceCurrentRecord(fixture, {
       revision: newerRevision,
       savedAt: FIXED_NOW.toISOString(),
-      bytes: new TextEncoder().encode('{"schemaVersion":5}\n'),
+      bytes: new TextEncoder().encode('{"schemaVersion":6}\n'),
     })
 
     await expect(
@@ -413,14 +490,14 @@ describe('IndexedDbStorageAdapter', () => {
     ).rejects.toMatchObject({
       name: 'PersistenceError',
       code: 'newer_schema_version',
-      schemaVersion: 5,
+      schemaVersion: 6,
     })
     await expect(
       adapter.createSnapshot({ expectedRevision: newerRevision }),
     ).rejects.toMatchObject({
       name: 'PersistenceError',
       code: 'newer_schema_version',
-      schemaVersion: 5,
+      schemaVersion: 6,
     })
     await expect(adapter.listSnapshots()).resolves.toEqual([])
   })

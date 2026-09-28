@@ -71,7 +71,7 @@ function storedBytes(
 }
 
 function newerSchemaBytes(): Uint8Array {
-  return encoder.encode('{"schemaVersion":5,"private":"do-not-overwrite"}\n')
+  return encoder.encode('{"schemaVersion":6,"private":"do-not-overwrite"}\n')
 }
 
 function unsupportedSchemaBytes(): Uint8Array {
@@ -80,7 +80,7 @@ function unsupportedSchemaBytes(): Uint8Array {
 
 function corruptBytes(): Uint8Array {
   return encoder.encode(
-    `{"schemaVersion":4,"private":"${SECRET_MARKER.replaceAll('\\', '\\\\')}"}\n`,
+    `{"schemaVersion":5,"private":"${SECRET_MARKER.replaceAll('\\', '\\\\')}"}\n`,
   )
 }
 

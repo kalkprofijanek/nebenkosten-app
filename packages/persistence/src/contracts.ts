@@ -10,6 +10,8 @@ export type PersistenceErrorCode =
   | 'newer_schema_version'
   | 'hash_failed'
   | 'conflict'
+  | 'migration_required'
+  | 'confirmation_required'
   | 'snapshot_not_found'
   | 'corrupt_storage'
   | 'quota_exceeded'
@@ -20,6 +22,10 @@ export type PersistenceErrorCode =
 export interface LoadedAppData {
   readonly data: AppDataFile
   readonly revision: string
+  readonly migration?: {
+    readonly sourceSchemaVersion: 4
+    readonly targetSchemaVersion: 5
+  }
 }
 
 export interface SaveResult extends LoadedAppData {
@@ -31,7 +37,11 @@ export interface SaveOptions {
 }
 
 export type SnapshotKind =
-  'automatic' | 'manual' | 'before_import' | 'before_restore'
+  | 'automatic'
+  | 'manual'
+  | 'before_import'
+  | 'before_restore'
+  | 'before_migration'
 
 export interface SnapshotMeta {
   readonly id: string
@@ -55,6 +65,17 @@ export interface RestoreOptions {
 
 export interface RestoreResult extends SaveResult {
   readonly beforeRestoreSnapshot: SnapshotMeta
+}
+
+export interface MigrationSaveOptions extends SaveOptions {
+  readonly confirmed: boolean
+}
+export interface MigrationSaveResult extends SaveResult {
+  readonly beforeMigrationSnapshot: SnapshotMeta
+}
+
+export interface MigratingStorageAdapter extends StorageAdapter {
+  migrateStoredData(options: MigrationSaveOptions): Promise<MigrationSaveResult>
 }
 
 export interface StorageAdapter {
