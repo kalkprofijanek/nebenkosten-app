@@ -463,14 +463,22 @@ export class IndexedDbStorageAdapter implements MigratingStorageAdapter {
       }
       const target = await this.decodeSnapshot(initial.target)
       const restoredAt = this.now()
-      const restored = await encodeCurrentAppData(target.data, {
-        savedAt: restoredAt,
-      })
-      const next: CurrentRecord = {
-        revision: restored.revision,
-        bytes: copyBytes(restored.bytes),
-        savedAt: restored.savedAt,
-      }
+      const restored =
+        initial.target.schemaVersion === 4
+          ? null
+          : await encodeCurrentAppData(target.data, { savedAt: restoredAt })
+      const next: CurrentRecord =
+        initial.target.schemaVersion === 4
+          ? {
+              revision: target.revision,
+              bytes: copyBytes(initial.target.bytes),
+              savedAt: target.data.meta.savedAt!,
+            }
+          : {
+              revision: restored!.revision,
+              bytes: copyBytes(restored!.bytes),
+              savedAt: restored!.savedAt,
+            }
       const safetyMeta = snapshotMeta(
         this.createId(),
         initial.current,
@@ -507,9 +515,9 @@ export class IndexedDbStorageAdapter implements MigratingStorageAdapter {
       currentStore.put(next, CURRENT_KEY)
       await transactionDone(transaction)
       return {
-        data: structuredClone(restored.data),
-        revision: restored.revision,
-        savedAt: restored.savedAt,
+        data: structuredClone(target.data),
+        revision: next.revision,
+        savedAt: next.savedAt,
         beforeRestoreSnapshot: { ...safetyMeta },
         ...(initial.target.schemaVersion === 4
           ? {
@@ -665,14 +673,18 @@ export class IndexedDbStorageAdapter implements MigratingStorageAdapter {
     )) as CurrentRecord | undefined
     await transactionDone(transaction)
     if (current) {
-      const decoded = await decodeSupportedAppDataBytes(
-        copyBytes(current.bytes),
-      )
+      let decoded: Awaited<ReturnType<typeof decodeSupportedAppDataBytes>>
+      try {
+        decoded = await decodeSupportedAppDataBytes(copyBytes(current.bytes))
+      } catch (error) {
+        throw corruptStorageFailure(error)
+      }
       if (
         decoded.revision !== current.revision ||
         decoded.data.meta.savedAt !== current.savedAt
-      )
+      ) {
         throw new PersistenceError('corrupt_storage')
+      }
     }
     return current
   }

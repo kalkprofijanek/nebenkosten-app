@@ -74,13 +74,16 @@ export interface MigrationSaveResult extends SaveResult {
   readonly beforeMigrationSnapshot: SnapshotMeta
 }
 
-export interface MigratingStorageAdapter extends StorageAdapter {
-  migrateStoredData(options: MigrationSaveOptions): Promise<MigrationSaveResult>
-}
-
 export interface StorageAdapter {
   load(): Promise<LoadedAppData | null>
   save(data: AppDataFile, options: SaveOptions): Promise<SaveResult>
+  migrateStoredData?(
+    options: MigrationSaveOptions,
+  ): Promise<MigrationSaveResult>
+}
+
+export interface MigratingStorageAdapter extends StorageAdapter {
+  migrateStoredData(options: MigrationSaveOptions): Promise<MigrationSaveResult>
 }
 
 export interface SnapshotStorageAdapter extends StorageAdapter {

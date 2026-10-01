@@ -146,6 +146,27 @@ const adapterFactories = [
 ] as const
 
 describe.each(adapterFactories)('%s file contract', (_name, createHarness) => {
+  it('previews v4 at its source-byte revision and blocks ordinary overwrite', async () => {
+    const input = buildFictionalData()
+    const legacyBytes = encoder.encode(
+      JSON.stringify({ ...input, schemaVersion: 4 }),
+    )
+    const revision = await sha256(legacyBytes)
+    const harness = createHarness(legacyBytes)
+
+    await expect(harness.adapter.load()).resolves.toMatchObject({
+      data: { schemaVersion: 5 },
+      revision,
+      migration: { sourceSchemaVersion: 4, targetSchemaVersion: 5 },
+    })
+    await expectPersistenceError(
+      harness.adapter.save(input, { expectedRevision: revision }),
+      'migration_required',
+    )
+    expect(harness.bytes()).toEqual(legacyBytes)
+    expect(harness.writeCount()).toBe(0)
+  })
+
   it('loads an empty target and creates the first revision only with expectedRevision null', async () => {
     const harness = createHarness()
     const input = buildFictionalData()

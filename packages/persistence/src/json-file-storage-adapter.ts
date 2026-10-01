@@ -1,6 +1,6 @@
 import {
   CurrentAppDataCodecError,
-  decodeCurrentAppDataBytes,
+  decodeSupportedAppDataBytes,
   encodeCurrentAppData,
 } from '@nebenkosten/import-export'
 import type { AppDataFile } from '@nebenkosten/schema'
@@ -55,10 +55,11 @@ function codecError(
 
 async function decodeStored(bytes: Uint8Array): Promise<LoadedAppData> {
   try {
-    const decoded = await decodeCurrentAppDataBytes(bytes)
+    const decoded = await decodeSupportedAppDataBytes(bytes)
     return {
       data: decoded.data,
       revision: decoded.revision,
+      ...(decoded.migration ? { migration: decoded.migration } : {}),
     }
   } catch (error) {
     throw codecError(error, 'stored')
@@ -109,6 +110,9 @@ export class JsonFileStorageAdapter {
     const existing = isEmpty(existingBytes)
       ? null
       : await decodeStored(existingBytes!)
+    if (existing?.migration) {
+      throw new PersistenceError('migration_required')
+    }
     if (!revisionsMatch(existing?.revision ?? null, options.expectedRevision)) {
       throw new PersistenceError('conflict')
     }
@@ -124,7 +128,7 @@ export class JsonFileStorageAdapter {
     if (isEmpty(verifiedBytes)) throw new PersistenceError('io_failed')
     let verified: LoadedAppData
     try {
-      verified = await decodeCurrentAppDataBytes(verifiedBytes!)
+      verified = await decodeSupportedAppDataBytes(verifiedBytes!)
     } catch {
       throw new PersistenceError('io_failed')
     }
