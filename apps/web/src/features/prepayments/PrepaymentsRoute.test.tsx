@@ -371,6 +371,13 @@ describe('PrepaymentsRoute – VZ-Anpassung', () => {
 
   it('zeigt den Vorschlag alt → neu mit Warnung zum Termin', () => {
     render(<Harness initial={withFollowYear()} />)
+    // Standard wäre der nächste zulässige 01.01. (2026); hier bewusst früher
+    expect(screen.getByLabelText('Neue Vorauszahlung gültig ab')).toHaveValue(
+      '2026-01-01',
+    )
+    fireEvent.change(screen.getByLabelText('Neue Vorauszahlung gültig ab'), {
+      target: { value: '2025-01-01' },
+    })
     const table = adjustmentTable()
     const row = rowOf(table, 'Einheit u1')
     expect(within(row).getByText('366 Tage')).toBeVisible()
@@ -389,6 +396,9 @@ describe('PrepaymentsRoute – VZ-Anpassung', () => {
   it('speichert „Ja“ ins Folgejahr und „Nein“ als Entscheidung', () => {
     const onChange = vi.fn()
     render(<Harness initial={withFollowYear()} onChange={onChange} />)
+    fireEvent.change(screen.getByLabelText('Neue Vorauszahlung gültig ab'), {
+      target: { value: '2025-01-01' },
+    })
     fireEvent.change(
       screen.getByLabelText('Neue Vorauszahlung Einheit u1 Mieter T1'),
       {

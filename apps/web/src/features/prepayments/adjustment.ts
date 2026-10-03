@@ -176,9 +176,20 @@ export function proposePrepaymentAdjustments(
   return proposalsFromCalculation(data, period, snapshot.output)
 }
 
-/** Vom Vermieter festgelegter Standardtermin: 01.01. des Folgejahres. */
-export function defaultValidFrom(period: BillingPeriod): string {
-  return `${period.year + 1}-01-01`
+/**
+ * Vom Vermieter festgelegter Standardtermin: immer ein 01.01., und zwar der
+ * erste, der frühestens am Ersten des übernächsten Monats nach Versand liegt
+ * (keine rückwirkende Erhöhung). Abrechnung 2025, Versand Oktober 2026 →
+ * 01.01.2027; Versand Dezember 2026 → 01.01.2028.
+ */
+export function defaultValidFrom(
+  period: BillingPeriod,
+  dispatchDate: string,
+): string {
+  const earliest = earliestValidFrom(dispatchDate)
+  let year = Number(earliest.slice(0, 4))
+  if (earliest > `${year}-01-01`) year += 1
+  return `${Math.max(year, period.year + 1)}-01-01`
 }
 
 /** Lokales ISO-Datum (ohne Zeitzonenverschiebung durch `toISOString`). */

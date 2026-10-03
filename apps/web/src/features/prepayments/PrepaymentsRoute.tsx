@@ -497,7 +497,9 @@ function AdjustmentSection({
   readonly today: () => Date
 }) {
   const { feedback, setFeedback, run } = useApply(onApply)
-  const [validFrom, setValidFrom] = useState(() => defaultValidFrom(period))
+  const [validFrom, setValidFrom] = useState(() =>
+    defaultValidFrom(period, period.dispatchDate ?? localIsoDate(today())),
+  )
   const validFromValid =
     isFirstOfMonth(validFrom) && validFrom > period.periodEnd
 

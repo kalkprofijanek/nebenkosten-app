@@ -191,9 +191,16 @@ describe('Vorschläge aus dem Rechenstand', () => {
 })
 
 describe('Termine', () => {
-  it('nutzt den 01.01. des Folgejahres und prüft den frühesten Termin', () => {
-    expect(defaultValidFrom(settledYear().billingData.billingPeriods[0]!)).toBe(
-      '2025-01-01',
+  it('nutzt den nächsten zulässigen 01.01. nach Versand und prüft den frühesten Termin', () => {
+    const period = settledYear().billingData.billingPeriods[0]!
+    expect(defaultValidFrom(period, `${period.year}-02-15`)).toBe(
+      `${period.year + 1}-01-01`,
+    )
+    expect(defaultValidFrom(period, `${period.year + 1}-10-03`)).toBe(
+      `${period.year + 2}-01-01`,
+    )
+    expect(defaultValidFrom(period, `${period.year + 1}-12-10`)).toBe(
+      `${period.year + 3}-01-01`,
     )
     expect(earliestValidFrom('2024-10-31')).toBe('2024-12-01')
     expect(earliestValidFrom('2024-11-15')).toBe('2025-01-01')
