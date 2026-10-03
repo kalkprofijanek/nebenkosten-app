@@ -2,11 +2,18 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
-## 1.1.1 – in Vorbereitung
+## 1.1.1 – 3. Oktober 2026
 
 - nach einem Auszug ohne bekannte neue Anschrift bleibt die bisherige
   Wohnungs- bzw. Objektanschrift bestehen; statt eines Freigabefehlers erscheint
-  ein Hinweis mit Link zur Nutzerbearbeitung.
+  ein Hinweis mit Link zur Nutzerbearbeitung,
+- Flüssiggas- und Propanbestände werden beim Legacy-Import in Litern statt
+  Kubikmetern übernommen,
+- Lieferungen ohne Brennstoffmenge (Restzahlung, Tankmiete, Wartung) gelten in
+  der Brennstoffübersicht als Kosten und nicht mehr als fehlende Angabe,
+- die Importvorschau fasst Prüfbefunde mit Schweregrad, Titel und Anzahl
+  zusammen statt roher Codes,
+- der Startbildschirm nennt die aktuelle Schema-Version.
 
 ## 1.1.0 – 3. Oktober 2026
 
