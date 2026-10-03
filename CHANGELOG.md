@@ -2,7 +2,16 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
-## Unveröffentlicht
+## 1.2.0 – 3. Oktober 2026
+
+- Einzel- und Gesamtabrechnung nach mietrechtlicher Prüfung überarbeitet:
+  Gesamtkosten, Schlüssel, Gesamteinheiten und eigene Einheiten je Kostenart,
+  Nutzungstage, Heizkosten-Zusammenstellung je Heizkreis (§ 7 Abs. 2 HeizKV)
+  mit Brennstoffkonto, vollständige CO₂-Angaben (§ 7 Abs. 3 CO2KostAufG),
+  Angaben nach § 6a HeizKV, Zahlungsziel mit Verwendungszweck,
+  Einwendungshinweis nach § 556 Abs. 3 BGB; Gesamtabrechnung als interne
+  Fassung (mit Mieter-Salden) und als Fassung für Mieter (ohne Daten anderer
+  Mieter),
 
 - **Fachliche Änderung (Vermieterentscheidung):** Der CO₂-Mieteranteil wird
   wie die Brennstoffkosten nach dem Heizkreis-Schlüssel verteilt (z. B. 30 %
@@ -24,7 +33,9 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
   (hochgerechnet auf 365 Tage, durch 12, auf volle Euro aufgerundet) ab 5 €
   Erhöhung eine neue Vorauszahlung vorgeschlagen; Hinweise bei Belegung unter
   90 Tagen und bei zu frühem Gültigkeitstermin; „Ja“ trägt den Betrag im
-  Folgejahr ein, jede Entscheidung wird im Änderungsprotokoll festgehalten,
+  Jahr ein, ab dem sie gilt; Standard ist der nächste 01.01., der frühestens am
+  Ersten des übernächsten Monats nach Versand liegt (keine rückwirkende
+  Erhöhung); jede Entscheidung wird im Änderungsprotokoll festgehalten,
 - bei „Ja“ wird der Einzelabrechnung (Vorschau, Einzel-PDF und ZIP) ein
   Anpassungsschreiben mit Rücksendeabschnitt für den Mieter angehängt; das
   Schreiben enthält keine Unterschrift des Vermieters,
