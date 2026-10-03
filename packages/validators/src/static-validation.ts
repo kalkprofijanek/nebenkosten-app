@@ -653,8 +653,92 @@ function heating(data: AppDataFile, period: BillingPeriod, add: Add): void {
         entity: { type: 'BillingPeriod', id: period.id },
       }),
     )
+  const units = data.masterData.units.filter(
+    ({ propertyId }) => propertyId === period.propertyId,
+  )
+  const occupancies = periodOccupancies(data, period.id)
+  const unitName = (unit: (typeof units)[number]) =>
+    unit.label ?? unit.location ?? 'ohne Bezeichnung'
+  if (circuits.length > 0)
+    for (const unit of units.filter(({ buildingId }) => !buildingId))
+      add(
+        issue(
+          'error',
+          'master_data.unit_building_missing',
+          'master_data',
+          'Wohnung ist keinem Gebäude zugeordnet',
+          {
+            detail: `Wohnung ${unitName(unit)}: Ohne Gebäude gehört sie zu keinem Heizkreis und erhält keine gebäudebezogenen Heizkosten.`,
+            entity: { type: 'Unit', id: unit.id },
+          },
+        ),
+      )
+  const heatingCents = (buildingId: string, includeProperty: boolean) =>
+    categories
+      .filter(
+        ({ kind, scope }) =>
+          kind === 'heating' &&
+          (scope?.kind === 'building'
+            ? scope.buildingId === buildingId
+            : includeProperty && (!scope || scope.kind === 'property')),
+      )
+      .reduce((sum, category) => {
+        const entries = data.billingData.costEntries.filter(
+          ({ costCategoryId }) => costCategoryId === category.id,
+        )
+        return (
+          sum +
+          (entries.length > 0
+            ? entries.reduce((total, entry) => total + entry.amountCents, 0)
+            : (category.totalAmountCents ?? 0))
+        )
+      }, 0)
   for (const circuit of circuits) {
     const entity = { type: 'HeatingCircuit', id: circuit.id }
+    const circuitUnits = units.filter(
+      ({ buildingId }) => buildingId === circuit.buildingId,
+    )
+    const circuitOccupancies = occupancies.filter(({ unitId }) =>
+      circuitUnits.some(({ id }) => id === unitId),
+    )
+    if (
+      circuitOccupancies.length === 0 &&
+      heatingCents(circuit.buildingId, false) > 0
+    )
+      add(
+        issue(
+          'error',
+          'heating.circuit_without_units',
+          'heating',
+          'Heizkreis hat Heizkosten, aber keine Nutzungen',
+          {
+            detail: `${data.masterData.buildings.find(({ id }) => id === circuit.buildingId)?.name ?? 'Gebäude'}: Ordne die Wohnungen dem Gebäude zu, sonst werden diese Heizkosten nicht auf Nutzer verteilt.`,
+            entity,
+          },
+        ),
+      )
+    if (
+      (circuit.consumptionMode ?? 'manual') === 'manual' &&
+      heatingCents(circuit.buildingId, true) > 0
+    )
+      for (const occupancy of circuitOccupancies.filter(
+        ({ kind, consumptionUnits }) =>
+          kind !== 'vacancy' && !((consumptionUnits?.value ?? 0) > 0),
+      )) {
+        const unit = circuitUnits.find(({ id }) => id === occupancy.unitId)
+        add(
+          issue(
+            'warning',
+            'heating.consumption_units_missing',
+            'occupancy',
+            'Verbrauchseinheiten fehlen oder sind 0',
+            {
+              detail: `Wohnung ${unit ? unitName(unit) : 'ohne Bezeichnung'}: Ohne Verbrauchswert trägt der Nutzer nur den Grundkostenanteil. Bitte Ablesung oder Schätzung des Messdienstes eintragen oder bewusst bestätigen.`,
+              entity: { type: 'OccupancyPeriod', id: occupancy.id },
+            },
+          ),
+        )
+      }
     if (circuit.consumptionMode === 'metered_kwh') {
       try {
         const resolution = resolveMeteredConsumption(

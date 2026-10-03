@@ -58,6 +58,15 @@ export function validationIssueLink(
     return { href: '#/heizkreise?tab=meters', label: 'Zählerzuordnung prüfen' }
   }
 
+  if (
+    issue.code === 'heating.consumption_units_missing' &&
+    issue.entity?.type === 'OccupancyPeriod'
+  )
+    return {
+      href: `#/nutzer?edit=${encodeURIComponent(issue.entity.id)}`,
+      label: 'Verbrauchseinheiten ergänzen',
+    }
+
   if (issue.code === 'occupancy.shipping_address_missing') {
     return {
       href: `#/nutzer?edit=${encodeURIComponent(issue.entity?.id ?? '')}`,

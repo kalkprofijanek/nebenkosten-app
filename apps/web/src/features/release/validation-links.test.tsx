@@ -146,4 +146,19 @@ describe('validationIssueLink', () => {
       ),
     ).toEqual({ href: '#/nutzer', label: 'Nutzerzeiträume bearbeiten' })
   })
+
+  it('führt fehlende Verbrauchseinheiten zum Nutzerzeitraum', () => {
+    expect(
+      validationIssueLink(
+        issue(
+          'occupancy',
+          { type: 'OccupancyPeriod', id: 'occ 1' },
+          'heating.consumption_units_missing',
+        ),
+      ),
+    ).toEqual({
+      href: '#/nutzer?edit=occ%201',
+      label: 'Verbrauchseinheiten ergänzen',
+    })
+  })
 })
