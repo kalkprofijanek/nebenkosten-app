@@ -263,17 +263,18 @@ export function PdfExportRoute({
     })
   }
 
-  function downloadCombinedStatement() {
-    setBusy('combined')
+  function downloadCombinedStatement(audience: 'internal' | 'tenant') {
+    setBusy(`combined-${audience}`)
     void withErrorHandling(async () => {
       const context = buildCombinedCostStatementContext(
         data,
         billingPeriod!,
         calculation!,
+        audience,
       )
       const docDefinition = buildCombinedCostStatement(context)
       const blob = await renderPdfBlob(docDefinition)
-      const fileName = `NK_${billingPeriod!.year}_Kostenaufstellung.pdf`
+      const fileName = `NK_${billingPeriod!.year}_Gesamtabrechnung_${audience === 'internal' ? 'intern' : 'Mieter'}.pdf`
       await record([
         {
           kind: 'combined_statement',
@@ -398,9 +399,21 @@ export function PdfExportRoute({
           className="button button--primary"
           type="button"
           disabled={busy !== null}
-          onClick={downloadCombinedStatement}
+          onClick={() => downloadCombinedStatement('internal')}
         >
-          {busy === 'combined' ? 'Wird erzeugt …' : 'Gesamtabrechnung (PDF)'}
+          {busy === 'combined-internal'
+            ? 'Wird erzeugt …'
+            : 'Gesamtabrechnung intern (PDF)'}
+        </button>
+        <button
+          className="button button--quiet"
+          type="button"
+          disabled={busy !== null}
+          onClick={() => downloadCombinedStatement('tenant')}
+        >
+          {busy === 'combined-tenant'
+            ? 'Wird erzeugt …'
+            : 'Gesamtabrechnung für Mieter (PDF)'}
         </button>
         <button
           className="button button--quiet"

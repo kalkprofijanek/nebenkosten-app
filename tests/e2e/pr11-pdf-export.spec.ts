@@ -166,18 +166,39 @@ test('moves a valid fictional billing period through review to PDF-ready and fin
   ).toBeVisible()
 
   const combinedDownload = page.waitForEvent('download')
-  await page.getByRole('button', { name: /Gesamtabrechnung/ }).click()
+  await page
+    .getByRole('button', {
+      name: 'Gesamtabrechnung intern (PDF)',
+      exact: true,
+    })
+    .click()
   const combined = await combinedDownload
   expect(combined.suggestedFilename()).toMatch(
-    /^NK_2026_Kostenaufstellung\.pdf$/,
+    /^NK_2026_Gesamtabrechnung_intern\.pdf$/,
   )
   const combinedPath = await combined.path()
   expect(combinedPath).not.toBeNull()
   const combinedBytes = await readFile(combinedPath!)
   expect(combinedBytes.subarray(0, 5).toString('latin1')).toBe('%PDF-')
   await expect(
-    page.getByText('NK_2026_Kostenaufstellung.pdf', { exact: true }),
+    page.getByText('NK_2026_Gesamtabrechnung_intern.pdf', { exact: true }),
   ).toBeVisible()
+
+  const tenantCombinedDownload = page.waitForEvent('download')
+  await page
+    .getByRole('button', {
+      name: 'Gesamtabrechnung für Mieter (PDF)',
+      exact: true,
+    })
+    .click()
+  const tenantCombined = await tenantCombinedDownload
+  expect(tenantCombined.suggestedFilename()).toBe(
+    'NK_2026_Gesamtabrechnung_Mieter.pdf',
+  )
+  const tenantCombinedPath = await tenantCombined.path()
+  expect(tenantCombinedPath).not.toBeNull()
+  const tenantCombinedBytes = await readFile(tenantCombinedPath!)
+  expect(tenantCombinedBytes.subarray(0, 5).toString('latin1')).toBe('%PDF-')
 
   const tenantDownload = page.waitForEvent('download')
   await page
@@ -232,7 +253,12 @@ test('moves a valid fictional billing period through review to PDF-ready and fin
 
   await page.getByRole('link', { name: 'PDF und Export', exact: true }).click()
   const correctedCombinedDownload = page.waitForEvent('download')
-  await page.getByRole('button', { name: /Gesamtabrechnung/ }).click()
+  await page
+    .getByRole('button', {
+      name: 'Gesamtabrechnung intern (PDF)',
+      exact: true,
+    })
+    .click()
   const correctedCombined = await correctedCombinedDownload
   const correctedTenantDownload = page.waitForEvent('download')
   await page
