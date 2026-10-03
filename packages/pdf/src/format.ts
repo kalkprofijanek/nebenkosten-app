@@ -59,7 +59,7 @@ export function balanceLabel(balanceCents: number): 'Nachzahlung' | 'Guthaben' {
 /** IBAN in Vierergruppen (DIN 5008), z. B. „DE48 5605 1790 …“. */
 export function formatIban(iban: string): string {
   return iban
-    .replace(/s+/g, '')
+    .replace(/\s+/g, '')
     .toUpperCase()
     .replace(/(.{4})/g, '$1 ')
     .trim()
