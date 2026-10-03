@@ -86,17 +86,47 @@ describe('buildTenantStatement', () => {
     expect(serialized).not.toContain('{{jahr}}')
   })
 
-  it('wirft MissingShippingAddressError ohne Versandadresse', () => {
+  it('wirft MissingShippingAddressError ohne Versandadresse nach Auszug', () => {
     const appData = buildFixtureAppData()
     const context = buildFixtureTenantStatementContext(appData)
     const patchedContext = {
       ...context,
+      occupancyPeriod: {
+        ...context.occupancyPeriod,
+        to: context.billingPeriod.periodStart,
+      },
       tenancy: { ...context.tenancy, shippingAddressStreet: null },
     }
 
     expect(() => buildTenantStatement(patchedContext)).toThrow(
       MissingShippingAddressError,
     )
+  })
+
+  it('adressiert Bewohner ohne Versandadresse an ihre Hausanschrift', () => {
+    const appData = buildFixtureAppData()
+    const context = buildFixtureTenantStatementContext(appData)
+    const patchedContext = {
+      ...context,
+      occupancyPeriod: {
+        ...context.occupancyPeriod,
+        to: null,
+        legacyUnmapped: [
+          { path: ['strasse'], value: 'Am Fiktivhof' },
+          { path: ['hausnummer'], value: '9' },
+        ],
+      },
+      tenancy: {
+        ...context.tenancy,
+        shippingAddressStreet: null,
+        shippingAddressPostalCodeAndCity: null,
+      },
+    }
+
+    const serialized = JSON.stringify(
+      buildTenantStatement(patchedContext).content,
+    )
+    expect(serialized).toContain('Am Fiktivhof 9')
   })
 
   it('wirft, wenn kein Berechnungsergebnis für den Nutzungszeitraum existiert', () => {

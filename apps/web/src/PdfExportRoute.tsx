@@ -205,7 +205,7 @@ export function PdfExportRoute({
     } catch (caught) {
       setError(
         caught instanceof MissingShippingAddressError
-          ? 'Für dieses Mietverhältnis fehlt eine Versandadresse.'
+          ? 'Für dieses Mietverhältnis fehlt eine Versandadresse. Nach einem Auszug bitte die neue Anschrift beim Nutzer eintragen.'
           : caught instanceof Error
             ? caught.message
             : 'Das Dokument konnte nicht erzeugt werden.',

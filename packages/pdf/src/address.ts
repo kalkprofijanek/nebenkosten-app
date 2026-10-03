@@ -57,16 +57,26 @@ function buildSalutationLine(persons: readonly Person[]): string {
     : `${prefix} ${personDisplayName(first)}`
 }
 
+/**
+ * `address` is the already resolved shipping address (see
+ * `resolveShippingAddress`); without it only the tenancy fields are used.
+ */
 export function buildRecipientBlock(
   tenancy: Tenancy,
   persons: readonly Person[],
+  address?: { street: string; postalCodeAndCity: string } | null,
 ): RecipientBlock {
-  if (
-    blank(tenancy.shippingAddressStreet) ||
-    blank(tenancy.shippingAddressPostalCodeAndCity)
-  ) {
-    throw new MissingShippingAddressError(tenancy.id)
-  }
+  const resolved =
+    address !== undefined
+      ? address
+      : blank(tenancy.shippingAddressStreet) ||
+          blank(tenancy.shippingAddressPostalCodeAndCity)
+        ? null
+        : {
+            street: tenancy.shippingAddressStreet!.trim(),
+            postalCodeAndCity: tenancy.shippingAddressPostalCodeAndCity!.trim(),
+          }
+  if (!resolved) throw new MissingShippingAddressError(tenancy.id)
   const nameLines =
     persons.length > 0
       ? [persons.map(personDisplayName).join(' und ')]
@@ -74,7 +84,7 @@ export function buildRecipientBlock(
   return {
     salutationLine: buildSalutationLine(persons),
     nameLines,
-    street: tenancy.shippingAddressStreet!.trim(),
-    postalCodeAndCity: tenancy.shippingAddressPostalCodeAndCity!.trim(),
+    street: resolved.street,
+    postalCodeAndCity: resolved.postalCodeAndCity,
   }
 }

@@ -183,6 +183,8 @@ function fixtureAppData(
           unitId: UNIT_ID,
           tenancyId: TENANCY_ID,
           kind: 'tenant',
+          // Ohne Anschrift nur nach Auszug ein Fehler; Bewohner erhalten die Objektanschrift.
+          ...(withAddress ? {} : { to: '2026-06-30' }),
         },
       ],
       calculationRuns: [
@@ -338,7 +340,7 @@ describe('PdfExportRoute', () => {
     })
   })
 
-  it('zeigt einen Fehler bei fehlender Versandadresse', async () => {
+  it('zeigt einen Fehler bei fehlender Versandadresse nach Auszug', async () => {
     renderPdfBlob.mockResolvedValue(new Blob(['pdf']))
     const data = fixtureAppData({ shippingAddress: false })
     render(

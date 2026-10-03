@@ -95,19 +95,39 @@ describe('validateBillingPeriod', () => {
   })
 
   it('meldet eine fehlende Versandadresse und akzeptiert eine vollständige', () => {
-    const data = validData()
+    const movedOut = (data: ReturnType<typeof validData>) => {
+      data.billingData.occupancyPeriods[0] = {
+        ...data.billingData.occupancyPeriods[0]!,
+        to: '2025-06-30',
+      }
+      return data
+    }
+    const data = movedOut(validData())
     data.masterData.tenancies[0] = {
       ...data.masterData.tenancies[0]!,
       shippingAddressStreet: null,
     }
     expect(codes(data)).toContain('occupancy.shipping_address_missing')
 
-    const withoutCity = validData()
+    const withoutCity = movedOut(validData())
     withoutCity.masterData.tenancies[0] = {
       ...withoutCity.masterData.tenancies[0]!,
       shippingAddressPostalCodeAndCity: '   ',
     }
     expect(codes(withoutCity)).toContain('occupancy.shipping_address_missing')
+
+    const resident = validData()
+    resident.masterData.tenancies[0] = {
+      ...resident.masterData.tenancies[0]!,
+      shippingAddressStreet: null,
+      shippingAddressPostalCodeAndCity: null,
+    }
+    expect(codes(resident)).not.toContain('occupancy.shipping_address_missing')
+    resident.masterData.properties[0] = {
+      ...resident.masterData.properties[0]!,
+      address: null,
+    }
+    expect(codes(resident)).toContain('occupancy.shipping_address_missing')
 
     expect(codes(validData())).not.toContain(
       'occupancy.shipping_address_missing',
