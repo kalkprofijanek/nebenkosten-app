@@ -83,7 +83,7 @@ test('stored v4 requires confirmation and preserves original backup bytes', asyn
   expect(stored).toEqual({ current: 5, backups: [source] })
 })
 
-for (const width of [1440, 390]) {
+for (const width of [1440]) {
   test(`meter assignment, occupant change and correction at ${width}px`, async ({
     page,
   }, info) => {
@@ -131,7 +131,7 @@ for (const width of [1440, 390]) {
   })
 }
 
-for (const width of [1440, 390]) {
+for (const width of [1440]) {
   test(`blocked metered calculation leads to the meter reading at ${width}px`, async ({
     page,
   }) => {

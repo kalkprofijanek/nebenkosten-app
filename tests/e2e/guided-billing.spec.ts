@@ -3,7 +3,7 @@ import { buildAppDataFile } from '../characterization/build-app-data'
 import { readFile } from 'node:fs/promises'
 import type { Scenario } from '../characterization/types'
 
-for (const width of [1440, 390]) {
+for (const width of [1440]) {
   test(`guided annual billing with fictional data at ${width}px`, async ({
     page,
   }, info) => {

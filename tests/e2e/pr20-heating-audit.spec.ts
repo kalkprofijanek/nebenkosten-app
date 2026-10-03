@@ -260,7 +260,6 @@ async function meters(page: Page) {
 }
 for (const [name, viewport] of [
   ['desktop', { width: 1440, height: 1000 }],
-  ['mobile', { width: 390, height: 844 }],
 ] as const) {
   test(`fictional oil and heat-pump audit reaches actual release barrier (${name})`, async ({
     page,

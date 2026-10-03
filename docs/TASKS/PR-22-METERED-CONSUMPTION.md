@@ -120,7 +120,8 @@ Heizverbrauchspfad → Eingaben/Vorschau → Freigabe/Snapshots/PDF → Gesamtab
 - Manuelle HKV-Werte bleiben erhalten; andere Verbrauchskosten unverändert.
 - Korrektur berechnet neu; gesperrtes Jahr bleibt gesperrt; historische PDFs
   verwenden weiterhin ihre unveränderten Snapshots.
-- UI und vollständiger Browserablauf bei Desktop- und Mobilbreite.
+- UI und vollständiger Browserablauf bei Desktopbreite (Mobil entfällt seit
+  ADR-0002).
 - Format, Lint, Typen, Unit/Integration/Migration/Charakterisierung, mindestens
   80 % Abdeckung, Build, Datenschutz, Guardrails und Abhängigkeitsaudit.
 
@@ -194,6 +195,42 @@ Abnahmekriterien und Nachweis (lokal ausgeführt):
   bestand mit prozessweiser `safe.directory`-Ausnahme, ebenso Inhaltsscan und
   Abhängigkeitsaudit (keine bekannten Schwachstellen).
 
-Legacy-Datei unverändert. Änderungen nur lokal, keine Veröffentlichung.
+### Nachtrag: Praxistest mit lokalem Bestand
+
+Ein lokaler Durchlauf einer produktiven v3-Sicherung (nur unter `private-data/`,
+nicht im Git; Auswertung ausschließlich mit Codes und Anzahlen) zeigte eine stille
+Fehlzuordnung: Wohnungen eines Gebäudes erhielten kein Gebäude, weil das
+Mandatspräfix in der Alt-App anders geschrieben war als die Hausschlüssel. Die
+Berechnung lief dennoch ohne Warnung durch; die Heizkosten dieses Gebäudes wären
+nicht auf seine Nutzer verteilt worden.
+
+Korrigiert:
+
+- Import: Exakte Präfixtreffer haben weiter Vorrang, die Trennzeichenregel bleibt.
+  Nur ohne exakten Treffer gilt die Schreibweise der Alt-App (`normScopeKey`:
+  Großschreibung), und nur bei genau einem passenden Gebäude.
+- Import meldet verbleibende Wohnungen ohne Gebäude als
+  `migration.unit_building_unresolved`.
+- Prüfung: `master_data.unit_building_missing` und
+  `heating.circuit_without_units` sperren die Freigabe;
+  `heating.consumption_units_missing` verlangt bei Mietern ohne oder mit 0
+  Verbrauchseinheiten in einem manuellen Heizkreis mit Heizkosten eine bewusste
+  Bestätigung und verlinkt auf den Nutzerzeitraum.
+
+Offen und fachlich zu entscheiden: fehlende Versandanschriften sind im Bestand
+der größte Freigabeblocker (Objektanschrift als Vorgabe?); mögliche
+Doppelbuchungen gleicher Kostenart, gleichen Betrags und Datums haben noch keine
+Prüfregel. Der Bestand nutzt Heizkostenverteiler; der kWh-Messpfad ist dafür
+nicht vorgesehen, eine Erweiterung steht daher zurück.
+
+### Nachtrag: nur Desktop
+
+Laut Nutzerentscheidung ist die App ausschließlich für Desktop-Browser bestimmt
+([ADR-0002](../DECISIONS/ADR-0002-DESKTOP-ONLY.md)). Die Mobilvarianten der
+Browsertests (390 px) wurden entfernt; frühere Mobilangaben oben sind nur noch
+historischer Nachweis.
+
+Legacy-Datei unverändert. Nach Freigabe als Pull Request #46 veröffentlicht;
+kein Merge ohne ausdrückliche Freigabe.
 Der wiederverwendbare Arbeitsauftrag steht in
 [SUBAGENTEN-SPARSAM-PROMPT.md](SUBAGENTEN-SPARSAM-PROMPT.md).
