@@ -6,6 +6,28 @@ Die Fachlogik (Umlage, Heizkosten, FIFO-Brennstoffbewertung, Warmwasser, CO₂
 nach CO2KostAufG, Vorauszahlungen, Freigabe, PDF) wird schrittweise und
 nachweisbar verhaltensgleich in prüfbare Pakete überführt.
 
+## Nutzung
+
+**Aktuelle Version: 1.1.1 · Schema v5** – direkt im Browser:
+**<https://kalkprofijanek.github.io/nebenkosten-app/>**
+
+- Ausschließlich für **Desktop-Browser** gedacht (siehe
+  [ADR-0002](docs/DECISIONS/ADR-0002-DESKTOP-ONLY.md)).
+- Alle Daten bleiben **lokal im Browser** (IndexedDB); es gibt keinen Server,
+  keine Anmeldung und keine Datenübertragung (Content Security Policy
+  `connect-src 'none'`).
+- Bestehende Daten der Alt-App: oben rechts über **Daten importieren** die
+  `nk-daten.json` (Legacy v3) wählen. Die Importvorschau zeigt Migrationsbericht
+  und fachliche Prüfung, bevor etwas übernommen wird.
+- Ablauf: **Jahresabrechnung** führt in acht Schritten von Objekt und Belegung
+  über Heizung, Zähler, Energie und Kosten bis zu Berechnung, Freigabe, PDF und
+  Sicherung. Prüfhinweise verlinken direkt auf die Korrekturstelle.
+- Regelmäßig unter **Sicherung** eine JSON-Sicherung herunterladen.
+
+Änderungen je Version: [`CHANGELOG.md`](CHANGELOG.md).
+
+## Projektablauf
+
 Der verbindliche Arbeits-, Migrations- und Review-Ablauf steht in
 [`MASTERPLAN_MIGRATION_FABLE_CODEX.md`](MASTERPLAN_MIGRATION_FABLE_CODEX.md).
 Kurzregeln für Beitragende: [`CONTRIBUTING.md`](CONTRIBUTING.md),
@@ -50,13 +72,12 @@ siehe [`docs/DECISIONS/ADR-0001-SANITIZED-LEGACY-BASELINE.md`](docs/DECISIONS/AD
 apps/
   web/                 React/Vite-UI (nur Darstellung, keine Fachlogik)
 packages/
-  schema/              Ziel-Datenmodell (Schema v4, Zod) + Legacy-v3-Schema + Migrationsvertrag
+  schema/              Ziel-Datenmodell (Schema v5, Zod), Migrationen v3→v5 und v4→v5
   import-export/       Legacy-v3-Importer (Byte-Eingang, Hashing, Migration)
-  core/                Reine Berechnungsengine (Umlage, Heizkosten, CO₂)
+  core/                Reine Berechnungsengine (Umlage, Heizkosten, CO₂, Messverbrauch)
   persistence/         Storage-Adapter (Memory, IndexedDB, Datei), Snapshots, Backup
   validators/          Formelle & fachliche Prüfungen, Freigabelogik
   pdf/                 Dokument-/PDF-Erzeugung aus Snapshots
-  ui/                  Wiederverwendbare UI-Bausteine                   (geplant)
   test-fixtures/       Gemeinsame, anonymisierte Fixtures
 legacy/                Sanitisierte Referenz-App + Behavior-Map
 tests/                 characterization, integration, migration, e2e, privacy, repository
@@ -85,29 +106,23 @@ Schritte als separate Checks (`lint`, `typecheck`, diverse `*-tests`,
 `coverage`, `build`, `e2e-smoke`, `privacy-scan`, `security-audit`,
 `repository-guardrails`).
 
-## Migrationsstand
+## Entwicklungsstand
 
-Umgesetzt und auf `main` gemergt:
+Umgesetzt und auf `main` gemergt (Aufgabenbeschreibungen unter
+[`docs/TASKS/`](docs/TASKS)):
 
-| PR    | Inhalt                          | Ergebnis                                 |
-| ----- | ------------------------------- | ---------------------------------------- |
-| PR 00 | Repository-Grundschutz          | Guards, CI, Datenschutzregeln            |
-| PR 01 | Bestandsaufnahme & Refactor-Map | `legacy/behavior-map.md`                 |
-| PR 02 | Workspace & TypeScript-Scaffold | pnpm-Monorepo, Toolchain, CI             |
-| PR 03 | Schema & Legacy-v3-Mapping      | `packages/schema` (Zod, Cent, Migration) |
-| PR 04 | Legacy-v3-Importer              | `packages/import-export`                 |
-| PR 05 | Characterization Tests          | 15 Golden-Fälle, `docs/ROUNDING.md`      |
-| PR 06 | Core-Berechnungsengine          | `packages/core`                          |
-| PR 07 | Heizkosten- & CO₂-Modul         | FIFO, 70/30, Warmwasser, CO₂             |
-| PR 08 | Persistenz & Backup             | `packages/persistence`                   |
-| PR 09 | UI-Grundstruktur                | vollständiger lokaler Arbeitsablauf      |
-| PR 10 | Validatoren & Freigabe          | Prüfungen, Status- und Sperrlogik        |
-| PR 11 | PDF & Export                    | Einzel-/Gesamtabrechnung, PDF und ZIP    |
-| PR 12 | Produktionsmigration & Abnahme  | lokaler Vergleich, Backup und Rollback   |
-
-Als nächstes wird in PR 13 der reproduzierbare statische Release-Build für
-Version 1.0.0 vorbereitet. GitHub Pages und der Release-Tag werden erst nach
-gesonderter menschlicher Freigabe aktiviert.
+| PR       | Inhalt                                  | Ergebnis                                              |
+| -------- | --------------------------------------- | ----------------------------------------------------- |
+| PR 00–02 | Grundschutz, Bestandsaufnahme, Scaffold | Guards, CI, pnpm-Monorepo                             |
+| PR 03–05 | Schema, Legacy-Importer, Golden-Fälle   | Zod-Schema, v3-Import, Characterization Tests         |
+| PR 06–07 | Berechnung, Heizkosten & CO₂            | Umlage, FIFO, 70/30, Warmwasser, CO2KostAufG          |
+| PR 08–11 | Persistenz, UI, Freigabe, PDF           | lokaler Arbeitsablauf bis Einzelabrechnung            |
+| PR 12–13 | Produktionsabnahme, Release-Build       | Vergleich, Rollback, GitHub Pages, `v1.0.0`           |
+| PR 14–19 | Datensichten, Workflows, Bank, Tabellen | Kosten-, Buchungs- und Stammdaten-Arbeitsplätze       |
+| PR 20    | Belegungen je Wohnung, Heizungsaudit    | Nutzerwechsel und Leerstände je Einheit               |
+| PR 21    | Geführte Jahresabrechnung               | acht Schritte mit Prüfhinweisen                       |
+| PR 22    | Schema v5, Wohnungswärme aus Ablesungen | Messverbrauch, v4→v5-Migration, `v1.1.0`              |
+| PR 47–50 | Praxisabgleich mit Echtbestand          | Versandanschrift, Flüssiggas, Importprüfung, `v1.1.1` |
 
 Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsystem
 (der Legacy-Wert 0,50 € bleibt nur dokumentierter Warnwert, siehe
@@ -116,7 +131,7 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 ## Dokumentation
 
 - [`docs/PROJECT.md`](docs/PROJECT.md) – Projektauftrag und Invarianten
-- [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md) – Ziel-Datenmodell (Schema v4)
+- [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md) – Ziel-Datenmodell
 - [`docs/MIGRATION.md`](docs/MIGRATION.md) – v3→v4-Feldmapping und Pipeline
 - [`docs/ROUNDING.md`](docs/ROUNDING.md) – Rundungsregeln je Rechenschritt
 - [`docs/HEATING-CO2.md`](docs/HEATING-CO2.md) – Heizkosten- und CO₂-Logik
@@ -128,7 +143,7 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 
 ## Status
 
-Die kontrollierte Migration und lokale Abnahme sind mit PR 12 abgeschlossen.
-Das Repository ist öffentlich, enthält aber keine produktiven Daten. Ein
-öffentliches GitHub-Pages-Deployment und der Release-Tag `v1.0.0` stehen noch
-aus. Der Mehrbenutzer-/Mandantenbetrieb bleibt Phase 2.
+Version **1.1.1** ist veröffentlicht (GitHub Pages, Release-Tag `v1.1.1`). Das
+Repository ist öffentlich und enthält ausschließlich fiktive Testdaten. Offen
+für spätere Versionen: Import von Heizkostenverteiler-Werten des Messdienstes
+und ein Mehrbenutzer-/Mandantenbetrieb.
