@@ -8,6 +8,7 @@ const actionLabels: Readonly<Record<string, string>> = {
   'billing_period.status_transition': 'Statuswechsel',
   'billing_period.review_invalidated': 'Prüfung zurückgesetzt',
   'document.generated': 'Dokument erzeugt',
+  'prepayment.adjustment_decided': 'VZ-Anpassung entschieden',
 }
 
 function detailText(
