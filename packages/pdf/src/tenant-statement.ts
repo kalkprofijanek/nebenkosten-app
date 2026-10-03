@@ -764,7 +764,7 @@ export function buildTenantStatement(
             margin: [0, 0, 0, 6],
           },
           {
-            text: `anbei erhalten Sie Ihre Heiz- und Hausnebenkostenabrechnung für ${range.partial ? 'Ihren Nutzungszeitraum' : 'das Jahr'} ${formatIsoDate(range.from)} bis ${formatIsoDate(range.to)}.`,
+            text: `anbei erhalten Sie Ihre Heiz- und Hausnebenkostenabrechnung ${range.partial ? `für Ihren Nutzungszeitraum ${formatIsoDate(range.from)} bis ${formatIsoDate(range.to)}` : `für das Jahr ${billingPeriod.year}`}.`,
             margin: [0, 0, 0, 10],
           },
         ]
