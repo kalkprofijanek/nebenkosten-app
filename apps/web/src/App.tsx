@@ -1,4 +1,5 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
+import { CURRENT_SCHEMA_VERSION } from '@nebenkosten/schema'
 import { validateBillingPeriod } from '@nebenkosten/validators'
 
 import { appRoutes, findRoute } from './app/navigation'
@@ -134,7 +135,8 @@ function Dashboard({
             <h2 id="welcome-title">Neuen Arbeitsbestand beginnen</h2>
             <p>
               Es ist noch kein lokaler Datenbestand vorhanden. Erst dein Klick
-              legt eine gültige, leere Datei der Schema-Version 4 an.
+              legt eine gültige, leere Datei der Schema-Version{' '}
+              {CURRENT_SCHEMA_VERSION} an.
             </p>
           </div>
           <button

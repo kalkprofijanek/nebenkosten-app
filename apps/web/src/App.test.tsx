@@ -153,6 +153,21 @@ describe('App', () => {
     },
   )
 
+  it('nennt beim leeren Start die aktuelle Schema-Version', () => {
+    const workspaceState: WorkspaceState = {
+      status: 'empty',
+      data: null,
+      revision: null,
+      dirty: false,
+      saving: false,
+      errorCode: null,
+    }
+    render(<App initialPath="/" workspaceState={workspaceState} />)
+    expect(
+      screen.getByText(/leere Datei der Schema-Version 5 an/),
+    ).toBeVisible()
+  })
+
   it('labels clean preview storage as session-only', () => {
     const workspaceState: WorkspaceState = {
       status: 'ready',
