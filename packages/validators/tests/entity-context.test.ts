@@ -3,8 +3,8 @@ import { validateBillingPeriod } from '../src/index'
 import { describeEntity } from '../src/entity-context'
 import { validData } from './fixture'
 
-const plain = (value: string | undefined) =>
-  value?.replace(/[  ]/g, ' ')
+const spaces = new RegExp('[' + String.fromCharCode(0xa0, 0x202f) + ']', 'g')
+const plain = (value: string | undefined) => value?.replace(spaces, ' ')
 
 function heatedData() {
   const data = validData()
