@@ -2,8 +2,22 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
-## 1.0.1 – in Vorbereitung
+## 1.1.0 – 3. Oktober 2026
 
+- Schema-Version 5 mit bestätigter, gesicherter Umstellung von Version 4,
+- Belegungen je Wohnung mit Leerständen und Nutzerwechseln,
+- geführte Jahresabrechnung in acht Schritten mit Prüfhinweisen je Schritt,
+- optionaler Wohnungswärme-Messverbrauch (kWh) aus Grenzablesungen mit
+  Messnachweis im PDF; Fehler führen direkt zur Korrekturstelle,
+- Legacy-Import ordnet Wohnungen auch bei abweichender Schreibweise des
+  Hausschlüssels eindeutig dem Gebäude zu und meldet nicht zuordenbare Wohnungen,
+- neue Prüfungen für Wohnungen ohne Gebäude, Heizkreise mit Heizkosten ohne
+  Nutzungen und Mieter ohne Verbrauchseinheiten,
+- Bewohner ohne erfasste Versandanschrift erhalten automatisch die Wohnungs-
+  bzw. Objektanschrift; nach Auszug bleibt eine eigene Anschrift Pflicht,
+- ausschließlich Desktop-Nutzung (ADR-0002),
+- GitHub-Actions aktualisiert (checkout 7.0.1, deploy-pages 5.0.0,
+  upload-artifact 7.0.1),
 - migrierte Kostenarten mit Umlageschlüssel, Positionszahl und Gesamtbetrag
   sichtbar,
 - Kostenpositionen mit Datum, Beschreibung, Belegreferenz und Betrag sichtbar,
