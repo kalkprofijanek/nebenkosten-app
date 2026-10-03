@@ -179,6 +179,15 @@ describe('prepareImport', () => {
     })
     if (!result.ok || result.sourceFormat !== 'legacy-v3')
       throw new Error('Legacy-Migrationsbericht erwartet')
+    const [yearSummary] = result.validationSummaries
+    const groups = yearSummary?.issueGroups ?? []
+    expect(
+      groups.find(({ code }) => code === 'master_data.iban_missing'),
+    ).toMatchObject({ severity: 'error', title: 'IBAN fehlt', count: 1 })
+    expect(groups.reduce((sum, { count }) => sum + count, 0)).toBe(
+      yearSummary?.issueCodes.length,
+    )
+    expect(new Set(groups.map(({ code }) => code)).size).toBe(groups.length)
     expect(JSON.stringify(result.validationSummaries)).not.toContain(
       'jahr-interne-kennung',
     )

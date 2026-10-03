@@ -57,6 +57,42 @@ export interface ImportValidationSummary {
   readonly infoCount: number
   readonly canBecomeReady: boolean
   readonly issueCodes: readonly string[]
+  /** Readable findings grouped by code, most severe first. */
+  readonly issueGroups?: readonly ImportIssueGroup[]
+}
+
+export interface ImportIssueGroup {
+  readonly code: string
+  readonly severity: 'error' | 'warning' | 'info'
+  readonly title: string
+  readonly count: number
+}
+
+const SEVERITY_ORDER = { error: 0, warning: 1, info: 2 } as const
+
+function groupIssues(
+  issues: readonly {
+    code: string
+    severity: ImportIssueGroup['severity']
+    title: string
+  }[],
+): readonly ImportIssueGroup[] {
+  const groups = new Map<string, ImportIssueGroup>()
+  for (const { code, severity, title } of issues) {
+    const current = groups.get(code)
+    groups.set(code, {
+      code,
+      severity,
+      title,
+      count: (current?.count ?? 0) + 1,
+    })
+  }
+  return [...groups.values()].sort(
+    (a, b) =>
+      SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] ||
+      b.count - a.count ||
+      a.title.localeCompare(b.title, 'de'),
+  )
 }
 
 export type ImportPreview =
@@ -140,6 +176,7 @@ function summarizeValidation(
       infoCount: report.infoCount,
       canBecomeReady: report.canBecomeReady,
       issueCodes: report.issues.map(({ code }) => code),
+      issueGroups: groupIssues(report.issues),
     }
   })
 }
