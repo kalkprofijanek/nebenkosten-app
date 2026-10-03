@@ -17,6 +17,7 @@ import type {
   Unit,
   ValidationIssue,
 } from '@nebenkosten/schema'
+import type { MeteredConsumptionTrace } from '../metered-consumption'
 
 export const CORE_SNAPSHOT_FORMAT_VERSION = 3 as const
 export const HEATING_TRACE_FORMAT_VERSION = 1 as const
@@ -232,4 +233,5 @@ export interface CalculationOutput {
   vacancyLandlordCents: number
   tenants: TenantCalculationResult[]
   warnings: ValidationIssue[]
+  meteringTrace?: MeteredConsumptionTrace
 }

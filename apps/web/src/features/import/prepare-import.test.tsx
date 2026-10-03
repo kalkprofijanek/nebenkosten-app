@@ -15,6 +15,17 @@ const importMetadata = {
 } as const
 
 describe('prepareImport', () => {
+  it('kennzeichnet eine verlustfreie v4-Vorschau als Umstellung und lässt Quellbytes unverändert', async () => {
+    const source = encode({ ...createEmptyAppDataFile(), schemaVersion: 4 })
+    const before = source.slice()
+    const result = await prepareImport(source, importMetadata)
+    expect(result).toMatchObject({
+      ok: true,
+      sourceFormat: 'legacy-v4',
+      data: { schemaVersion: 5 },
+    })
+    expect(source).toEqual(before)
+  })
   it('bereitet einen aktuellen v4-Bestand vor, ohne ihn zu speichern', async () => {
     const source = createEmptyAppDataFile()
     source.masterData.organizations = [
@@ -28,7 +39,7 @@ describe('prepareImport', () => {
 
     expect(result).toMatchObject({
       ok: true,
-      sourceFormat: 'current-v4',
+      sourceFormat: 'current-v5',
       summary: {
         organizations: 1,
         ownerCompanies: 0,
@@ -91,14 +102,14 @@ describe('prepareImport', () => {
       },
     })
     if (!result.ok) throw new Error('Importvorschau erwartet')
-    expect(result.data.schemaVersion).toBe(4)
+    expect(result.data.schemaVersion).toBe(5)
     if (result.sourceFormat !== 'legacy-v3')
       throw new Error('Legacy-Migrationsbericht erwartet')
     expect(result.migrationReport).toMatchObject({
       sourceFileName: importMetadata.sourceFileName,
       sourceSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
       detectedSchemaVersion: 3,
-      targetSchemaVersion: 4,
+      targetSchemaVersion: 5,
       appVersion: importMetadata.appVersion,
       counts: {
         ownerCompanies: 1,
@@ -234,7 +245,7 @@ describe('prepareImport', () => {
 
     const result = await pending
 
-    expect(result).toMatchObject({ ok: true, sourceFormat: 'current-v4' })
+    expect(result).toMatchObject({ ok: true, sourceFormat: 'current-v5' })
   })
 
   it('arbeitet auf einer Metadatenkopie statt auf dem veränderbaren Aufruferobjekt', async () => {

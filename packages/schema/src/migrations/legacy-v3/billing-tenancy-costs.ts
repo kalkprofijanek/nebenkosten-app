@@ -487,6 +487,19 @@ function mapUser(
       [],
     )
     state.units = [...state.units, unit]
+    if (
+      !inferredBuildingId &&
+      state.buildings.some(
+        ({ propertyId }) => propertyId === property.propertyId,
+      )
+    )
+      context.issue(
+        'warning',
+        'migration.unit_building_unresolved',
+        'Die Wohnung konnte keinem Gebäude zugeordnet werden. Gebäudebezogene Heiz- und Betriebskosten erreichen sie erst nach Zuordnung.',
+        [...path, 'mandatsref'],
+        { type: 'Unit', id: unit.id },
+      )
   } else {
     const sourcePathSegment = path[path.length - 1]
     const sourceIndex =

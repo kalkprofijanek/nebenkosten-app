@@ -17,7 +17,7 @@ const areaLinks: Readonly<Record<ValidationArea, ValidationIssueLink>> = {
   heating: { href: '#/heizkreise', label: 'Heizung bearbeiten' },
   hot_water: { href: '#/heizkreise', label: 'Heizung bearbeiten' },
   co2: { href: '#/heizkreise', label: 'Heizung bearbeiten' },
-  meters: { href: '#/heizkreise', label: 'Zähler bearbeiten' },
+  meters: { href: '#/heizkreise?tab=meters', label: 'Zähler bearbeiten' },
   prepayments: { href: '#/nutzer', label: 'Nutzer bearbeiten' },
   totals: { href: '#/berechnung', label: 'Berechnung prüfen' },
   documents: { href: '#/pdf-export', label: 'Dokumente bearbeiten' },
@@ -29,6 +29,12 @@ const areaLinks: Readonly<Record<ValidationArea, ValidationIssueLink>> = {
 export function validationIssueLink(
   issue: Pick<ValidationIssue, 'area' | 'code' | 'entity'>,
 ): ValidationIssueLink {
+  if (
+    issue.entity?.type === 'FuelDelivery' ||
+    issue.code === 'heating.delivery_missing'
+  ) {
+    return { href: '#/heizkreise?tab=fuel', label: 'Lieferung bearbeiten' }
+  }
   if (issue.code === 'documents.booking_link_missing') {
     if (issue.entity?.type === 'CostEntry') {
       return {
@@ -36,10 +42,30 @@ export function validationIssueLink(
         label: 'Kostenposition bearbeiten',
       }
     }
-    if (issue.entity?.type === 'FuelDelivery') {
-      return { href: '#/heizkreise', label: 'Lieferung bearbeiten' }
-    }
   }
+
+  if (issue.code.startsWith('metered.')) {
+    const id = encodeURIComponent(issue.entity?.id ?? '')
+    if (issue.entity?.type === 'Meter')
+      return {
+        href: `#/heizkreise?tab=meters&meter=${id}`,
+        label: 'Ablesungen des Zählers bearbeiten',
+      }
+    if (issue.entity?.type === 'OccupancyPeriod')
+      return { href: `#/nutzer?edit=${id}`, label: 'Nutzerzeitraum bearbeiten' }
+    if (issue.area === 'occupancy')
+      return { href: '#/nutzer', label: 'Nutzerzeiträume bearbeiten' }
+    return { href: '#/heizkreise?tab=meters', label: 'Zählerzuordnung prüfen' }
+  }
+
+  if (
+    issue.code === 'heating.consumption_units_missing' &&
+    issue.entity?.type === 'OccupancyPeriod'
+  )
+    return {
+      href: `#/nutzer?edit=${encodeURIComponent(issue.entity.id)}`,
+      label: 'Verbrauchseinheiten ergänzen',
+    }
 
   if (issue.code === 'occupancy.shipping_address_missing') {
     return {

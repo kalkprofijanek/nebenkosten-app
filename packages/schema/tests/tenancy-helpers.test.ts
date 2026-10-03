@@ -35,6 +35,26 @@ describe('Legacy-Nutzerzuordnung', () => {
     },
   )
 
+  it('ordnet Hausschlüssel unabhängig von der Schreibweise eindeutig zu', () => {
+    const state = createMigrationState()
+    const building = (index: number, prefixes: string[]) => ({
+      id: `10000000-0000-4000-8000-00000000001${index}`,
+      propertyId: property.propertyId,
+      name: `Haus ${index}`,
+      mandateRefPrefixes: prefixes,
+    })
+    state.buildings = [building(1, ['Ha1']), building(2, ['HB2'])]
+    expect(buildingForUser(state, property, 'HA1')).toBe(state.buildings[0]?.id)
+    expect(buildingForUser(state, property, 'ha1_007')).toBe(
+      state.buildings[0]?.id,
+    )
+    expect(buildingForUser(state, property, 'HA1X_007')).toBeUndefined()
+
+    state.buildings = [building(1, ['HA1']), building(2, ['ha1'])]
+    expect(buildingForUser(state, property, 'ha1')).toBe(state.buildings[1]?.id)
+    expect(buildingForUser(state, property, 'Ha1')).toBeUndefined()
+  })
+
   it('bildet den Anzeigenamen aus Vor- und Nachname, wenn name fehlt', () => {
     expect(userDisplayName({ vorname: 'Erika', nachname: 'Beispiel' })).toBe(
       'Erika Beispiel',

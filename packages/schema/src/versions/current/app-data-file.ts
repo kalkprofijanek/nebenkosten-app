@@ -1,5 +1,5 @@
 /**
- * Aktuelles Dateiformat (Schema-Version 4).
+ * Aktuelles Dateiformat (Schema-Version 5).
  *
  * Die Datei trennt Stammdaten und abrechnungsjahresbezogene Daten
  * (Masterplan 5.2) in zwei getrennte Container. Jede Datei trägt eine
@@ -45,6 +45,7 @@ import {
   tenancySchema,
   unitSchema,
 } from '../../entities'
+import { v4AppDataFileSchema } from '../v4/app-data-file'
 
 /** Stammdaten-Container (jahresunabhängig, Masterplan 5.2). */
 export const masterDataSchema = z.strictObject({
@@ -107,6 +108,17 @@ export const appDataFileSchema = z.strictObject({
   billingData: billingDataSchema,
 })
 export type AppDataFile = z.infer<typeof appDataFileSchema>
+
+export { v4AppDataFileSchema }
+
+/** Lossless structural migration. New v5 fields stay absent and disabled. */
+export function migrateV4ToV5(input: unknown): AppDataFile {
+  const source = v4AppDataFileSchema.parse(input)
+  return appDataFileSchema.parse({
+    ...source,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+  })
+}
 
 /** Leere, gültige Datei (Hilfsfunktion für Tests und neue Bestände). */
 export function createEmptyAppDataFile(): AppDataFile {

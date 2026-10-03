@@ -7,6 +7,56 @@ import {
 } from './fixture'
 
 describe('buildTenantStatement', () => {
+  it('druckt den eingefrorenen Messnachweis ohne spätere Live-Ablesungen', () => {
+    const context = buildFixtureTenantStatementContext(buildFixtureAppData())
+    const measurement = {
+      meterId: 'meter',
+      meterNumber: 'SNAPSHOT-WMZ',
+      startReadingId: 'start',
+      startReadingDate: '2026-01-01',
+      startBoundary: 'start_of_day' as const,
+      startValue: '1000',
+      endReadingId: 'end',
+      endReadingDate: '2026-06-30',
+      endBoundary: 'end_of_day' as const,
+      endValue: '1400',
+      unit: 'kWh' as const,
+      kwh: '400',
+    }
+    const meteringTrace = {
+      year: 2026,
+      billingPeriodId: context.billingPeriod.id,
+      totalKwh: '400',
+      circuits: [
+        {
+          heatingCircuitId: 'circuit',
+          buildingId: 'building',
+          totalKwh: '400',
+          occupancies: [
+            {
+              occupancyId: context.occupancyPeriod.id,
+              unitId: context.unit.id,
+              from: '2026-01-01',
+              to: '2026-06-30',
+              kwh: '400',
+              meters: [measurement],
+            },
+          ],
+        },
+      ],
+    }
+    const document = buildTenantStatement({
+      ...context,
+      calculation: { ...context.calculation, meteringTrace },
+    })
+    const serialized = JSON.stringify(document.content)
+    expect(serialized).toContain('SNAPSHOT-WMZ')
+    expect(serialized).toContain('400 kWh')
+    expect(serialized).toContain('Tagesende')
+    expect(serialized).toContain('1000')
+    expect(serialized).toContain('1400')
+  })
+
   it('baut ein vollständiges TDocumentDefinitions-Objekt', () => {
     const appData = buildFixtureAppData()
     const context = buildFixtureTenantStatementContext(appData)

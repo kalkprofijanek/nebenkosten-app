@@ -1,5 +1,10 @@
-import type { AppDataFile } from '@nebenkosten/schema'
+import type { AppDataFile, ValidationIssue } from '@nebenkosten/schema'
 import { useState } from 'react'
+import {
+  latestCalculationRun,
+  validateBillingPeriod,
+} from '@nebenkosten/validators'
+import { StatementPreview } from './features/calculation/StatementPreview'
 
 import { runCalculation } from './features/calculation/calculate-preview'
 import { validationIssueLink } from './features/release/validation-links'
@@ -17,6 +22,24 @@ function euro(cents: number): string {
   }).format(cents / 100)
 }
 
+/** Blocking metered problems, so a failed run points to the correction place. */
+function meteredBlockers(
+  data: AppDataFile,
+  billingPeriodId: string,
+): readonly ValidationIssue[] {
+  try {
+    return validateBillingPeriod(data, billingPeriodId).issues.filter(
+      ({ code, severity }) =>
+        severity === 'error' &&
+        code.startsWith('metered.') &&
+        // An unreadable input is a different failure; keep its own message.
+        code !== 'metered.input_invalid',
+    )
+  } catch {
+    return []
+  }
+}
+
 function dateTime(value: string): string {
   return new Intl.DateTimeFormat('de-DE', {
     dateStyle: 'medium',
@@ -30,10 +53,11 @@ export function CalculationRoute({
   onApply,
 }: CalculationRouteProps) {
   const [error, setError] = useState<string | null>(null)
+  const [blockers, setBlockers] = useState<readonly ValidationIssue[]>([])
   const runs = data.billingData.calculationRuns.filter(
     (run) => run.billingPeriodId === billingPeriodId,
   )
-  const latestRun = runs.at(-1)
+  const latestRun = latestCalculationRun(runs, billingPeriodId ?? '')
   const result = latestRun
     ? data.billingData.calculationResults.find(
         (item) => item.calculationRunId === latestRun.id,
@@ -67,11 +91,29 @@ export function CalculationRoute({
           >
             {controlDifferenceTooLarge
               ? 'Rechenstand fehlerhaft'
-              : 'Rechenstand aktuell'}
+              : 'Gespeicherter Rechenstand'}
           </span>
         ) : null}
       </header>
-      {error ? <p role="alert">{error}</p> : null}
+      {error && blockers.length > 0 ? (
+        <section className="calculation-warnings" role="alert">
+          <strong>{error}</strong>
+          <ul>
+            {blockers.map((issue, index) => {
+              const link = validationIssueLink(issue)
+              return (
+                <li key={`${issue.code}:${index}`}>
+                  <strong>{issue.title}</strong>
+                  {issue.detail ? <p>{issue.detail}</p> : null}
+                  <a href={link.href}>{link.label}</a>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      ) : error ? (
+        <p role="alert">{error}</p>
+      ) : null}
       {billingPeriodId === null ? (
         <p>Wähle zuerst ein Objekt und ein Abrechnungsjahr.</p>
       ) : calculationLocked ? (
@@ -85,6 +127,7 @@ export function CalculationRoute({
           type="button"
           onClick={() => {
             setError(null)
+            setBlockers([])
             try {
               const applied = onApply((current) =>
                 runCalculation(current, billingPeriodId),
@@ -92,6 +135,14 @@ export function CalculationRoute({
               if (!applied)
                 setError('Die Berechnung konnte nicht gespeichert werden.')
             } catch (caught) {
+              const metered = meteredBlockers(data, billingPeriodId)
+              if (metered.length > 0) {
+                setBlockers(metered)
+                setError(
+                  'Die Messberechnung der Wohnungswärme ist gesperrt. Korrigiere zuerst diese Angaben:',
+                )
+                return
+              }
               setError(
                 caught instanceof Error
                   ? caught.message
@@ -103,6 +154,9 @@ export function CalculationRoute({
           Abrechnung berechnen
         </button>
       )}
+      {billingPeriodId ? (
+        <StatementPreview data={data} billingPeriodId={billingPeriodId} />
+      ) : null}
       {result ? (
         <>
           <p className="calculation-meta">

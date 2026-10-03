@@ -70,6 +70,99 @@ function withMeter(): AppDataFile {
 }
 
 describe('meter commands', () => {
+  it('schützt auch den Jahresstatus eines abgeschlossenen Jahres', () => {
+    const source = upsertMeterBillingStatus(
+      withMeter(),
+      { meterId: IDS.meter, year: 2026, bookingPresent: true },
+      { createId: () => IDS.status },
+    )
+    const locked = {
+      ...source,
+      billingData: {
+        ...source.billingData,
+        billingPeriods: source.billingData.billingPeriods.map((period) => ({
+          ...period,
+          status: 'FINALIZED' as const,
+        })),
+      },
+    }
+    expect(() =>
+      upsertMeterBillingStatus(locked, {
+        meterId: IDS.meter,
+        year: 2026,
+        bookingPresent: false,
+      }),
+    ).toThrow(/gesperrt/)
+    expect(() => deleteMeterBillingStatus(locked, IDS.status)).toThrow(
+      /gesperrt/,
+    )
+  })
+  it('erlaubt ausschließlich bestätigte angrenzende Jahresgrenzen', () => {
+    const source = withMeter()
+    const reading = {
+      meterId: IDS.meter,
+      billingPeriodId: IDS.period,
+      date: '2025-12-31',
+      boundary: 'end_of_day',
+      value: { value: 1000, unit: 'kWh' },
+      source: 'manual',
+    }
+    expect(
+      addMeterReading(source, reading, { createId: () => IDS.reading })
+        .billingData.meterReadings[0],
+    ).toMatchObject({ boundary: 'end_of_day' })
+    expect(() =>
+      addMeterReading(source, { ...reading, boundary: 'start_of_day' }),
+    ).toThrow()
+    expect(() =>
+      addMeterReading(source, { ...reading, date: '2025-12-30' }),
+    ).toThrow()
+    expect(() =>
+      addMeterReading(source, {
+        ...reading,
+        date: '2027-01-01',
+        boundary: 'start_of_day',
+      }),
+    ).not.toThrow()
+  })
+
+  it('verhindert Änderungen an Ablesungen eines gesperrten Jahres', () => {
+    const editable = addMeterReading(
+      withMeter(),
+      {
+        meterId: IDS.meter,
+        billingPeriodId: IDS.period,
+        date: '2026-01-01',
+        value: { value: 1000, unit: 'kWh' },
+      },
+      { createId: () => IDS.reading },
+    )
+    const locked = {
+      ...editable,
+      billingData: {
+        ...editable.billingData,
+        billingPeriods: editable.billingData.billingPeriods.map((period) => ({
+          ...period,
+          status: 'FINALIZED' as const,
+        })),
+      },
+    }
+    expect(() => deleteMeterReading(locked, IDS.reading)).toThrow(/gesperrt/)
+    expect(() =>
+      updateMeterReading(locked, IDS.reading, {
+        meterId: IDS.meter,
+        value: { value: 1200, unit: 'kWh' },
+      }),
+    ).toThrow(/gesperrt/)
+    expect(() =>
+      addMeterReading(locked, {
+        meterId: IDS.meter,
+        billingPeriodId: IDS.period,
+        value: { value: 1500, unit: 'kWh' },
+      }),
+    ).toThrow(/gesperrt/)
+  })
+
   it('legt Zähler an und bearbeitet Stammdaten unveränderlich', async () => {
     const source = withMeter()
     const result = updateMeter(source, IDS.meter, {

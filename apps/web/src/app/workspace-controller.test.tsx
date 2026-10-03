@@ -49,6 +49,27 @@ async function flushMicrotasks(): Promise<void> {
 }
 
 describe('workspace controller', () => {
+  it('preserves a concurrent conflict when a snapshot restore finishes', async () => {
+    const adapter = new MemoryStorageAdapter()
+    const original = await adapter.save(withVersion('original'), {
+      expectedRevision: null,
+    })
+    const target = await adapter.createSnapshot({
+      expectedRevision: original.revision,
+      kind: 'manual',
+    })
+    const pending =
+      deferred<Awaited<ReturnType<SnapshotStorageAdapter['restoreSnapshot']>>>()
+    vi.spyOn(adapter, 'restoreSnapshot').mockReturnValue(pending.promise)
+    const controller = createWorkspaceController({ adapter })
+    await controller.load()
+    const restoring = controller.restoreSnapshot(target.id, true)
+    controller.reportExternalRevision('other-window')
+    pending.resolve({ ...original, beforeRestoreSnapshot: target })
+    expect(await restoring).toEqual({ ok: false, code: 'conflict' })
+    expect(controller.getState().status).toBe('conflict')
+  })
+
   beforeEach(() => {
     vi.useFakeTimers()
   })

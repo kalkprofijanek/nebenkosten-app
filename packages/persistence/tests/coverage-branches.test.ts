@@ -230,7 +230,7 @@ describe('memory and retention defensive branches', () => {
     const base: Omit<SnapshotMeta, 'id'> = {
       createdAt: NOW.toISOString(),
       sourceRevision: 'a'.repeat(64),
-      schemaVersion: 4,
+      schemaVersion: 5,
       sha256: 'a'.repeat(64),
       byteLength: 1,
       kind: 'manual',

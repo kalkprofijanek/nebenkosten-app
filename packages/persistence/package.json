@@ -15,9 +15,9 @@
     "@nebenkosten/schema": "workspace:*"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "4.1.10",
+    "@vitest/coverage-v8": "4.1.11",
     "fake-indexeddb": "6.2.5",
     "typescript": "6.0.3",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   }
 }

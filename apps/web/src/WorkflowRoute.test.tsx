@@ -1413,7 +1413,7 @@ describe('WorkflowRoute', () => {
       encodeCurrentAppData(result.getData(), {
         savedAt: new Date('2026-12-31T12:00:00.000Z'),
       }),
-    ).resolves.toMatchObject({ data: { schemaVersion: 4 } })
+    ).resolves.toMatchObject({ data: { schemaVersion: 5 } })
   })
 
   it('erfasst Brennstoffbestand und einzelne Lieferungen getrennt', () => {
@@ -2083,7 +2083,7 @@ describe('WorkflowRoute', () => {
 
     renderRoute('/nutzer', data, SEEDED_SELECTION)
     const table = screen.getByRole('table', {
-      name: 'Nutzerzeiträume bearbeiten',
+      name: /^Belegung /u,
     })
     expect(
       within(table).getByRole('columnheader', { name: 'Einheit' }),

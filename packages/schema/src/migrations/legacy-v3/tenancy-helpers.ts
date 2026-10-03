@@ -8,16 +8,25 @@ export function buildingForUser(
   reference: unknown,
 ): string | undefined {
   if (typeof reference !== 'string') return undefined
-  return state.buildings.find(
-    (building) =>
-      building.propertyId === property.propertyId &&
-      building.mandateRefPrefixes.some(
-        (prefix) =>
-          reference === prefix ||
-          (reference.startsWith(prefix) &&
-            /^[\s_/-]/u.test(reference.slice(prefix.length))),
-      ),
-  )?.id
+  const matches = (value: string, prefix: string) =>
+    value === prefix ||
+    (value.startsWith(prefix) && /^[\s_/-]/u.test(value.slice(prefix.length)))
+  const candidates = state.buildings.filter(
+    ({ propertyId }) => propertyId === property.propertyId,
+  )
+  const exact = candidates.find((building) =>
+    building.mandateRefPrefixes.some((prefix) => matches(reference, prefix)),
+  )
+  if (exact) return exact.id
+  // Legacy normalises house keys to upper case (`normScopeKey`); accept that
+  // spelling only when it identifies exactly one building.
+  const upper = reference.toUpperCase()
+  const relaxed = candidates.filter((building) =>
+    building.mandateRefPrefixes.some((prefix) =>
+      matches(upper, prefix.toUpperCase()),
+    ),
+  )
+  return relaxed.length === 1 ? relaxed[0]!.id : undefined
 }
 
 export function userDisplayName(

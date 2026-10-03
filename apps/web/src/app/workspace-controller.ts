@@ -1,6 +1,7 @@
 import {
   toPersistenceError,
   type PersistenceErrorCode,
+  type MigrationSaveResult,
   type SnapshotMeta,
   type SnapshotStorageAdapter,
   type StorageAdapter,
@@ -14,7 +15,13 @@ import {
 import { APP_VERSION } from './version'
 
 export type WorkspaceStatus =
-  'loading' | 'empty' | 'ready' | 'conflict' | 'blocked' | 'error'
+  | 'loading'
+  | 'empty'
+  | 'ready'
+  | 'migration_pending'
+  | 'conflict'
+  | 'blocked'
+  | 'error'
 
 export interface WorkspaceState {
   readonly status: WorkspaceStatus
@@ -38,6 +45,9 @@ export interface WorkspaceController {
   reportExternalRevision(revision: string): void
   retrySave(): boolean
   importData(data: AppDataFile): Promise<boolean>
+  migrateStoredData(
+    confirmed: boolean,
+  ): Promise<WorkspaceCommandResult<MigrationSaveResult>>
   createManualSnapshot(): Promise<WorkspaceCommandResult<SnapshotMeta>>
   listSnapshots(): Promise<WorkspaceCommandResult<readonly SnapshotMeta[]>>
   restoreSnapshot(
@@ -241,7 +251,7 @@ export function createWorkspaceController({
         }
 
         publish({
-          status: 'ready',
+          status: loaded.migration ? 'migration_pending' : 'ready',
           data: cloneData(loaded.data),
           revision: loaded.revision,
           dirty: false,
@@ -289,7 +299,11 @@ export function createWorkspaceController({
     },
 
     reportExternalRevision(revision: string): void {
-      if (disposed || state.status !== 'ready' || state.revision === revision) {
+      if (
+        disposed ||
+        (state.status !== 'ready' && state.status !== 'migration_pending') ||
+        state.revision === revision
+      ) {
         return
       }
       clearTimer()
@@ -313,7 +327,7 @@ export function createWorkspaceController({
               return
             }
             publish({
-              status: 'ready',
+              status: loaded.migration ? 'migration_pending' : 'ready',
               data: cloneData(loaded.data),
               revision: loaded.revision,
               dirty: false,
@@ -349,6 +363,58 @@ export function createWorkspaceController({
       publish({ ...state, status: 'ready', errorCode: null })
       scheduleAutosave()
       return true
+    },
+
+    async migrateStoredData(
+      confirmed,
+    ): Promise<WorkspaceCommandResult<MigrationSaveResult>> {
+      if (!confirmed) return { ok: false, code: 'confirmation_required' }
+      if (!adapter.migrateStoredData)
+        return { ok: false, code: 'unsupported_capability' }
+      if (
+        disposed ||
+        state.status !== 'migration_pending' ||
+        state.revision === null ||
+        state.saving
+      ) {
+        return { ok: false, code: 'conflict' }
+      }
+      const expectedRevision = state.revision
+      publish({ ...state, saving: true, errorCode: null })
+      try {
+        const migrated = await adapter.migrateStoredData({
+          expectedRevision,
+          confirmed: true,
+        })
+        if (disposed || (state as WorkspaceState).status === 'conflict') {
+          return { ok: false, code: 'conflict' }
+        }
+        publish({
+          status: 'ready',
+          data: cloneData(migrated.data),
+          revision: migrated.revision,
+          dirty: false,
+          saving: false,
+          errorCode: null,
+        })
+        return { ok: true, value: migrated }
+      } catch (error: unknown) {
+        const code = toPersistenceError(error).code
+        if (!disposed && (state as WorkspaceState).status !== 'conflict') {
+          publish({
+            ...state,
+            status:
+              code === 'conflict'
+                ? 'conflict'
+                : BLOCKING_CODES.has(code)
+                  ? 'blocked'
+                  : 'migration_pending',
+            saving: false,
+            errorCode: code,
+          })
+        }
+        return { ok: false, code }
+      }
     },
 
     async importData(data: AppDataFile): Promise<boolean> {
@@ -468,9 +534,12 @@ export function createWorkspaceController({
         const restored = await adapter.restoreSnapshot(snapshotId, {
           expectedRevision,
         })
+        if (disposed || (state as WorkspaceState).status === 'conflict') {
+          return { ok: false, code: 'conflict' }
+        }
         changeGeneration += 1
         publish({
-          status: 'ready',
+          status: restored.migration ? 'migration_pending' : 'ready',
           data: cloneData(restored.data),
           revision: restored.revision,
           dirty: false,

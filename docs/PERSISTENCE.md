@@ -1,7 +1,8 @@
 # Persistenz, Sicherungen und Wiederherstellung
 
-Stand: PR 08. Dieses Dokument beschreibt den technischen Vertrag für die
-lokale Speicherung der vollständigen `AppDataFile`-Datei in Schema-Version 4.
+Stand: PR 22 (lokale Entwicklung). Dieses Dokument beschreibt den technischen
+Vertrag für die lokale Speicherung der vollständigen `AppDataFile`-Datei in
+Schema-Version 5.
 
 ## Speicherwege
 
@@ -36,7 +37,8 @@ IndexedDB der maßgebliche Stand.
 
 ## Versions- und Verlustschutz
 
-- Nur Schema-Version 4 wird als aktueller Stand geladen.
+- Schema-Version 5 ist der aktuelle Stand. Version 4 wird streng geprüft und
+  ausschließlich als schreibgeschützte Migrationsvorschau geladen.
 - Legacy-v3-Dateien laufen ausschließlich durch `importLegacyV3Bytes`.
 - Neuere Versionen werden als `newer_schema_version` blockiert und nicht
   überschrieben.
@@ -46,6 +48,24 @@ IndexedDB der maßgebliche Stand.
 - Zyklen, `undefined`, nicht endliche Zahlen, `BigInt`, Funktionen, Symbole,
   Sparse Arrays, Accessor-Eigenschaften und exotische Prototypen werden
   abgewiesen.
+
+### Umstellung von Version 4
+
+Das Laden verändert keine Quelldaten. Die Revision bezieht sich auf die
+tatsächlichen V4-Bytes. Erst `migrateStoredData` nach ausdrücklicher Zustimmung
+erstellt in IndexedDB einen dauerhaft angehefteten `before_migration`-Snapshot
+und schreibt Version 5 in derselben Transaktion. Ein Konflikt oder eine
+fehlgeschlagene Sicherung verhindert die Umstellung.
+
+Die technischen Datenbank- und Kanalnamen mit dem Suffix `v4` bleiben erhalten,
+damit vorhandene Bestände und die Erkennung paralleler Fenster weiter funktionieren.
+Die neuen Messfunktionen bleiben nach der Umstellung deaktiviert. Manuelle Werte
+und historische Berechnungssnapshots werden unverändert übernommen.
+
+JSON- und Datei-Adapter erlauben keine Umstellung an Ort und Stelle. Eine V4-Datei
+wird über die Importvorschau übernommen; die ursprüngliche Datei bleibt erhalten.
+Beim Wiederherstellen einer V4-Sicherung bleibt diese Version bis zur erneuten
+bestätigten Umstellung schreibgeschützt.
 
 ## Snapshots und Restore
 

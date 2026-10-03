@@ -75,6 +75,15 @@ export const heatingCircuitSchema = z.strictObject({
   heatingSystemId: entityIdSchema,
   /** Zugehöriger Gebäudeblock (Legacy: `Heizkreis.id === Block.id`). */
   buildingId: entityIdSchema,
+  consumptionMode: z.enum(['manual', 'metered_kwh']).nullish(),
+  meterAssignments: z
+    .array(
+      z.strictObject({
+        meterId: entityIdSchema,
+        unitId: entityIdSchema,
+      }),
+    )
+    .nullish(),
   co2: co2ConfigSchema.nullish(),
   overrides: heatingCircuitOverridesSchema.nullish(),
   /** Zentrale Warmwasserbereitung nach § 9 HeizKV aktiv. */

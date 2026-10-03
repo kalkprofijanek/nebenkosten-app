@@ -121,6 +121,12 @@ function probeFailure(input: unknown): MigrationResult | undefined {
       'schema.already_current',
       'Die Datei verwendet bereits das aktuelle Schema',
     )
+  if (probe.kind === 'migratable-v4')
+    return failure(
+      'unsupported_schema_version',
+      'schema.v4_requires_explicit_migration',
+      'Die Datei muss über die bestätigte v4-Migration übernommen werden',
+    )
   if (probe.kind !== 'unknown') return undefined
   const version =
     typeof input === 'object' && input !== null && 'version' in input

@@ -1,6 +1,6 @@
 import {
   CurrentAppDataCodecError,
-  decodeCurrentAppDataBytes,
+  decodeSupportedAppDataBytes,
   importLegacyV3Bytes,
 } from '@nebenkosten/import-export'
 import {
@@ -62,7 +62,7 @@ export interface ImportValidationSummary {
 export type ImportPreview =
   | {
       readonly ok: true
-      readonly sourceFormat: 'current-v4'
+      readonly sourceFormat: 'current-v5' | 'legacy-v4'
       readonly data: AppDataFile
       readonly summary: ImportSummary
     }
@@ -233,12 +233,13 @@ export async function prepareImport(
   if (typeof copied === 'string') return { ok: false, code: copied }
 
   try {
-    const decoded = await decodeCurrentAppDataBytes(copied, {
+    const decoded = await decodeSupportedAppDataBytes(copied, {
       maxBytes: MAX_IMPORT_BYTES,
     })
     return {
       ok: true,
-      sourceFormat: 'current-v4',
+      sourceFormat:
+        decoded.sourceSchemaVersion === 4 ? 'legacy-v4' : 'current-v5',
       data: decoded.data,
       summary: summarize(decoded.data, 0),
     }

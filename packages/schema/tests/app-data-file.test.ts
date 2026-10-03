@@ -7,7 +7,7 @@ import {
 } from '../src'
 import { createFictionalAppDataFile } from './fixtures'
 
-describe('appDataFileSchema (aktuelles Format, Version 4)', () => {
+describe('appDataFileSchema (aktuelles Format, Version 5)', () => {
   it('akzeptiert eine leere, neu angelegte Datei', () => {
     const file = createEmptyAppDataFile()
     const parsed = appDataFileSchema.safeParse(file)
@@ -31,12 +31,12 @@ describe('appDataFileSchema (aktuelles Format, Version 4)', () => {
       appDataFileSchema.safeParse({ ...file, schemaVersion: 3 }).success,
     ).toBe(false)
     expect(
-      appDataFileSchema.safeParse({ ...file, schemaVersion: 5 }).success,
+      appDataFileSchema.safeParse({ ...file, schemaVersion: 4 }).success,
     ).toBe(false)
     const ohneVersion: Record<string, unknown> = { ...file }
     delete ohneVersion.schemaVersion
     expect(appDataFileSchema.safeParse(ohneVersion).success).toBe(false)
-    expect(CURRENT_SCHEMA_VERSION).toBe(4)
+    expect(CURRENT_SCHEMA_VERSION).toBe(5)
   })
 
   it('lehnt unbekannte Felder ab statt sie still zu verlieren (strict)', () => {

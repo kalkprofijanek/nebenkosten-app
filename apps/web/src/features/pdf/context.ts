@@ -3,6 +3,7 @@ import {
   type CalculationOutput,
 } from '@nebenkosten/core'
 import { latestCalculationRun } from '@nebenkosten/validators'
+import { compatibleMeteringTrace } from './metering-snapshot'
 import type {
   AppDataFile,
   BillingPeriod,
@@ -45,7 +46,9 @@ function isCompatibleCalculationOutput(
     !isRecord(value.heating) ||
     !isRecord(value.co2) ||
     !Array.isArray(value.tenants) ||
-    !Array.isArray(value.warnings)
+    !Array.isArray(value.warnings) ||
+    (value.meteringTrace !== undefined &&
+      !compatibleMeteringTrace(value.meteringTrace))
   )
     return false
 

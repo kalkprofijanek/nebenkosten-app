@@ -11,6 +11,9 @@ const PUBLIC_MESSAGES: Readonly<Record<PersistenceErrorCode, string>> = {
     'Die Daten wurden mit einer neueren Anwendungsversion erstellt.',
   hash_failed: 'Die Datenintegrität konnte nicht geprüft werden.',
   conflict: 'Der gespeicherte Stand wurde zwischenzeitlich geändert.',
+  migration_required:
+    'Der gespeicherte Stand muss vor dem Speichern migriert werden.',
+  confirmation_required: 'Die Migration muss ausdrücklich bestätigt werden.',
   snapshot_not_found: 'Der Sicherungsstand wurde nicht gefunden.',
   corrupt_storage: 'Der gespeicherte Stand ist beschädigt.',
   quota_exceeded: 'Der lokale Speicherplatz reicht nicht aus.',

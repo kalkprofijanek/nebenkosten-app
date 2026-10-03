@@ -28,7 +28,7 @@ describe('validationIssueLink', () => {
     ['heating', '#/heizkreise', 'Heizung bearbeiten'],
     ['hot_water', '#/heizkreise', 'Heizung bearbeiten'],
     ['co2', '#/heizkreise', 'Heizung bearbeiten'],
-    ['meters', '#/heizkreise', 'Zähler bearbeiten'],
+    ['meters', '#/heizkreise?tab=meters', 'Zähler bearbeiten'],
     ['totals', '#/berechnung', 'Berechnung prüfen'],
     ['documents', '#/pdf-export', 'Dokumente bearbeiten'],
     ['migration', '#/sicherung', 'Datenbestand prüfen'],
@@ -40,6 +40,19 @@ describe('validationIssueLink', () => {
       expect(validationIssueLink(issue(area))).toEqual({ href, label })
     },
   )
+
+  it('führt Brennstoffbefunde und fehlende Lieferungen zur Brennstofferfassung', () => {
+    expect(
+      validationIssueLink(
+        issue('heating', { type: 'FuelDelivery', id: 'f-1' }),
+      ),
+    ).toEqual({ href: '#/heizkreise?tab=fuel', label: 'Lieferung bearbeiten' })
+    expect(
+      validationIssueLink(
+        issue('heating', undefined, 'heating.delivery_missing'),
+      ),
+    ).toEqual({ href: '#/heizkreise?tab=fuel', label: 'Lieferung bearbeiten' })
+  })
 
   it('führt Firmenbefunde gezielt zur Firmenverwaltung', () => {
     expect(
@@ -69,7 +82,7 @@ describe('validationIssueLink', () => {
           'documents.booking_link_missing',
         ),
       ),
-    ).toEqual({ href: '#/heizkreise', label: 'Lieferung bearbeiten' })
+    ).toEqual({ href: '#/heizkreise?tab=fuel', label: 'Lieferung bearbeiten' })
   })
 
   it('führt eine fehlende Versandanschrift zur Nutzerbearbeitung', () => {
@@ -84,6 +97,68 @@ describe('validationIssueLink', () => {
     ).toEqual({
       href: '#/nutzer?edit=tenancy-1',
       label: 'Versandanschrift ergänzen',
+    })
+  })
+  it('führt Wohnungswärme-Befunde zur Ablesung, Zuordnung oder Belegung', () => {
+    expect(
+      validationIssueLink(
+        issue(
+          'meters',
+          { type: 'Meter', id: 'zähler 1' },
+          'metered.boundary_missing',
+        ),
+      ),
+    ).toEqual({
+      href: '#/heizkreise?tab=meters&meter=z%C3%A4hler%201',
+      label: 'Ablesungen des Zählers bearbeiten',
+    })
+    expect(
+      validationIssueLink(
+        issue(
+          'meters',
+          { type: 'HeatingCircuit', id: 'circuit-1' },
+          'metered.assignment_missing',
+        ),
+      ),
+    ).toEqual({
+      href: '#/heizkreise?tab=meters',
+      label: 'Zählerzuordnung prüfen',
+    })
+    expect(
+      validationIssueLink(
+        issue(
+          'occupancy',
+          { type: 'OccupancyPeriod', id: 'occ-1' },
+          'metered.occupancy_gap',
+        ),
+      ),
+    ).toEqual({
+      href: '#/nutzer?edit=occ-1',
+      label: 'Nutzerzeitraum bearbeiten',
+    })
+    expect(
+      validationIssueLink(
+        issue(
+          'occupancy',
+          { type: 'Unit', id: 'unit-1' },
+          'metered.occupancy_missing',
+        ),
+      ),
+    ).toEqual({ href: '#/nutzer', label: 'Nutzerzeiträume bearbeiten' })
+  })
+
+  it('führt fehlende Verbrauchseinheiten zum Nutzerzeitraum', () => {
+    expect(
+      validationIssueLink(
+        issue(
+          'occupancy',
+          { type: 'OccupancyPeriod', id: 'occ 1' },
+          'heating.consumption_units_missing',
+        ),
+      ),
+    ).toEqual({
+      href: '#/nutzer?edit=occ%201',
+      label: 'Verbrauchseinheiten ergänzen',
     })
   })
 })

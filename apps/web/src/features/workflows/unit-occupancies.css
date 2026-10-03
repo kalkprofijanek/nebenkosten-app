@@ -1,0 +1,49 @@
+.unit-occupancies {
+  min-width: 0;
+}
+.unit-occupancies__unit {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--paper);
+}
+.unit-occupancies__heading {
+  padding: 1rem;
+  background: var(--mint-soft);
+}
+.unit-occupancies__heading h3 {
+  margin: 0 0 0.75rem;
+  overflow-wrap: anywhere;
+}
+.unit-occupancies__heading dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+.unit-occupancies__heading dt {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.unit-occupancies__heading dd {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+}
+.unit-occupancies__empty {
+  padding: 0 1rem;
+}
+.unit-occupancies .data-table-wrap {
+  border: 0;
+  border-radius: 0;
+}
+@media (max-width: 700px) {
+  .unit-occupancies__heading dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 400px) {
+  .unit-occupancies__heading dl {
+    grid-template-columns: 1fr;
+  }
+}

@@ -2,6 +2,8 @@ import {
   CURRENT_SCHEMA_VERSION,
   appDataFileSchema,
   type AppDataFile,
+  migrateV4ToV5,
+  v4AppDataFileSchema,
 } from '@nebenkosten/schema'
 
 import { canonicalJson } from './canonical-json'
@@ -29,6 +31,14 @@ export interface DecodedCurrentAppData {
   readonly data: AppDataFile
   readonly bytes: Uint8Array
   readonly revision: string
+}
+
+export interface DecodedSupportedAppData extends DecodedCurrentAppData {
+  readonly sourceSchemaVersion: 4 | 5
+  readonly migration?: {
+    readonly sourceSchemaVersion: 4
+    readonly targetSchemaVersion: 5
+  }
 }
 
 function byteLimit(options: CurrentAppDataCodecOptions): number {
@@ -175,4 +185,47 @@ export async function decodeCurrentAppDataBytes(
   const data = parseCurrentData(value)
   const revision = await sha256Hex(bytes)
   return { data, bytes, revision }
+}
+
+/** Decode supported files for preview while hashing and preserving source bytes. */
+export async function decodeSupportedAppDataBytes(
+  sourceBytes: Uint8Array,
+  options: CurrentAppDataCodecOptions = {},
+): Promise<DecodedSupportedAppData> {
+  const bytes = Uint8Array.from(sourceBytes)
+  assertWithinLimit(bytes, options)
+  let text: string
+  try {
+    text = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
+  } catch {
+    throw new CurrentAppDataCodecError('invalid_utf8')
+  }
+  let value: unknown
+  try {
+    value = JSON.parse(text) as unknown
+  } catch {
+    throw new CurrentAppDataCodecError('invalid_json')
+  }
+  const version = schemaVersionFrom(value)
+  if (version !== 4 && version !== CURRENT_SCHEMA_VERSION) {
+    assertCurrentSchemaVersion(value)
+  }
+  let data: AppDataFile
+  if (version === 4) {
+    const parsed = v4AppDataFileSchema.safeParse(value)
+    if (!parsed.success) throw new CurrentAppDataCodecError('invalid_data')
+    data = migrateV4ToV5(parsed.data)
+  } else {
+    data = parseCurrentData(value)
+  }
+  const revision = await sha256Hex(bytes)
+  return version === 4
+    ? {
+        data,
+        bytes,
+        revision,
+        sourceSchemaVersion: 4,
+        migration: { sourceSchemaVersion: 4, targetSchemaVersion: 5 },
+      }
+    : { data, bytes, revision, sourceSchemaVersion: 5 }
 }

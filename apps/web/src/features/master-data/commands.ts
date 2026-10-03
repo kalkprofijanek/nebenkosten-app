@@ -544,7 +544,7 @@ export function addBuilding(
             id: id!,
             propertyId: input.propertyId,
             name,
-            shortName,
+            ...(shortName === undefined ? {} : { shortName }),
             mandateRefPrefixes: [],
           },
         ],
@@ -584,7 +584,7 @@ export function updateBuilding(
             ? {
                 ...building,
                 name,
-                shortName,
+                ...(shortName === undefined ? {} : { shortName }),
                 defaultEnergySourceType,
                 mandateRefPrefixes,
               }
@@ -652,12 +652,22 @@ export function addUnit(
           {
             id: id!,
             propertyId: input.propertyId,
-            buildingId: input.buildingId,
             label: fields.label,
-            location: fields.location,
-            usableAreaSqm: area(fields.usableAreaSqm),
-            heatedAreaSqm: area(fields.heatedAreaSqm),
-            roomCount: fields.roomCount,
+            ...(input.buildingId === undefined
+              ? {}
+              : { buildingId: input.buildingId }),
+            ...(fields.location === undefined
+              ? {}
+              : { location: fields.location }),
+            ...(fields.usableAreaSqm === undefined
+              ? {}
+              : { usableAreaSqm: area(fields.usableAreaSqm) }),
+            ...(fields.heatedAreaSqm === undefined
+              ? {}
+              : { heatedAreaSqm: area(fields.heatedAreaSqm) }),
+            ...(fields.roomCount === undefined
+              ? {}
+              : { roomCount: fields.roomCount }),
           },
         ],
       },

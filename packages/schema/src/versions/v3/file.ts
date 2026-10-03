@@ -38,6 +38,7 @@ export const schemaVersionProbeSchema = z.looseObject({
 export type SchemaVersionProbe =
   | { kind: 'legacy-v3' }
   | { kind: 'current'; schemaVersion: number }
+  | { kind: 'migratable-v4'; schemaVersion: 4 }
   | { kind: 'newer-than-supported'; schemaVersion: number }
   | { kind: 'unknown' }
 
@@ -47,6 +48,8 @@ export function probeSchemaVersion(input: unknown): SchemaVersionProbe {
   if (!parsed.success) return { kind: 'unknown' }
   const { version, schemaVersion } = parsed.data
   if (typeof schemaVersion === 'number') {
+    if (schemaVersion === 4 && CURRENT_SCHEMA_VERSION === 5)
+      return { kind: 'migratable-v4', schemaVersion: 4 }
     if (schemaVersion === CURRENT_SCHEMA_VERSION)
       return { kind: 'current', schemaVersion }
     if (schemaVersion > CURRENT_SCHEMA_VERSION)

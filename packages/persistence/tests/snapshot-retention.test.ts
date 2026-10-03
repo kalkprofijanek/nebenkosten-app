@@ -12,7 +12,7 @@ function snapshot(
     id,
     createdAt,
     sourceRevision: id.padEnd(64, 'a').slice(0, 64),
-    schemaVersion: 4,
+    schemaVersion: 5,
     sha256: id.padEnd(64, 'b').slice(0, 64),
     byteLength: 100,
     kind: 'automatic',

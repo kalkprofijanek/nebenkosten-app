@@ -49,6 +49,48 @@ afterEach(() => {
 })
 
 describe('WorkspaceApp', () => {
+  it('zeigt vor der Umstellung keine Bearbeitungsansicht und verlangt Zustimmung', async () => {
+    const data = createEmptyAppDataFile()
+    const adapter = {
+      load: vi.fn().mockResolvedValue({
+        data,
+        revision: 'v4',
+        migration: { sourceSchemaVersion: 4, targetSchemaVersion: 5 },
+      }),
+      save: vi.fn(),
+      migrateStoredData: vi.fn().mockResolvedValue({
+        data,
+        revision: 'v5',
+        savedAt: '2026-09-28T12:00:00.000Z',
+        beforeMigrationSnapshot: { id: 'backup' },
+      }),
+    }
+    const controller = createWorkspaceController({ adapter })
+    window.location.hash = '#/berechnung'
+    render(<WorkspaceApp controller={controller} />)
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Datenbestand auf Version 5 umstellen',
+      }),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: 'Testberechnung anwenden' }),
+    ).not.toBeInTheDocument()
+    const migrate = screen.getByRole('button', {
+      name: 'Sichern und umstellen',
+    })
+    expect(migrate).toBeDisabled()
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /Umstellung auf Version 5/ }),
+    )
+    fireEvent.click(migrate)
+    expect(
+      await screen.findByRole('button', { name: 'Testberechnung anwenden' }),
+    ).toBeVisible()
+    expect(adapter.save).not.toHaveBeenCalled()
+    controller.dispose()
+  })
+
   it('loads an empty local workspace and creates it only on explicit request', async () => {
     const controller = createWorkspaceController({
       adapter: new MemoryStorageAdapter(),
@@ -67,7 +109,7 @@ describe('WorkspaceApp', () => {
     await waitFor(() =>
       expect(screen.getByText('Lokal gespeichert')).toBeVisible(),
     )
-    expect(controller.getState().data?.schemaVersion).toBe(4)
+    expect(controller.getState().data?.schemaVersion).toBe(5)
   })
 
   it('warnt beim Verlassen, solange lokale Änderungen ungesichert sind', async () => {

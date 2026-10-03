@@ -26,6 +26,18 @@ function cloneFrozen<T>(value: T): T {
   return deepFreeze(cloneValue(value))
 }
 
+function dayAfter(date: string): string {
+  const [year, month, day] = date.split('-').map(Number)
+  const next = new Date(Date.UTC(year!, month! - 1, day! + 1))
+  return `${next.getUTCFullYear().toString().padStart(4, '0')}-${(next.getUTCMonth() + 1).toString().padStart(2, '0')}-${next.getUTCDate().toString().padStart(2, '0')}`
+}
+
+function dayBefore(date: string): string {
+  const [year, month, day] = date.split('-').map(Number)
+  const previous = new Date(Date.UTC(year!, month! - 1, day! - 1))
+  return `${previous.getUTCFullYear().toString().padStart(4, '0')}-${(previous.getUTCMonth() + 1).toString().padStart(2, '0')}-${previous.getUTCDate().toString().padStart(2, '0')}`
+}
+
 export function createCalculationInput(
   appData: AppDataFile,
   billingPeriodId: string,
@@ -170,6 +182,13 @@ export function createCalculationInput(
     ({ propertyId }) => propertyId === property.id,
   )
   const meterIds = new Set(meters.map(({ id }) => id))
+  const meteredHeatMeterIds = new Set(
+    heatingCircuits
+      .filter(({ consumptionMode }) => consumptionMode === 'metered_kwh')
+      .flatMap(({ meterAssignments }) =>
+        (meterAssignments ?? []).map(({ meterId }) => meterId),
+      ),
+  )
   for (const reading of parsed.billingData.meterReadings) {
     if (
       reading.billingPeriodId === billingPeriod.id &&
@@ -181,8 +200,19 @@ export function createCalculationInput(
     }
   }
   const meterReadings = parsed.billingData.meterReadings.filter(
-    ({ billingPeriodId: candidate, meterId }) =>
-      candidate === billingPeriod.id && meterIds.has(meterId),
+    ({ billingPeriodId: candidate, meterId, date, boundary }) => {
+      if (!meterIds.has(meterId)) return false
+      if (candidate === billingPeriod.id) return true
+      return (
+        candidate == null &&
+        meteredHeatMeterIds.has(meterId) &&
+        date != null &&
+        ((date === dayBefore(billingPeriod.periodStart) &&
+          boundary === 'end_of_day') ||
+          (date === dayAfter(billingPeriod.periodEnd) &&
+            boundary === 'start_of_day'))
+      )
+    },
   )
 
   return cloneFrozen({

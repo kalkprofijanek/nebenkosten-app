@@ -16,6 +16,7 @@ import { WorkspaceContextBar } from './WorkspaceContextBar'
 interface AppProps {
   readonly initialPath?: string
   readonly importControl?: ReactNode
+  readonly workspaceControl?: ReactNode
   readonly onCreateWorkspace?: () => void
   readonly onSelectionChange?: (patch: Partial<SelectionContext>) => void
   readonly previewMode?: boolean
@@ -147,6 +148,23 @@ function Dashboard({
         </section>
       ) : null}
 
+      {data ? (
+        <section
+          className="welcome-panel"
+          aria-label="Jahresabrechnung beginnen"
+        >
+          <div>
+            <h2>Deine Jahresabrechnung in acht Schritten</h2>
+            <p>
+              Prüfe Belegung und Verbrauch, erfasse Kosten und kontrolliere die
+              Vorschau vor der Freigabe.
+            </p>
+          </div>
+          <a className="button button--primary" href="#/jahresabrechnung">
+            Jahresabrechnung starten
+          </a>
+        </section>
+      ) : null}
       <section className="metric-grid" aria-label="Aktueller Datenstand">
         {[
           [String(objectCount), 'Objekte'],
@@ -220,6 +238,8 @@ function Dashboard({
 }
 
 function saveLabel(state?: WorkspaceState, previewMode = false): string {
+  if (state?.status === 'migration_pending')
+    return 'Umstellung erforderlich – schreibgeschützt'
   if (state?.status === 'loading') return 'Lokaler Stand wird geladen'
   if (state?.status === 'empty') return 'Noch kein Arbeitsbestand'
   if (state?.status === 'conflict')
@@ -239,6 +259,7 @@ function saveLabel(state?: WorkspaceState, previewMode = false): string {
 export function App({
   initialPath,
   importControl,
+  workspaceControl,
   onCreateWorkspace,
   onSelectionChange,
   previewMode,
@@ -462,21 +483,22 @@ export function App({
             </section>
           ) : null}
 
-          {route.path === '/' ? (
-            <Dashboard
-              onCreateWorkspace={onCreateWorkspace}
-              previewMode={previewMode}
-              selection={activeSelection}
-              workspaceState={workspaceState}
-            />
-          ) : (
-            (renderRoute?.(route.path) ?? (
-              <EmptyWorkspace
-                actionLabel={route.actionLabel}
-                section={route.label}
+          {workspaceControl ??
+            (route.path === '/' ? (
+              <Dashboard
+                onCreateWorkspace={onCreateWorkspace}
+                previewMode={previewMode}
+                selection={activeSelection}
+                workspaceState={workspaceState}
               />
-            ))
-          )}
+            ) : (
+              (renderRoute?.(route.path) ?? (
+                <EmptyWorkspace
+                  actionLabel={route.actionLabel}
+                  section={route.label}
+                />
+              ))
+            ))}
         </main>
       </div>
     </div>

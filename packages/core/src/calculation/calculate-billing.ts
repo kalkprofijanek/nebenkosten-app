@@ -23,6 +23,7 @@ import { roundCentsHalfAwayFromZero } from '../rounding'
 import { calculateEnergySourceFuel } from '../heating/fuel'
 import { calculateOperatingElectricityPlan } from '../heating/operating-electricity'
 import { outputCircuit, outputCircuitTrace } from '../heating/output'
+import { resolveMeteredConsumption } from '../metered-consumption'
 import type {
   AllocationBasis,
   AggregateFuelResult,
@@ -235,6 +236,8 @@ function costPositions(
 function costShare(
   position: RawCostPosition,
   context: OccupancyContext,
+  measuredKwhByOccupancy?: ReadonlyMap<string, number>,
+  measuredKwhDenominatorByBuildingId?: ReadonlyMap<string, number>,
 ): number {
   if (!occupancyMatchesScope(context, position.category.scope)) return 0
   switch (position.category.allocationKey) {
@@ -251,6 +254,19 @@ function costShare(
             context.timeFactor
         : 0
     case 'consumption_units':
+      if (
+        position.category.kind === 'heating' &&
+        measuredKwhByOccupancy &&
+        measuredKwhDenominatorByBuildingId?.has(context.buildingId ?? '')
+      ) {
+        const measured = measuredKwhByOccupancy.get(context.occupancy.id) ?? 0
+        const denominator = measuredKwhDenominatorByBuildingId.get(
+          context.buildingId ?? '',
+        )!
+        return denominator > 0
+          ? (position.effectiveAmount / denominator) * measured
+          : 0
+      }
       return position.basis.consumptionUnits
         ? (position.effectiveAmount / position.basis.consumptionUnits) *
             context.consumptionUnits
@@ -341,6 +357,7 @@ function rawCircuitResults(
   positions: readonly RawCostPosition[],
   periodDays: number,
   operatingElectricityByBuildingId: ReadonlyMap<string, number>,
+  measuredKwhDenominatorByBuildingId?: ReadonlyMap<string, number>,
 ): RawCircuitResult[] {
   const defaults = input.billingPeriod.heatingDefaults
   return preparedCircuits.map(
@@ -349,6 +366,9 @@ function rawCircuitResults(
         kind: 'building',
         buildingId,
       })
+      const consumptionDenominator =
+        measuredKwhDenominatorByBuildingId?.get(buildingId) ??
+        basis.consumptionUnits
       const heatedArea = basis.heatedArea
       const automaticIntensity =
         heatedArea > 0 ? (fuel.co2Kg * (365 / periodDays)) / heatedArea : 0
@@ -469,7 +489,7 @@ function rawCircuitResults(
         consumptionSharePercent: roundQuantity(consumptionFactor * 100, 3),
         baseAreaBasis: useUsableArea ? 'usable_area' : 'heated_area',
         baseDenominator: roundQuantity(baseDenominator, 3),
-        consumptionDenominator: roundQuantity(basis.consumptionUnits, 3),
+        consumptionDenominator: roundQuantity(consumptionDenominator, 3),
         baseCents: roundedHeatingSplit.get('base')!,
         consumptionCents: roundedHeatingSplit.get('consumption')!,
       }
@@ -490,13 +510,13 @@ function rawCircuitResults(
         energyKwh: fuel.energyKwh,
         basePrice: baseDenominator > 0 ? baseCosts / baseDenominator : 0,
         consumptionPrice:
-          basis.consumptionUnits > 0
-            ? consumptionCosts / basis.consumptionUnits
+          consumptionDenominator > 0
+            ? consumptionCosts / consumptionDenominator
             : 0,
         hotWaterPricePerPerson:
           hotWaterPersons > 0 ? hotWater / hotWaterPersons : 0,
         co2PricePerConsumptionUnit:
-          basis.consumptionUnits > 0 ? co2Tenant / basis.consumptionUnits : 0,
+          consumptionDenominator > 0 ? co2Tenant / consumptionDenominator : 0,
         energySources: fuel.sources,
         co2Trace,
         warmWaterTrace,
@@ -514,7 +534,16 @@ function rawTenantShare(
   positions: readonly RawCostPosition[],
   circuits: readonly RawCircuitResult[],
   defaultsBasis: 'usable_area' | 'heated_area',
+  measuredKwhByOccupancy?: ReadonlyMap<string, number>,
+  measuredKwhDenominatorByBuildingId?: ReadonlyMap<string, number>,
 ): number {
+  const circuit = circuits.find(
+    ({ buildingId }) => buildingId === context.buildingId,
+  )
+  const isMeteredOccupancy = Boolean(
+    circuit &&
+    measuredKwhDenominatorByBuildingId?.has(context.buildingId ?? ''),
+  )
   const operating = positions
     .filter(
       ({ category }) =>
@@ -523,16 +552,26 @@ function rawTenantShare(
         category.allocationKey !== 'direct' &&
         !(category.hideWhenZero && (category.totalAmountCents ?? 0) === 0),
     )
-    .reduce((sum, position) => sum + costShare(position, context), 0)
-  const circuit = circuits.find(
-    ({ buildingId }) => buildingId === context.buildingId,
-  )
+    .reduce(
+      (sum, position) =>
+        sum +
+        costShare(
+          position,
+          context,
+          isMeteredOccupancy ? measuredKwhByOccupancy : undefined,
+          measuredKwhDenominatorByBuildingId,
+        ),
+      0,
+    )
   if (!circuit) return operating
   const baseArea =
     defaultsBasis === 'usable_area' ? context.usableArea : context.heatedArea
   let heating =
     circuit.basePrice * baseArea * context.timeFactor +
-    circuit.consumptionPrice * context.consumptionUnits
+    circuit.consumptionPrice *
+      (isMeteredOccupancy
+        ? measuredKwhByOccupancy!.get(context.occupancy.id)!
+        : context.consumptionUnits)
   const persons =
     context.occupancy.kind === 'vacancy'
       ? 0
@@ -541,12 +580,17 @@ function rawTenantShare(
         : 1
   heating += circuit.hotWaterPricePerPerson * persons * context.timeFactor
   if (
+    !isMeteredOccupancy &&
     context.occupancy.consumptionUnitsEstimated &&
     context.occupancy.applySection12Reduction
   ) {
     heating *= 0.85
   }
-  const co2 = circuit.co2PricePerConsumptionUnit * context.consumptionUnits
+  const co2 =
+    circuit.co2PricePerConsumptionUnit *
+    (isMeteredOccupancy
+      ? measuredKwhByOccupancy!.get(context.occupancy.id)!
+      : context.consumptionUnits)
   return operating + heating + co2
 }
 
@@ -562,7 +606,16 @@ function rawTenantShareBreakdown(
   positions: readonly RawCostPosition[],
   circuits: readonly RawCircuitResult[],
   defaultsBasis: 'usable_area' | 'heated_area',
+  measuredKwhByOccupancy?: ReadonlyMap<string, number>,
+  measuredKwhDenominatorByBuildingId?: ReadonlyMap<string, number>,
 ): TenantCostBreakdown {
+  const circuit = circuits.find(
+    ({ buildingId }) => buildingId === context.buildingId,
+  )
+  const isMeteredOccupancy = Boolean(
+    circuit &&
+    measuredKwhDenominatorByBuildingId?.has(context.buildingId ?? ''),
+  )
   const operatingByCategory = positions
     .filter(
       ({ category }) =>
@@ -573,12 +626,16 @@ function rawTenantShareBreakdown(
     )
     .map((position) => ({
       costCategoryId: position.category.id,
-      amountCents: roundCentsHalfAwayFromZero(costShare(position, context)),
+      amountCents: roundCentsHalfAwayFromZero(
+        costShare(
+          position,
+          context,
+          isMeteredOccupancy ? measuredKwhByOccupancy : undefined,
+          measuredKwhDenominatorByBuildingId,
+        ),
+      ),
     }))
     .filter(({ amountCents }) => amountCents !== 0)
-  const circuit = circuits.find(
-    ({ buildingId }) => buildingId === context.buildingId,
-  )
   if (!circuit) {
     return {
       operatingByCategory,
@@ -597,8 +654,9 @@ function rawTenantShareBreakdown(
         ? context.persons
         : 1
   const reduction =
-    context.occupancy.consumptionUnitsEstimated &&
-    context.occupancy.applySection12Reduction
+    context.occupancy.applySection12Reduction &&
+    !isMeteredOccupancy &&
+    context.occupancy.consumptionUnitsEstimated
       ? 0.85
       : 1
   return {
@@ -607,18 +665,60 @@ function rawTenantShareBreakdown(
       circuit.basePrice * baseArea * context.timeFactor * reduction,
     ),
     heatingConsumptionCents: roundCentsHalfAwayFromZero(
-      circuit.consumptionPrice * context.consumptionUnits * reduction,
+      circuit.consumptionPrice *
+        (isMeteredOccupancy
+          ? measuredKwhByOccupancy!.get(context.occupancy.id)!
+          : context.consumptionUnits) *
+        reduction,
     ),
     hotWaterCents: roundCentsHalfAwayFromZero(
       circuit.hotWaterPricePerPerson * persons * context.timeFactor * reduction,
     ),
     heatingCo2Cents: roundCentsHalfAwayFromZero(
-      circuit.co2PricePerConsumptionUnit * context.consumptionUnits,
+      circuit.co2PricePerConsumptionUnit *
+        (isMeteredOccupancy
+          ? measuredKwhByOccupancy!.get(context.occupancy.id)!
+          : context.consumptionUnits),
     ),
   }
 }
 
 export function calculateBilling(input: CalculationInput): CalculationOutput {
+  const metering = resolveMeteredConsumption(input)
+  if (!metering.ok) {
+    const summary = metering.issues
+      .map(
+        ({ code, heatingCircuitId, unitId, meterId }) =>
+          `${code}${heatingCircuitId ? ` [${heatingCircuitId}]` : ''}${unitId ? ` [${unitId}]` : ''}${meterId ? ` [${meterId}]` : ''}`,
+      )
+      .join('; ')
+    throw new Error(
+      `Wohnungswärme-Ablesungen sind unvollständig oder ungültig: ${summary}`,
+    )
+  }
+  const measuredKwhByOccupancy = new Map(
+    metering.circuits.flatMap((circuit) =>
+      circuit.occupancies.map(
+        ({ occupancyId, kwh }) => [occupancyId, Number(kwh)] as const,
+      ),
+    ),
+  )
+  const measuredCircuitIds = new Set(
+    metering.circuits.map(({ heatingCircuitId }) => heatingCircuitId),
+  )
+  const measuredCircuitByBuildingId = new Map(
+    metering.circuits.map((circuit) => [
+      circuit.buildingId,
+      circuit.heatingCircuitId,
+    ]),
+  )
+  const measuredKwhDenominatorByBuildingId = new Map(
+    metering.circuits.map((circuit) => [
+      circuit.buildingId,
+      Number(circuit.totalKwh),
+    ]),
+  )
+  const usesMeteredConsumption = measuredCircuitIds.size > 0
   const periodDays = calculatePeriodDays(
     input.billingPeriod.periodStart,
     input.billingPeriod.periodEnd,
@@ -632,6 +732,7 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
     originalPositions,
     periodDays,
     new Map(),
+    measuredKwhDenominatorByBuildingId,
   )
   const operatingElectricityPlan = calculateOperatingElectricityPlan(
     preliminaryCircuits.map(({ buildingId, operatingElectricityIntended }) => ({
@@ -671,6 +772,7 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
     positions,
     periodDays,
     operatingElectricityPlan.movedCentsExactByBuildingId,
+    measuredKwhDenominatorByBuildingId,
   )
   const defaultsBasis =
     input.billingPeriod.heatingDefaults?.baseCostAreaBasis ?? 'heated_area'
@@ -682,7 +784,14 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
   )
   const rawShares = contexts.map((context) => ({
     context,
-    share: rawTenantShare(context, positions, circuits, defaultsBasis),
+    share: rawTenantShare(
+      context,
+      positions,
+      circuits,
+      defaultsBasis,
+      usesMeteredConsumption ? measuredKwhByOccupancy : undefined,
+      usesMeteredConsumption ? measuredKwhDenominatorByBuildingId : undefined,
+    ),
     prepayment: calculatePrepaymentCents(
       prepaymentsByOccupancy.get(context.occupancy.id),
       context.occupancy,
@@ -710,7 +819,12 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
         .get(context.occupancy.kind)
         ?.get(context.occupancy.id) ?? roundCentsHalfAwayFromZero(share)
     const balanceCents = shareCents - prepayment
-    const hasMissingConsumption = context.consumptionUnits <= 0
+    const circuitIsMetered = measuredCircuitByBuildingId.has(
+      context.buildingId ?? '',
+    )
+    const hasMissingConsumption = circuitIsMetered
+      ? !measuredKwhByOccupancy.has(context.occupancy.id)
+      : context.consumptionUnits <= 0
     return {
       id: context.occupancy.id,
       isVacancy: context.occupancy.kind === 'vacancy',
@@ -728,6 +842,8 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
         positions,
         circuits,
         defaultsBasis,
+        usesMeteredConsumption ? measuredKwhByOccupancy : undefined,
+        usesMeteredConsumption ? measuredKwhDenominatorByBuildingId : undefined,
       ),
     }
   })
@@ -893,5 +1009,6 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
     vacancyLandlordCents: roundCentsHalfAwayFromZero(vacancyLandlord),
     tenants,
     warnings: [],
+    ...(usesMeteredConsumption ? { meteringTrace: metering.trace } : {}),
   }
 }

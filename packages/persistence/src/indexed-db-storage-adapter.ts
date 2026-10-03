@@ -1,5 +1,5 @@
 import {
-  decodeCurrentAppDataBytes,
+  decodeSupportedAppDataBytes,
   encodeCurrentAppData,
 } from '@nebenkosten/import-export'
 import type { AppDataFile } from '@nebenkosten/schema'
@@ -13,6 +13,9 @@ import type {
   SnapshotKind,
   SnapshotMeta,
   SnapshotOptions,
+  MigrationSaveOptions,
+  MigrationSaveResult,
+  MigratingStorageAdapter,
 } from './contracts'
 import { PersistenceError, toPersistenceError } from './errors'
 import { selectSnapshotsToRetain } from './snapshot-retention'
@@ -27,6 +30,7 @@ const SNAPSHOT_KINDS = new Set<SnapshotKind>([
   'manual',
   'before_import',
   'before_restore',
+  'before_migration',
 ])
 
 interface CurrentRecord {
@@ -144,12 +148,25 @@ function snapshotMeta(
     id,
     createdAt,
     sourceRevision: current.revision,
-    schemaVersion: 4,
+    schemaVersion: schemaVersionFromBytes(current.bytes),
     sha256: current.revision,
     byteLength: current.bytes.byteLength,
     kind,
     pinned: kind !== 'automatic',
   }
+}
+
+function schemaVersionFromBytes(bytes: Uint8Array): number {
+  try {
+    const value = JSON.parse(
+      new TextDecoder('utf-8', { fatal: true }).decode(bytes),
+    ) as { schemaVersion?: unknown }
+    if (value.schemaVersion === 4 || value.schemaVersion === 5)
+      return value.schemaVersion
+  } catch {
+    /* callers validate bytes before creating snapshots */
+  }
+  throw new PersistenceError('corrupt_storage')
 }
 
 function snapshotRecord(meta: SnapshotMeta, bytes: Uint8Array): SnapshotRecord {
@@ -183,7 +200,7 @@ function assertSnapshotRecord(value: unknown): asserts value is SnapshotRecord {
     !isIsoTimestamp(record.createdAt) ||
     typeof record.sourceRevision !== 'string' ||
     !SHA256_HEX.test(record.sourceRevision) ||
-    record.schemaVersion !== 4 ||
+    (record.schemaVersion !== 4 && record.schemaVersion !== 5) ||
     typeof record.sha256 !== 'string' ||
     !SHA256_HEX.test(record.sha256) ||
     record.sha256 !== record.sourceRevision ||
@@ -219,7 +236,7 @@ function corruptStorageFailure(error: unknown): PersistenceError {
   return new PersistenceError('corrupt_storage')
 }
 
-export class IndexedDbStorageAdapter {
+export class IndexedDbStorageAdapter implements MigratingStorageAdapter {
   private readonly databaseName: string
   private readonly indexedDB: IDBFactory
   private readonly now: () => Date
@@ -261,6 +278,13 @@ export class IndexedDbStorageAdapter {
         savedAt: encoded.savedAt,
       }
       const validatedCurrent = await this.readValidatedCurrent()
+      if (
+        validatedCurrent !== undefined &&
+        (await decodeSupportedAppDataBytes(copyBytes(validatedCurrent.bytes)))
+          .sourceSchemaVersion === 4
+      ) {
+        throw new PersistenceError('migration_required')
+      }
       this.assertExpectedRevision(validatedCurrent, options.expectedRevision)
       const database = await this.openDatabase()
       const transaction = database.transaction(CURRENT_STORE, 'readwrite')
@@ -277,6 +301,71 @@ export class IndexedDbStorageAdapter {
         data: structuredClone(encoded.data),
         revision: encoded.revision,
         savedAt: encoded.savedAt,
+      }
+    } catch (error) {
+      throw persistenceFailure(error)
+    }
+  }
+
+  async migrateStoredData(
+    options: MigrationSaveOptions,
+  ): Promise<MigrationSaveResult> {
+    if (!options.confirmed) throw new PersistenceError('confirmation_required')
+    try {
+      const current = await this.readRawCurrent()
+      if (!current || current.revision !== options.expectedRevision)
+        throw new PersistenceError('conflict')
+      const decoded = await decodeSupportedAppDataBytes(
+        copyBytes(current.bytes),
+      )
+      if (decoded.sourceSchemaVersion !== 4)
+        throw new PersistenceError('unsupported_schema_version')
+      const encoded = await encodeCurrentAppData(decoded.data, {
+        savedAt: this.now(),
+      })
+      const safetyMeta: SnapshotMeta = {
+        id: this.createId(),
+        createdAt: encoded.savedAt,
+        sourceRevision: current.revision,
+        schemaVersion: 4,
+        sha256: current.revision,
+        byteLength: current.bytes.byteLength,
+        kind: 'before_migration',
+        pinned: true,
+      }
+      const database = await this.openDatabase()
+      const transaction = database.transaction(
+        [CURRENT_STORE, SNAPSHOT_STORE],
+        'readwrite',
+      )
+      const currentStore = transaction.objectStore(CURRENT_STORE)
+      const snapshotStore = transaction.objectStore(SNAPSHOT_STORE)
+      const latest = (await requestResult(currentStore.get(CURRENT_KEY))) as
+        CurrentRecord | undefined
+      if (
+        !sameCurrentRecord(latest, current) ||
+        latest?.revision !== options.expectedRevision
+      )
+        throw new PersistenceError('conflict')
+      const snapshot: SnapshotRecord = {
+        ...safetyMeta,
+        bytes: copyBytes(current.bytes),
+      }
+      snapshotStore.add(snapshot)
+      currentStore.put(
+        {
+          revision: encoded.revision,
+          bytes: copyBytes(encoded.bytes),
+          savedAt: encoded.savedAt,
+        } satisfies CurrentRecord,
+        CURRENT_KEY,
+      )
+      await transactionDone(transaction)
+      return {
+        data: structuredClone(encoded.data),
+        revision: encoded.revision,
+        savedAt: encoded.savedAt,
+        beforeMigrationSnapshot: safetyMeta,
       }
     } catch (error) {
       throw persistenceFailure(error)
@@ -374,14 +463,22 @@ export class IndexedDbStorageAdapter {
       }
       const target = await this.decodeSnapshot(initial.target)
       const restoredAt = this.now()
-      const restored = await encodeCurrentAppData(target.data, {
-        savedAt: restoredAt,
-      })
-      const next: CurrentRecord = {
-        revision: restored.revision,
-        bytes: copyBytes(restored.bytes),
-        savedAt: restored.savedAt,
-      }
+      const restored =
+        initial.target.schemaVersion === 4
+          ? null
+          : await encodeCurrentAppData(target.data, { savedAt: restoredAt })
+      const next: CurrentRecord =
+        initial.target.schemaVersion === 4
+          ? {
+              revision: target.revision,
+              bytes: copyBytes(initial.target.bytes),
+              savedAt: target.data.meta.savedAt!,
+            }
+          : {
+              revision: restored!.revision,
+              bytes: copyBytes(restored!.bytes),
+              savedAt: restored!.savedAt,
+            }
       const safetyMeta = snapshotMeta(
         this.createId(),
         initial.current,
@@ -418,10 +515,18 @@ export class IndexedDbStorageAdapter {
       currentStore.put(next, CURRENT_KEY)
       await transactionDone(transaction)
       return {
-        data: structuredClone(restored.data),
-        revision: restored.revision,
-        savedAt: restored.savedAt,
+        data: structuredClone(target.data),
+        revision: next.revision,
+        savedAt: next.savedAt,
         beforeRestoreSnapshot: { ...safetyMeta },
+        ...(initial.target.schemaVersion === 4
+          ? {
+              migration: {
+                sourceSchemaVersion: 4 as const,
+                targetSchemaVersion: 5 as const,
+              },
+            }
+          : {}),
       }
     } catch (error) {
       throw persistenceFailure(error)
@@ -477,9 +582,9 @@ export class IndexedDbStorageAdapter {
   }
 
   private async decodeCurrent(record: CurrentRecord): Promise<LoadedAppData> {
-    let decoded: Awaited<ReturnType<typeof decodeCurrentAppDataBytes>>
+    let decoded: Awaited<ReturnType<typeof decodeSupportedAppDataBytes>>
     try {
-      decoded = await decodeCurrentAppDataBytes(copyBytes(record.bytes))
+      decoded = await decodeSupportedAppDataBytes(copyBytes(record.bytes))
     } catch (error) {
       throw corruptStorageFailure(error)
     }
@@ -492,27 +597,30 @@ export class IndexedDbStorageAdapter {
     return {
       data: structuredClone(decoded.data),
       revision: decoded.revision,
+      ...(decoded.migration ? { migration: decoded.migration } : {}),
     }
   }
 
   private async decodeSnapshot(record: SnapshotRecord): Promise<LoadedAppData> {
     assertSnapshotRecord(record)
-    let decoded: Awaited<ReturnType<typeof decodeCurrentAppDataBytes>>
+    let decoded: Awaited<ReturnType<typeof decodeSupportedAppDataBytes>>
     try {
-      decoded = await decodeCurrentAppDataBytes(copyBytes(record.bytes))
+      decoded = await decodeSupportedAppDataBytes(copyBytes(record.bytes))
     } catch (error) {
       throw corruptStorageFailure(error)
     }
     if (
       decoded.revision !== record.sha256 ||
       decoded.revision !== record.sourceRevision ||
-      decoded.bytes.byteLength !== record.byteLength
+      decoded.bytes.byteLength !== record.byteLength ||
+      decoded.sourceSchemaVersion !== record.schemaVersion
     ) {
       throw new PersistenceError('corrupt_storage')
     }
     return {
       data: structuredClone(decoded.data),
       revision: decoded.revision,
+      ...(decoded.migration ? { migration: decoded.migration } : {}),
     }
   }
 
@@ -553,6 +661,30 @@ export class IndexedDbStorageAdapter {
     await transactionDone(transaction)
     if (current !== undefined) {
       await this.decodeCurrent(current)
+    }
+    return current
+  }
+
+  private async readRawCurrent(): Promise<CurrentRecord | undefined> {
+    const database = await this.openDatabase()
+    const transaction = database.transaction(CURRENT_STORE, 'readonly')
+    const current = (await requestResult(
+      transaction.objectStore(CURRENT_STORE).get(CURRENT_KEY),
+    )) as CurrentRecord | undefined
+    await transactionDone(transaction)
+    if (current) {
+      let decoded: Awaited<ReturnType<typeof decodeSupportedAppDataBytes>>
+      try {
+        decoded = await decodeSupportedAppDataBytes(copyBytes(current.bytes))
+      } catch (error) {
+        throw corruptStorageFailure(error)
+      }
+      if (
+        decoded.revision !== current.revision ||
+        decoded.data.meta.savedAt !== current.savedAt
+      ) {
+        throw new PersistenceError('corrupt_storage')
+      }
     }
     return current
   }

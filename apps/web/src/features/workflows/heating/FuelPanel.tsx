@@ -18,6 +18,8 @@ import { formOptionalText, formText } from '../form-values'
 import type { WorkflowSubRouteProps } from '../route-types'
 import type { WorkflowApply } from '../HeatingRoute'
 
+import { FuelSummary } from './FuelSummary'
+
 const UNITS: readonly QuantityUnit[] = ['l', 'kg', 't', 'kWh', 'm3']
 
 function optionalQuantity(form: FormData, name: string, unit: QuantityUnit) {
@@ -163,7 +165,17 @@ export function FuelPanel({
           ))}
         </select>
       </label>
-      <form noValidate onSubmit={saveStock}>
+      <FuelSummary
+        source={source}
+        billingPeriodId={period.id}
+        stocks={data.billingData.fuelStocks}
+        deliveries={data.billingData.fuelDeliveries}
+      />
+      <form
+        key={`stock-${period.id}-${source.id}`}
+        noValidate
+        onSubmit={saveStock}
+      >
         <h2>Brennstoffbestand</h2>
         <label>
           <span>Mengeneinheit</span>
@@ -210,7 +222,11 @@ export function FuelPanel({
           </button>
         ) : null}
       </form>
-      <form noValidate onSubmit={addDelivery}>
+      <form
+        key={`delivery-${period.id}-${source.id}`}
+        noValidate
+        onSubmit={addDelivery}
+      >
         <h2>Lieferung erfassen</h2>
         <WorkflowField label="Lieferdatum" name="date" type="date" />
         <WorkflowField label="Liefermenge" name="quantity" />

@@ -5,6 +5,7 @@ import {
   CurrentAppDataCodecError,
   MAX_CURRENT_APP_DATA_BYTES,
   decodeCurrentAppDataBytes,
+  decodeSupportedAppDataBytes,
   encodeCurrentAppData,
 } from '../src'
 
@@ -58,6 +59,22 @@ function withUnsafeValue(
 }
 
 describe('current v4 canonical JSON codec', () => {
+  it('previews strict v4 as v5 while preserving original bytes and revision', async () => {
+    const source = { ...emptyFile(), schemaVersion: 4 }
+    const original = encoder.encode(JSON.stringify(source))
+    const decoded = await decodeSupportedAppDataBytes(original)
+    expect(decoded.data.schemaVersion).toBe(5)
+    expect(decoded.sourceSchemaVersion).toBe(4)
+    expect(decoded.migration).toEqual({
+      sourceSchemaVersion: 4,
+      targetSchemaVersion: 5,
+    })
+    expect(decoded.bytes).toEqual(original)
+    expect(decoded.revision).toBe(await sha256Hex(original))
+    await expect(decodeCurrentAppDataBytes(original)).rejects.toMatchObject({
+      code: 'unsupported_schema_version',
+    })
+  })
   it('exports the fixed 25 MiB current-file limit', () => {
     expect(MAX_CURRENT_APP_DATA_BYTES).toBe(25 * 1024 * 1024)
   })
@@ -101,7 +118,7 @@ describe('current v4 canonical JSON codec', () => {
     "appVersion": "Fabel-ÄÖ",
     "savedAt": "2026-07-19T10:11:12.345Z"
   },
-  "schemaVersion": 4
+  "schemaVersion": 5
 }
 `
 
@@ -266,7 +283,7 @@ describe('current v4 validation and version protection', () => {
         decodeCurrentAppDataBytes(
           bytes(
             JSON.stringify({
-              schemaVersion: 5,
+              schemaVersion: 6,
               privateNote: 'FIKTIVE-GEHEIMMARKER-NEUER',
             }),
           ),
@@ -274,7 +291,7 @@ describe('current v4 validation and version protection', () => {
       'newer_schema_version',
     )
 
-    expect(error.schemaVersion).toBe(5)
+    expect(error.schemaVersion).toBe(6)
     expect(`${String(error)} ${JSON.stringify(error)}`).not.toContain(
       'FIKTIVE-GEHEIMMARKER-NEUER',
     )

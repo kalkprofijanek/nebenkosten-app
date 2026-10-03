@@ -162,7 +162,7 @@ describe('MemoryStorageAdapter', () => {
     expect(firstSnapshot).toMatchObject({
       id: 'snapshot-1',
       sourceRevision: first.revision,
-      schemaVersion: 4,
+      schemaVersion: 5,
       kind: 'manual',
       pinned: true,
     })

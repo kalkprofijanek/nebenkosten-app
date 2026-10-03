@@ -18,7 +18,7 @@
 import { z } from 'zod'
 
 /** Aktuelle Schema-Version des neuen Dateiformats. */
-export const CURRENT_SCHEMA_VERSION = 4 as const
+export const CURRENT_SCHEMA_VERSION = 5 as const
 
 /** Schema-Version des Legacy-Formats (`APP_SCHEMA_VERSION` der Alt-App). */
 export const LEGACY_V3_SCHEMA_VERSION = 3 as const

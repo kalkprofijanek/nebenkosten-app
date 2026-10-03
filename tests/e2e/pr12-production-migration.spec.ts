@@ -110,7 +110,7 @@ function findUndefinedPaths(value: unknown, path = '$'): readonly string[] {
   )
 }
 
-test('produces a persistable v4 file from the fictional v3 source', async () => {
+test('produces a persistable v5 file from the fictional v3 source', async () => {
   const source = Buffer.from(JSON.stringify(fictionalLegacyV3()))
   const migration = await importLegacyV3Bytes(source, {
     sourceFileName: 'pr12-fiktiv-v3.json',
@@ -126,12 +126,12 @@ test('produces a persistable v4 file from the fictional v3 source', async () => 
       savedAt: new Date('2026-01-15T10:00:00.000Z'),
     }),
   ).resolves.toMatchObject({
-    data: { schemaVersion: 4 },
+    data: { schemaVersion: 5 },
     revision: expect.stringMatching(/^[a-f0-9]{64}$/u),
   })
 })
 
-test('migrates fictional v3 data, exports a v4 backup, and proves rollback', async ({
+test('migrates fictional v3 data, exports a v5 backup, and proves rollback', async ({
   page,
 }) => {
   await page.goto('/')
@@ -145,7 +145,7 @@ test('migrates fictional v3 data, exports a v4 backup, and proves rollback', asy
     page.getByRole('heading', { name: 'Migrationsbericht' }),
   ).toBeVisible()
   await expect(page.getByText('Schema 3')).toBeVisible()
-  await expect(page.getByText('Schema 4')).toBeVisible()
+  await expect(page.getByText('Schema 5')).toBeVisible()
   await expect(page.getByText(/^[a-f0-9]{64}$/u)).toBeVisible()
   await expect(
     page.getByRole('heading', { name: 'Fachliche Plausibilitätsprüfung' }),
@@ -228,7 +228,7 @@ test('migrates fictional v3 data, exports a v4 backup, and proves rollback', asy
     schemaVersion: number
     billingData: { calculationResults: unknown[]; documents: unknown[] }
   }
-  expect(backupJson.schemaVersion).toBe(4)
+  expect(backupJson.schemaVersion).toBe(5)
   expect(backupJson.billingData.calculationResults).toHaveLength(1)
   expect(backupJson.billingData.documents).toHaveLength(3)
   await expect(page.getByLabel('Backup-Nachweis')).toContainText('SHA-256')

@@ -1,2 +1,4 @@
-export const APP_VERSION = '1.0.1'
-export const APP_RELEASE_LABEL = `Schema v4 · Version ${APP_VERSION}`
+import { CURRENT_SCHEMA_VERSION } from '@nebenkosten/schema'
+
+export const APP_VERSION = '1.1.0'
+export const APP_RELEASE_LABEL = `Schema v${CURRENT_SCHEMA_VERSION} · Version ${APP_VERSION}`

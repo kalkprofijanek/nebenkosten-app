@@ -16,5 +16,6 @@ Vor jeder Bearbeitung sind der Masterplan, die Projektdokumentation und die zuge
 10. Keine direkten Pushes auf `main` und kein automatischer Merge.
 11. `legacy/index.html` niemals formatieren, normalisieren oder fachlich verändern.
 12. Eingaben validieren, Fehler explizit behandeln und keine Geheimnisse hardcoden.
+13. Die App ist ausschließlich für Desktop-Browser bestimmt (siehe `docs/DECISIONS/ADR-0002-DESKTOP-ONLY.md`). Keine Mobilverbesserungen, Mobil-Browsertests oder Mobil-Abnahmekriterien ergänzen.
 
 Die Prioritäten lauten: Datenschutz, fachliche Richtigkeit, Reproduzierbarkeit, Migrationsfähigkeit, Testbarkeit, Wartbarkeit, Bedienkomfort und erst danach Geschwindigkeit.

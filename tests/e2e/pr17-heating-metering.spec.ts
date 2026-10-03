@@ -95,7 +95,7 @@ test('captures a mixed heating setup, fuel delivery and meter readings', async (
     page.getByRole('heading', { name: 'Gaslieferung Februar' }),
   ).toBeVisible()
 
-  await page.getByRole('button', { name: 'Zähler' }).click()
+  await page.getByRole('button', { name: 'Zähler', exact: true }).click()
   await page.getByLabel('Zählerart').selectOption('heat')
   await page
     .getByRole('textbox', { name: 'Zählernummer', exact: true })
@@ -135,7 +135,7 @@ test('captures a mixed heating setup, fuel delivery and meter readings', async (
   await page.getByRole('button', { name: 'Jahresstatus speichern' }).click()
   await waitForLocalSave(page)
   await page.reload()
-  await page.getByRole('button', { name: 'Zähler' }).click()
+  await page.getByRole('button', { name: 'Zähler', exact: true }).click()
   await expect(page.getByLabel('Bankbuchung vorhanden')).toBeChecked()
   await expect(page.getByLabel('Jahresrechnung vorhanden')).toBeChecked()
   await expect(page.getByLabel('Statusnotiz')).toHaveValue(

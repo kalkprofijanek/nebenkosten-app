@@ -151,7 +151,7 @@ export function HeatingSetupPanel({
       <form noValidate onSubmit={create}>
         <label>
           <span>Gebäude</span>
-          <select name="buildingId" required>
+          <select name="buildingId" aria-label="Gebäude" required>
             {buildings.map((building) => (
               <option key={building.id} value={building.id}>
                 {building.name}
