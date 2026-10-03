@@ -341,7 +341,7 @@ export function ReleaseRoute({
                               checked={confirmedWarningKeys.includes(issue.key)}
                               onChange={() => toggleWarning(issue.key)}
                             />
-                            {issue.title} ({issue.key}) bestätigen
+                            Hinweis „{issue.title}“ bewusst bestätigen
                           </label>
                         ) : null}
                       </li>

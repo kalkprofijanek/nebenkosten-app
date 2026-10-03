@@ -6,6 +6,7 @@ import {
 import { calculateBilling, createCalculationInput } from '@nebenkosten/core'
 import { issue, keyed } from './issues'
 import { collectStaticIssues } from './static-validation'
+import { withEntityContext } from './entity-context'
 import type { ValidationOptions, ValidationReport } from './types'
 
 function report(
@@ -123,7 +124,10 @@ export function validateBillingPeriod(
           'heating.operating_electricity_uncovered',
           'heating',
           'Betriebsstrom ist nicht vollständig gedeckt',
-          { entity: { type: 'BillingPeriod', id: billingPeriodId } },
+          {
+            detail: `${(output.heating.operatingElectricity.uncoveredCents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })} des vorgesehenen Betriebsstrom-Anteils sind durch keine Stromkostenart gedeckt.`,
+            entity: { type: 'BillingPeriod', id: billingPeriodId },
+          },
         ),
       )
     for (const circuit of output.heating.trace.circuits)
@@ -163,5 +167,9 @@ export function validateBillingPeriod(
       ),
     )
   }
-  return report(billingPeriodId, issues, options)
+  return report(
+    billingPeriodId,
+    withEntityContext(parsed.data, issues),
+    options,
+  )
 }
