@@ -2,6 +2,19 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
+## 1.1.2 – 3. Oktober 2026
+
+- Prüfhinweise nennen unter „Betrifft:“ den konkreten Heizkreis, Zähler, Beleg
+  oder die Kostenart; der Betriebsstrom-Hinweis zeigt den ungedeckten Betrag,
+- nicht umlagefähige Kosten (NICHT_UML) lösen keinen Hinweis „direkt
+  zugeordnet ohne Ziel“ mehr aus,
+- die Importvorschau zeigt die fachliche Plausibilitätsprüfung zuerst; das
+  technische Protokoll ist eingeklappt,
+- im Nutzungseditor lassen sich fehlende Verbrauchseinheiten aus dem mittleren
+  Verbrauch je m² gemessener Nutzungen desselben Heizkreises schätzen (§ 9a
+  HeizKV); Wert, Kennzeichen „geschätzt“ und Schätzgrund werden nur
+  vorbelegt und erst mit „Speichern“ übernommen.
+
 ## 1.1.1 – 3. Oktober 2026
 
 - nach einem Auszug ohne bekannte neue Anschrift bleibt die bisherige
