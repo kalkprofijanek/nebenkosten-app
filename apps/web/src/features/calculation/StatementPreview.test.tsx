@@ -46,6 +46,22 @@ describe('StatementPreview', () => {
     expect(within(footer).getByText(/Nachzahlung.*120,00/)).toBeVisible()
   })
 
+  it('offers to open each tenant statement but not for vacancies', () => {
+    render(
+      <StatementPreview
+        data={fixture('case-03-vacancy')}
+        billingPeriodId="bp-1"
+      />,
+    )
+    const vacancyRow = screen.getByText('Leerstand').closest('tr')!
+    expect(within(vacancyRow).queryByRole('button')).not.toBeInTheDocument()
+    expect(
+      screen.getAllByRole('button', {
+        name: /Entwurf öffnen|Abrechnung öffnen/,
+      }).length,
+    ).toBeGreaterThan(0)
+  })
+
   it('shows vacancy as landlord costs rather than a tenant payment demand', () => {
     render(
       <StatementPreview
