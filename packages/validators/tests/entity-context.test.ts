@@ -3,7 +3,8 @@ import { validateBillingPeriod } from '../src/index'
 import { describeEntity } from '../src/entity-context'
 import { validData } from './fixture'
 
-const plain = (value: string | undefined) => value?.replace(/ /g, ' ')
+const plain = (value: string | undefined) =>
+  value?.replace(/[  ]/g, ' ')
 
 function heatedData() {
   const data = validData()
