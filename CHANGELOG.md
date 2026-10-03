@@ -2,6 +2,18 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
+## 1.1.3 – 3. Oktober 2026
+
+- unter „Berechnung“ fasst eine Übersicht Nachzahlungen und Guthaben (Anzahl
+  und Summe), den Saldo aller Mieter und die Leerstandskosten des Vermieters
+  zusammen; die Tabelle hat eine Summenzeile,
+- die Abrechnungsvorschau bleibt nach dem Neuladen der App sichtbar; bisher
+  galt der gespeicherte Rechenstand wegen anders sortierter Felder fälschlich
+  als veraltet,
+- die Gesamtabrechnung (PDF) enthält Summen für Nachzahlungen, Guthaben, den
+  Mietersaldo und die Leerstandskosten sowie eine Ergebnis-Spalte; der Bereich
+  der Kostenarten steht auf Deutsch.
+
 ## 1.1.2 – 3. Oktober 2026
 
 - Prüfhinweise nennen unter „Betrifft:“ den konkreten Heizkreis, Zähler, Beleg

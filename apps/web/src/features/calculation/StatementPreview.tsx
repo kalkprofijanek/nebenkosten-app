@@ -25,6 +25,22 @@ function occupantName(data: AppDataFile, occupancy: OccupancyPeriod): string {
   )
 }
 
+/**
+ * Persisted snapshots are stored as canonical JSON with sorted keys, so the
+ * comparison with a fresh calculation must ignore property order.
+ */
+function sortedJson(value: unknown): string {
+  return JSON.stringify(value, (_key, item: unknown) =>
+    item && typeof item === 'object' && !Array.isArray(item)
+      ? Object.fromEntries(
+          Object.keys(item)
+            .sort()
+            .map((key) => [key, (item as Record<string, unknown>)[key]]),
+        )
+      : item,
+  )
+}
+
 function date(value: string): string {
   return value.split('-').reverse().join('.')
 }
@@ -57,8 +73,8 @@ export function StatementPreview({
   let stale: boolean
   try {
     stale =
-      JSON.stringify(snapshot.output) !==
-      JSON.stringify(calculatePreview(data, billingPeriodId))
+      sortedJson(snapshot.output) !==
+      sortedJson(calculatePreview(data, billingPeriodId))
   } catch {
     return (
       <p className="calculation-warnings">
@@ -77,6 +93,24 @@ export function StatementPreview({
   const period = data.billingData.billingPeriods.find(
     (item) => item.id === billingPeriodId,
   )!
+  const kindOf = new Map(
+    data.billingData.occupancyPeriods
+      .filter((item) => item.billingPeriodId === billingPeriodId)
+      .map((item) => [item.id, item.kind]),
+  )
+  const tenants = snapshot.output.tenants.filter(
+    (tenant) => kindOf.get(tenant.id) === 'tenant',
+  )
+  const vacancies = snapshot.output.tenants.filter(
+    (tenant) => kindOf.get(tenant.id) === 'vacancy',
+  )
+  const due = tenants.filter((tenant) => tenant.balanceCents > 0)
+  const credit = tenants.filter((tenant) => tenant.balanceCents < 0)
+  const total = (
+    items: readonly (typeof tenants)[number][],
+    pick: 'shareCents' | 'prepaymentCents' | 'balanceCents',
+  ) => items.reduce((sum, item) => sum + item[pick], 0)
+  const balance = total(tenants, 'balanceCents')
   return (
     <section aria-labelledby="statement-preview-title">
       <h3 id="statement-preview-title">
@@ -86,6 +120,31 @@ export function StatementPreview({
         Gespeicherte Ergebnisse zur Kontrolle. Die Vorschau ersetzt die
         Freigabeprüfung nicht. Leerstandskosten trägt der Vermieter.
       </p>
+      <dl
+        className="balance-summary"
+        aria-label="Summen Nachzahlungen und Guthaben"
+      >
+        <div>
+          <dt>{`Nachzahlungen (${due.length} Mieter)`}</dt>
+          <dd>{euro(total(due, 'balanceCents'))}</dd>
+        </div>
+        <div>
+          <dt>{`Guthaben (${credit.length} Mieter)`}</dt>
+          <dd>{euro(Math.abs(total(credit, 'balanceCents')))}</dd>
+        </div>
+        <div>
+          <dt>Saldo aller Mieter</dt>
+          <dd>
+            {balance === 0
+              ? 'Ausgeglichen'
+              : `${balance > 0 ? 'Nachzahlung' : 'Guthaben'} ${euro(Math.abs(balance))}`}
+          </dd>
+        </div>
+        <div>
+          <dt>Leerstandskosten (Vermieter)</dt>
+          <dd>{euro(total(vacancies, 'shareCents'))}</dd>
+        </div>
+      </dl>
       <div
         className="data-table-wrap"
         tabIndex={0}
@@ -144,6 +203,19 @@ export function StatementPreview({
               )
             })}
           </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">{`Summe Mieter (${tenants.length})`}</th>
+              <td />
+              <td>{euro(total(tenants, 'shareCents'))}</td>
+              <td>{euro(total(tenants, 'prepaymentCents'))}</td>
+              <td>
+                {balance === 0
+                  ? 'Ausgeglichen'
+                  : `${balance > 0 ? 'Nachzahlung' : 'Guthaben'} ${euro(Math.abs(balance))}`}
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
       <p>

@@ -303,7 +303,7 @@ describe('ImportControl', () => {
     await waitFor(() => expect(onConfirm).toHaveBeenCalledWith(data))
     expect(prepareImport).toHaveBeenCalledWith(expect.any(Uint8Array), {
       sourceFileName: 'daten.json',
-      appVersion: '1.1.2',
+      appVersion: '1.1.3',
     })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })

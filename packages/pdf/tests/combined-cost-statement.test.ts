@@ -85,4 +85,29 @@ describe('buildCombinedCostStatement', () => {
 
     expect(JSON.stringify(doc.content)).toContain('-1,00')
   })
+
+  it('summiert Nachzahlungen, Guthaben und den Mietersaldo', () => {
+    const appData = buildFixtureAppData()
+    const context = buildFixtureCombinedContext(appData)
+    const tenants = context.occupancyPeriods.filter(
+      (occupancy) => occupancy.kind === 'tenant',
+    )
+    const balances = tenants.map(
+      (occupancy) =>
+        context.calculation.tenants.find(({ id }) => id === occupancy.id)
+          ?.balanceCents ?? 0,
+    )
+    const due = balances.filter((cents) => cents > 0)
+
+    const serialized = JSON.stringify(
+      buildCombinedCostStatement(context).content,
+    )
+
+    expect(serialized).toContain(`Nachzahlungen (${due.length} Mieter)`)
+    expect(serialized).toContain('Saldo aller Mieter')
+    expect(serialized).toContain('Summe Mieter')
+    expect(serialized).toContain('Leerstandskosten (Vermieter)')
+    expect(serialized).toContain('Betriebskosten')
+    expect(serialized).not.toContain('"operating"')
+  })
 })

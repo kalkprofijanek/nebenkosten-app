@@ -4,7 +4,7 @@ import { APP_RELEASE_LABEL, APP_VERSION } from './version'
 
 describe('release version', () => {
   it('uses the first production version consistently', () => {
-    expect(APP_VERSION).toBe('1.1.2')
-    expect(APP_RELEASE_LABEL).toBe('Schema v5 · Version 1.1.2')
+    expect(APP_VERSION).toBe('1.1.3')
+    expect(APP_RELEASE_LABEL).toBe('Schema v5 · Version 1.1.3')
   })
 })
