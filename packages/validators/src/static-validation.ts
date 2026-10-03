@@ -1,6 +1,7 @@
 import {
   createCalculationInput,
   resolveMeteredConsumption,
+  type MeteredConsumptionIssue,
 } from '@nebenkosten/core'
 import type {
   AppDataFile,
@@ -581,6 +582,63 @@ function deliveryDocuments(
     )
 }
 
+const METERED_OCCUPANCY_CODES = new Set([
+  'metered.occupancy_missing',
+  'metered.occupancy_gap',
+  'metered.occupancy_overlap',
+  'metered.occupancy_invalid_range',
+])
+
+/**
+ * Places a metered problem where it is corrected: incomplete or invalid
+ * occupancy periods in the occupancy step, readings and assignments in the
+ * meter step.
+ */
+function meteredIssue(
+  data: AppDataFile,
+  problem: MeteredConsumptionIssue,
+  circuit: NonNullable<ValidationIssue['entity']>,
+): ValidationIssue {
+  const meter = data.masterData.meters.find(({ id }) => id === problem.meterId)
+  const unit = data.masterData.units.find(({ id }) => id === problem.unitId)
+  const context = [
+    meter ? `Zähler ${meter.meterNumber ?? 'ohne Nummer'}` : undefined,
+    unit
+      ? `Wohnung ${unit.label ?? unit.location ?? 'ohne Bezeichnung'}`
+      : undefined,
+  ].filter(Boolean)
+  const detail = context.length
+    ? `${context.join(' · ')}: ${problem.detail}`
+    : problem.detail
+  if (METERED_OCCUPANCY_CODES.has(problem.code))
+    return issue(
+      'error',
+      problem.code,
+      'occupancy',
+      'Nutzerzeiträume für Wohnungswärme sind unvollständig',
+      {
+        detail,
+        entity: problem.occupancyId
+          ? { type: 'OccupancyPeriod', id: problem.occupancyId }
+          : problem.unitId
+            ? { type: 'Unit', id: problem.unitId }
+            : circuit,
+      },
+    )
+  return issue(
+    'error',
+    problem.code,
+    'meters',
+    'Wohnungswärme-Ablesung fehlt oder ist ungültig',
+    {
+      detail,
+      entity: problem.meterId
+        ? { type: 'Meter', id: problem.meterId }
+        : circuit,
+    },
+  )
+}
+
 function heating(data: AppDataFile, period: BillingPeriod, add: Add): void {
   const categories = periodCategories(data, period.id)
   const circuits = data.billingData.heatingCircuits.filter(
@@ -605,31 +663,15 @@ function heating(data: AppDataFile, period: BillingPeriod, add: Add): void {
         if (!resolution.ok) {
           for (const problem of resolution.issues.filter(
             ({ heatingCircuitId }) => heatingCircuitId === circuit.id,
-          )) {
-            add(
-              issue(
-                'error',
-                problem.code,
-                'heating',
-                'Wohnungswärme-Ablesung ist ungültig',
-                {
-                  detail: problem.detail,
-                  ...(problem.unitId
-                    ? { entity: { type: 'Unit', id: problem.unitId } }
-                    : problem.meterId
-                      ? { entity: { type: 'Meter', id: problem.meterId } }
-                      : { entity }),
-                },
-              ),
-            )
-          }
+          ))
+            add(meteredIssue(data, problem, entity))
         }
       } catch {
         add(
           issue(
             'error',
             'metered.input_invalid',
-            'heating',
+            'meters',
             'Wohnungswärme-Ablesungen können nicht geprüft werden',
             { entity },
           ),

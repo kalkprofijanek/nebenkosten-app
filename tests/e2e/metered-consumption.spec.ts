@@ -130,3 +130,56 @@ for (const width of [1440, 390]) {
     ).toBe(true)
   })
 }
+
+for (const width of [1440, 390]) {
+  test(`blocked metered calculation leads to the meter reading at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 950 })
+    const fixture = createMeteredFixture()
+    const blocked = {
+      ...fixture,
+      billingData: {
+        ...fixture.billingData,
+        heatingCircuits: fixture.billingData.heatingCircuits.map((circuit) => ({
+          ...circuit,
+          consumptionMode: 'metered_kwh',
+          meterAssignments: [{ meterId: meteringId(7), unitId: meteringId(5) }],
+        })),
+        meterReadings: fixture.billingData.meterReadings.filter(
+          ({ id }) => id !== meteringId(15),
+        ),
+      },
+    }
+    await page.goto('/')
+    await page.getByLabel('Daten importieren').setInputFiles({
+      name: 'fiktive-sperre.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify(blocked)),
+    })
+    await page.getByRole('button', { name: 'Import übernehmen' }).click()
+    await expect(page.getByText('Lokal gespeichert')).toBeVisible()
+    await page.goto('/#/berechnung')
+    await page.getByRole('button', { name: 'Abrechnung berechnen' }).click()
+    const alert = page.getByRole('alert')
+    await expect(alert).toContainText('Messberechnung der Wohnungswärme')
+    await expect(alert).toContainText('Zähler TEST-WMZ-1')
+    await expect(alert).not.toContainText('metered.')
+    await alert
+      .getByRole('link', { name: 'Ablesungen des Zählers bearbeiten' })
+      .first()
+      .click()
+    await expect(page).toHaveURL(/#\/heizkreise\?tab=meters&meter=/)
+    await expect(
+      page.getByRole('heading', { level: 2, name: 'TEST-WMZ-1' }),
+    ).toBeVisible()
+    await expect(
+      page.getByText('Automatische Ermittlung noch nicht möglich.'),
+    ).toBeVisible()
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+    ).toBe(true)
+  })
+}

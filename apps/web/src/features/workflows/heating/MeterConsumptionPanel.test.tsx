@@ -38,6 +38,68 @@ describe('meter consumption panel', () => {
       screen.getByRole('button', { name: 'Messverbrauch aktivieren' }),
     ).toBeDisabled()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(
+      screen.getAllByRole('link', { name: 'Ablesungen anzeigen' })[0],
+    ).toHaveAttribute('href', `#/heizkreise?tab=meters&meter=${id(7)}`)
+  })
+
+  it('zeigt nur Probleme des gewählten Heizkreises mit Korrekturziel', () => {
+    const source = createMeteredFixture()
+    const data = {
+      ...source,
+      masterData: {
+        ...source.masterData,
+        buildings: [
+          ...source.masterData.buildings,
+          {
+            id: id(20),
+            propertyId: id(3),
+            name: 'Nebenhaus',
+            mandateRefPrefixes: [],
+          },
+        ],
+      },
+      billingData: {
+        ...source.billingData,
+        heatingCircuits: [
+          {
+            ...source.billingData.heatingCircuits[0]!,
+            meterAssignments: [{ meterId: id(7), unitId: id(5) }],
+          },
+          {
+            ...source.billingData.heatingCircuits[0]!,
+            id: id(21),
+            buildingId: id(20),
+            consumptionMode: 'metered_kwh' as const,
+            meterAssignments: [],
+          },
+        ],
+        occupancyPeriods: source.billingData.occupancyPeriods.map(
+          (occupancy) =>
+            occupancy.id === id(13)
+              ? { ...occupancy, from: '2026-08-01' }
+              : occupancy,
+        ),
+      },
+    }
+    render(
+      <MeterConsumptionPanel
+        data={data}
+        billingPeriodId={id(10)}
+        apply={() => false}
+      />,
+    )
+    const gap = screen.getByText(/decken das Jahr nicht vollständig ab/)
+    expect(gap).toBeVisible()
+    expect(
+      screen.getAllByRole('link', { name: 'Nutzerzeitraum bearbeiten' })[0],
+    ).toHaveAttribute('href', `#/nutzer?edit=${id(13)}`)
+    expect(screen.queryByText(/Nebenhaus/, { selector: 'li' })).toBeNull()
+    expect(
+      screen
+        .getAllByRole('listitem')
+        .every((item) => !item.textContent?.includes('kein Wohnungszähler')),
+    ).toBe(true)
   })
 
   it('explains missing setup before meter assignment', () => {

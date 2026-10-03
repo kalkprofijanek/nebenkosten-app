@@ -44,6 +44,20 @@ export function validationIssueLink(
     }
   }
 
+  if (issue.code.startsWith('metered.')) {
+    const id = encodeURIComponent(issue.entity?.id ?? '')
+    if (issue.entity?.type === 'Meter')
+      return {
+        href: `#/heizkreise?tab=meters&meter=${id}`,
+        label: 'Ablesungen des Zählers bearbeiten',
+      }
+    if (issue.entity?.type === 'OccupancyPeriod')
+      return { href: `#/nutzer?edit=${id}`, label: 'Nutzerzeitraum bearbeiten' }
+    if (issue.area === 'occupancy')
+      return { href: '#/nutzer', label: 'Nutzerzeiträume bearbeiten' }
+    return { href: '#/heizkreise?tab=meters', label: 'Zählerzuordnung prüfen' }
+  }
+
   if (issue.code === 'occupancy.shipping_address_missing') {
     return {
       href: `#/nutzer?edit=${encodeURIComponent(issue.entity?.id ?? '')}`,

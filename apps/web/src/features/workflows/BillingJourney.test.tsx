@@ -1,6 +1,7 @@
 import { createEmptyAppDataFile, type AppDataFile } from '@nebenkosten/schema'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
+import { createMeteredFixture, meteringId } from '../metering/metered-fixture'
 import { BillingJourney } from './BillingJourney'
 
 afterEach(cleanup)
@@ -65,6 +66,42 @@ describe('BillingJourney', () => {
       screen.getByRole('button', { name: /5. Energie und Bestand/ }),
     )
     expect(screen.getByText('Editor: /heizkreise?tab=fuel')).toBeVisible()
+  })
+  it('zeigt gesperrte Messwerte im Zählerschritt mit Weg zur Ablesung', () => {
+    const base = createMeteredFixture()
+    const data: AppDataFile = {
+      ...base,
+      billingData: {
+        ...base.billingData,
+        heatingCircuits: base.billingData.heatingCircuits.map((circuit) => ({
+          ...circuit,
+          consumptionMode: 'metered_kwh' as const,
+          meterAssignments: [{ meterId: meteringId(7), unitId: meteringId(5) }],
+        })),
+        meterReadings: base.billingData.meterReadings.filter(
+          ({ id }) => id !== meteringId(15),
+        ),
+      },
+    }
+    render(show(data, meteringId(10)))
+    fireEvent.click(
+      screen.getByRole('button', { name: /4. Zähler und Verbrauch/ }),
+    )
+    expect(
+      screen.getAllByText(/Wohnungswärme-Ablesung fehlt oder ist ungültig/)
+        .length,
+    ).toBeGreaterThan(0)
+    expect(
+      screen.getAllByRole('link', {
+        name: 'Ablesungen des Zählers bearbeiten',
+      })[0],
+    ).toHaveAttribute('href', `#/heizkreise?tab=meters&meter=${meteringId(7)}`)
+    fireEvent.click(
+      screen.getByRole('button', { name: /5. Energie und Bestand/ }),
+    )
+    expect(
+      screen.queryByText(/Wohnungswärme-Ablesung fehlt oder ist ungültig/),
+    ).toBeNull()
   })
   it('setzt Durchsicht bei fachlichen Änderungen zurück, nicht bei Speicherung', () => {
     const data = fixture()

@@ -152,6 +152,48 @@ Abnahme am 3. Oktober 2026:
   ein Wiederherstellungskonflikt behoben und durch Regressionstest abgesichert;
   danach keine konkreten hohen oder mittleren Befunde.
 
+### Nachtrag: Fehlerführung zur Korrekturstelle
+
+Befund nach 5a00653: Gesperrte Messwerte waren nicht dort sichtbar, wo sie
+korrigiert werden. Der Validator meldete alle `metered.*`-Probleme im Bereich
+`heating`; der geführte Ablauf zeigte sie deshalb unter „Heizung und
+Warmwasser“ und „Energie und Bestand“, nicht unter „Zähler und Verbrauch“. Der
+Korrekturlink führte zum Heizkreis-Reiter, Probleme mit Wohnungsbezug verdeckten
+den Zähler, und „Abrechnung berechnen“ zeigte die technische Core-Meldung mit
+Codes und IDs. Die Vorschau im Zählerbereich listete auch fremde Heizkreise.
+
+Umgesetzt, ohne Änderung von Schema, Rechenweg oder Sperrwirkung:
+
+- Lücken, Überschneidungen, ungültige oder fehlende Nutzerzeiträume erscheinen
+  im Bereich `occupancy` und führen zu `#/nutzer?edit=<Nutzerzeitraum>`.
+- Ablese-, Zähler- und Zuordnungsprobleme erscheinen im Bereich `meters`; mit
+  Zählerbezug führt der Link zu `#/heizkreise?tab=meters&meter=<Zähler>`, der
+  Zählerbereich wählt diesen Zähler aus und scrollt zu ihm.
+- Prüfhinweise nennen Zählernummer und Wohnung im Klartext.
+- Eine gesperrte Berechnung zeigt dieselben Prüfhinweise mit Korrekturlinks
+  statt der technischen Meldung; andere Berechnungsfehler bleiben unverändert.
+- Die Verbrauchsvorschau zeigt nur Probleme des gewählten Heizkreises, jeweils
+  mit Weg zum Nutzerzeitraum oder zu den Ablesungen.
+
+Abnahmekriterien und Nachweis (lokal ausgeführt):
+
+- Neue Validatortests (`packages/validators/tests/metered-validation.test.ts`):
+  Bereich, Entität und Klartext für Ablese-, Lücken-, Belegungs- und
+  Zuordnungsprobleme; vor der Umsetzung vier von sechs Fällen rot.
+- Oberflächentests für Linkziele, Zählerauswahl per Link, gefilterte Vorschau,
+  Zählerschritt im geführten Ablauf und gesperrte Berechnung.
+- Browserfall „gesperrte Messberechnung führt zur Ablesung“ bei 1440 px und
+  390 px ohne horizontalen Überlauf; die Messverbrauchs- und Heizungsgruppe
+  bestand 6/6.
+- `pnpm run ci`: Format, Lint, Typen, 404 Oberflächen-, 354 Core-, 171 Schema-,
+  83 Persistenz-, 43 PDF-, 44 Import-/Export-, 37 Validator- und 23
+  Paket-Abnahmetests, 18 Integrations-, 10 Migrations- und 258
+  Charakterisierungsfälle bestanden; Abdeckung Oberfläche 90,11 % / 81,64 %,
+  Validatoren 95,13 % / 84,74 %; Build und Artefaktprüfung bestanden. Die
+  Repository-Prüfung scheiterte nur an Gits Besitzerprüfung des Ordners und
+  bestand mit prozessweiser `safe.directory`-Ausnahme, ebenso Inhaltsscan und
+  Abhängigkeitsaudit (keine bekannten Schwachstellen).
+
 Legacy-Datei unverändert. Änderungen nur lokal, keine Veröffentlichung.
 Der wiederverwendbare Arbeitsauftrag steht in
 [SUBAGENTEN-SPARSAM-PROMPT.md](SUBAGENTEN-SPARSAM-PROMPT.md).

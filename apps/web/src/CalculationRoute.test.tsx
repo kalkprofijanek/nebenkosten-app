@@ -1,8 +1,18 @@
 import { createEmptyAppDataFile, type AppDataFile } from '@nebenkosten/schema'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { CalculationRoute } from './CalculationRoute'
+import {
+  createMeteredFixture,
+  meteringId,
+} from './features/metering/metered-fixture'
 
 afterEach(cleanup)
 
@@ -218,4 +228,64 @@ describe('CalculationRoute', () => {
       ).not.toBeInTheDocument()
     },
   )
+
+  it('führt eine gesperrte Messberechnung verständlich zur Ablesung', () => {
+    const base = createMeteredFixture()
+    const data: AppDataFile = {
+      ...base,
+      billingData: {
+        ...base.billingData,
+        heatingCircuits: base.billingData.heatingCircuits.map((circuit) => ({
+          ...circuit,
+          consumptionMode: 'metered_kwh' as const,
+          meterAssignments: [{ meterId: meteringId(7), unitId: meteringId(5) }],
+        })),
+        meterReadings: base.billingData.meterReadings.filter(
+          ({ id }) => id !== meteringId(15),
+        ),
+      },
+    }
+    render(
+      <CalculationRoute
+        data={data}
+        billingPeriodId={meteringId(10)}
+        onApply={(transform) => {
+          transform(data)
+          return true
+        }}
+      />,
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Abrechnung berechnen' }),
+    )
+
+    const alert = screen.getByRole('alert')
+    expect(alert).toHaveTextContent('Messberechnung der Wohnungswärme')
+    expect(alert).toHaveTextContent('Zähler TEST-WMZ-1')
+    expect(alert).not.toHaveTextContent('metered.')
+    expect(alert).not.toHaveTextContent(meteringId(7))
+    expect(
+      within(alert).getAllByRole('link', {
+        name: 'Ablesungen des Zählers bearbeiten',
+      })[0],
+    ).toHaveAttribute('href', `#/heizkreise?tab=meters&meter=${meteringId(7)}`)
+  })
+
+  it('behält andere Berechnungsfehler bei, wenn Messwerte gültig sind', () => {
+    const base = createMeteredFixture()
+    render(
+      <CalculationRoute
+        data={base}
+        billingPeriodId={meteringId(10)}
+        onApply={() => {
+          throw new Error('Anderer Fehler')
+        }}
+      />,
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Abrechnung berechnen' }),
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent('Anderer Fehler')
+  })
 })

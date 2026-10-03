@@ -1,6 +1,7 @@
 import {
   createCalculationInput,
   resolveMeteredConsumption,
+  type MeteredConsumptionIssue,
 } from '@nebenkosten/core'
 import type { AppDataFile, HeatingCircuit } from '@nebenkosten/schema'
 import { useState, type FormEvent } from 'react'
@@ -26,6 +27,23 @@ function previewCircuit(data: AppDataFile, circuit: HeatingCircuit) {
   } catch {
     return null
   }
+}
+
+/** Where a blocking problem is corrected; assignments are edited right here. */
+function correctionLink(issue: MeteredConsumptionIssue) {
+  if (issue.code.startsWith('metered.occupancy_'))
+    return issue.occupancyId
+      ? {
+          href: `#/nutzer?edit=${encodeURIComponent(issue.occupancyId)}`,
+          label: 'Nutzerzeitraum bearbeiten',
+        }
+      : { href: '#/nutzer', label: 'Nutzerzeiträume bearbeiten' }
+  if (issue.meterId)
+    return {
+      href: `#/heizkreise?tab=meters&meter=${encodeURIComponent(issue.meterId)}`,
+      label: 'Ablesungen anzeigen',
+    }
+  return null
 }
 
 export function MeterConsumptionPanel({
@@ -204,19 +222,32 @@ export function MeterConsumptionPanel({
           <p>Automatische Ermittlung noch nicht möglich.</p>
           {preview && !preview.ok ? (
             <ul>
-              {preview.issues.map((issue, index) => (
-                <li key={`${issue.code}-${index}`}>
-                  {data.masterData.meters.find(
+              {preview.issues
+                .filter(
+                  ({ heatingCircuitId }) => heatingCircuitId === circuit.id,
+                )
+                .map((issue, index) => {
+                  const meterNumber = data.masterData.meters.find(
                     (meter) => meter.id === issue.meterId,
                   )?.meterNumber
-                    ? `${data.masterData.meters.find((meter) => meter.id === issue.meterId)!.meterNumber}: `
-                    : ''}
-                  {units.find((unit) => unit.id === issue.unitId)?.label
-                    ? `${units.find((unit) => unit.id === issue.unitId)!.label}: `
-                    : ''}
-                  {issue.detail}
-                </li>
-              ))}
+                  const unitLabel = units.find(
+                    (unit) => unit.id === issue.unitId,
+                  )?.label
+                  const link = correctionLink(issue)
+                  return (
+                    <li key={`${issue.code}-${index}`}>
+                      {meterNumber ? `${meterNumber}: ` : ''}
+                      {unitLabel ? `${unitLabel}: ` : ''}
+                      {issue.detail}
+                      {link ? (
+                        <>
+                          {' '}
+                          <a href={link.href}>{link.label}</a>
+                        </>
+                      ) : null}
+                    </li>
+                  )
+                })}
             </ul>
           ) : (
             <p>Bitte die Stammdaten und Nutzerzeiträume prüfen.</p>

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import type { Meter, MeterReading, QuantityUnit } from '@nebenkosten/schema'
 import { ReadingBoundaryField } from './ReadingBoundaryField'
 import { MeterConsumptionPanel } from './MeterConsumptionPanel'
@@ -43,6 +43,13 @@ function meterInput(form: FormData, propertyId: string) {
   }
 }
 
+/** Meter requested by a correction link such as . */
+function requestedMeterId(): string | null {
+  const [route, query] = (globalThis.location?.hash ?? '').split('?')
+  if (route !== '#/heizkreise') return null
+  return new URLSearchParams(query ?? '').get('meter')
+}
+
 function optionalEuro(form: FormData, name: string) {
   const value = formOptionalText(form, name)
   return value === undefined ? undefined : parseEuroCents(value)
@@ -59,8 +66,33 @@ export function MeterPanel({
   const meters = data.masterData.meters.filter(
     ({ propertyId }) => propertyId === period.propertyId,
   )
-  const [meterId, setMeterId] = useState(meters[0]?.id ?? '')
+  const [meterId, setMeterId] = useState(() => {
+    const requested = requestedMeterId()
+    return meters.some(({ id }) => id === requested)
+      ? requested!
+      : (meters[0]?.id ?? '')
+  })
   const [editingMeter, setEditingMeter] = useState(false)
+  const [focusToken, setFocusToken] = useState(() =>
+    requestedMeterId() === null ? 0 : 1,
+  )
+  useEffect(() => {
+    function followHash() {
+      const requested = requestedMeterId()
+      if (requested === null) return
+      setMeterId(requested)
+      setEditingMeter(false)
+      setFocusToken((token) => token + 1)
+    }
+    window.addEventListener('hashchange', followHash)
+    return () => window.removeEventListener('hashchange', followHash)
+  }, [])
+  useEffect(() => {
+    if (focusToken > 0)
+      document
+        .getElementById('meter-title')
+        ?.scrollIntoView?.({ block: 'start' })
+  }, [focusToken])
   const [editingReadingId, setEditingReadingId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<
     | { readonly kind: 'meter' | 'reading' | 'status'; readonly id: string }

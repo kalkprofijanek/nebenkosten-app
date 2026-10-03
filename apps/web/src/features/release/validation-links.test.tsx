@@ -99,4 +99,51 @@ describe('validationIssueLink', () => {
       label: 'Versandanschrift ergänzen',
     })
   })
+  it('führt Wohnungswärme-Befunde zur Ablesung, Zuordnung oder Belegung', () => {
+    expect(
+      validationIssueLink(
+        issue(
+          'meters',
+          { type: 'Meter', id: 'zähler 1' },
+          'metered.boundary_missing',
+        ),
+      ),
+    ).toEqual({
+      href: '#/heizkreise?tab=meters&meter=z%C3%A4hler%201',
+      label: 'Ablesungen des Zählers bearbeiten',
+    })
+    expect(
+      validationIssueLink(
+        issue(
+          'meters',
+          { type: 'HeatingCircuit', id: 'circuit-1' },
+          'metered.assignment_missing',
+        ),
+      ),
+    ).toEqual({
+      href: '#/heizkreise?tab=meters',
+      label: 'Zählerzuordnung prüfen',
+    })
+    expect(
+      validationIssueLink(
+        issue(
+          'occupancy',
+          { type: 'OccupancyPeriod', id: 'occ-1' },
+          'metered.occupancy_gap',
+        ),
+      ),
+    ).toEqual({
+      href: '#/nutzer?edit=occ-1',
+      label: 'Nutzerzeitraum bearbeiten',
+    })
+    expect(
+      validationIssueLink(
+        issue(
+          'occupancy',
+          { type: 'Unit', id: 'unit-1' },
+          'metered.occupancy_missing',
+        ),
+      ),
+    ).toEqual({ href: '#/nutzer', label: 'Nutzerzeiträume bearbeiten' })
+  })
 })
