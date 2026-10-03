@@ -1968,3 +1968,28 @@ h1 {
   background: #fbeaea;
   color: #8a1c1c;
 }
+
+.prepayments-workspace {
+  display: grid;
+  gap: 2rem;
+}
+
+.prepayment-amount-input {
+  width: 7.5rem;
+  text-align: right;
+}
+
+.prepayment-valid-from {
+  display: inline-grid;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.prepayment-warnings {
+  margin: 0;
+  padding-left: 1rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
