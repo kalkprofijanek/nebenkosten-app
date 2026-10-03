@@ -397,7 +397,12 @@ function costs(data: AppDataFile, period: BillingPeriod, add: Add): void {
       )
     const effectiveAmount =
       entries.length > 0 ? total : (category.totalAmountCents ?? 0)
-    if (category.allocationKey === 'direct' && effectiveAmount !== 0)
+    // Non-allocable (NICHT_UML) costs stay with the landlord and need no recipient.
+    if (
+      category.allocationKey === 'direct' &&
+      category.betrkvCategory !== 'NICHT_UML' &&
+      effectiveAmount !== 0
+    )
       add(
         issue(
           'error',

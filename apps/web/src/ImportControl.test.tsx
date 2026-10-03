@@ -182,6 +182,8 @@ describe('ImportControl', () => {
       'Nur redigierte Metadaten',
     )
     expect(screen.getByText('migration.fictional_warning')).toBeVisible()
+    expect(screen.getByText('verbatim')).not.toBeVisible()
+    fireEvent.click(screen.getByText(/Technisches Migrationsprotokoll/))
     expect(screen.getByText('verbatim')).toBeVisible()
     expect(screen.getByRole('dialog')).toHaveTextContent('Fiktive Regelnotiz')
     expect(screen.getByText('euro_to_cents')).toBeVisible()
