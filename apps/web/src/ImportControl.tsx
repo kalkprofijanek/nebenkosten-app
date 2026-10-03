@@ -114,43 +114,6 @@ function MigrationReportPreview({
           ))}
         </ul>
       )}
-      <h3>Geänderte Regeln</h3>
-      {report.changedFields.length === 0 ? (
-        <p>Keine Feldtransformationen.</p>
-      ) : (
-        <ul>
-          {report.changedFields.map((field, index) => (
-            <li key={`${field.sourcePath}-${field.targetPath}-${index}`}>
-              <strong>{field.rule}</strong>: {field.sourcePath} →{' '}
-              {field.targetPath}
-              {field.note ? ` – ${field.note}` : ''}
-            </li>
-          ))}
-        </ul>
-      )}
-      <h3>Verworfene Felder</h3>
-      {report.droppedFields.length === 0 ? (
-        <p>Keine Felder verworfen.</p>
-      ) : (
-        <ul>
-          {report.droppedFields.map((field, index) => (
-            <li key={`${field.sourcePath}-${index}`}>
-              {field.sourcePath}: {field.reason}
-              {field.valueType ? ` (Werttyp: ${field.valueType})` : ''}
-            </li>
-          ))}
-        </ul>
-      )}
-      <h3>Unbekannte, konservierte Felder</h3>
-      {report.unmappedFields.length === 0 ? (
-        <p>Keine unbekannten Felder konserviert.</p>
-      ) : (
-        <ul>
-          {report.unmappedFields.map((path, index) => (
-            <li key={`${path}-${index}`}>{path}</li>
-          ))}
-        </ul>
-      )}
       <h3>Fachliche Plausibilitätsprüfung</h3>
       {validationSummaries.length === 0 ? (
         <p>Keine Abrechnungsjahre fachlich zu prüfen.</p>
@@ -198,6 +161,50 @@ function MigrationReportPreview({
           ))}
         </ul>
       )}
+      <details className="import-technical-report">
+        <summary>
+          Technisches Migrationsprotokoll ({report.changedFields.length} Regeln,{' '}
+          {report.droppedFields.length} verworfene,{' '}
+          {report.unmappedFields.length} konservierte Felder)
+        </summary>
+        <h3>Geänderte Regeln</h3>
+        {report.changedFields.length === 0 ? (
+          <p>Keine Feldtransformationen.</p>
+        ) : (
+          <ul>
+            {report.changedFields.map((field, index) => (
+              <li key={`${field.sourcePath}-${field.targetPath}-${index}`}>
+                <strong>{field.rule}</strong>: {field.sourcePath} →{' '}
+                {field.targetPath}
+                {field.note ? ` – ${field.note}` : ''}
+              </li>
+            ))}
+          </ul>
+        )}
+        <h3>Verworfene Felder</h3>
+        {report.droppedFields.length === 0 ? (
+          <p>Keine Felder verworfen.</p>
+        ) : (
+          <ul>
+            {report.droppedFields.map((field, index) => (
+              <li key={`${field.sourcePath}-${index}`}>
+                {field.sourcePath}: {field.reason}
+                {field.valueType ? ` (Werttyp: ${field.valueType})` : ''}
+              </li>
+            ))}
+          </ul>
+        )}
+        <h3>Unbekannte, konservierte Felder</h3>
+        {report.unmappedFields.length === 0 ? (
+          <p>Keine unbekannten Felder konserviert.</p>
+        ) : (
+          <ul>
+            {report.unmappedFields.map((path, index) => (
+              <li key={`${path}-${index}`}>{path}</li>
+            ))}
+          </ul>
+        )}
+      </details>
     </>
   )
 }

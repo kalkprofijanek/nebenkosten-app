@@ -150,6 +150,8 @@ test('migrates fictional v3 data, exports a v5 backup, and proves rollback', asy
   await expect(
     page.getByRole('heading', { name: 'Fachliche Plausibilitätsprüfung' }),
   ).toBeVisible()
+  await expect(page.getByText('<unknown-field>', { exact: true })).toBeHidden()
+  await page.getByText(/Technisches Migrationsprotokoll/).click()
   await expect(page.getByText('<unknown-field>', { exact: true })).toBeVisible()
 
   await page

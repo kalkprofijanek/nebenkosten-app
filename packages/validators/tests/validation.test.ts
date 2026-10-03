@@ -139,6 +139,21 @@ describe('validateBillingPeriod', () => {
     )
   })
 
+  it('verlangt bei nicht umlagefähigen Direktkosten keine Nutzerzuordnung', () => {
+    const data = validData()
+    data.billingData.costCategories[0] = {
+      ...data.billingData.costCategories[0]!,
+      allocationKey: 'direct',
+      betrkvCategory: 'NICHT_UML',
+    }
+    expect(codes(data)).not.toContain('costs.direct_unassigned')
+    data.billingData.costCategories[0] = {
+      ...data.billingData.costCategories[0]!,
+      betrkvCategory: null,
+    }
+    expect(codes(data)).toContain('costs.direct_unassigned')
+  })
+
   it('deckt Kosten, Belege, Direktzuordnung und Vorjahressteigerung ab', () => {
     const data = validData()
     data.billingData.billingPeriods.push({
