@@ -338,6 +338,24 @@ describe('PdfExportRoute', () => {
     })
   })
 
+  it('bietet nach der Erzeugung einen Speichern-Link an, falls der Browser den Download blockiert', async () => {
+    renderPdfBlob.mockResolvedValue(new Blob(['pdf']))
+    downloadBlob.mockReturnValue('blob:pdf-url')
+    render(
+      <PdfExportRoute
+        data={fixtureAppData()}
+        billingPeriodId={PERIOD_ID}
+        onApply={() => true}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Gesamtabrechnung/ }))
+
+    const link = await screen.findByRole('link', { name: 'Datei speichern' })
+    expect(link).toHaveAttribute('href', 'blob:pdf-url')
+    expect(link).toHaveAttribute('download', expect.stringMatching(/.pdf$/))
+  })
+
   it('zeigt einen Fehler ohne verwendbare Versandadresse', async () => {
     renderPdfBlob.mockResolvedValue(new Blob(['pdf']))
     const data = fixtureAppData({ shippingAddress: false })

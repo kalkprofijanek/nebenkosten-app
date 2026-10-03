@@ -110,4 +110,20 @@ describe('buildCombinedCostStatement', () => {
     expect(serialized).toContain('Betriebskosten')
     expect(serialized).not.toContain('"operating"')
   })
+
+  it('führt die Brennstoffkosten der Heizkreise in der Kostenliste auf', () => {
+    const appData = buildFixtureAppData()
+    const context = buildFixtureCombinedContext(appData)
+    const fuel = context.calculation.heating.trace.circuits.reduce(
+      (sum, circuit) => sum + circuit.reconciliation.fifoConsumptionCostCents,
+      0,
+    )
+
+    const serialized = JSON.stringify(
+      buildCombinedCostStatement(context).content,
+    )
+
+    if (fuel !== 0) expect(serialized).toContain('Brennstoff/Energie')
+    else expect(serialized).not.toContain('Brennstoff/Energie')
+  })
 })

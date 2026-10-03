@@ -105,6 +105,10 @@ export function PdfExportRoute({
 }: PdfExportRouteProps) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [lastFile, setLastFile] = useState<{
+    readonly url: string
+    readonly fileName: string
+  } | null>(null)
 
   if (billingPeriodId === null) {
     return (
@@ -198,8 +202,19 @@ export function PdfExportRoute({
     }
   }
 
+  /**
+   * Startet den Download und hält zusätzlich einen Speichern-Link bereit:
+   * Browser blockieren automatische Downloads nach längerer Erzeugung
+   * teilweise still, ein echter Klick auf den Link funktioniert immer.
+   */
+  function offer(blob: Blob, fileName: string) {
+    const url = downloadBlob(blob, fileName)
+    if (url) setLastFile({ url, fileName })
+  }
+
   async function withErrorHandling(task: () => Promise<void>) {
     setError(null)
+    setLastFile(null)
     try {
       await task()
     } catch (caught) {
@@ -244,7 +259,7 @@ export function PdfExportRoute({
           occupancyPeriodId: occupancyPeriod.id,
         },
       ])
-      downloadBlob(blob, fileName)
+      offer(blob, fileName)
     })
   }
 
@@ -266,7 +281,7 @@ export function PdfExportRoute({
           bytes: await blobBytes(blob),
         },
       ])
-      downloadBlob(blob, fileName)
+      offer(blob, fileName)
     })
   }
 
@@ -320,7 +335,7 @@ export function PdfExportRoute({
           bytes: await blobBytes(zipBlob),
         },
       ])
-      downloadBlob(zipBlob, zipFileName)
+      offer(zipBlob, zipFileName)
     })
   }
 
@@ -360,7 +375,23 @@ export function PdfExportRoute({
         </div>
       </dl>
 
-      {error ? <p role="alert">{error}</p> : null}
+      <div className="pdf-export-status" aria-live="polite">
+        {busy !== null ? <p>Dokument wird erzeugt …</p> : null}
+        {error ? <p role="alert">{error}</p> : null}
+        {lastFile && busy === null ? (
+          <p>
+            „{lastFile.fileName}“ wurde erzeugt. Startet der Download nicht
+            automatisch:{' '}
+            <a
+              className="button button--primary"
+              href={lastFile.url}
+              download={lastFile.fileName}
+            >
+              Datei speichern
+            </a>
+          </p>
+        ) : null}
+      </div>
 
       <div className="form-actions" aria-label="Objektweite Dokumente">
         <button

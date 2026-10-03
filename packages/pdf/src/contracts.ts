@@ -28,6 +28,10 @@ export interface SenderBlock {
   readonly postalCodeAndCity: string | null
   readonly iban: string | null
   readonly bic: string | null
+  readonly accountHolder: string | null
+  readonly bankName: string | null
+  /** Ansprechpartner und E-Mail der Eigentümergesellschaft. */
+  readonly contactLines: readonly string[]
 }
 
 export interface RecipientBlock {

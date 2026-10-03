@@ -8,7 +8,7 @@ nachweisbar verhaltensgleich in prüfbare Pakete überführt.
 
 ## Nutzung
 
-**Aktuelle Version: 1.1.3 · Schema v5** – direkt im Browser:
+**Aktuelle Version: 1.1.4 · Schema v5** – direkt im Browser:
 **<https://kalkprofijanek.github.io/nebenkosten-app/>**
 
 - Ausschließlich für **Desktop-Browser** gedacht (siehe
@@ -125,6 +125,7 @@ Umgesetzt und auf `main` gemergt (Aufgabenbeschreibungen unter
 | PR 47–50 | Praxisabgleich mit Echtbestand          | Versandanschrift, Flüssiggas, Importprüfung, `v1.1.1` |
 | PR 52–53 | Prüfhinweise, Verbrauchsschätzung       | „Betrifft“-Angaben, Schätzung § 9a HeizKV, `v1.1.2`   |
 | PR 55    | Salden-Übersicht                        | Summen Nachzahlung/Guthaben, `v1.1.3`                 |
+| PR 56    | PDF-Download, Briefkopf                 | Speichern-Link, Absender, Nutzungszeitraum, `v1.1.4`  |
 
 Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsystem
 (der Legacy-Wert 0,50 € bleibt nur dokumentierter Warnwert, siehe
@@ -145,7 +146,7 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 
 ## Status
 
-Version **1.1.3** ist veröffentlicht (GitHub Pages, Release-Tag `v1.1.3`). Das
+Version **1.1.4** ist veröffentlicht (GitHub Pages, Release-Tag `v1.1.4`). Das
 Repository ist öffentlich und enthält ausschließlich fiktive Testdaten. Offen
 für spätere Versionen: Import von Heizkostenverteiler-Werten des Messdienstes
 und ein Mehrbenutzer-/Mandantenbetrieb.
