@@ -233,6 +233,14 @@ export function StatementPreview({
       </div>
       <p>
         <a href="#/freigabe">Weiter zur Freigabeprüfung</a>
+        {due.length > 0 ? (
+          <>
+            {' · '}
+            <a href="#/vorauszahlungen">
+              VZ-Anpassung bei Nachzahlungen prüfen
+            </a>
+          </>
+        ) : null}
       </p>
     </section>
   )

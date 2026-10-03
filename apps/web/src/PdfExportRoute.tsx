@@ -1,9 +1,9 @@
 import type { AppDataFile } from '@nebenkosten/schema'
 import {
   buildCombinedCostStatement,
-  buildTenantStatement,
   MissingShippingAddressError,
 } from '@nebenkosten/pdf'
+import { buildTenantStatementWithAdjustment } from './features/prepayments/statement-with-adjustment'
 import { useState } from 'react'
 import {
   buildCombinedCostStatementContext,
@@ -241,7 +241,7 @@ export function PdfExportRoute({
         calculation!,
         occupancyPeriod,
       )
-      const docDefinition = buildTenantStatement(context)
+      const docDefinition = buildTenantStatementWithAdjustment(context)
       const blob = await renderPdfBlob(docDefinition)
       const personName =
         context.persons.map((person) => person.displayName ?? '').join('_') ||
@@ -299,7 +299,7 @@ export function PdfExportRoute({
           calculation!,
           occupancyPeriod,
         )
-        const docDefinition = buildTenantStatement(context)
+        const docDefinition = buildTenantStatementWithAdjustment(context)
         const blob = await renderPdfBlob(docDefinition)
         const personName =
           context.persons.map((person) => person.displayName ?? '').join('_') ||

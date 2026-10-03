@@ -61,6 +61,14 @@ export const appRoutes = [
     actionLabel: 'Nutzer hinzufügen',
   },
   {
+    path: '/vorauszahlungen',
+    label: 'Vorauszahlungen',
+    eyebrow: 'Nutzung',
+    title: 'Vorauszahlungen',
+    description:
+      'Vorauszahlungen aller Mieter im Überblick pflegen und nach der Abrechnung nach § 560 BGB anpassen.',
+  },
+  {
     path: '/kosten',
     label: 'Kosten',
     eyebrow: 'Betriebskosten',

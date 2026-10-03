@@ -15,6 +15,22 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
   Bezugsgrößen; ältere Rechenstände bleiben für die PDF-Ausgabe lesbar,
 - Prüfung: Warnung, wenn für einen Heizkreis mit fossilem Energieträger kein
   CO₂-Preis hinterlegt ist (ersatzweise 45 €/t),
+- neuer Menüpunkt „Vorauszahlungen“ (nach „Nutzer“): Tabelle aller Mieter des
+  Abrechnungsjahres mit Modus, Monatsbetrag (je Zeile bearbeitbar), Jahressoll,
+  Betrag desselben Mietverhältnisses im Vorjahr, Differenz und Summenzeile;
+  gesperrte Jahre sind nur lesbar,
+- VZ-Anpassung nach § 560 Abs. 4 BGB: Für Mieter mit Nachzahlung, laufendem
+  Mietverhältnis und monatlicher Vorauszahlung wird aus dem Kostenanteil
+  (hochgerechnet auf 365 Tage, durch 12, auf volle Euro aufgerundet) ab 5 €
+  Erhöhung eine neue Vorauszahlung vorgeschlagen; Hinweise bei Belegung unter
+  90 Tagen und bei zu frühem Gültigkeitstermin; „Ja“ trägt den Betrag im
+  Folgejahr ein, jede Entscheidung wird im Änderungsprotokoll festgehalten,
+- bei „Ja“ wird der Einzelabrechnung (Vorschau, Einzel-PDF und ZIP) ein
+  Anpassungsschreiben mit Rücksendeabschnitt für den Mieter angehängt; das
+  Schreiben enthält keine Unterschrift des Vermieters,
+- die Abrechnungsvorschau unter „Berechnung“ öffnet die Einzelabrechnung als
+  Entwurf mit Wasserzeichen und verweist bei Nachzahlungen auf die
+  VZ-Anpassung.
 
 ## 1.1.4 – 3. Oktober 2026
 

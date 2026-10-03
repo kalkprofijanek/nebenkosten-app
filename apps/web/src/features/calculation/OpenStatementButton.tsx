@@ -1,8 +1,5 @@
 import type { CalculationOutput } from '@nebenkosten/core'
-import {
-  buildTenantStatement,
-  MissingShippingAddressError,
-} from '@nebenkosten/pdf'
+import { MissingShippingAddressError } from '@nebenkosten/pdf'
 import type {
   AppDataFile,
   BillingPeriod,
@@ -11,6 +8,7 @@ import type {
 import { useState } from 'react'
 import { buildTenantStatementContext } from '../pdf/context'
 import { downloadBlob, renderPdfBlob } from '../pdf/render'
+import { buildTenantStatementWithAdjustment } from '../prepayments/statement-with-adjustment'
 
 /**
  * Öffnet die Einzelabrechnung eines Mieters in einem neuen Tab. Vor der
@@ -40,7 +38,7 @@ export function OpenStatementButton({
     // Popup-Blocker nach der (asynchronen) PDF-Erzeugung.
     const target = window.open('', '_blank')
     try {
-      const definition = buildTenantStatement(
+      const definition = buildTenantStatementWithAdjustment(
         buildTenantStatementContext(data, period, calculation, occupancy),
       )
       const blob = await renderPdfBlob(
