@@ -2,6 +2,18 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
+## 1.1.4 – 3. Oktober 2026
+
+- PDF-Download: Nach der Erzeugung erscheint oben ein fester Hinweis mit dem
+  Link „Datei speichern“, falls der Browser den automatischen Download
+  blockiert; Fehler werden dort ebenfalls sichtbar angezeigt,
+- Einzelabrechnung: Absender ist die Eigentümergesellschaft mit Anschrift und
+  Ansprechpartner; die Anrede steht im Brieftext statt im Adressfeld; bei
+  Teilzeiträumen wird der eigene Nutzungszeitraum genannt; die IBAN ist in
+  Vierergruppen mit Kontoinhaber angegeben,
+- Gesamtabrechnung: Die Kostenliste enthält die Brennstoff- und Energiekosten
+  je Heizkreis; die Summe entspricht damit den erfassten Gesamtkosten.
+
 ## 1.1.3 – 3. Oktober 2026
 
 - unter „Berechnung“ fasst eine Übersicht Nachzahlungen und Guthaben (Anzahl

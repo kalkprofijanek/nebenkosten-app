@@ -12,6 +12,7 @@ import {
   balanceLabel,
   formatAllocationKeyLabel,
   formatEuroCents,
+  formatIban,
   formatIsoDate,
 } from './format'
 import {
@@ -25,6 +26,25 @@ import {
 
 const BLUE = '#1a3a5c'
 const LIGHT_FILL = '#eef4fb'
+
+/** Nutzungszeitraum des Mieters, auf den Abrechnungszeitraum begrenzt. */
+function occupancyRange(context: TenantStatementContext) {
+  const { billingPeriod, occupancyPeriod } = context
+  const from =
+    occupancyPeriod.from && occupancyPeriod.from > billingPeriod.periodStart
+      ? occupancyPeriod.from
+      : billingPeriod.periodStart
+  const to =
+    occupancyPeriod.to && occupancyPeriod.to < billingPeriod.periodEnd
+      ? occupancyPeriod.to
+      : billingPeriod.periodEnd
+  return {
+    from,
+    to,
+    partial:
+      from !== billingPeriod.periodStart || to !== billingPeriod.periodEnd,
+  }
+}
 
 function resolvedBuildingId(context: TenantStatementContext) {
   const { occupancyPeriod, unit } = context
@@ -222,7 +242,7 @@ function co2Section(context: TenantStatementContext): Content[] {
           ],
           [
             'Energieverbrauchskennwert',
-            `${circuitTrace.co2.intensityKgPerSqmYear.toFixed(1)} kg CO2/m²·a`,
+            `${circuitTrace.co2.intensityKgPerSqmYear.toFixed(1).replace('.', ',')} kg CO2/m²·a`,
           ],
         ],
       },
@@ -250,6 +270,10 @@ function propertyDataFooter(context: TenantStatementContext): Content {
             [
               'Abrechnungszeitraum',
               `${formatIsoDate(billingPeriod.periodStart)} – ${formatIsoDate(billingPeriod.periodEnd)}`,
+            ],
+            [
+              'Ihr Nutzungszeitraum',
+              `${formatIsoDate(occupancyRange(context).from)} – ${formatIsoDate(occupancyRange(context).to)}`,
             ],
           ],
         },
@@ -329,24 +353,53 @@ export function buildTenantStatement(
     ? [{ text: notes.general, margin: [0, 8, 0, 0] }]
     : []
 
+  const range = occupancyRange(context)
+  const senderAddressLines = [sender.street, sender.postalCodeAndCity].filter(
+    (line): line is string => Boolean(line),
+  )
+  const iban = sender.iban ? formatIban(sender.iban) : null
+  const bankLine = iban
+    ? [
+        sender.accountHolder ? `Kontoinhaber: ${sender.accountHolder}` : null,
+        `IBAN: ${iban}`,
+        sender.bic ? `BIC: ${sender.bic}` : null,
+        sender.bankName,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : null
+  const openingContent: Content[] =
+    coverLetterContent.length > 0
+      ? []
+      : [
+          {
+            text: `${recipient.salutationLine},`,
+            margin: [0, 0, 0, 6],
+          },
+          {
+            text: `anbei erhalten Sie Ihre Heiz- und Hausnebenkostenabrechnung für ${range.partial ? 'Ihren Nutzungszeitraum' : 'das Jahr'} ${formatIsoDate(range.from)} bis ${formatIsoDate(range.to)}.`,
+            margin: [0, 0, 0, 10],
+          },
+        ]
+
   return {
     pageSize: 'A4',
     pageMargins: [71, 46, 48, 58],
     footer: (currentPage: number, pageCount: number) => ({
-      text: `${sender.nameLines.join(' · ')}${sender.iban ? ` · ${sender.iban}` : ''}     Seite ${currentPage}/${pageCount}`,
+      text: `${[...sender.nameLines, ...senderAddressLines].join(' · ')}${iban ? ` · IBAN ${iban}` : ''}     Seite ${currentPage}/${pageCount}`,
       fontSize: 7,
       color: '#5a6a78',
       margin: [71, 0, 48, 0],
     }),
     content: [
       {
-        text: sender.nameLines.join(' · '),
-        absolutePosition: { x: 71, y: 99 },
-        fontSize: 8,
+        text: [...sender.nameLines, ...senderAddressLines].join(' · '),
+        absolutePosition: { x: 71, y: 112 },
+        fontSize: 7,
+        decoration: 'underline',
       },
       {
         stack: [
-          recipient.salutationLine,
           ...recipient.nameLines,
           recipient.street,
           recipient.postalCodeAndCity,
@@ -355,14 +408,18 @@ export function buildTenantStatement(
         fontSize: 10,
       },
       {
-        stack: [...sender.nameLines],
-        absolutePosition: { x: 340, y: 56 },
+        stack: [
+          { text: sender.nameLines.join('\n'), bold: true },
+          ...senderAddressLines,
+          ...sender.contactLines,
+        ],
+        absolutePosition: { x: 340, y: 46 },
         fontSize: 9,
         alignment: 'right',
       },
       {
         text: formatIsoDate(context.generatedAt.toISOString().slice(0, 10)),
-        absolutePosition: { x: 340, y: 128 },
+        absolutePosition: { x: 340, y: 150 },
         fontSize: 9,
         alignment: 'right',
       },
@@ -373,8 +430,16 @@ export function buildTenantStatement(
       },
       {
         text: `Nutzungseinheit ${unit.label ?? ''} — Abrechnungszeitraum ${formatIsoDate(billingPeriod.periodStart)} bis ${formatIsoDate(billingPeriod.periodEnd)}`,
-        margin: [0, 0, 0, 12],
+        margin: [0, 0, 0, range.partial ? 2 : 12],
       },
+      range.partial
+        ? {
+            text: `Ihr Nutzungszeitraum: ${formatIsoDate(range.from)} bis ${formatIsoDate(range.to)}`,
+            bold: true,
+            margin: [0, 0, 0, 12],
+          }
+        : { text: '' },
+      ...openingContent,
       ...coverLetterContent,
       context.occupancyPeriod.consumptionUnitsEstimated &&
       !context.calculation.meteringTrace?.circuits.some((circuit) =>
@@ -400,9 +465,9 @@ export function buildTenantStatement(
         color: '#5a6a78',
         margin: [0, 0, 0, 8],
       },
-      sender.iban
+      bankLine
         ? {
-            text: `Bankverbindung: ${sender.iban}${sender.bic ? ` (${sender.bic})` : ''}`,
+            text: `Bankverbindung: ${bankLine}`,
             margin: [0, 4, 0, 4],
           }
         : { text: '' },

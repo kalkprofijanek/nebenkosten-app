@@ -46,9 +46,9 @@ const person: Person = {
 }
 
 describe('buildSenderBlock', () => {
-  it('nutzt die Objektadresse, wenn vorhanden', () => {
+  it('nutzt die Anschrift der Eigentümergesellschaft als Absender', () => {
     const sender = buildSenderBlock(ownerCompany, property)
-    expect(sender.street).toBe('Objektweg')
+    expect(sender.street).toBe('Verwalterstraße')
     expect(sender.nameLines).toEqual([
       'Mustermann Immobilien GmbH',
       'Verwaltung',
@@ -56,10 +56,38 @@ describe('buildSenderBlock', () => {
     expect(sender.iban).toBe(['DE89', '370400440532013000'].join(''))
   })
 
-  it('fällt auf die Eigentümergesellschaft zurück, wenn keine Objektadresse vorliegt', () => {
-    const propertyWithoutAddress: Property = { ...property, address: undefined }
-    const sender = buildSenderBlock(ownerCompany, propertyWithoutAddress)
-    expect(sender.street).toBe('Verwalterstraße')
+  it('fällt auf die Objektadresse zurück, wenn die Gesellschaft keine Anschrift hat', () => {
+    const sender = buildSenderBlock(
+      { ...ownerCompany, address: null },
+      property,
+    )
+    expect(sender.street).toBe('Objektweg')
+  })
+
+  it('bevorzugt das Objektkonto und übernimmt Kontoinhaber und Ansprechpartner', () => {
+    const sender = buildSenderBlock(
+      {
+        ...ownerCompany,
+        contact: {
+          firstName: 'Tina',
+          lastName: 'Beispiel',
+          email: ['info', 'example.org'].join('@'),
+        },
+      },
+      {
+        ...property,
+        bankAccount: {
+          iban: ['DE02', '120300000000202051'].join(''),
+          accountHolder: 'Objektkonto',
+        },
+      },
+    )
+    expect(sender.iban).toBe(['DE02', '120300000000202051'].join(''))
+    expect(sender.accountHolder).toBe('Objektkonto')
+    expect(sender.contactLines).toEqual([
+      'Ansprechpartner: Tina Beispiel',
+      ['info', 'example.org'].join('@'),
+    ])
   })
 })
 

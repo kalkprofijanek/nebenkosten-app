@@ -1948,3 +1948,23 @@ h1 {
   font-weight: 700;
   background: var(--mint-soft);
 }
+
+.pdf-export-status {
+  position: sticky;
+  z-index: 3;
+  top: 0;
+}
+
+.pdf-export-status p {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--mint-soft);
+}
+
+.pdf-export-status p[role='alert'] {
+  border-color: #e3b4b4;
+  background: #fbeaea;
+  color: #8a1c1c;
+}

@@ -72,7 +72,45 @@ describe('buildTenantStatement', () => {
       pageCount: number,
     ) => { text: string }
     expect(footer(1, 3).text).toContain('Seite 1/3')
-    expect(footer(1, 3).text).toContain(['DE89', '370400440532013000'].join(''))
+    expect(footer(1, 3).text).toContain(
+      ['DE89 3704', ' 0044 0532 0130 00'].join(''),
+    )
+  })
+
+  it('setzt die Anrede in den Brieftext statt ins Adressfeld', () => {
+    const appData = buildFixtureAppData()
+    const context = buildFixtureTenantStatementContext(appData)
+    const doc = buildTenantStatement({
+      ...context,
+      billingPeriod: { ...context.billingPeriod, coverLetter: null },
+    })
+    const content = doc.content as Array<{ stack?: unknown[]; text?: unknown }>
+    const addressStack = content.find(
+      (item) =>
+        Array.isArray(item.stack) &&
+        item.stack.includes(context.tenancy.shippingAddressStreet),
+    )
+    expect(JSON.stringify(addressStack ?? {})).not.toContain('Sehr geehrte')
+    expect(
+      content.some(
+        (item) =>
+          typeof item.text === 'string' && /^Sehr geehrte.*,$/.test(item.text),
+      ),
+    ).toBe(true)
+  })
+
+  it('nennt bei Teilzeitraum den eigenen Nutzungszeitraum', () => {
+    const appData = buildFixtureAppData()
+    const context = buildFixtureTenantStatementContext(appData)
+    const start = context.billingPeriod.periodStart
+    const from = `${start.slice(0, 4)}-03-15`
+    const doc = buildTenantStatement({
+      ...context,
+      occupancyPeriod: { ...context.occupancyPeriod, from },
+    })
+    expect(JSON.stringify(doc.content)).toContain(
+      `Ihr Nutzungszeitraum: 15.03.${start.slice(0, 4)}`,
+    )
   })
 
   it('interpoliert das Anschreiben mit den Mieterdaten', () => {

@@ -3,11 +3,18 @@ import {
   balanceLabel,
   formatAllocationKeyLabel,
   formatEuroCents,
+  formatIban,
   formatIsoDate,
   formatPercent,
 } from '../src/format'
 
 describe('format', () => {
+  it('gruppiert IBANs in Vierergruppen, auch mit vorhandenen Leerzeichen', () => {
+    const iban = ['DE02 1203 ', '0000 0000 2020 51'].join('')
+    expect(formatIban(iban)).toBe(['DE02 1203 ', '0000 0000 2020 51'].join(''))
+    expect(formatIban(iban.replace(/ /g, ''))).toBe(formatIban(iban))
+  })
+
   it('formatiert Cent-Beträge als deutsche Euro-Angabe', () => {
     expect(formatEuroCents(123456)).toBe('1.234,56 €')
     expect(formatEuroCents(-500)).toBe('-5,00 €')

@@ -27,9 +27,11 @@ describe('downloadBlob', () => {
     globalThis.URL.revokeObjectURL = revokeObjectURL
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click')
 
-    downloadBlob(new Blob(['x']), 'test.pdf')
+    const url = downloadBlob(new Blob(['x']), 'test.pdf')
 
+    expect(url).toBe('blob:mock-url')
     expect(createObjectURL).toHaveBeenCalled()
+    expect(document.querySelector('a[download]')).toBeNull()
     expect(clickSpy).toHaveBeenCalled()
     vi.runAllTimers()
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url')

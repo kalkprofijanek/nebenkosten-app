@@ -35,13 +35,23 @@ export async function renderZipBlob(
   return zip.generateAsync({ type: 'blob' })
 }
 
-export function downloadBlob(blob: Blob, fileName: string): void {
+/**
+ * Startet den Download und gibt die Object-URL zurück, damit die Oberfläche
+ * zusätzlich einen Speichern-Link anbieten kann. Die URL bleibt zehn Minuten
+ * gültig.
+ */
+export function downloadBlob(blob: Blob, fileName: string): string {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
   anchor.download = fileName
+  anchor.rel = 'noopener'
+  anchor.style.display = 'none'
+  document.body.appendChild(anchor)
   anchor.click()
-  setTimeout(() => URL.revokeObjectURL(url), 4_000)
+  anchor.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 600_000)
+  return url
 }
 
 export async function sha256Hex(bytes: Uint8Array): Promise<string> {

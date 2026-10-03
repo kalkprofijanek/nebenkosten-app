@@ -175,7 +175,9 @@ test('moves a valid fictional billing period through review to PDF-ready and fin
   expect(combinedPath).not.toBeNull()
   const combinedBytes = await readFile(combinedPath!)
   expect(combinedBytes.subarray(0, 5).toString('latin1')).toBe('%PDF-')
-  await expect(page.getByText('NK_2026_Kostenaufstellung.pdf')).toBeVisible()
+  await expect(
+    page.getByText('NK_2026_Kostenaufstellung.pdf', { exact: true }),
+  ).toBeVisible()
 
   const tenantDownload = page.waitForEvent('download')
   await page

@@ -30,6 +30,34 @@ function categoryAmountCents(
   return category?.totalAmountCents ?? 0
 }
 
+/**
+ * Verbrauchte Brennstoff- bzw. Energiekosten je Heizkreis (FIFO-Bewertung).
+ * Sie stehen nicht in den Kostenarten, gehören aber zu den Gesamtkosten.
+ */
+function fuelCostRows(context: CombinedCostStatementContext) {
+  const { buildings } = context.appData.masterData
+  const { energySources } = context.appData.billingData
+  return context.calculation.heating.trace.circuits
+    .map((circuit) => {
+      const building = buildings.find(({ id }) => id === circuit.buildingId)
+      const sources = circuit.energySources
+        .map((trace) => {
+          const source = energySources.find(
+            ({ id }) => id === trace.energySourceId,
+          )
+          return source?.name ?? source?.sourceType ?? source?.key ?? null
+        })
+        .filter((name): name is string => Boolean(name))
+      return {
+        label: `Brennstoff/Energie ${building?.name ?? 'Heizkreis'}${
+          sources.length > 0 ? ` (${sources.join(', ')})` : ''
+        }`,
+        amountCents: circuit.reconciliation.fifoConsumptionCostCents,
+      }
+    })
+    .filter(({ amountCents }) => amountCents !== 0)
+}
+
 function costCategoriesTable(context: CombinedCostStatementContext): Content {
   const rows = context.costCategories
     .map((category) => ({
@@ -38,7 +66,10 @@ function costCategoriesTable(context: CombinedCostStatementContext): Content {
     }))
     .filter(({ amountCents }) => amountCents !== 0)
 
-  const total = rows.reduce((sum, row) => sum + row.amountCents, 0)
+  const fuelRows = fuelCostRows(context)
+  const total =
+    rows.reduce((sum, row) => sum + row.amountCents, 0) +
+    fuelRows.reduce((sum, row) => sum + row.amountCents, 0)
 
   const body: TableCell[][] = [
     [
@@ -48,21 +79,32 @@ function costCategoriesTable(context: CombinedCostStatementContext): Content {
       { text: 'Betrag', style: 'th', alignment: 'right' },
     ],
     ...rows.map(({ category, amountCents }): TableCell[] => [
-      category.betrkvCategory ?? '–',
+      { text: category.betrkvCategory ?? '–', noWrap: true },
       category.statementText ?? category.label,
       costKindLabels[category.kind] ?? category.kind,
+      { text: formatEuroCents(amountCents), alignment: 'right' },
+    ]),
+    ...fuelRows.map(({ label, amountCents }): TableCell[] => [
+      '§2 Nr. 4',
+      label,
+      costKindLabels.heating,
       { text: formatEuroCents(amountCents), alignment: 'right' },
     ]),
     [
       { text: 'Summe', colSpan: 3, bold: true },
       {},
       {},
-      { text: formatEuroCents(total), alignment: 'right', bold: true },
+      {
+        text: formatEuroCents(total),
+        alignment: 'right',
+        bold: true,
+        noWrap: true,
+      },
     ],
   ]
 
   return {
-    table: { widths: ['auto', '*', 'auto', 'auto'], body },
+    table: { widths: [52, '*', 'auto', 72], body },
     layout: 'lightHorizontalLines',
     margin: [0, 4, 0, 12],
   }

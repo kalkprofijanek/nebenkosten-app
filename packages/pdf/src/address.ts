@@ -14,18 +14,38 @@ function blank(value: string | null | undefined): boolean {
   return value == null || value.trim().length === 0
 }
 
+/**
+ * Absender ist die Eigentümergesellschaft: Ihre Anschrift steht im Absender,
+ * die Objektanschrift nur ersatzweise. Die Bankverbindung bevorzugt das
+ * Objektkonto, weil Nachzahlungen dorthin gehen.
+ */
 export function buildSenderBlock(
   ownerCompany: OwnerCompany,
   property: Property,
 ): SenderBlock {
-  const address = property.address ?? ownerCompany.address ?? null
-  const bankAccount = property.bankAccount ?? ownerCompany.bankAccount ?? null
+  const address = ownerCompany.address ?? property.address ?? null
+  const bankAccount = blank(property.bankAccount?.iban)
+    ? (ownerCompany.bankAccount ?? null)
+    : property.bankAccount!
+  const contact = ownerCompany.contact
+  const contactName = [contact?.firstName, contact?.lastName]
+    .filter((part): part is string => !blank(part))
+    .join(' ')
   return {
     nameLines: [ownerCompany.name, ...ownerCompany.additionalNameLines],
     street: address?.street ?? null,
     postalCodeAndCity: address?.postalCodeAndCity ?? null,
     iban: bankAccount?.iban ?? null,
-    bic: bankAccount?.bic ?? null,
+    bic: blank(bankAccount?.bic) ? null : bankAccount!.bic!,
+    accountHolder: blank(bankAccount?.accountHolder)
+      ? null
+      : bankAccount!.accountHolder!,
+    bankName: blank(bankAccount?.bankName) ? null : bankAccount!.bankName!,
+    contactLines: [
+      contactName ? `Ansprechpartner: ${contactName}` : '',
+      contact?.phone ? `Telefon: ${contact.phone}` : '',
+      contact?.email ?? '',
+    ].filter((line) => !blank(line)),
   }
 }
 
