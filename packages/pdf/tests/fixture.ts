@@ -93,10 +93,12 @@ export function buildFixtureTenantStatementContext(
 
 export function buildFixtureCombinedContext(
   appData: AppDataFile,
+  audience: CombinedCostStatementContext['audience'] = 'internal',
 ): CombinedCostStatementContext {
   const billingPeriod = appData.billingData.billingPeriods[0]!
   const calculation = buildFixtureCalculation(appData)
   return {
+    audience,
     appData,
     billingPeriod,
     calculation,

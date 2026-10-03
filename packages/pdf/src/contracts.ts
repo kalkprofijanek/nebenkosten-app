@@ -56,8 +56,16 @@ export interface TenantStatementContext {
   readonly generatedAt: Date
 }
 
+/**
+ * Variante der Gesamtabrechnung: `internal` mit Mieter-Salden und
+ * Mandatsreferenzen, `tenant` ohne Daten einzelner Mieter (zur Vorlage bei
+ * Belegeinsicht).
+ */
+export type CombinedCostStatementAudience = 'internal' | 'tenant'
+
 /** Gemeinsamer Kontext für die objektweite Gesamtabrechnung/Kostenaufstellung. */
 export interface CombinedCostStatementContext {
+  readonly audience: CombinedCostStatementAudience
   readonly appData: AppDataFile
   readonly billingPeriod: BillingPeriod
   readonly calculation: CalculationOutput
