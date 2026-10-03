@@ -17,10 +17,10 @@
     "@nebenkosten/persistence": "workspace:*",
     "@nebenkosten/schema": "workspace:*",
     "@nebenkosten/validators": "workspace:*",
-    "jszip": "3.10.1",
+    "jszip": "3.10.2",
     "pdfmake": "0.3.11",
-    "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@types/pdfmake": "0.3.3"
