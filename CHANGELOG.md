@@ -2,6 +2,20 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
+## Unveröffentlicht
+
+- **Fachliche Änderung (Vermieterentscheidung):** Der CO₂-Mieteranteil wird
+  wie die Brennstoffkosten nach dem Heizkreis-Schlüssel verteilt (z. B. 30 %
+  nach beheizter Fläche, 70 % nach Verbrauch) statt zu 100 % nach Verbrauch;
+  bestehende Rechenstände bleiben unverändert, bis neu berechnet wird
+  (siehe `docs/HEATING-CO2.md`),
+- Berechnung: Umlage-Nachweis je Kostenart (brutto, nicht umlagefähig,
+  umlagefähig, Betriebsstrom-Umbuchung, Schlüssel, Gesamteinheiten, Bereich,
+  Leerstandsanteil) sowie je Mieter Nutzungstage, Zeitfaktor und eigene
+  Bezugsgrößen; ältere Rechenstände bleiben für die PDF-Ausgabe lesbar,
+- Prüfung: Warnung, wenn für einen Heizkreis mit fossilem Energieträger kein
+  CO₂-Preis hinterlegt ist (ersatzweise 45 €/t),
+
 ## 1.1.4 – 3. Oktober 2026
 
 - PDF-Download: Nach der Erzeugung erscheint oben ein fester Hinweis mit dem

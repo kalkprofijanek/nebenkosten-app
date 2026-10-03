@@ -838,6 +838,27 @@ function heating(data: AppDataFile, period: BillingPeriod, add: Add): void {
           }),
         )
     }
+    if (
+      circuit.co2?.mode !== 'manual' &&
+      circuit.co2?.co2PricePerTonCents == null &&
+      sources.some(
+        (source) =>
+          (source.co2FactorKgPerKwh ?? circuit.co2?.co2FactorKgPerKwh ?? 0) > 0,
+      )
+    )
+      add(
+        issue(
+          'warning',
+          'co2.price_missing',
+          'co2',
+          'CO₂-Preis fehlt – die Berechnung setzt ersatzweise 45 €/t an',
+          {
+            entity,
+            detail:
+              'Bitte den für das Abrechnungsjahr geltenden CO₂-Preis nach BEHG am Heizkreis hinterlegen.',
+          },
+        ),
+      )
     const consumption =
       circuit.overrides?.consumptionSharePercent ??
       period.heatingDefaults?.consumptionSharePercent ??

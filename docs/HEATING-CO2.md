@@ -71,6 +71,22 @@ Der Vermieteranteil wird nicht in den auf Nutzer verteilten Heiztopf
 eingerechnet. Dadurch bleiben CO₂-Kosten, Heizkosten und die
 Mieter-/Vermieter-Verantwortung nachvollziehbar getrennt.
 
+### Verteilung des CO₂-Mieteranteils (Vermieterentscheidung)
+
+Der CO₂-Mieteranteil eines Heizkreises wird – wie die Brennstoffkosten –
+nach dem Heizkreis-Schlüssel auf die Nutzer verteilt, also mit dem
+Grundkostenanteil (z. B. 30 %) nach der konfigurierten Flächenbasis
+(beheizte Fläche bzw. Wohnfläche, zeitanteilig nach Kalendertagen) und mit
+dem Verbrauchskostenanteil (z. B. 70 %) nach erfasstem Verbrauch
+(Verbrauchseinheiten oder gemessene kWh). Bis einschließlich Version 1.1.4
+wurde der Mieteranteil zu 100 % nach Verbrauch verteilt. Die § 12-Kürzung
+(15 %) wirkt weiterhin nur auf die Heizkosten, nicht auf den CO₂-Anteil.
+Auf Leerstandszeiten entfallende CO₂-Anteile trägt der Vermieter.
+
+Fehlt im automatischen Modus der CO₂-Preis, setzt die Berechnung
+ersatzweise 45 €/t an; die Prüfung meldet dann die Warnung
+`co2.price_missing`.
+
 ## Warmwasser getrennt vom Heiztopf
 
 Zentrale Warmwasserbereitung erzeugt einen eigenen Warmwassertopf. Er wird vor

@@ -374,6 +374,39 @@ describe('validateBillingPeriod', () => {
     )
   })
 
+  it('warnt, wenn für einen fossilen Heizkreis kein CO2-Preis hinterlegt ist', () => {
+    const data = validData()
+    data.masterData.heatingSystems.push({
+      id: 'system-1',
+      propertyId: 'property-1',
+    })
+    data.billingData.heatingCircuits.push({
+      id: 'circuit-1',
+      billingPeriodId: 'period-1',
+      heatingSystemId: 'system-1',
+      buildingId: 'building-1',
+      hasCentralHotWater: false,
+      co2: { mode: 'auto' },
+    })
+    data.billingData.energySources.push({
+      id: 'source-1',
+      heatingCircuitId: 'circuit-1',
+      key: 'fiktiv',
+      co2FactorKgPerKwh: 0.2,
+    })
+    expect(codes(data)).toContain('co2.price_missing')
+
+    data.billingData.heatingCircuits[0]!.co2 = {
+      mode: 'auto',
+      co2PricePerTonCents: 5_500,
+    }
+    expect(codes(data)).not.toContain('co2.price_missing')
+
+    data.billingData.heatingCircuits[0]!.co2 = { mode: 'auto' }
+    data.billingData.energySources[0]!.co2FactorKgPerKwh = 0
+    expect(codes(data)).not.toContain('co2.price_missing')
+  })
+
   it('prüft fehlenden Heizkreis und unvollständige Energiequellen', () => {
     const missingCircuit = validData()
     missingCircuit.billingData.costCategories[0]!.kind = 'heating'

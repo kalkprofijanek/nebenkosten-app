@@ -14,6 +14,8 @@ import {
   type CircuitCo2Trace,
   type CircuitHeatingSplitTrace,
   type CircuitWarmWaterTrace,
+  type OperatingPositionTrace,
+  type TenantAllocationBasis,
   type TenantCostBreakdown,
 } from '../contracts'
 import { calculateOccupancyDays, calculatePeriodDays } from '../periods'
@@ -283,6 +285,137 @@ function costShare(
   }
 }
 
+function isExcludedFromOperatingShare(category: Readonly<CostCategory>) {
+  return Boolean(
+    category.hideWhenZero && (category.totalAmountCents ?? 0) === 0,
+  )
+}
+
+function positionDenominator(
+  position: RawCostPosition,
+): Pick<OperatingPositionTrace, 'denominator' | 'denominatorUnit'> {
+  const { basis } = position
+  switch (position.category.allocationKey) {
+    case 'usable_area':
+      return {
+        denominator: roundQuantity(basis.usableArea, 3),
+        denominatorUnit: 'm²',
+      }
+    case 'heated_area':
+      return {
+        denominator: roundQuantity(basis.heatedArea, 3),
+        denominatorUnit: 'm²',
+      }
+    case 'consumption_units':
+      return {
+        denominator: roundQuantity(basis.consumptionUnits, 3),
+        denominatorUnit: 'Einheiten',
+      }
+    case 'residential_units':
+      return {
+        denominator: roundQuantity(basis.residentialUnits, 3),
+        denominatorUnit: 'WE',
+      }
+    default:
+      return { denominator: null, denominatorUnit: null }
+  }
+}
+
+/**
+ * Legt die bereits berechneten Umlagegrößen je Kostenart offen (§ 259 BGB):
+ * brutto, nicht umlagefähig, umlagefähig, Betriebsstrom-Umbuchung, Nenner
+ * und Leerstandsanteil. Ohne Einfluss auf die verbindlichen Beträge.
+ */
+function operatingPositionTraces(
+  originalPositions: readonly RawCostPosition[],
+  positions: readonly RawCostPosition[],
+  contexts: readonly OccupancyContext[],
+): OperatingPositionTrace[] {
+  return positions.map((position, index) => {
+    const original = originalPositions[index]!
+    const { category } = position
+    const common = {
+      costCategoryId: category.id,
+      label: category.statementText ?? category.label,
+      betrkvCategory: category.betrkvCategory ?? null,
+      allocationKey: category.allocationKey ?? null,
+      scope: category.scope ?? null,
+      grossCents: roundCentsHalfAwayFromZero(position.amount),
+    }
+    if (category.betrkvCategory === 'NICHT_UML') {
+      return {
+        ...common,
+        nonAllocableCents: common.grossCents,
+        allocableCents: 0,
+        operatingElectricityDeductedCents: 0,
+        distributedCents: 0,
+        distribution: 'not_allocable' as const,
+        denominator: null,
+        denominatorUnit: null,
+        vacancyCents: 0,
+      }
+    }
+    const amounts = {
+      nonAllocableCents: roundCentsHalfAwayFromZero(
+        original.freeLandlordAmount,
+      ),
+      allocableCents: roundCentsHalfAwayFromZero(original.effectiveAmount),
+      operatingElectricityDeductedCents: roundCentsHalfAwayFromZero(
+        original.effectiveAmount - position.effectiveAmount,
+      ),
+      distributedCents: roundCentsHalfAwayFromZero(position.effectiveAmount),
+    }
+    if (category.allocationKey === 'direct' || category.kind === 'heating') {
+      return {
+        ...common,
+        ...amounts,
+        distribution:
+          category.allocationKey === 'direct'
+            ? ('direct' as const)
+            : ('heating_pool' as const),
+        denominator: null,
+        denominatorUnit: null,
+        vacancyCents: 0,
+      }
+    }
+    const tenantShares = isExcludedFromOperatingShare(category)
+      ? 0
+      : contexts
+          .filter(({ occupancy }) => occupancy.kind !== 'vacancy')
+          .reduce((sum, context) => sum + costShare(position, context), 0)
+    return {
+      ...common,
+      ...amounts,
+      distribution: 'key' as const,
+      ...positionDenominator(position),
+      vacancyCents: roundCentsHalfAwayFromZero(
+        position.effectiveAmount - tenantShares,
+      ),
+    }
+  })
+}
+
+function tenantAllocationBasis(
+  context: OccupancyContext,
+  measuredKwhByOccupancy: ReadonlyMap<string, number>,
+  measuredBuildingIds: ReadonlySet<string>,
+): TenantAllocationBasis {
+  const metered = measuredBuildingIds.has(context.buildingId ?? '')
+  return {
+    buildingId: context.buildingId ?? null,
+    usableAreaSqm: roundQuantity(context.usableArea, 3),
+    heatedAreaSqm: roundQuantity(context.heatedArea, 3),
+    persons: roundQuantity(context.persons, 3),
+    consumption: roundQuantity(
+      metered
+        ? (measuredKwhByOccupancy.get(context.occupancy.id) ?? 0)
+        : context.consumptionUnits,
+      3,
+    ),
+    consumptionUnit: metered ? 'kWh' : 'Einheiten',
+  }
+}
+
 function co2TenantFactor(intensity: number): number {
   if (intensity < 12) return 1
   if (intensity < 17) return 0.9
@@ -515,8 +648,14 @@ function rawCircuitResults(
             : 0,
         hotWaterPricePerPerson:
           hotWaterPersons > 0 ? hotWater / hotWaterPersons : 0,
-        co2PricePerConsumptionUnit:
-          consumptionDenominator > 0 ? co2Tenant / consumptionDenominator : 0,
+        // CO2-Mieteranteil nach dem Heizkreis-Schlüssel wie die
+        // Brennstoffkosten (Vermieterentscheidung, siehe docs/HEATING-CO2.md).
+        co2BasePrice:
+          baseDenominator > 0 ? (co2Tenant * baseFactor) / baseDenominator : 0,
+        co2ConsumptionPrice:
+          consumptionDenominator > 0
+            ? (co2Tenant * consumptionFactor) / consumptionDenominator
+            : 0,
         energySources: fuel.sources,
         co2Trace,
         warmWaterTrace,
@@ -550,7 +689,7 @@ function rawTenantShare(
         category.kind !== 'heating' &&
         category.betrkvCategory !== 'NICHT_UML' &&
         category.allocationKey !== 'direct' &&
-        !(category.hideWhenZero && (category.totalAmountCents ?? 0) === 0),
+        !isExcludedFromOperatingShare(category),
     )
     .reduce(
       (sum, position) =>
@@ -587,10 +726,11 @@ function rawTenantShare(
     heating *= 0.85
   }
   const co2 =
-    circuit.co2PricePerConsumptionUnit *
-    (isMeteredOccupancy
-      ? measuredKwhByOccupancy!.get(context.occupancy.id)!
-      : context.consumptionUnits)
+    circuit.co2BasePrice * baseArea * context.timeFactor +
+    circuit.co2ConsumptionPrice *
+      (isMeteredOccupancy
+        ? measuredKwhByOccupancy!.get(context.occupancy.id)!
+        : context.consumptionUnits)
   return operating + heating + co2
 }
 
@@ -622,7 +762,7 @@ function rawTenantShareBreakdown(
         category.kind !== 'heating' &&
         category.betrkvCategory !== 'NICHT_UML' &&
         category.allocationKey !== 'direct' &&
-        !(category.hideWhenZero && (category.totalAmountCents ?? 0) === 0),
+        !isExcludedFromOperatingShare(category),
     )
     .map((position) => ({
       costCategoryId: position.category.id,
@@ -675,10 +815,11 @@ function rawTenantShareBreakdown(
       circuit.hotWaterPricePerPerson * persons * context.timeFactor * reduction,
     ),
     heatingCo2Cents: roundCentsHalfAwayFromZero(
-      circuit.co2PricePerConsumptionUnit *
-        (isMeteredOccupancy
-          ? measuredKwhByOccupancy!.get(context.occupancy.id)!
-          : context.consumptionUnits),
+      circuit.co2BasePrice * baseArea * context.timeFactor +
+        circuit.co2ConsumptionPrice *
+          (isMeteredOccupancy
+            ? measuredKwhByOccupancy!.get(context.occupancy.id)!
+            : context.consumptionUnits),
     ),
   }
 }
@@ -719,6 +860,7 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
     ]),
   )
   const usesMeteredConsumption = measuredCircuitIds.size > 0
+  const measuredBuildingIds = new Set(measuredCircuitByBuildingId.keys())
   const periodDays = calculatePeriodDays(
     input.billingPeriod.periodStart,
     input.billingPeriod.periodEnd,
@@ -844,6 +986,13 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
         defaultsBasis,
         usesMeteredConsumption ? measuredKwhByOccupancy : undefined,
         usesMeteredConsumption ? measuredKwhDenominatorByBuildingId : undefined,
+      ),
+      days: context.days,
+      timeFactor: roundQuantity(context.timeFactor, 6),
+      ownBasis: tenantAllocationBasis(
+        context,
+        measuredKwhByOccupancy,
+        measuredBuildingIds,
       ),
     }
   })
@@ -1009,6 +1158,11 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
     vacancyLandlordCents: roundCentsHalfAwayFromZero(vacancyLandlord),
     tenants,
     warnings: [],
+    operatingPositions: operatingPositionTraces(
+      originalPositions,
+      positions,
+      contexts,
+    ),
     ...(usesMeteredConsumption ? { meteringTrace: metering.trace } : {}),
   }
 }

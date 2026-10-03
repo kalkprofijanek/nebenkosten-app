@@ -1,4 +1,5 @@
 import type {
+  AllocationScope,
   BillingPeriod,
   Building,
   CostCategory,
@@ -214,6 +215,21 @@ export interface TenantCostBreakdown {
   heatingCo2Cents: number
 }
 
+/**
+ * Eigene Bezugsgrößen eines Nutzungszeitraums (Trace für die
+ * Einzelabrechnung nach § 259 BGB). Flächen sind ungewichtet; der
+ * Zeitfaktor steht separat in `TenantCalculationResult.timeFactor`.
+ */
+export interface TenantAllocationBasis {
+  buildingId: string | null
+  usableAreaSqm: number
+  heatedAreaSqm: number
+  persons: number
+  /** Verbrauch für die Heizkostenverteilung (gemessene kWh oder Einheiten). */
+  consumption: number
+  consumptionUnit: 'kWh' | 'Einheiten'
+}
+
 export interface TenantCalculationResult {
   id: string
   isVacancy: boolean
@@ -222,6 +238,41 @@ export interface TenantCalculationResult {
   balanceCents: number
   status: 'gruen' | 'gelb' | 'rot'
   costBreakdown: TenantCostBreakdown
+  /** Nutzungstage im Abrechnungszeitraum (ab Trace-Erweiterung, optional für alte Snapshots). */
+  days?: number
+  /** Nutzungstage ÷ Periodentage (Kalendertage, § 9b HeizKV). */
+  timeFactor?: number
+  ownBasis?: TenantAllocationBasis
+}
+
+/**
+ * Umlage-Nachweis je Kostenart (Trace, rein informativ). Alle Beträge sind
+ * einzeln kaufmännisch gerundet; die verbindlichen Summen stehen in
+ * `totals`.
+ */
+export interface OperatingPositionTrace {
+  costCategoryId: string
+  label: string
+  betrkvCategory: string | null
+  allocationKey: string | null
+  scope: AllocationScope | null
+  /** Betrag laut Belegen bzw. Kostenart (brutto). */
+  grossCents: number
+  /** Nicht umlagefähiger Anteil (Umlagegrad < 100 % oder NICHT_UML). */
+  nonAllocableCents: number
+  /** Umlagefähiger Anteil vor der Betriebsstrom-Umbuchung. */
+  allocableCents: number
+  /** In die Heizkosten umgebuchter Betriebsstrom. */
+  operatingElectricityDeductedCents: number
+  /** Tatsächlich nach dem Schlüssel verteilter Betrag. */
+  distributedCents: number
+  /** Heizungs-Betriebskosten fließen in den Heiztopf statt in die Umlage. */
+  distribution: 'key' | 'heating_pool' | 'direct' | 'not_allocable'
+  /** Gesamteinheiten des Schlüssels (zeitgewichtet), `null` ohne Schlüssel. */
+  denominator: number | null
+  denominatorUnit: 'm²' | 'Einheiten' | 'kWh' | 'WE' | null
+  /** Auf Leerstand/nicht vermietete Anteile entfallender Betrag (Vermieter). */
+  vacancyCents: number
 }
 
 export interface CalculationOutput {
@@ -234,4 +285,6 @@ export interface CalculationOutput {
   tenants: TenantCalculationResult[]
   warnings: ValidationIssue[]
   meteringTrace?: MeteredConsumptionTrace
+  /** Umlage-Nachweis je Kostenart; fehlt in älteren Snapshots. */
+  operatingPositions?: OperatingPositionTrace[]
 }
