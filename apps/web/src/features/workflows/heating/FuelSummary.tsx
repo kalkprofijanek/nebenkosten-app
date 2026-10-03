@@ -68,7 +68,10 @@ export function FuelSummary({
     ) ||
     selectedDeliveries.some(
       (item) =>
-        item.amountCents == null || (hasQuantities && item.quantity == null),
+        item.amountCents == null ||
+        // `null` marks a cost without fuel quantity (e.g. tank rent);
+        // only an unrecorded quantity is a gap.
+        (hasQuantities && item.quantity === undefined),
     )
   if (incomplete)
     return (
