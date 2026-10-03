@@ -67,6 +67,12 @@ export function validationIssueLink(
       label: 'Verbrauchseinheiten ergänzen',
     }
 
+  if (issue.code === 'occupancy.shipping_address_previous')
+    return {
+      href: `#/nutzer?edit=${encodeURIComponent(issue.entity?.id ?? '')}`,
+      label: 'Neue Anschrift eintragen',
+    }
+
   if (issue.code === 'occupancy.shipping_address_missing') {
     return {
       href: `#/nutzer?edit=${encodeURIComponent(issue.entity?.id ?? '')}`,

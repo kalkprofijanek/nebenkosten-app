@@ -86,7 +86,21 @@ describe('buildTenantStatement', () => {
     expect(serialized).not.toContain('{{jahr}}')
   })
 
-  it('wirft MissingShippingAddressError ohne Versandadresse nach Auszug', () => {
+  it('wirft MissingShippingAddressError ganz ohne verwendbare Anschrift', () => {
+    const appData = buildFixtureAppData()
+    const context = buildFixtureTenantStatementContext(appData)
+    const patchedContext = {
+      ...context,
+      property: { ...context.property, address: null },
+      tenancy: { ...context.tenancy, shippingAddressStreet: null },
+    }
+
+    expect(() => buildTenantStatement(patchedContext)).toThrow(
+      MissingShippingAddressError,
+    )
+  })
+
+  it('adressiert nach Auszug ohne neue Anschrift an die bisherige', () => {
     const appData = buildFixtureAppData()
     const context = buildFixtureTenantStatementContext(appData)
     const patchedContext = {
@@ -94,13 +108,21 @@ describe('buildTenantStatement', () => {
       occupancyPeriod: {
         ...context.occupancyPeriod,
         to: context.billingPeriod.periodStart,
+        legacyUnmapped: [
+          { path: ['strasse'], value: 'Am Altbau' },
+          { path: ['hausnummer'], value: '3' },
+        ],
       },
-      tenancy: { ...context.tenancy, shippingAddressStreet: null },
+      tenancy: {
+        ...context.tenancy,
+        shippingAddressStreet: null,
+        shippingAddressPostalCodeAndCity: null,
+      },
     }
 
-    expect(() => buildTenantStatement(patchedContext)).toThrow(
-      MissingShippingAddressError,
-    )
+    expect(
+      JSON.stringify(buildTenantStatement(patchedContext).content),
+    ).toContain('Am Altbau 3')
   })
 
   it('adressiert Bewohner ohne Versandadresse an ihre Hausanschrift', () => {

@@ -228,9 +228,17 @@ nicht vorgesehen, eine Erweiterung steht daher zurück.
 Nutzerentscheidung: Wer am Periodenende noch in der Wohnung wohnt und keine
 eigene Versandanschrift hat, erhält automatisch die Hausanschrift der Wohnung
 (aus den übernommenen Legacy-Feldern Straße/Hausnummer) bzw. die Objektstraße,
-jeweils mit PLZ/Ort des Objekts. Eine erfasste Anschrift hat Vorrang; nach
-einem Auszug bleibt `occupancy.shipping_address_missing` ein Fehler. Prüfung
+jeweils mit PLZ/Ort des Objekts. Eine erfasste Anschrift hat Vorrang. Nach
+einer weiteren Nutzerentscheidung gilt das auch nach einem Auszug, weil eine
+neue Anschrift nicht immer bekannt ist; die Prüfung meldet dann nur den Hinweis
+`occupancy.shipping_address_previous`. `occupancy.shipping_address_missing`
+bleibt ein Fehler, wenn gar keine Anschrift mit PLZ/Ort verfügbar ist. Prüfung
 und PDF verwenden dieselbe Funktion `resolveShippingAddress` aus dem Core.
+
+Brennstoffmengen im Praxisbestand: Die betroffenen Legacy-Lieferungen haben
+Menge 0 mit uneindeutiger Einheit („l/kg“, „Einheit“). Der Import übernimmt sie
+bewusst nicht als Nullmenge (fehlend ist nicht null); die Mengen werden in der
+App aus den Rechnungen nachgetragen.
 
 ### Nachtrag: nur Desktop
 

@@ -30,6 +30,8 @@ export interface ResolvedShippingAddress {
   readonly postalCodeAndCity: string
   /** `tenancy`: erfasst; `unit`: Hausanschrift der Wohnung; `property`: Objektanschrift. */
   readonly source: 'tenancy' | 'unit' | 'property'
+  /** Ohne erfasste Anschrift nach Auszug: Abrechnung geht an die bisherige Anschrift. */
+  readonly movedOut?: boolean
 }
 
 function text(value: unknown): string | undefined {
@@ -50,10 +52,10 @@ function legacyValue(
 }
 
 /**
- * Versandanschrift einer Nutzung. Eine erfasste Anschrift hat Vorrang. Wer am
- * Periodenende noch in der Wohnung wohnt, erhält ohne erfasste Anschrift die
- * Hausanschrift der Wohnung (Legacy Straße/Hausnummer) bzw. die Objektstraße
- * mit PLZ/Ort des Objekts. Ausgezogene Mieter brauchen eine eigene Anschrift.
+ * Versandanschrift einer Nutzung. Eine erfasste Anschrift hat Vorrang. Ohne
+ * sie gilt die Hausanschrift der Wohnung (Legacy Straße/Hausnummer) bzw. die
+ * Objektstraße mit PLZ/Ort des Objekts – auch nach einem Auszug, weil eine neue
+ * Anschrift nicht immer bekannt ist (`movedOut` kennzeichnet diesen Fall).
  */
 export function resolveShippingAddress(
   input: ShippingAddressInput,
@@ -63,11 +65,10 @@ export function resolveShippingAddress(
   if (street && city)
     return { street, postalCodeAndCity: city, source: 'tenancy' }
   const { occupancy, billingPeriod } = input
-  const livesThere =
-    occupancy.kind === 'tenant' &&
-    (!text(occupancy.to) || occupancy.to! >= billingPeriod.periodEnd)
+  const movedOut =
+    !!text(occupancy.to) && occupancy.to! < billingPeriod.periodEnd
   const propertyCity = text(input.property.address?.postalCodeAndCity)
-  if (!livesThere || !propertyCity) return null
+  if (occupancy.kind !== 'tenant' || !propertyCity) return null
   const unitStreet = legacyValue(occupancy, 'strasse')
   if (unitStreet) {
     const houseNumber = legacyValue(occupancy, 'hausnummer')
@@ -75,6 +76,7 @@ export function resolveShippingAddress(
       street: houseNumber ? `${unitStreet} ${houseNumber}` : unitStreet,
       postalCodeAndCity: propertyCity,
       source: 'unit',
+      movedOut,
     }
   }
   const propertyStreet = text(input.property.address?.street)
@@ -83,6 +85,7 @@ export function resolveShippingAddress(
         street: propertyStreet,
         postalCodeAndCity: propertyCity,
         source: 'property',
+        movedOut,
       }
     : null
 }

@@ -136,10 +136,10 @@ function fixtureAppData(
         {
           id: PROPERTY_ID,
           ownerCompanyId: OWNER_ID,
-          address: {
-            street: 'Objektweg',
-            postalCodeAndCity: '00000 Musterstadt',
-          },
+          // Ohne Versand- und Objektort gibt es keine verwendbare Anschrift.
+          address: withAddress
+            ? { street: 'Objektweg', postalCodeAndCity: '00000 Musterstadt' }
+            : { street: 'Objektweg' },
         },
       ],
       units: [{ id: UNIT_ID, propertyId: PROPERTY_ID, label: 'WE 1' }],
@@ -183,8 +183,6 @@ function fixtureAppData(
           unitId: UNIT_ID,
           tenancyId: TENANCY_ID,
           kind: 'tenant',
-          // Ohne Anschrift nur nach Auszug ein Fehler; Bewohner erhalten die Objektanschrift.
-          ...(withAddress ? {} : { to: '2026-06-30' }),
         },
       ],
       calculationRuns: [
@@ -340,7 +338,7 @@ describe('PdfExportRoute', () => {
     })
   })
 
-  it('zeigt einen Fehler bei fehlender Versandadresse nach Auszug', async () => {
+  it('zeigt einen Fehler ohne verwendbare Versandadresse', async () => {
     renderPdfBlob.mockResolvedValue(new Blob(['pdf']))
     const data = fixtureAppData({ shippingAddress: false })
     render(

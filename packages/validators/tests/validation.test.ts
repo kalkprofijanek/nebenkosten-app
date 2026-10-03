@@ -107,12 +107,17 @@ describe('validateBillingPeriod', () => {
       ...data.masterData.tenancies[0]!,
       shippingAddressStreet: null,
     }
-    expect(codes(data)).toContain('occupancy.shipping_address_missing')
+    expect(codes(data)).not.toContain('occupancy.shipping_address_missing')
+    expect(codes(data)).toContain('occupancy.shipping_address_previous')
 
     const withoutCity = movedOut(validData())
     withoutCity.masterData.tenancies[0] = {
       ...withoutCity.masterData.tenancies[0]!,
       shippingAddressPostalCodeAndCity: '   ',
+    }
+    withoutCity.masterData.properties[0] = {
+      ...withoutCity.masterData.properties[0]!,
+      address: null,
     }
     expect(codes(withoutCity)).toContain('occupancy.shipping_address_missing')
 

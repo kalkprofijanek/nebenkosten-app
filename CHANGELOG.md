@@ -2,6 +2,12 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
+## 1.1.1 – in Vorbereitung
+
+- nach einem Auszug ohne bekannte neue Anschrift bleibt die bisherige
+  Wohnungs- bzw. Objektanschrift bestehen; statt eines Freigabefehlers erscheint
+  ein Hinweis mit Link zur Nutzerbearbeitung.
+
 ## 1.1.0 – 3. Oktober 2026
 
 - Schema-Version 5 mit bestätigter, gesicherter Umstellung von Version 4,

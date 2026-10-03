@@ -49,6 +49,7 @@ describe('Versandanschrift', () => {
       street: 'Am Nebenhof 8',
       postalCodeAndCity: '12345 Beispielstadt',
       source: 'unit',
+      movedOut: false,
     })
   })
 
@@ -64,17 +65,28 @@ describe('Versandanschrift', () => {
       street: 'Am Objekthof 1',
       postalCodeAndCity: '12345 Beispielstadt',
       source: 'property',
+      movedOut: false,
     })
   })
 
-  it('verlangt bei Auszug, Leerstand oder fehlendem Ort eine eigene Anschrift', () => {
-    const base = { tenancy: {}, property, billingPeriod }
+  it('behält nach einem Auszug ohne neue Anschrift die bisherige', () => {
     expect(
       resolveShippingAddress({
-        ...base,
+        tenancy: {},
         occupancy: { ...occupancy, to: '2026-06-30' },
+        property,
+        billingPeriod,
       }),
-    ).toBeNull()
+    ).toEqual({
+      street: 'Am Nebenhof 8',
+      postalCodeAndCity: '12345 Beispielstadt',
+      source: 'unit',
+      movedOut: true,
+    })
+  })
+
+  it('liefert für Leerstand oder ohne Ort keine Anschrift', () => {
+    const base = { tenancy: {}, property, billingPeriod }
     expect(
       resolveShippingAddress({
         ...base,
