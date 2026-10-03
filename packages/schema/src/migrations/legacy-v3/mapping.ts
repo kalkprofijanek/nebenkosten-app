@@ -150,6 +150,8 @@ export function inferFuelUnit(sourceType: unknown): QuantityUnit | undefined {
   const value = sourceType.toLocaleLowerCase('de-DE')
   if (value.includes('öl') || value.includes('oel')) return 'l'
   if (value.includes('pellet')) return 'kg'
+  // Liquefied gas is delivered by the litre, network gas by the cubic metre.
+  if (value.includes('flüssiggas') || value.includes('propan')) return 'l'
   if (value.includes('gas')) return 'm3'
   if (value.includes('strom') || value.includes('wärme')) return 'kWh'
   return undefined

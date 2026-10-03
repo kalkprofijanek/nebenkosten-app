@@ -167,7 +167,25 @@ function MigrationReportPreview({
               {summary.canBecomeReady
                 ? ' – fachlich freigabefähig'
                 : ' – noch nicht freigabefähig'}
-              {summary.issueCodes.length > 0 ? (
+              {summary.issueGroups && summary.issueGroups.length > 0 ? (
+                <ul>
+                  {summary.issueGroups.map((group) => (
+                    <li key={`${summary.reference}-${group.code}`}>
+                      <strong>
+                        {group.severity === 'error'
+                          ? 'Fehler'
+                          : group.severity === 'warning'
+                            ? 'Warnung'
+                            : 'Hinweis'}
+                        :
+                      </strong>{' '}
+                      {group.title}
+                      {group.count > 1 ? ` (${group.count}×)` : ''}{' '}
+                      <small>{group.code}</small>
+                    </li>
+                  ))}
+                </ul>
+              ) : summary.issueCodes.length > 0 ? (
                 <ul>
                   {summary.issueCodes.map((code, index) => (
                     <li key={`${summary.reference}-${code}-${index}`}>

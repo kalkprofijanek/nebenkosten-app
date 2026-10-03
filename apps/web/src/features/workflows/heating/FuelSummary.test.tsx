@@ -112,6 +112,28 @@ describe('FuelSummary', () => {
     ).toBeInTheDocument()
     expect(screen.getByText(/123,45/)).toBeInTheDocument()
   })
+  it('wertet eine bewusst mengenlose Position als Kosten statt als Lücke', () => {
+    render(
+      <FuelSummary
+        source={source}
+        billingPeriodId="y"
+        stocks={[stock]}
+        deliveries={[
+          ...deliveries,
+          {
+            id: 'rest-payment',
+            energySourceId: 'oil',
+            billingPeriodId: 'y',
+            amountCents: 4_026,
+            quantity: null,
+            quantityStatus: 'keine_brennstoffmenge',
+          },
+        ]}
+      />,
+    )
+    expect(screen.queryByText(/Mengen oder Werte fehlen/)).toBeNull()
+    expect(screen.getByText('Verbrauchskosten (FIFO)')).toBeInTheDocument()
+  })
   it('warns about missing rest and incomplete quantities or amounts', () => {
     const { rerender } = show([{ ...stock, remainingQuantity: undefined }])
     expect(screen.getByRole('alert')).toHaveTextContent('Restbestand fehlt')

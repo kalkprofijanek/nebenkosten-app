@@ -207,6 +207,48 @@ describe('ImportControl', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
+  it('zeigt Prüfbefunde gruppiert mit verständlichem Titel', async () => {
+    vi.mocked(prepareImport).mockResolvedValue({
+      ok: true,
+      sourceFormat: 'legacy-v3',
+      data: createEmptyAppDataFile(),
+      summary: summary(),
+      migrationReport: migrationReport(),
+      validationSummaries: [
+        {
+          reference: 'abrechnungsjahr-1',
+          year: 2026,
+          errorCount: 1,
+          warningCount: 3,
+          infoCount: 0,
+          canBecomeReady: false,
+          issueCodes: ['costs.direct_unassigned', 'meters.status_missing'],
+          issueGroups: [
+            {
+              code: 'costs.direct_unassigned',
+              severity: 'error',
+              title: 'Direkte Kosten sind keinem Nutzer zugeordnet',
+              count: 1,
+            },
+            {
+              code: 'meters.status_missing',
+              severity: 'warning',
+              title: 'Zählerstatus fehlt',
+              count: 3,
+            },
+          ],
+        },
+      ],
+    })
+    render(<ImportControl disabled={false} onConfirm={vi.fn()} />)
+    chooseFile()
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toHaveTextContent(
+      'Fehler: Direkte Kosten sind keinem Nutzer zugeordnet',
+    )
+    expect(dialog).toHaveTextContent('Warnung: Zählerstatus fehlt (3×)')
+  })
+
   it('weist auch leere Berichtskategorien und fehlende App-Version aus', async () => {
     vi.mocked(prepareImport).mockResolvedValue({
       ok: true,
