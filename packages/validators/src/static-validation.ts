@@ -1,3 +1,7 @@
+import {
+  createCalculationInput,
+  resolveMeteredConsumption,
+} from '@nebenkosten/core'
 import type {
   AppDataFile,
   BillingPeriod,
@@ -593,6 +597,45 @@ function heating(data: AppDataFile, period: BillingPeriod, add: Add): void {
     )
   for (const circuit of circuits) {
     const entity = { type: 'HeatingCircuit', id: circuit.id }
+    if (circuit.consumptionMode === 'metered_kwh') {
+      try {
+        const resolution = resolveMeteredConsumption(
+          createCalculationInput(data, period.id),
+        )
+        if (!resolution.ok) {
+          for (const problem of resolution.issues.filter(
+            ({ heatingCircuitId }) => heatingCircuitId === circuit.id,
+          )) {
+            add(
+              issue(
+                'error',
+                problem.code,
+                'heating',
+                'Wohnungswärme-Ablesung ist ungültig',
+                {
+                  detail: problem.detail,
+                  ...(problem.unitId
+                    ? { entity: { type: 'Unit', id: problem.unitId } }
+                    : problem.meterId
+                      ? { entity: { type: 'Meter', id: problem.meterId } }
+                      : { entity }),
+                },
+              ),
+            )
+          }
+        }
+      } catch {
+        add(
+          issue(
+            'error',
+            'metered.input_invalid',
+            'heating',
+            'Wohnungswärme-Ablesungen können nicht geprüft werden',
+            { entity },
+          ),
+        )
+      }
+    }
     const sources = data.billingData.energySources.filter(
       ({ heatingCircuitId }) => heatingCircuitId === circuit.id,
     )

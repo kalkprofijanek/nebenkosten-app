@@ -35,6 +35,88 @@ function addOperatingElectricitySource(
 }
 
 describe('PR 07 – Heizkosten- und CO2-Rechenweg', () => {
+  it('keeps manual HKV allocation unchanged beside a metered circuit', () => {
+    const appData = appDataFor('case-05-multiple-circuits')
+    const baseline = calculate(appData)
+    const circuit = appData.billingData.heatingCircuits.find(
+      ({ buildingId }) => buildingId === 'B1',
+    )!
+    appData.masterData.meters.push(
+      {
+        id: 'meter-B1',
+        propertyId: appData.masterData.properties[0]!.id,
+        kind: 'unit_heat',
+        validFrom: '2024-01-01',
+        validTo: '2024-12-31',
+      },
+      {
+        id: 'meter-B1-u2',
+        propertyId: appData.masterData.properties[0]!.id,
+        kind: 'unit_heat',
+        validFrom: '2024-01-01',
+        validTo: '2024-12-31',
+      },
+    )
+    Object.assign(circuit, {
+      consumptionMode: 'metered_kwh',
+      meterAssignments: [
+        { meterId: 'meter-B1', unitId: 'u1' },
+        { meterId: 'meter-B1-u2', unitId: 'u2' },
+      ],
+    })
+    appData.billingData.meterReadings.push(
+      {
+        id: 'meter-B1-start',
+        meterId: 'meter-B1',
+        billingPeriodId: 'bp-1',
+        date: '2024-01-01',
+        boundary: 'start_of_day',
+        value: { value: 0, unit: 'kWh' },
+        source: 'manual',
+      },
+      {
+        id: 'meter-B1-end',
+        meterId: 'meter-B1',
+        billingPeriodId: 'bp-1',
+        date: '2024-12-31',
+        boundary: 'end_of_day',
+        value: { value: 1000, unit: 'kWh' },
+        source: 'manual',
+      },
+      {
+        id: 'meter-B1-u2-start',
+        meterId: 'meter-B1-u2',
+        billingPeriodId: 'bp-1',
+        date: '2024-01-01',
+        boundary: 'start_of_day',
+        value: { value: 0, unit: 'kWh' },
+        source: 'manual',
+      },
+      {
+        id: 'meter-B1-u2-end',
+        meterId: 'meter-B1-u2',
+        billingPeriodId: 'bp-1',
+        date: '2024-12-31',
+        boundary: 'end_of_day',
+        value: { value: 2000, unit: 'kWh' },
+        source: 'manual',
+      },
+    )
+
+    const mixed = calculate(appData)
+    const manualBefore = baseline.heating.perCircuit.find(
+      ({ buildingId }) => buildingId === 'B2',
+    )!
+    const manualAfter = mixed.heating.perCircuit.find(
+      ({ buildingId }) => buildingId === 'B2',
+    )!
+    expect(
+      mixed.meteringTrace?.circuits.map(({ buildingId }) => buildingId),
+    ).toEqual(['B1'])
+    expect(manualAfter.consumptionCents).toBe(manualBefore.consumptionCents)
+    expect(manualAfter.baseCents).toBe(manualBefore.baseCents)
+  })
+
   it('verschiebt Betriebsstrom netto-null aus einer ausreichend hohen Stromquelle', () => {
     const appData = appDataFor('case-08-heat-pump')
     appData.billingData.billingPeriods[0]!.heatingDefaults!.operatingElectricitySharePercent = 5
