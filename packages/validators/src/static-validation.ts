@@ -1,6 +1,7 @@
 import {
   createCalculationInput,
   resolveMeteredConsumption,
+  resolveShippingAddress,
   type MeteredConsumptionIssue,
 } from '@nebenkosten/core'
 import type {
@@ -169,9 +170,16 @@ function occupancies(data: AppDataFile, period: BillingPeriod, add: Add): void {
       const tenancy = data.masterData.tenancies.find(
         ({ id }) => id === row.tenancyId,
       )
+      const property = data.masterData.properties.find(
+        ({ id }) => id === period.propertyId,
+      )
       if (
-        blank(tenancy?.shippingAddressStreet) ||
-        blank(tenancy?.shippingAddressPostalCodeAndCity)
+        !resolveShippingAddress({
+          tenancy,
+          occupancy: row,
+          property: property ?? {},
+          billingPeriod: period,
+        })
       )
         add(
           issue(
@@ -179,7 +187,11 @@ function occupancies(data: AppDataFile, period: BillingPeriod, add: Add): void {
             'occupancy.shipping_address_missing',
             'occupancy',
             'Versandadresse fehlt',
-            { entity: { type: 'Tenancy', id: row.tenancyId ?? row.id } },
+            {
+              detail:
+                'Für ausgezogene Mieter wird eine eigene Anschrift benötigt. Bewohner erhalten automatisch die Wohnungs- bzw. Objektanschrift.',
+              entity: { type: 'Tenancy', id: row.tenancyId ?? row.id },
+            },
           ),
         )
       const matches = data.billingData.prepayments.filter(

@@ -108,6 +108,11 @@ export function OccupancyEditor({
             name="shippingAddressPostalCodeAndCity"
             defaultValue={tenancy?.shippingAddressPostalCodeAndCity ?? ''}
           />
+          <small>
+            Leer lassen, solange der Mieter in der Wohnung wohnt: Dann gilt
+            automatisch die Wohnungs- bzw. Objektanschrift. Nach einem Auszug
+            die neue Anschrift eintragen.
+          </small>
           <WorkflowField
             label="Verbrauchseinheiten bearbeiten"
             name="consumptionUnits"

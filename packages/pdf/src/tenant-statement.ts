@@ -3,6 +3,7 @@ import type {
   TableCell,
   TDocumentDefinitions,
 } from 'pdfmake/interfaces'
+import { resolveShippingAddress } from '@nebenkosten/core'
 import { buildRecipientBlock, buildSenderBlock } from './address'
 import { meteringStatement } from './metering-statement'
 import type { TenantStatementContext } from './contracts'
@@ -259,6 +260,19 @@ function propertyDataFooter(context: TenantStatementContext): Content {
   }
 }
 
+function recipientBlock(context: TenantStatementContext) {
+  return buildRecipientBlock(
+    context.tenancy,
+    context.persons,
+    resolveShippingAddress({
+      tenancy: context.tenancy,
+      occupancy: context.occupancyPeriod,
+      property: context.property,
+      billingPeriod: context.billingPeriod,
+    }),
+  )
+}
+
 function coverLetterPlaceholders(
   context: TenantStatementContext,
 ): CoverLetterPlaceholders {
@@ -273,7 +287,7 @@ function coverLetterPlaceholders(
   const tenant = calculation.tenants.find(({ id }) => id === occupancyPeriod.id)
   const balance = tenant?.balanceCents ?? 0
   return {
-    anrede: buildRecipientBlock(context.tenancy, persons).salutationLine,
+    anrede: recipientBlock(context).salutationLine,
     name: persons.map((person) => person.displayName ?? '').join(' und '),
     nutzeinheit: unit.label ?? '',
     jahr: String(billingPeriod.year),
@@ -294,7 +308,7 @@ export function buildTenantStatement(
   context: TenantStatementContext,
 ): TDocumentDefinitions {
   const sender = buildSenderBlock(context.ownerCompany, context.property)
-  const recipient = buildRecipientBlock(context.tenancy, context.persons)
+  const recipient = recipientBlock(context)
   const { billingPeriod, unit } = context
 
   const coverLetterContent: Content[] =

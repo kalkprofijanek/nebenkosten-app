@@ -223,6 +223,15 @@ Doppelbuchungen gleicher Kostenart, gleichen Betrags und Datums haben noch keine
 Prüfregel. Der Bestand nutzt Heizkostenverteiler; der kWh-Messpfad ist dafür
 nicht vorgesehen, eine Erweiterung steht daher zurück.
 
+### Nachtrag: Versandanschrift als Vorgabe
+
+Nutzerentscheidung: Wer am Periodenende noch in der Wohnung wohnt und keine
+eigene Versandanschrift hat, erhält automatisch die Hausanschrift der Wohnung
+(aus den übernommenen Legacy-Feldern Straße/Hausnummer) bzw. die Objektstraße,
+jeweils mit PLZ/Ort des Objekts. Eine erfasste Anschrift hat Vorrang; nach
+einem Auszug bleibt `occupancy.shipping_address_missing` ein Fehler. Prüfung
+und PDF verwenden dieselbe Funktion `resolveShippingAddress` aus dem Core.
+
 ### Nachtrag: nur Desktop
 
 Laut Nutzerentscheidung ist die App ausschließlich für Desktop-Browser bestimmt
