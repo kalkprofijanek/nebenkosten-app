@@ -135,10 +135,11 @@ export function BillingJourney({ data, billingPeriodId, renderStep }: Props) {
           <aside className="journey-note">
             <strong>Ablesungen und Abrechnungsverbrauch prüfen</strong>
             <p>
-              Ablesungen werden dokumentiert. Für die Abrechnung werden die
-              Verbrauchseinheiten je Belegungszeitraum verwendet; Zählerstände
-              werden derzeit nicht automatisch dorthin übertragen. Erfasse bei
-              einem Wechsel die zutreffenden Teilverbräuche.
+              Wohnungswärmezähler können bei vollständigen Grenzablesungen den
+              Verbrauch je Nutzerzeitraum liefern. Prüfe die Zuordnung und
+              Vorschau und aktiviere den Messverbrauch ausdrücklich am
+              Heizkreis. Ohne Aktivierung gelten weiterhin die manuell erfassten
+              Verbrauchseinheiten.
             </p>
             <a href="#/nutzer">Verbrauch je Belegung bearbeiten</a>
           </aside>

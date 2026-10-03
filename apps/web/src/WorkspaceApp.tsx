@@ -9,6 +9,7 @@ import { AnnualBillingRoute } from './AnnualBillingRoute'
 import { BackupRestoreRoute } from './BackupRestoreRoute'
 import { CalculationRoute } from './CalculationRoute'
 import { ImportControl } from './ImportControl'
+import { MigrationPanel } from './MigrationPanel'
 import { PdfExportRoute } from './PdfExportRoute'
 import { ReleaseRoute } from './ReleaseRoute'
 import { WorkflowRoute } from './WorkflowRoute'
@@ -118,14 +119,23 @@ export function WorkspaceApp({
   return (
     <App
       previewMode={previewMode}
+      workspaceControl={
+        workspaceState.status === 'migration_pending' ? (
+          <MigrationPanel
+            key={workspaceState.revision}
+            controller={controller}
+            state={workspaceState}
+          />
+        ) : undefined
+      }
       importControl={
         previewMode ? undefined : (
           <ImportControl
             disabled={
               workspaceState.saving ||
               workspaceState.dirty ||
-              workspaceState.status === 'conflict' ||
-              workspaceState.status === 'blocked'
+              (workspaceState.status !== 'ready' &&
+                workspaceState.status !== 'empty')
             }
             onConfirm={(data) => controller.importData(data)}
           />

@@ -54,7 +54,7 @@ function migrationReport() {
     sourceSha256:
       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     detectedSchemaVersion: 3,
-    targetSchemaVersion: 4,
+    targetSchemaVersion: 5,
     counts: {
       ownerCompanies: 2,
       properties: 3,
@@ -169,7 +169,7 @@ describe('ImportControl', () => {
     ).toBeVisible()
     expect(screen.getByText(/a{64}/u)).toBeVisible()
     expect(screen.getByText('Schema 3')).toBeVisible()
-    expect(screen.getByText('Schema 4')).toBeVisible()
+    expect(screen.getByText('Schema 5')).toBeVisible()
     expect(screen.getByText('pr12-test')).toBeVisible()
     expect(screen.getByText('2026-07-26T10:00:00.000Z')).toBeVisible()
     for (const count of [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
@@ -242,7 +242,7 @@ describe('ImportControl', () => {
     const data = createEmptyAppDataFile()
     vi.mocked(prepareImport).mockResolvedValue({
       ok: true,
-      sourceFormat: 'current-v4',
+      sourceFormat: 'current-v5',
       data,
       summary: summary(),
     })
@@ -259,7 +259,7 @@ describe('ImportControl', () => {
     await waitFor(() => expect(onConfirm).toHaveBeenCalledWith(data))
     expect(prepareImport).toHaveBeenCalledWith(expect.any(Uint8Array), {
       sourceFileName: 'daten.json',
-      appVersion: '1.0.1',
+      appVersion: '1.1.0',
     })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
@@ -277,7 +277,7 @@ describe('ImportControl', () => {
 
     vi.mocked(prepareImport).mockResolvedValueOnce({
       ok: true,
-      sourceFormat: 'current-v4',
+      sourceFormat: 'current-v5',
       data: createEmptyAppDataFile(),
       summary: summary(),
     })
@@ -337,7 +337,7 @@ describe('ImportControl', () => {
 
     vi.mocked(prepareImport).mockResolvedValueOnce({
       ok: true,
-      sourceFormat: 'current-v4',
+      sourceFormat: 'current-v5',
       data: createEmptyAppDataFile(),
       summary: summary(),
     })

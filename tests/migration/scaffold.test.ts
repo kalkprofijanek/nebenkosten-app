@@ -9,7 +9,7 @@ import {
 describe('migration scaffold', () => {
   it('exportiert die Schema-Versionen (PR 03)', () => {
     expect(LEGACY_V3_SCHEMA_VERSION).toBe(3)
-    expect(CURRENT_SCHEMA_VERSION).toBe(4)
+    expect(CURRENT_SCHEMA_VERSION).toBe(5)
   })
 
   it('erkennt neuere Schema-Versionen und gibt sie niemals zur Migration frei', () => {
@@ -29,6 +29,6 @@ describe('migration scaffold', () => {
       },
     )
 
-    expect(result).toMatchObject({ ok: true, data: { schemaVersion: 4 } })
+    expect(result).toMatchObject({ ok: true, data: { schemaVersion: 5 } })
   })
 })

@@ -12,10 +12,7 @@
  * nicht über stilles Ignorieren.
  */
 import { z } from 'zod'
-import {
-  isoTimestampSchema,
-  sha256HexSchema,
-} from '../../primitives'
+import { isoTimestampSchema, sha256HexSchema } from '../../primitives'
 import {
   allocationRuleSchema,
   auditEventSchema,
@@ -42,7 +39,11 @@ import {
 } from '../../entities'
 
 import { v4HeatingCircuitSchema } from './heating'
-import { v4MeterBillingStatusSchema, v4MeterSchema, v4MeterReadingSchema } from './metering'
+import {
+  v4MeterBillingStatusSchema,
+  v4MeterSchema,
+  v4MeterReadingSchema,
+} from './metering'
 
 /** Stammdaten-Container (jahresunabhängig, Masterplan 5.2). */
 export const masterDataSchema = z.strictObject({
@@ -105,4 +106,3 @@ export const v4AppDataFileSchema = z.strictObject({
   billingData: billingDataSchema,
 })
 export type V4AppDataFile = z.infer<typeof v4AppDataFileSchema>
-

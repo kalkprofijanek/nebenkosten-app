@@ -4,6 +4,7 @@ import type {
   TDocumentDefinitions,
 } from 'pdfmake/interfaces'
 import { buildRecipientBlock, buildSenderBlock } from './address'
+import { meteringStatement } from './metering-statement'
 import type { TenantStatementContext } from './contracts'
 import { renderCoverLetter, type CoverLetterPlaceholders } from './cover-letter'
 import {
@@ -361,7 +362,12 @@ export function buildTenantStatement(
         margin: [0, 0, 0, 12],
       },
       ...coverLetterContent,
-      context.occupancyPeriod.consumptionUnitsEstimated
+      context.occupancyPeriod.consumptionUnitsEstimated &&
+      !context.calculation.meteringTrace?.circuits.some((circuit) =>
+        circuit.occupancies.some(
+          (occupancy) => occupancy.occupancyId === context.occupancyPeriod.id,
+        ),
+      )
         ? {
             text: ESTIMATED_CONSUMPTION_NOTE,
             fontSize: 8,
@@ -373,6 +379,7 @@ export function buildTenantStatement(
       { text: 'Kostenaufstellung', style: 'th', margin: [0, 8, 0, 4] },
       costCategoryTable(context),
       ...heatingDetailTable(context),
+      ...meteringStatement(context.calculation, context.occupancyPeriod.id),
       {
         text: TIME_FACTOR_EXPLANATION,
         fontSize: 8,

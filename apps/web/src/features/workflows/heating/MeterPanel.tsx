@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import type { Meter, QuantityUnit } from '@nebenkosten/schema'
+import type { Meter, MeterReading, QuantityUnit } from '@nebenkosten/schema'
+import { ReadingBoundaryField } from './ReadingBoundaryField'
+import { MeterConsumptionPanel } from './MeterConsumptionPanel'
 import {
   formatEuroInput,
   parseEuroCents,
@@ -94,7 +96,10 @@ export function MeterPanel({
     const form = new FormData(event.currentTarget)
     if (
       apply((current) =>
-        updateMeter(current, meter.id, meterInput(form, period.propertyId)),
+        updateMeter(current, meter.id, {
+          ...meterInput(form, period.propertyId),
+          energySourceRef: meter.energySourceRef,
+        }),
       )
     )
       setEditingMeter(false)
@@ -114,6 +119,10 @@ export function MeterPanel({
             meterId: meter.id,
             billingPeriodId: period.id,
             date: formOptionalText(form, 'date'),
+            boundary: formOptionalText(
+              form,
+              'boundary',
+            ) as MeterReading['boundary'],
             value: {
               value,
               unit: formText(form, 'unit') as QuantityUnit,
@@ -141,6 +150,10 @@ export function MeterPanel({
           meterId: meter.id,
           billingPeriodId: period.id,
           date: formOptionalText(form, 'date'),
+          boundary: formOptionalText(
+            form,
+            'boundary',
+          ) as MeterReading['boundary'],
           value: { value, unit: formText(form, 'unit') as QuantityUnit },
           source: formText(form, 'source') as
             'manual' | 'imported' | 'estimated',
@@ -183,6 +196,11 @@ export function MeterPanel({
 
   return (
     <>
+      <MeterConsumptionPanel
+        data={data}
+        billingPeriodId={period.id}
+        apply={apply}
+      />
       <form noValidate onSubmit={createMeter}>
         <h2>Zähler anlegen</h2>
         <label>
@@ -190,6 +208,7 @@ export function MeterPanel({
           <select name="kind">
             <option value="general">Allgemeinstrom</option>
             <option value="heat">Wärmeerzeugung</option>
+            <option value="unit_heat">Wohnungswärme (kWh)</option>
           </select>
         </label>
         <WorkflowField label="Zählernummer" name="meterNumber" />
@@ -235,7 +254,11 @@ export function MeterPanel({
             <div className="record-editor__heading">
               <div>
                 <p className="section-kicker">
-                  {meter.kind === 'heat' ? 'Wärmezähler' : 'Allgemeinstrom'}
+                  {meter.kind === 'unit_heat'
+                    ? 'Wohnungswärme (kWh)'
+                    : meter.kind === 'heat'
+                      ? 'Wärmezähler'
+                      : 'Allgemeinstrom'}
                 </p>
                 <h2 id="meter-title">
                   {meter.meterNumber ?? 'Zähler ohne Nummer'}
@@ -256,6 +279,7 @@ export function MeterPanel({
                   <select name="kind" defaultValue={meter.kind}>
                     <option value="general">Allgemeinstrom</option>
                     <option value="heat">Wärmeerzeugung</option>
+                    <option value="unit_heat">Wohnungswärme (kWh)</option>
                   </select>
                 </label>
                 <WorkflowField
@@ -328,9 +352,10 @@ export function MeterPanel({
             </div>
           </section>
 
-          <form noValidate onSubmit={createReading}>
+          <form key={`reading-${meter.id}`} noValidate onSubmit={createReading}>
             <h2>Ablesung erfassen</h2>
             <WorkflowField label="Ablesedatum" name="date" type="date" />
+            <ReadingBoundaryField />
             <WorkflowField label="Zählerstand" name="value" required />
             <label>
               <span>Ableseeinheit</span>
@@ -354,7 +379,11 @@ export function MeterPanel({
             <button type="submit">Ablesung erfassen</button>
           </form>
 
-          <form noValidate onSubmit={saveStatus}>
+          <form
+            key={`status-${meter.id}-${period.id}`}
+            noValidate
+            onSubmit={saveStatus}
+          >
             <h2>Jahresstatus {period.year}</h2>
             <label className="checkbox-field">
               <input
@@ -424,6 +453,16 @@ export function MeterPanel({
                         {reading.value.value} {reading.value.unit}
                       </h3>
                       <small>{reading.source ?? 'Ohne Herkunft'}</small>
+                      <p>
+                        {reading.boundary === 'start_of_day'
+                          ? 'Tagesanfang'
+                          : reading.boundary === 'end_of_day'
+                            ? 'Tagesende'
+                            : 'Ablesezeitpunkt nicht bestätigt'}
+                        {reading.billingPeriodId == null
+                          ? ' · Ohne Abrechnungsjahr'
+                          : ''}
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -455,6 +494,7 @@ export function MeterPanel({
                         required
                         defaultValue={reading.value.value}
                       />
+                      <ReadingBoundaryField value={reading.boundary} editing />
                       <label>
                         <span>Ableseeinheit bearbeiten</span>
                         <select name="unit" defaultValue={reading.value.unit}>

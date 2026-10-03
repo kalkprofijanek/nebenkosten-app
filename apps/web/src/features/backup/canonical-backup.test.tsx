@@ -38,7 +38,7 @@ describe('canonical backup', () => {
     expect(backup.bytes.at(-1)).toBe(10)
     expect(await decodeCurrentAppDataBytes(backup.bytes)).toMatchObject({
       data: {
-        schemaVersion: 4,
+        schemaVersion: 5,
         meta: {
           appVersion: APP_VERSION,
           savedAt: '2026-07-26T10:11:12.000Z',

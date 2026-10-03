@@ -114,7 +114,10 @@ export { v4AppDataFileSchema }
 /** Lossless structural migration. New v5 fields stay absent and disabled. */
 export function migrateV4ToV5(input: unknown): AppDataFile {
   const source = v4AppDataFileSchema.parse(input)
-  return appDataFileSchema.parse({ ...source, schemaVersion: CURRENT_SCHEMA_VERSION })
+  return appDataFileSchema.parse({
+    ...source,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+  })
 }
 
 /** Leere, gültige Datei (Hilfsfunktion für Tests und neue Bestände). */

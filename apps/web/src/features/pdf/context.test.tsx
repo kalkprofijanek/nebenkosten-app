@@ -165,6 +165,17 @@ function fixtureAppData(): AppDataFile {
 }
 
 describe('latestCalculationSnapshot', () => {
+  it('weist einen beschädigten optionalen Messnachweis zurück', () => {
+    const data = fixtureAppData()
+    const result = data.billingData.calculationResults[0]!
+    result.resultSnapshot = {
+      ...calculationOutput(),
+      meteringTrace: { circuits: 'invalid' },
+    }
+    expect(() => latestCalculationSnapshot(data, PERIOD_ID)).toThrow(
+      IncompatibleCalculationSnapshotError,
+    )
+  })
   it('liefert den jüngsten Rechenlauf mit validiertem Snapshot', () => {
     const data = fixtureAppData()
     expect(

@@ -245,7 +245,7 @@ describe('resolveMeteredConsumption', () => {
       ).toBe(true)
 
     const decreasingInput = fixture() as unknown as {
-      meterReadings: Array<Record<string, any>>
+      meterReadings: Array<Record<string, unknown>>
     }
     decreasingInput.meterReadings[1] = {
       ...decreasingInput.meterReadings[1],
@@ -265,7 +265,7 @@ describe('resolveMeteredConsumption', () => {
 
   it('blocks a reading in another unit', () => {
     const input = fixture() as unknown as {
-      meterReadings: Array<Record<string, any>>
+      meterReadings: Array<Record<string, unknown>>
     }
     input.meterReadings[0] = {
       ...input.meterReadings[0],
@@ -330,8 +330,10 @@ describe('resolveMeteredConsumption', () => {
   it('sums compatible meters assigned to one unit', () => {
     const input = fixture() as unknown as {
       meters: Array<Record<string, unknown>>
-      heatingCircuits: Array<Record<string, any>>
-      meterReadings: Array<Record<string, any>>
+      heatingCircuits: Array<{
+        meterAssignments: Array<{ meterId: string; unitId: string }>
+      }>
+      meterReadings: Array<Record<string, unknown>>
     }
     input.meters.push({
       id: 'meter-2',

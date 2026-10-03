@@ -8,7 +8,10 @@ sharedWorkspaceLockfile: true
 # GHSA-rgw5-rvv9-x895, GHSA-fxqj-rqcc-2cmp and GHSA-2v37-7h3g-55p8.
 # Remove once every upstream dependency requires a patched version itself.
 overrides:
-  brace-expansion: '>=5.0.9'
+  # GHSA-q2hr-2g5m-vwhr and nested-brace recursion fixes.
+  brace-expansion: '>=5.0.12 <6'
+  # Undici WebSocket, retry, cache and TLS fixes (8.10.2).
+  'undici@>=8.0.0 <8.10.2': '8.10.2'
   # GHSA-c83g-rgw3-j3cx and GHSA-73wf-gq98-2v4g (Babel tooling).
   browserslist: '>=4.28.7 <5'
   nanoid: '3.3.18'

@@ -9,6 +9,11 @@ import {
   type MeterBillingStatus,
   type MeterReading,
 } from '@nebenkosten/schema'
+import {
+  guardMeterPeriods,
+  meterPeriodIds,
+  shiftMeterDate,
+} from './meter-edit-guard'
 
 export interface MeterCommandDependencies {
   readonly createId: () => string
@@ -149,7 +154,15 @@ function validateReadingReferences(
       )
     if (
       reading.date &&
-      (reading.date < period.periodStart || reading.date > period.periodEnd)
+      (reading.date < period.periodStart || reading.date > period.periodEnd) &&
+      !(
+        reading.boundary === 'end_of_day' &&
+        reading.date === shiftMeterDate(period.periodStart, -1)
+      ) &&
+      !(
+        reading.boundary === 'start_of_day' &&
+        reading.date === shiftMeterDate(period.periodEnd, 1)
+      )
     )
       throw new MeterCommandError(
         'Das Ablesedatum liegt außerhalb des Abrechnungszeitraums.',
@@ -180,6 +193,20 @@ function validateStatusReferences(
   validateText(status.estimateReason, 'Schätzgrund')
 }
 
+function statusPeriodIds(
+  file: AppDataFile,
+  status: MeterBillingStatusInput,
+): string[] {
+  const meter = requireMeter(file, status.meterId)
+  return file.billingData.billingPeriods
+    .filter(
+      (period) =>
+        period.id === status.billingPeriodId ||
+        (period.propertyId === meter.propertyId && period.year === status.year),
+    )
+    .map((period) => period.id)
+}
+
 export function addMeter(
   currentFile: AppDataFile,
   rawInput: unknown,
@@ -205,7 +232,10 @@ export function updateMeter(
   meterId: string,
   rawInput: unknown,
 ): AppDataFile {
-  const file = parsedFile(currentFile)
+  const file = guardMeterPeriods(
+    parsedFile(currentFile),
+    meterPeriodIds(currentFile, meterId),
+  )
   const current = requireMeter(file, meterId)
   const input = parse<MeterInput>(meterInputSchema, rawInput, 'Der Zähler')
   validateMeterReferences(file, input)
@@ -221,7 +251,11 @@ export function updateMeter(
     throw new MeterCommandError(
       'Ein Zähler mit Jahresdaten kann nicht in ein anderes Objekt verschoben werden.',
     )
-  const replacement = meterSchema.parse({ ...input, id: current.id })
+  const replacement = meterSchema.parse({
+    ...input,
+    id: current.id,
+    legacyUnmapped: current.legacyUnmapped,
+  })
   return parsedFile({
     ...file,
     masterData: {
@@ -239,6 +273,17 @@ export function deleteMeter(
 ): AppDataFile {
   const file = parsedFile(currentFile)
   requireMeter(file, meterId)
+  if (
+    file.billingData.heatingCircuits.some((circuit) =>
+      circuit.meterAssignments?.some(
+        (assignment) => assignment.meterId === meterId,
+      ),
+    )
+  ) {
+    throw new MeterCommandError(
+      'Der Zähler ist einem Heizkreis und einer Wohnung zugeordnet.',
+    )
+  }
   if (
     file.billingData.meterReadings.some(
       ({ meterId: reference }) => reference === meterId,
@@ -277,12 +322,13 @@ export function addMeterReading(
     createId: () => crypto.randomUUID(),
   },
 ): AppDataFile {
-  const file = parsedFile(currentFile)
+  const source = parsedFile(currentFile)
   const input = parse<MeterReadingInput>(
     readingInputSchema,
     rawInput,
     'Die Ablesung',
   )
+  const file = guardMeterPeriods(source, [input.billingPeriodId])
   validateReadingReferences(file, input)
   const reading = meterReadingSchema.parse({
     ...input,
@@ -302,16 +348,26 @@ export function updateMeterReading(
   readingId: string,
   rawInput: unknown,
 ): AppDataFile {
-  const file = parsedFile(currentFile)
-  if (!file.billingData.meterReadings.some(({ id }) => id === readingId))
-    throw new MeterCommandError('Ablesung wurde nicht gefunden.')
+  const source = parsedFile(currentFile)
+  const current = source.billingData.meterReadings.find(
+    ({ id }) => id === readingId,
+  )
+  if (!current) throw new MeterCommandError('Ablesung wurde nicht gefunden.')
   const input = parse<MeterReadingInput>(
     readingInputSchema,
     rawInput,
     'Die Ablesung',
   )
+  const file = guardMeterPeriods(source, [
+    current.billingPeriodId,
+    input.billingPeriodId,
+  ])
   validateReadingReferences(file, input)
-  const replacement = meterReadingSchema.parse({ ...input, id: readingId })
+  const replacement = meterReadingSchema.parse({
+    ...input,
+    id: readingId,
+    legacyUnmapped: current.legacyUnmapped,
+  })
   return parsedFile({
     ...file,
     billingData: {
@@ -327,9 +383,12 @@ export function deleteMeterReading(
   currentFile: AppDataFile,
   readingId: string,
 ): AppDataFile {
-  const file = parsedFile(currentFile)
-  if (!file.billingData.meterReadings.some(({ id }) => id === readingId))
-    throw new MeterCommandError('Ablesung wurde nicht gefunden.')
+  const source = parsedFile(currentFile)
+  const current = source.billingData.meterReadings.find(
+    ({ id }) => id === readingId,
+  )
+  if (!current) throw new MeterCommandError('Ablesung wurde nicht gefunden.')
+  const file = guardMeterPeriods(source, [current.billingPeriodId])
   return parsedFile({
     ...file,
     billingData: {
@@ -348,12 +407,13 @@ export function upsertMeterBillingStatus(
     createId: () => crypto.randomUUID(),
   },
 ): AppDataFile {
-  const file = parsedFile(currentFile)
+  const source = parsedFile(currentFile)
   const input = parse<MeterBillingStatusInput>(
     statusInputSchema,
     rawInput,
     'Der Zählerstatus',
   )
+  const file = guardMeterPeriods(source, statusPeriodIds(source, input))
   validateStatusReferences(file, input)
   const current = file.billingData.meterBillingStatuses.find(
     ({ meterId, year }) => meterId === input.meterId && year === input.year,
@@ -379,9 +439,12 @@ export function deleteMeterBillingStatus(
   currentFile: AppDataFile,
   statusId: string,
 ): AppDataFile {
-  const file = parsedFile(currentFile)
-  if (!file.billingData.meterBillingStatuses.some(({ id }) => id === statusId))
-    throw new MeterCommandError('Zählerstatus wurde nicht gefunden.')
+  const source = parsedFile(currentFile)
+  const status = source.billingData.meterBillingStatuses.find(
+    ({ id }) => id === statusId,
+  )
+  if (!status) throw new MeterCommandError('Zählerstatus wurde nicht gefunden.')
+  const file = guardMeterPeriods(source, statusPeriodIds(source, status))
   return parsedFile({
     ...file,
     billingData: {

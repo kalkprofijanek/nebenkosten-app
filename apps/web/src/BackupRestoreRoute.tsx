@@ -25,6 +25,7 @@ const SNAPSHOT_KIND_LABELS = {
   manual: 'Manuell',
   before_import: 'Vor Import',
   before_restore: 'Vor Wiederherstellung',
+  before_migration: 'Vor Umstellung auf Version 5',
 } as const
 
 function snapshotFailure(code: WorkspaceCommandErrorCode): string {

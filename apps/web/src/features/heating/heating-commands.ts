@@ -620,7 +620,21 @@ export function updateHeatingCircuit(
   input: AddHeatingCircuitInput,
 ): AppDataFile {
   const file = parseFile(currentFile)
-  requireEntity(file.billingData.heatingCircuits, heatingCircuitId, 'Heizkreis')
+  const current = requireEntity(
+    file.billingData.heatingCircuits,
+    heatingCircuitId,
+    'Heizkreis',
+  )
+  if (
+    current.meterAssignments?.length &&
+    (input.buildingId !== current.buildingId ||
+      input.billingPeriodId !== current.billingPeriodId)
+  ) {
+    throw new HeatingCommandError(
+      'invalid-reference',
+      'Löse zuerst die Wohnungszähler-Zuordnungen, bevor du Gebäude oder Jahr änderst.',
+    )
+  }
   const withoutCurrent = {
     ...file,
     billingData: {
@@ -633,7 +647,12 @@ export function updateHeatingCircuit(
   const validated = addHeatingCircuit(withoutCurrent, input, {
     createId: () => heatingCircuitId,
   })
-  const replacement = validated.billingData.heatingCircuits.at(-1)!
+  const replacement = {
+    ...validated.billingData.heatingCircuits.at(-1)!,
+    consumptionMode: current.consumptionMode,
+    meterAssignments: current.meterAssignments,
+    legacyUnmapped: current.legacyUnmapped,
+  }
   return validateResult({
     ...validated,
     billingData: {

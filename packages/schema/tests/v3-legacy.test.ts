@@ -96,7 +96,10 @@ describe('probeSchemaVersion (Versions-Erkennung, Masterplan 9.2)', () => {
       kind: 'migratable-v4',
       schemaVersion: 4,
     })
-    expect(probeSchemaVersion({ schemaVersion: 5 })).toEqual({ kind: 'current', schemaVersion: 5 })
+    expect(probeSchemaVersion({ schemaVersion: 5 })).toEqual({
+      kind: 'current',
+      schemaVersion: 5,
+    })
   })
 
   it('markiert neuere Versionen als nicht unterstützt (nie überschreiben)', () => {

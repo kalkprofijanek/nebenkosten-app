@@ -245,8 +245,20 @@ export function ImportControl({
             <h2 id="import-title">Import prüfen</h2>
             <p>
               Format:{' '}
-              {preview.sourceFormat === 'legacy-v3' ? 'Legacy v3' : 'Version 4'}
+              {preview.sourceFormat === 'legacy-v3'
+                ? 'Legacy v3'
+                : preview.sourceFormat === 'legacy-v4'
+                  ? 'Version 4 → Version 5'
+                  : 'Version 5'}
             </p>
+            {preview.sourceFormat === 'legacy-v4' ? (
+              <p>
+                Die Übernahme stellt den Bestand auf Version 5 um. Bestehende
+                Werte bleiben erhalten; die automatische Verbrauchsermittlung
+                bleibt deaktiviert. Die ausgewählte Quelldatei wird nicht
+                verändert und bleibt deine Sicherung.
+              </p>
+            ) : null}
             {preview.sourceFormat === 'legacy-v3' ? (
               <MigrationReportPreview
                 report={preview.migrationReport}

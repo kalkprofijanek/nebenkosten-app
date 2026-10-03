@@ -5,6 +5,7 @@ import type {
 } from 'pdfmake/interfaces'
 import type { CombinedCostStatementContext } from './contracts'
 import { formatEuroCents, formatIsoDate } from './format'
+import { meteringStatement } from './metering-statement'
 
 const BLUE = '#1a3a5c'
 
@@ -139,6 +140,7 @@ export function buildCombinedCostStatement(
       costCategoriesTable(context),
       { text: 'Mieter-Salden', style: 'th', margin: [0, 0, 0, 4] },
       tenantBalancesTable(context),
+      ...meteringStatement(context.calculation),
       {
         text: `Kontrollsumme (muss 0 sein): ${formatEuroCents(controlDifference)}`,
         bold: true,
