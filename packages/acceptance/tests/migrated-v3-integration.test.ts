@@ -26,7 +26,10 @@ describe('PR-12-Abnahmevergleich nach v3-Migration', () => {
         co2TenantCents: 1795,
         co2LandlordCents: 34115,
         prepaymentsCents: 216000,
-        vacancyLandlordCents: 64268,
+        // CO2-Mieteranteil seit der Vermieterentscheidung nach Heizkreis-
+        // Schlüssel (30 % Fläche / 70 % Verbrauch): 2,28 € Flächenanteil
+        // entfallen auf den Leerstand statt auf den Mieter.
+        vacancyLandlordCents: 64496,
         controlDifferenceCents: 44836,
       },
       occupancies: [
@@ -34,17 +37,17 @@ describe('PR-12-Abnahmevergleich nach v3-Migration', () => {
           reference: 'nutzung-1',
           calculationResultId: '656f1493-dda7-8442-8500-dbba1fd32ee4',
           isVacancy: false,
-          shareCents: 286832,
+          shareCents: 286604,
           prepaymentCents: 216000,
-          balanceCents: 70832,
+          balanceCents: 70604,
         },
         {
           reference: 'leerstand-1',
           calculationResultId: '3f2f6736-b37d-8535-b6cf-6690c64dfbc5',
           isVacancy: true,
-          shareCents: 59104,
+          shareCents: 59332,
           prepaymentCents: 0,
-          balanceCents: 59104,
+          balanceCents: 59332,
         },
       ],
     }
