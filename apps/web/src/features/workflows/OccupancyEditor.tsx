@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react'
+import type { FormEvent, MouseEvent } from 'react'
 import type {
   AppDataFile,
   OccupancyPeriod,
@@ -6,6 +6,7 @@ import type {
 } from '@nebenkosten/schema'
 import { WorkflowField } from './form-support'
 import { formatEuroInput } from '../../app/form-parsers'
+import { estimateConsumptionUnits } from '../occupancies/estimate-consumption'
 interface Props {
   data: AppDataFile
   occupancy: OccupancyPeriod
@@ -35,6 +36,19 @@ export function OccupancyEditor({
       : currentPrepayment?.mode === 'annual'
         ? currentPrepayment.annualAmountCents
         : undefined
+  const estimate = estimateConsumptionUnits(data, occupancy.id)
+  function applyEstimate(event: MouseEvent<HTMLButtonElement>) {
+    const form = event.currentTarget.form
+    if (!form || !estimate) return
+    const field = (name: string) => form.elements.namedItem(name)
+    const units = field('consumptionUnits')
+    const estimated = field('consumptionUnitsEstimated')
+    const reason = field('consumptionUnitsEstimateReason')
+    if (units instanceof HTMLInputElement)
+      units.value = String(estimate.value).replace('.', ',')
+    if (estimated instanceof HTMLInputElement) estimated.checked = true
+    if (reason instanceof HTMLInputElement) reason.value = estimate.reason
+  }
   return (
     <>
       {' '}
@@ -126,6 +140,19 @@ export function OccupancyEditor({
             />
             <span>Verbrauchseinheiten geschätzt</span>
           </label>
+          {estimate ? (
+            <div className="estimate-hint">
+              <button type="button" onClick={applyEstimate}>
+                Aus Heizkreis-Mittel schätzen (
+                {String(estimate.value).replace('.', ',')} Einheiten)
+              </button>
+              <small>
+                Füllt Wert, „geschätzt“ und Schätzgrund vor; erst „Speichern“
+                übernimmt die Schätzung. Grundlage: {estimate.comparableCount}{' '}
+                gemessene Nutzungen desselben Heizkreises.
+              </small>
+            </div>
+          ) : null}
           <WorkflowField
             label="Schätzgrund Verbrauch bearbeiten"
             name="consumptionUnitsEstimateReason"
