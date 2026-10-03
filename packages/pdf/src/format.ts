@@ -24,7 +24,8 @@ function normalizeSpaces(value: string): string {
 }
 
 export function formatEuroCents(cents: number): string {
-  return normalizeSpaces(euroFormatter.format(cents / 100))
+  // `|| 0` vermeidet die Ausgabe „-0,00 €“ für negative Null.
+  return normalizeSpaces(euroFormatter.format(cents / 100 || 0))
 }
 
 export function formatPercent(value: number): string {
@@ -63,4 +64,43 @@ export function formatIban(iban: string): string {
     .toUpperCase()
     .replace(/(.{4})/g, '$1 ')
     .trim()
+}
+
+/** Zahl im deutschen Format mit festen Nachkommastellen. */
+export function formatNumber(value: number, fractionDigits = 2): string {
+  return normalizeSpaces(
+    value.toLocaleString('de-DE', {
+      minimumFractionDigits: fractionDigits,
+      maximumFractionDigits: fractionDigits,
+    }),
+  )
+}
+
+/** Cent-Betrag je Einheit als Euro-Preis mit vier Nachkommastellen. */
+export function formatUnitPrice(centsPerUnit: number, unit: string): string {
+  return `${formatNumber(centsPerUnit / 100, 4)} € je ${unit}`
+}
+
+const quantityUnitLabels: Readonly<Record<string, string>> = {
+  l: 'l',
+  kg: 'kg',
+  t: 't',
+  kWh: 'kWh',
+  m3: 'm³',
+  m2: 'm²',
+  einheiten: 'Einheiten',
+  personen: 'Personen',
+  stueck: 'Stück',
+}
+
+export function formatQuantityUnit(unit: string | null | undefined): string {
+  if (!unit) return ''
+  return quantityUnitLabels[unit] ?? unit
+}
+
+/** ISO-Datum plus Kalendertage (UTC, ohne Zeitzonen-Drift). */
+export function addDaysIso(iso: string, days: number): string {
+  const date = new Date(`${iso}T00:00:00.000Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
 }

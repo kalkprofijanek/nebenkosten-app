@@ -219,8 +219,16 @@ describe('buildTenantStatement', () => {
     expect(tenant?.costBreakdown.heatingCo2Cents).toBeGreaterThan(0)
 
     const doc = buildTenantStatement(context)
+    const serialized = JSON.stringify(doc.content)
 
-    expect(JSON.stringify(doc.content)).toContain('CO2-Ausweis')
+    expect(serialized).toContain(
+      'CO2-Kostenaufteilung (Angaben nach § 7 Abs. 3 CO2KostAufG)',
+    )
+    expect(serialized).toContain('CO2-Emissionen im Abrechnungszeitraum')
+    expect(serialized).toContain('kg CO2/m²·a')
+    expect(serialized).toMatch(/Stufe \d+/)
+    expect(serialized).toContain('Ihr Anteil an den CO2-Kosten')
+    expect(serialized).toContain('wurde von den Heizkosten abgezogen')
   })
 
   it('zeigt den CO2-Ausweis auch bei emissionsfreier Heizung mit null Kosten', () => {
@@ -230,8 +238,8 @@ describe('buildTenantStatement', () => {
     const doc = buildTenantStatement(context)
     const serialized = JSON.stringify(doc.content)
 
-    expect(serialized).toContain('CO2-Ausweis')
-    expect(serialized).toContain('emissionsarme Heizung')
+    expect(serialized).toContain('CO2-Kostenaufteilung')
+    expect(serialized).toContain('Keine CO2-Kosten nach BEHG angefallen')
   })
 
   it('erklärt den tatsächlich berechneten Heizkreis-Split', () => {
@@ -318,7 +326,7 @@ describe('buildTenantStatement', () => {
     const serialized = JSON.stringify(doc.content)
 
     expect(serialized).toContain('zu 55 %')
-    expect(serialized).toContain('CO2-Ausweis')
+    expect(serialized).toContain('CO2-Kostenaufteilung')
   })
 
   it('verweigert Heizkosten ohne passenden Heizkreis-Nachweis', () => {
@@ -405,7 +413,7 @@ describe('buildTenantStatement', () => {
     )
     expect(JSON.stringify(summary.body)).toContain('Ihr CO2-Kostenanteil')
     expect(JSON.stringify(doc.content)).toContain(
-      'CO2-Kosten (nachrichtlich, separat ausgewiesen)',
+      'darin enthaltene CO2-Kosten (gesondert verteilt)',
     )
   })
 
@@ -421,7 +429,7 @@ describe('buildTenantStatement', () => {
     const doc = buildTenantStatement(context)
 
     expect(JSON.stringify(doc.content)).toContain(
-      'Verbrauchseinheiten (HKV) wurden geschätzt',
+      'Ihr Verbrauch wurde geschätzt (§ 9a HeizKV).',
     )
   })
 

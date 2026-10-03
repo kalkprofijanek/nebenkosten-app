@@ -191,6 +191,7 @@ export function buildCombinedCostStatementContext(
   data: AppDataFile,
   billingPeriod: BillingPeriod,
   calculation: CalculationOutput,
+  audience: CombinedCostStatementContext['audience'] = 'internal',
 ): CombinedCostStatementContext {
   const property = data.masterData.properties.find(
     ({ id }) => id === billingPeriod.propertyId,
@@ -209,6 +210,7 @@ export function buildCombinedCostStatementContext(
     )
   }
   return {
+    audience,
     appData: data,
     billingPeriod,
     calculation,

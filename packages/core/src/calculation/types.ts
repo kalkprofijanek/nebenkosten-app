@@ -51,7 +51,10 @@ export interface RawCircuitResult {
   basePrice: number
   consumptionPrice: number
   hotWaterPricePerPerson: number
-  co2PricePerConsumptionUnit: number
+  /** CO2-Mieteranteil × Grundkostenanteil je Flächeneinheit. */
+  co2BasePrice: number
+  /** CO2-Mieteranteil × Verbrauchskostenanteil je Verbrauchseinheit. */
+  co2ConsumptionPrice: number
   energySources: EnergySourceCalculationTrace[]
   co2Trace: CircuitCo2Trace
   warmWaterTrace: CircuitWarmWaterTrace

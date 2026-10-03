@@ -189,7 +189,7 @@ test('migrates fictional v3 data, exports a v5 backup, and proves rollback', asy
   await page.getByRole('link', { name: 'PDF und Export', exact: true }).click()
   const combinedDownload = page.waitForEvent('download')
   await page
-    .getByRole('button', { name: 'Gesamtabrechnung (PDF)', exact: true })
+    .getByRole('button', { name: 'Gesamtabrechnung intern (PDF)', exact: true })
     .click()
   const combined = await combinedDownload
   const combinedPath = await combined.path()

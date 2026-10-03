@@ -349,7 +349,9 @@ describe('PdfExportRoute', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /Gesamtabrechnung/ }))
+    fireEvent.click(
+      screen.getByRole('button', { name: /Gesamtabrechnung intern/ }),
+    )
 
     const link = await screen.findByRole('link', { name: 'Datei speichern' })
     expect(link).toHaveAttribute('href', 'blob:pdf-url')
@@ -389,7 +391,9 @@ describe('PdfExportRoute', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /Gesamtabrechnung/ }))
+    fireEvent.click(
+      screen.getByRole('button', { name: /Gesamtabrechnung intern/ }),
+    )
 
     await vi.waitFor(() => expect(downloadBlob).toHaveBeenCalled())
     expect(onApply).toHaveBeenCalled()
@@ -400,6 +404,37 @@ describe('PdfExportRoute', () => {
     expect(transformed.billingData.documents.at(-1)).toMatchObject({
       kind: 'combined_statement',
       calculationRunId: RUN_ID,
+      fileName: 'NK_2026_Gesamtabrechnung_intern.pdf',
+    })
+  })
+
+  it('erzeugt die Gesamtabrechnung für Mieter ohne Mieterdaten', async () => {
+    renderPdfBlob.mockResolvedValue(new Blob(['pdf']))
+    const onApply = vi.fn((transform: (data: AppDataFile) => AppDataFile) => {
+      void transform
+      return true
+    })
+    render(
+      <PdfExportRoute
+        data={fixtureAppData()}
+        billingPeriodId={PERIOD_ID}
+        onApply={onApply}
+      />,
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Gesamtabrechnung für Mieter (PDF)' }),
+    )
+
+    await vi.waitFor(() => expect(downloadBlob).toHaveBeenCalled())
+    const docDefinition = renderPdfBlob.mock.calls.at(-1)![0]
+    const serialized = JSON.stringify(docDefinition.content)
+    expect(serialized).toContain('Fassung für Mieter')
+    expect(serialized).not.toContain('Mandatsreferenz')
+    const transformed = onApply.mock.calls[0]![0](fixtureAppData())
+    expect(transformed.billingData.documents.at(-1)).toMatchObject({
+      kind: 'combined_statement',
+      fileName: 'NK_2026_Gesamtabrechnung_Mieter.pdf',
     })
   })
 
@@ -545,7 +580,9 @@ describe('PdfExportRoute', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /Gesamtabrechnung/ }))
+    fireEvent.click(
+      screen.getByRole('button', { name: /Gesamtabrechnung intern/ }),
+    )
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       /nicht gespeichert/,
@@ -563,7 +600,9 @@ describe('PdfExportRoute', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /Gesamtabrechnung/ }))
+    fireEvent.click(
+      screen.getByRole('button', { name: /Gesamtabrechnung intern/ }),
+    )
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       /Das Dokument konnte nicht erzeugt werden/,
