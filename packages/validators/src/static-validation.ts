@@ -173,14 +173,14 @@ function occupancies(data: AppDataFile, period: BillingPeriod, add: Add): void {
       const property = data.masterData.properties.find(
         ({ id }) => id === period.propertyId,
       )
-      if (
-        !resolveShippingAddress({
-          tenancy,
-          occupancy: row,
-          property: property ?? {},
-          billingPeriod: period,
-        })
-      )
+      const shipping = resolveShippingAddress({
+        tenancy,
+        occupancy: row,
+        property: property ?? {},
+        billingPeriod: period,
+      })
+      const tenancyEntity = { type: 'Tenancy', id: row.tenancyId ?? row.id }
+      if (!shipping)
         add(
           issue(
             'error',
@@ -189,8 +189,21 @@ function occupancies(data: AppDataFile, period: BillingPeriod, add: Add): void {
             'Versandadresse fehlt',
             {
               detail:
-                'Für ausgezogene Mieter wird eine eigene Anschrift benötigt. Bewohner erhalten automatisch die Wohnungs- bzw. Objektanschrift.',
-              entity: { type: 'Tenancy', id: row.tenancyId ?? row.id },
+                'Weder eine Versandanschrift noch eine Wohnungs- oder Objektanschrift mit PLZ/Ort ist erfasst.',
+              entity: tenancyEntity,
+            },
+          ),
+        )
+      else if (shipping.movedOut)
+        add(
+          issue(
+            'info',
+            'occupancy.shipping_address_previous',
+            'occupancy',
+            'Ausgezogen: Abrechnung geht an die bisherige Anschrift',
+            {
+              detail: `Ohne neue Anschrift wird an ${shipping.street}, ${shipping.postalCodeAndCity} adressiert. Eine bekannte neue Anschrift beim Nutzer eintragen.`,
+              entity: tenancyEntity,
             },
           ),
         )

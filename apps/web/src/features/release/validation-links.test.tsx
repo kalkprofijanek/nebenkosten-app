@@ -161,4 +161,19 @@ describe('validationIssueLink', () => {
       label: 'Verbrauchseinheiten ergänzen',
     })
   })
+
+  it('führt den Auszugshinweis zur Nutzerbearbeitung', () => {
+    expect(
+      validationIssueLink(
+        issue(
+          'occupancy',
+          { type: 'Tenancy', id: 'tenancy-1' },
+          'occupancy.shipping_address_previous',
+        ),
+      ),
+    ).toEqual({
+      href: '#/nutzer?edit=tenancy-1',
+      label: 'Neue Anschrift eintragen',
+    })
+  })
 })
