@@ -1,6 +1,7 @@
 import type { AppDataFile, OccupancyPeriod } from '@nebenkosten/schema'
 import { latestCalculationSnapshot } from '../pdf/context'
 import { calculatePreview } from './calculate-preview'
+import { OpenStatementButton } from './OpenStatementButton'
 
 const euro = (cents: number) =>
   new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(
@@ -162,6 +163,7 @@ export function StatementPreview({
               <th scope="col">Kostenanteil</th>
               <th scope="col">Vorauszahlungen</th>
               <th scope="col">Ergebnis</th>
+              <th scope="col">Abrechnung</th>
             </tr>
           </thead>
           <tbody>
@@ -199,6 +201,16 @@ export function StatementPreview({
                         ? 'Ausgeglichen'
                         : `${tenant.balanceCents > 0 ? 'Nachzahlung' : 'Guthaben'} ${euro(Math.abs(tenant.balanceCents))}`}
                   </td>
+                  <td>
+                    {occupancy.kind === 'tenant' ? (
+                      <OpenStatementButton
+                        data={data}
+                        period={period}
+                        calculation={snapshot.output}
+                        occupancy={occupancy}
+                      />
+                    ) : null}
+                  </td>
                 </tr>
               )
             })}
@@ -214,6 +226,7 @@ export function StatementPreview({
                   ? 'Ausgeglichen'
                   : `${balance > 0 ? 'Nachzahlung' : 'Guthaben'} ${euro(Math.abs(balance))}`}
               </td>
+              <td />
             </tr>
           </tfoot>
         </table>
