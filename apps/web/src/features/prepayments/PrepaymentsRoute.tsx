@@ -569,10 +569,9 @@ function AdjustmentSection({
         Vorschläge für Mieter mit Nachzahlung, laufendem Mietverhältnis und
         monatlicher Vorauszahlung: Kostenanteil hochgerechnet auf 365 Tage,
         geteilt durch 12 und auf volle Euro aufgerundet; vorgeschlagen ab einer
-        Erhöhung um 5 €. Bei „Ja“ wird die neue Vorauszahlung im
-        Abrechnungsjahr eingetragen, ab dem sie gilt (Standard: nächster
-        zulässiger 01.01. nach Versand), und das Anpassungsschreiben an die
-        Einzelabrechnung angehängt.
+        Erhöhung um 5 €. Bei „Ja“ wird die neue Vorauszahlung im Abrechnungsjahr
+        eingetragen, ab dem sie gilt (Standard: nächster zulässiger 01.01. nach
+        Versand), und das Anpassungsschreiben an die Einzelabrechnung angehängt.
       </p>
       {snapshotError ? (
         <p className="calculation-warnings">
