@@ -1,0 +1,31 @@
+name: Fachfrage
+description: Frage oder Hinweis zu Umlage, BetrKV, HeizKV, CO2KostAufG, Rundung o. Ä.
+title: '[Fachfrage] '
+labels: ['fachfrage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fachliche Hinweise mit Quelle (Norm, Urteil, Kommentar) helfen am meisten. Die Antworten im Projekt sind **keine Rechtsberatung**. **Keine echten Daten** anhängen.
+  - type: textarea
+    id: frage
+    attributes:
+      label: Frage oder Hinweis
+    validations:
+      required: true
+  - type: textarea
+    id: quelle
+    attributes:
+      label: Rechtsgrundlage / Quelle
+      placeholder: z. B. § 7 Abs. 1 HeizKV, BGH VIII ZR …
+  - type: textarea
+    id: beispiel
+    attributes:
+      label: Rechenbeispiel mit erfundenen Werten
+  - type: checkboxes
+    id: datenschutz
+    attributes:
+      label: Datenschutz
+      options:
+        - label: Ich habe keine echten personenbezogenen Daten, Bankdaten oder Belege angehängt.
+          required: true

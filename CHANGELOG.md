@@ -2,6 +2,15 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
+## Unveröffentlicht
+
+- Öffnung für Dritte (nur Dokumentation und Repository-Einstellungen, keine
+  Codeänderung): Lizenz AGPL-3.0, Benutzerhandbuch, Anleitung für Claude/ChatGPT
+  mit Erfassungsliste und Arbeitsanweisung, Beschreibung des Bank-CSV-Formats
+  mit erfundener Beispieldatei, neue `CONTRIBUTING.md` (Fork-Workflow),
+  Verhaltenskodex, Issue-Vorlagen, erweiterte Pull-Request-Vorlage, Regeln für
+  externe Agenten in `AGENTS.md`, aktualisierte Datenschutzhinweise.
+
 ## 1.2.2 – 4. Oktober 2026
 
 - Einzelabrechnung: Anschriftfeld nach DIN 5008 Form B verschoben (Empfänger
