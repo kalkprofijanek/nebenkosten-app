@@ -4,6 +4,9 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- Einzelabrechnung: Der **Schätzgrund (§ 9a HeizKV)** steht nur noch einmal
+  unter „Ihre Verbrauchserfassung“; oben bleibt ein kurzer Hinweis mit
+  Verweis darauf (vorher erschien die Begründung doppelt),
 - **Mietkonto** (neue Seite): Soll aus Kaltmiete und Vorauszahlung je
   Monat, Ist aus zugeordneten Mieteingängen, Monatsübersicht
   (bezahlt/teilweise/offen), Rückstand und Guthaben. Eindeutige Mieteingänge

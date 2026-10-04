@@ -1097,10 +1097,17 @@ function estimationNote(context: TenantStatementContext): Content {
     ),
   )
   if (!occupancyPeriod.consumptionUnitsEstimated || metered) return { text: '' }
+  // Mit Heizkosten steht der Schätzgrund vollständig unter „Ihre
+  // Verbrauchserfassung“; vorne genügt der Hinweis, sonst erscheint er doppelt.
+  const tenant = tenantResult(context)
+  const hasConsumptionCapture =
+    heatingTotalCents(tenant) + tenant.costBreakdown.heatingCo2Cents !== 0
   return {
-    text: estimatedConsumptionNote(
-      occupancyPeriod.consumptionUnitsEstimateReason,
-    ),
+    text: hasConsumptionCapture
+      ? `${estimatedConsumptionNote()} Die Begründung finden Sie unter „Ihre Verbrauchserfassung“.`
+      : estimatedConsumptionNote(
+          occupancyPeriod.consumptionUnitsEstimateReason,
+        ),
     fontSize: 8,
     italics: true,
     margin: [0, 0, 0, 8],

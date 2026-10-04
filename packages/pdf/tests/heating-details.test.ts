@@ -156,6 +156,21 @@ describe('Einzelabrechnung – Ihre Verbrauchserfassung', () => {
     expect(serialized).not.toContain('HZ-9')
   })
 
+  it('druckt den Schätzgrund nur einmal und verweist vorne darauf', () => {
+    const appData = buildFixtureAppData('case-06-heating-oil-fifo')
+    Object.assign(firstTenant(appData), {
+      consumptionUnitsEstimated: true,
+      consumptionUnitsEstimateReason: 'Gerät defekt (fiktiv)',
+    })
+    const serialized = text(
+      buildTenantStatement(buildFixtureTenantStatementContext(appData)),
+    )
+    expect(serialized.split('Gerät defekt (fiktiv)')).toHaveLength(2)
+    expect(serialized).toContain(
+      'Die Begründung finden Sie unter „Ihre Verbrauchserfassung“.',
+    )
+  })
+
   it('rechnet den CO2-Mieteranteil nachvollziehbar vor', () => {
     const context = buildFixtureTenantStatementContext(
       buildFixtureAppData('case-12-co2-split'),
