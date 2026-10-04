@@ -35,7 +35,10 @@ export function validationIssueLink(
   ) {
     return { href: '#/heizkreise?tab=fuel', label: 'Lieferung bearbeiten' }
   }
-  if (issue.code === 'documents.booking_link_missing') {
+  if (
+    issue.code === 'documents.booking_link_missing' ||
+    issue.code === 'costs.entry_ambiguous'
+  ) {
     if (issue.entity?.type === 'CostEntry') {
       return {
         href: `#/kosten?tab=entries&edit=${encodeURIComponent(issue.entity.id)}`,

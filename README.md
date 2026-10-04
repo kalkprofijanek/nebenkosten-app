@@ -17,7 +17,7 @@ CO2KostAufG, Vorauszahlungsanpassung nach § 560 BGB und PDF-Abrechnungen.
 
 ## Nutzung
 
-**Aktuelle Version: 1.2.2 · Schema v5**
+**Aktuelle Version: 1.2.3 · Schema v5**
 
 - Ausschließlich für **Desktop-Browser** gedacht (siehe
   [ADR-0002](docs/DECISIONS/ADR-0002-DESKTOP-ONLY.md)).
@@ -175,7 +175,7 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 
 ## Status
 
-Version **1.2.2** ist veröffentlicht (GitHub Pages, Release-Tag `v1.2.2`). Das
+Version **1.2.3** ist veröffentlicht (GitHub Pages, Release-Tag `v1.2.3`). Das
 Repository ist öffentlich und enthält ausschließlich fiktive Testdaten. Offen
 für spätere Versionen: Import von Heizkostenverteiler-Werten des Messdienstes,
 ein strukturiertes Importformat für KI-ausgelesene Eingangsrechnungen und ein
