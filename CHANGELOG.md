@@ -2,6 +2,27 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
+## Unveröffentlicht
+
+- Neuer Arbeitsbereich „Verbrauch“ (zwischen „Nutzer“ und
+  „Vorauszahlungen“): Zählernummer, Stand alt/neu mit Ablesedatum, Differenz,
+  Verbrauchseinheiten und Status aller Mieter eines Abrechnungsjahres in einer
+  Tabelle; zeilenweise speichern oder verwerfen, Filter „Nur offene und
+  abweichende Zeilen“,
+- Schätzung nach § 9a HeizKV je Zeile („Schätzen“) und für alle fehlenden
+  oder 0-Werte auf einmal („Alle fehlenden schätzen“); ist keine Schätzung
+  möglich, nennt die Zeile den Grund (kein Gebäude, keine beheizte Fläche,
+  keine gemessenen Vergleichsnutzungen),
+- Hinweis, wenn in einem Gebäude mehr als 25 % der Fläche (zeitanteilig)
+  geschätzt sind (§ 9a Abs. 2 HeizKV); die Berechnung wird dadurch nicht
+  umgestellt,
+- Nutzerbearbeitung zeigt den Heizverbrauch nur noch an und verlinkt auf die
+  neue Seite; Speichern dort lässt Verbrauch und Zählerstände unverändert,
+- Prüfhinweise `heating.consumption_units_missing`,
+  `heating.meter_reading_mismatch` und `heating.meter_reading_incomplete`
+  sowie die geführte Jahresabrechnung führen zur betroffenen Zeile der
+  Verbrauchsseite. Keine Schemaänderung.
+
 ## 1.2.2 – 4. Oktober 2026
 
 - Einzelabrechnung: Anschriftfeld nach DIN 5008 Form B verschoben (Empfänger

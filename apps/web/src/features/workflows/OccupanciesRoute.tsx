@@ -30,20 +30,6 @@ function prepayment(form: FormData) {
   } as const
 }
 
-/** Zählerstände der Nutzerbearbeitung; ohne Eingaben `undefined`. */
-function heatMeterReading(form: FormData) {
-  const reading = {
-    meterNumber: formOptionalText(form, 'meterNumber'),
-    startValue: optionalNumber(form, 'meterStartValue'),
-    startDate: formOptionalText(form, 'meterStartDate'),
-    endValue: optionalNumber(form, 'meterEndValue'),
-    endDate: formOptionalText(form, 'meterEndDate'),
-  }
-  return Object.values(reading).some((value) => value !== undefined)
-    ? reading
-    : undefined
-}
-
 function optionalEuro(form: FormData, name: string) {
   const value = formOptionalText(form, name)
   return value === undefined ? undefined : parseEuroCents(value)
@@ -140,8 +126,12 @@ export function OccupanciesRoute({
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     if (
-      apply((current) =>
-        updateTenantOccupancy(current, {
+      apply((current) => {
+        // Heizverbrauch und Zählerstände pflegt die Seite „Verbrauch“.
+        const existing = current.billingData.occupancyPeriods.find(
+          ({ id }) => id === occupancyId,
+        )
+        return updateTenantOccupancy(current, {
           occupancyPeriodId: occupancyId,
           displayName: formText(form, 'displayName'),
           firstName: formOptionalText(form, 'firstName'),
@@ -160,13 +150,12 @@ export function OccupanciesRoute({
             form,
             'shippingAddressPostalCodeAndCity',
           ),
-          consumptionUnits: optionalNumber(form, 'consumptionUnits'),
-          consumptionUnitsEstimated: form.has('consumptionUnitsEstimated'),
-          consumptionUnitsEstimateReason: formOptionalText(
-            form,
-            'consumptionUnitsEstimateReason',
-          ),
-          heatMeterReading: heatMeterReading(form),
+          consumptionUnits: existing?.consumptionUnits?.value,
+          consumptionUnitsEstimated:
+            existing?.consumptionUnitsEstimated ?? undefined,
+          consumptionUnitsEstimateReason:
+            existing?.consumptionUnitsEstimateReason ?? undefined,
+          heatMeterReading: existing?.heatMeterReading ?? undefined,
           coldWater: optionalNumber(form, 'coldWater'),
           warmWater: optionalNumber(form, 'warmWater'),
           applySection12Reduction: form.has('applySection12Reduction'),
@@ -185,8 +174,8 @@ export function OccupanciesRoute({
           dispatchDate: formOptionalText(form, 'dispatchDate'),
           note: formOptionalText(form, 'note'),
           prepayment: prepayment(form),
-        }),
-      )
+        })
+      })
     )
       setEditingId(null)
   }

@@ -63,8 +63,8 @@ export function validationIssueLink(
     issue.entity?.type === 'OccupancyPeriod'
   )
     return {
-      href: `#/nutzer?edit=${encodeURIComponent(issue.entity.id)}`,
-      label: 'Verbrauchseinheiten ergänzen',
+      href: `#/verbrauch?occupancy=${encodeURIComponent(issue.entity.id)}`,
+      label: 'Verbrauch erfassen oder schätzen',
     }
 
   if (
@@ -73,7 +73,7 @@ export function validationIssueLink(
     issue.entity?.type === 'OccupancyPeriod'
   )
     return {
-      href: `#/nutzer?edit=${encodeURIComponent(issue.entity.id)}`,
+      href: `#/verbrauch?occupancy=${encodeURIComponent(issue.entity.id)}`,
       label: 'Zählerstände prüfen',
     }
 

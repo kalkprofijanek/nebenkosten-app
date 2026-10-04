@@ -1,6 +1,9 @@
 import { createEmptyAppDataFile, type AppDataFile } from '@nebenkosten/schema'
 import { describe, expect, it } from 'vitest'
-import { estimateConsumptionUnits } from './estimate-consumption'
+import {
+  estimateConsumptionUnits,
+  explainConsumptionEstimate,
+} from './estimate-consumption'
 
 function fixture(): AppDataFile {
   const empty = createEmptyAppDataFile()
@@ -103,5 +106,41 @@ describe('estimateConsumptionUnits', () => {
         ({ id }) => id !== 'o1' && id !== 'o2',
       )
     expect(estimateConsumptionUnits(lonely, 'target')).toBeNull()
+  })
+
+  it('nennt den Grund, wenn keine Schätzung möglich ist', () => {
+    const problem = (data: AppDataFile, id = 'target') => {
+      const result = explainConsumptionEstimate(data, id)
+      return result.ok ? null : result.problem
+    }
+    expect(problem(fixture(), 'fehlt')).toBe('Nutzerzeitraum nicht gefunden.')
+    const noBuilding = fixture()
+    noBuilding.masterData.units = noBuilding.masterData.units.map((unit) =>
+      unit.id === 'u3' ? { ...unit, buildingId: null } : unit,
+    )
+    expect(problem(noBuilding)).toContain('keinem Gebäude')
+    const noArea = fixture()
+    noArea.masterData.units = noArea.masterData.units.map((unit) =>
+      unit.id === 'u3' ? { ...unit, heatedAreaSqm: null } : unit,
+    )
+    expect(problem(noArea)).toContain('beheizte Fläche')
+    const lonely = fixture()
+    lonely.billingData.occupancyPeriods =
+      lonely.billingData.occupancyPeriods.filter(
+        ({ id }) => id !== 'o1' && id !== 'o2',
+      )
+    expect(problem(lonely)).toContain('Keine gemessenen Vergleichsnutzungen')
+    const outside = fixture()
+    outside.billingData.occupancyPeriods =
+      outside.billingData.occupancyPeriods.map((item) =>
+        item.id === 'target'
+          ? { ...item, from: '2026-01-01', to: '2026-02-01' }
+          : item,
+      )
+    expect(problem(outside)).toContain('keine Tage')
+    expect(explainConsumptionEstimate(fixture(), 'target')).toMatchObject({
+      ok: true,
+      estimate: { value: 500 },
+    })
   })
 })

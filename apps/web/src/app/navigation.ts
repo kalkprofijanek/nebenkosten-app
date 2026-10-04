@@ -61,6 +61,14 @@ export const appRoutes = [
     actionLabel: 'Nutzer hinzufügen',
   },
   {
+    path: '/verbrauch',
+    label: 'Verbrauch',
+    eyebrow: 'Heizkosten',
+    title: 'Zählerstände und Verbrauch',
+    description:
+      'Zählerstände aller Nutzer an einem Ort erfassen, Verbrauch übernehmen und fehlende Werte nach § 9a HeizKV schätzen.',
+  },
+  {
     path: '/vorauszahlungen',
     label: 'Vorauszahlungen',
     eyebrow: 'Nutzung',

@@ -22,7 +22,10 @@ import {
   addHeatingSystem,
 } from './features/heating/heating-commands'
 import { addCostCategory, addCostEntry } from './features/costs/commands'
-import { addTenantOccupancy } from './features/occupancies/commands'
+import {
+  addTenantOccupancy,
+  updateOccupancyConsumption,
+} from './features/occupancies/commands'
 import { WorkflowRoute, type WorkflowSelection } from './WorkflowRoute'
 
 const TEST_CONTACT_EMAIL = ['kontakt', 'example.invalid'].join('@')
@@ -836,9 +839,6 @@ describe('WorkflowRoute', () => {
     fireEvent.change(screen.getByLabelText('Personenzahl bearbeiten'), {
       target: { value: '2' },
     })
-    fireEvent.change(screen.getByLabelText('Verbrauchseinheiten bearbeiten'), {
-      target: { value: '88,5' },
-    })
     fireEvent.click(screen.getByLabelText('§ 12 HeizKV-Kürzung anwenden'))
     fireEvent.click(
       screen.getByRole('button', { name: 'Nutzerdaten speichern' }),
@@ -848,7 +848,6 @@ describe('WorkflowRoute', () => {
       'Aktualisierter Nutzer',
     )
     expect(result.getData().billingData.occupancyPeriods[0]).toMatchObject({
-      consumptionUnits: { value: 88.5, unit: 'einheiten' },
       applySection12Reduction: true,
     })
 
@@ -864,7 +863,7 @@ describe('WorkflowRoute', () => {
       '30000000-0000-4000-8000-000000000023',
       '30000000-0000-4000-8000-000000000024',
     ]
-    const data = addTenantOccupancy(
+    const created = addTenantOccupancy(
       seededData(),
       {
         billingPeriodId: SEEDED_IDS.period,
@@ -875,6 +874,20 @@ describe('WorkflowRoute', () => {
       },
       () => occupancyIds.shift()!,
     )
+    const occupancyId = created.billingData.occupancyPeriods[0]!.id
+    const data = updateOccupancyConsumption(created, {
+      occupancyPeriodId: occupancyId,
+      consumptionUnits: 99.5,
+      consumptionUnitsEstimated: true,
+      consumptionUnitsEstimateReason: 'Fiktiver Schätzgrund',
+      heatMeterReading: {
+        meterNumber: 'HZ-TEST-1',
+        startValue: 100,
+        startDate: '2026-01-01',
+        endValue: 199.5,
+        endDate: '2026-12-31',
+      },
+    })
     const result = renderRoute('/nutzer', data, SEEDED_SELECTION)
     fireEvent.click(
       screen.getByRole('button', {
@@ -902,29 +915,11 @@ describe('WorkflowRoute', () => {
     fireEvent.change(screen.getByLabelText('Versandort bearbeiten'), {
       target: { value: 'Fiktiver Versandort' },
     })
-    fireEvent.change(screen.getByLabelText('Verbrauchseinheiten bearbeiten'), {
-      target: { value: '99,5' },
-    })
-    fireEvent.click(screen.getByLabelText('Verbrauchseinheiten geschätzt'))
-    fireEvent.change(
-      screen.getByLabelText('Schätzgrund Verbrauch bearbeiten'),
-      { target: { value: 'Fiktiver Schätzgrund' } },
-    )
-    fireEvent.change(screen.getByLabelText('Zählernummer bearbeiten'), {
-      target: { value: 'HZ-TEST-1' },
-    })
-    fireEvent.change(screen.getByLabelText('Stand alt bearbeiten'), {
-      target: { value: '100' },
-    })
-    fireEvent.change(screen.getByLabelText('Datum alt bearbeiten'), {
-      target: { value: '2026-01-01' },
-    })
-    fireEvent.change(screen.getByLabelText('Stand neu bearbeiten'), {
-      target: { value: '199,5' },
-    })
-    fireEvent.change(screen.getByLabelText('Datum neu bearbeiten'), {
-      target: { value: '2026-12-31' },
-    })
+    expect(
+      screen.getByRole('link', {
+        name: 'Zählerstände und Verbrauch bearbeiten',
+      }),
+    ).toHaveAttribute('href', `#/verbrauch?occupancy=${occupancyId}`)
     fireEvent.change(screen.getByLabelText('Kaltwasser in m³ bearbeiten'), {
       target: { value: '10' },
     })
@@ -964,7 +959,9 @@ describe('WorkflowRoute', () => {
       shippingAddressStreet: 'Fiktive Versandanschrift',
     })
     expect(result.getData().billingData.occupancyPeriods[0]).toMatchObject({
+      consumptionUnits: { value: 99.5, unit: 'einheiten' },
       consumptionUnitsEstimated: true,
+      consumptionUnitsEstimateReason: 'Fiktiver Schätzgrund',
       heatMeterReading: {
         meterNumber: 'HZ-TEST-1',
         startValue: 100,

@@ -61,7 +61,7 @@ describe('BillingJourney', () => {
     expect(screen.getByText('Editor: /heizkreise?tab=meters')).toBeVisible()
     expect(
       screen.getByRole('link', { name: 'Verbrauch je Belegung bearbeiten' }),
-    ).toHaveAttribute('href', '#/nutzer')
+    ).toHaveAttribute('href', '#/verbrauch')
     fireEvent.click(
       screen.getByRole('button', { name: /5. Energie und Bestand/ }),
     )

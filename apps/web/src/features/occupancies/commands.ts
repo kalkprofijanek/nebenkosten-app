@@ -751,6 +751,88 @@ export function updateTenantOccupancy(
   })
 }
 
+/**
+ * Setzt ausschließlich Heizverbrauch, Schätzkennzeichen, Schätzgrund und
+ * Zählerstände einer Mieter-Belegung. Fehlende Felder werden entfernt; alle
+ * übrigen Angaben (Person, Zeitraum, Vorauszahlung …) bleiben unverändert.
+ */
+export function updateOccupancyConsumption(
+  file: AppDataFile,
+  rawInput: unknown,
+): AppDataFile {
+  const input = recordWithExactKeys(
+    rawInput,
+    [
+      'occupancyPeriodId',
+      'consumptionUnits',
+      'consumptionUnitsEstimated',
+      'consumptionUnitsEstimateReason',
+      'heatMeterReading',
+    ],
+    'Verbrauchserfassung',
+  )
+  const occupancyPeriodId = requiredString(input, 'occupancyPeriodId')
+  const consumptionUnits = input.consumptionUnits
+  if (
+    consumptionUnits !== undefined &&
+    (typeof consumptionUnits !== 'number' ||
+      !Number.isFinite(consumptionUnits) ||
+      consumptionUnits < 0)
+  )
+    throw new OccupancyCommandError(
+      'Verbrauchseinheiten müssen eine Zahl ab 0 sein.',
+    )
+  const estimated = input.consumptionUnitsEstimated
+  if (estimated !== undefined && typeof estimated !== 'boolean')
+    throw new OccupancyCommandError('Ungültige boolesche Nutzereingabe.')
+  const reason = optionalString(input, 'consumptionUnitsEstimateReason', 500)
+  if (estimated === true && consumptionUnits === undefined)
+    throw new OccupancyCommandError(
+      'Eine Schätzung braucht einen Verbrauchswert.',
+    )
+  const heatMeterReading =
+    input.heatMeterReading === undefined
+      ? undefined
+      : parseEntity(
+          heatMeterReadingSchema,
+          typeof input.heatMeterReading === 'object' &&
+            input.heatMeterReading !== null
+            ? withoutUndefined(input.heatMeterReading)
+            : input.heatMeterReading,
+          'Zählerstände',
+        )
+  const occupancy = file.billingData.occupancyPeriods.find(
+    ({ id }) => id === occupancyPeriodId,
+  )
+  if (occupancy?.kind !== 'tenant')
+    throw new OccupancyCommandError('Nutzerzeitraum wurde nicht gefunden.')
+  const rest: OccupancyPeriod = { ...occupancy }
+  delete rest.consumptionUnits
+  delete rest.consumptionUnitsEstimated
+  delete rest.consumptionUnitsEstimateReason
+  delete rest.heatMeterReading
+  return validatedFile({
+    ...file,
+    billingData: {
+      ...file.billingData,
+      occupancyPeriods: file.billingData.occupancyPeriods.map((item) =>
+        item.id === occupancyPeriodId
+          ? withoutUndefined({
+              ...rest,
+              consumptionUnits:
+                consumptionUnits === undefined
+                  ? undefined
+                  : { value: consumptionUnits, unit: 'einheiten' as const },
+              consumptionUnitsEstimated: estimated,
+              consumptionUnitsEstimateReason: reason,
+              heatMeterReading,
+            })
+          : item,
+      ),
+    },
+  })
+}
+
 export function updateVacancyOccupancy(
   file: AppDataFile,
   rawInput: unknown,
