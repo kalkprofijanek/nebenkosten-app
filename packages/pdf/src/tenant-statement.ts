@@ -423,6 +423,7 @@ function costCategoryTable(
     {
       table: {
         headerRows: 1,
+        dontBreakRows: true,
         widths: ['*', 62, 'auto', 58, 70, 58],
         body: [
           [
@@ -935,6 +936,20 @@ function estimationNote(context: TenantStatementContext): Content {
  * `MissingShippingAddressError`, wenn keine Versandadresse vorliegt (durch
  * `packages/validators` bereits als Fehler vor `READY_FOR_PDF` geblockt).
  */
+/**
+ * Anschriftfeld für Fensterkuverts und Druck-/Versanddienste (DIN 5008
+ * Form B, Positionen in pt; 1 mm = 2,835 pt): Die Rücksendeangabe steht im
+ * Fenster oberhalb der Anschriftzone, die Empfängeranschrift beginnt bei
+ * ca. 56 mm von oben und 25 mm von links und bleibt damit sicher innerhalb
+ * der Prüfbox der Versanddienste (ca. 20–96 mm × 52–90 mm). Der Titel
+ * beginnt erst unterhalb des Fensters.
+ */
+export const ADDRESS_WINDOW = {
+  returnLine: { x: 71, y: 133 },
+  recipient: { x: 71, y: 159 },
+  titleTop: 290,
+} as const
+
 export function buildTenantStatement(
   context: TenantStatementContext,
 ): TDocumentDefinitions {
@@ -1004,7 +1019,7 @@ export function buildTenantStatement(
     content: [
       {
         text: [...sender.nameLines, ...senderAddressLines].join(' · '),
-        absolutePosition: { x: 71, y: 112 },
+        absolutePosition: ADDRESS_WINDOW.returnLine,
         fontSize: 7,
         decoration: 'underline',
       },
@@ -1014,7 +1029,7 @@ export function buildTenantStatement(
           recipient.street,
           recipient.postalCodeAndCity,
         ],
-        absolutePosition: { x: 71, y: 130 },
+        absolutePosition: ADDRESS_WINDOW.recipient,
         fontSize: 10,
       },
       {
@@ -1036,7 +1051,7 @@ export function buildTenantStatement(
       {
         text: `Heiz- und Hausnebenkostenabrechnung ${billingPeriod.year}`,
         style: 'title',
-        margin: [0, 210, 0, 4],
+        margin: [0, ADDRESS_WINDOW.titleTop - 46, 0, 4],
       },
       {
         text: `Nutzungseinheit ${unit.label ?? ''} — Abrechnungszeitraum ${formatIsoDate(billingPeriod.periodStart)} bis ${formatIsoDate(billingPeriod.periodEnd)}`,

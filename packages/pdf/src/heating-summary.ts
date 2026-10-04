@@ -349,9 +349,13 @@ export function heatingOperatingCostLines(
   return lines
 }
 
-/** Schlagworte für Entgelte der Verbrauchserfassung (§ 6a HeizKV). */
+/**
+ * Schlagworte für Entgelte der Verbrauchserfassung (§ 6a HeizKV). „Abrechnung“
+ * zählt nur als Heizkosten-/Verbrauchsabrechnung oder Abrechnungsentgelt –
+ * nicht z. B. eine Erwerber- oder Energieabrechnung mit Brennstoffkosten.
+ */
 const METERING_FEE_PATTERN =
-  /w(?:ä|ae)rmez(?:ä|ae)hler|heizkostenverteiler|messdienst|ablesung|abrechnung|eichung|verbrauchserfassung|ger(?:ä|ae)temiete|z(?:ä|ae)hlermiete/iu
+  /w(?:ä|ae)rmez(?:ä|ae)hler|heizkostenverteiler|messdienst|ablesung|(?:heizkosten|w(?:ä|ae)rmekosten|verbrauchs)abrechnung|abrechnungs(?:dienst|entgelt|geb(?:ü|ue)hr|kosten)|eichung|verbrauchserfassung|ger(?:ä|ae)temiete|z(?:ä|ae)hlermiete/iu
 
 /**
  * Summe der erkennbaren Entgelte für Verbrauchserfassung und Abrechnung
