@@ -1,30 +1,53 @@
 # Nebenkosten-App
 
-Kontrollierte Migration einer bestehenden, lokalen Nebenkostenabrechnungs-App
-(eine einzelne `index.html`) in eine modulare, getestete TypeScript-Web­anwendung.
-Die Fachlogik (Umlage, Heizkosten, FIFO-Brennstoffbewertung, Warmwasser, CO₂
-nach CO2KostAufG, Vorauszahlungen, Freigabe, PDF) wird schrittweise und
-nachweisbar verhaltensgleich in prüfbare Pakete überführt.
+Betriebs- und Heizkostenabrechnung für Wohnraum – kostenlos, quelloffen und
+**vollständig lokal im Browser**. Umlage nach BetrKV, Heizkosten nach HeizKV
+(inkl. FIFO-Brennstoffbewertung und Warmwasser), CO₂-Kostenaufteilung nach
+CO2KostAufG, Vorauszahlungsanpassung nach § 560 BGB und PDF-Abrechnungen.
+
+**[▶ App im Browser öffnen](https://kalkprofijanek.github.io/nebenkosten-app/)**
+· [Benutzerhandbuch](docs/BENUTZERHANDBUCH.md)
+· [Mit Claude/ChatGPT arbeiten](docs/KI-ANLEITUNG.md)
+· [Mitwirken](CONTRIBUTING.md)
+
+> **Haftungsausschluss.** Die App ist ein Rechenwerkzeug und ersetzt keine
+> Rechts- oder Steuerberatung. Für die Richtigkeit einer Abrechnung ist allein
+> der Abrechnende verantwortlich. Bereitstellung ohne Gewährleistung gemäß
+> [AGPL-3.0](LICENSE).
 
 ## Nutzung
 
-**Aktuelle Version: 1.2.3 · Schema v5** – direkt im Browser:
-**<https://kalkprofijanek.github.io/nebenkosten-app/>**
+**Aktuelle Version: 1.2.3 · Schema v5**
 
 - Ausschließlich für **Desktop-Browser** gedacht (siehe
   [ADR-0002](docs/DECISIONS/ADR-0002-DESKTOP-ONLY.md)).
 - Alle Daten bleiben **lokal im Browser** (IndexedDB); es gibt keinen Server,
   keine Anmeldung und keine Datenübertragung (Content Security Policy
-  `connect-src 'none'`).
-- Bestehende Daten der Alt-App: oben rechts über **Daten importieren** die
-  `nk-daten.json` (Legacy v3) wählen. Die Importvorschau zeigt Migrationsbericht
-  und fachliche Prüfung, bevor etwas übernommen wird.
+  `connect-src 'none'`). Jeder Nutzer hat seinen eigenen Datenbestand.
+- **Regelmäßig unter „Sicherung“ eine JSON-Sicherung herunterladen.** Werden
+  die Browserdaten gelöscht, sind die Abrechnungsdaten ohne Sicherung verloren.
 - Ablauf: **Jahresabrechnung** führt in acht Schritten von Objekt und Belegung
   über Heizung, Zähler, Energie und Kosten bis zu Berechnung, Freigabe, PDF und
   Sicherung. Prüfhinweise verlinken direkt auf die Korrekturstelle.
-- Regelmäßig unter **Sicherung** eine JSON-Sicherung herunterladen.
+- Bankbuchungen lassen sich als CSV übernehmen
+  ([unterstützte Formate](docs/BANK-CSV-FORMAT.md),
+  [Beispieldatei](docs/beispiel/bankbuchungen-beispiel.csv)).
+- Bestehende Daten der Alt-App: oben rechts über **Daten importieren** die
+  `nk-daten.json` (Legacy v3) wählen. Die Importvorschau zeigt Migrationsbericht
+  und fachliche Prüfung, bevor etwas übernommen wird.
 
 Änderungen je Version: [`CHANGELOG.md`](CHANGELOG.md).
+
+## Mitmachen
+
+- **Fehler, Fachfragen, Wünsche:**
+  [Issue eröffnen](https://github.com/kalkprofijanek/nebenkosten-app/issues/new/choose)
+  – bitte **niemals echte Mieter-, Bank- oder Belegdaten** anhängen.
+- **Code:** über Fork und Pull Request, siehe
+  [`CONTRIBUTING.md`](CONTRIBUTING.md). KI-Coding-Agenten sind willkommen und
+  lesen [`AGENTS.md`](AGENTS.md) automatisch.
+- **Sicherheitslücken:** nicht öffentlich, sondern über
+  [`SECURITY.md`](SECURITY.md).
 
 ## Projektablauf
 
@@ -136,6 +159,9 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 
 ## Dokumentation
 
+- [`docs/BENUTZERHANDBUCH.md`](docs/BENUTZERHANDBUCH.md) – Bedienung für Anwender
+- [`docs/KI-ANLEITUNG.md`](docs/KI-ANLEITUNG.md) – Arbeiten mit Claude/ChatGPT
+- [`docs/BANK-CSV-FORMAT.md`](docs/BANK-CSV-FORMAT.md) – CSV-Import von Bankbuchungen
 - [`docs/PROJECT.md`](docs/PROJECT.md) – Projektauftrag und Invarianten
 - [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md) – Ziel-Datenmodell
 - [`docs/MIGRATION.md`](docs/MIGRATION.md) – v3→v4-Feldmapping und Pipeline
@@ -151,5 +177,15 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 
 Version **1.2.3** ist veröffentlicht (GitHub Pages, Release-Tag `v1.2.3`). Das
 Repository ist öffentlich und enthält ausschließlich fiktive Testdaten. Offen
-für spätere Versionen: Import von Heizkostenverteiler-Werten des Messdienstes
-und ein Mehrbenutzer-/Mandantenbetrieb.
+für spätere Versionen: Import von Heizkostenverteiler-Werten des Messdienstes,
+ein strukturiertes Importformat für KI-ausgelesene Eingangsrechnungen und ein
+Mehrbenutzer-/Mandantenbetrieb.
+
+## Lizenz
+
+Copyright © 2026 kalkprofijanek und Mitwirkende.
+
+Lizenziert unter der [GNU Affero General Public License v3.0](LICENSE)
+(`AGPL-3.0-only`). Wer die App verändert und anderen – auch über ein
+Netzwerk – bereitstellt, muss den geänderten Quellcode unter derselben Lizenz
+zugänglich machen.

@@ -1,0 +1,14 @@
+Kontoauszug Beispielkonto (frei erfunden, nur zum Testen)
+Zeitraum;01.01.2025 - 31.12.2025
+
+Buchungstag;Beguenstigter/Zahlungspflichtiger;Verwendungszweck;Buchungstext;Betrag
+15.01.2025;Beispiel Stadtwerke;Abschlag Wasser/Abwasser Januar Kd-Nr 0000;Lastschrift;-120,00
+03.02.2025;Mieter Wohnung 1;Miete und Nebenkosten Februar;Gutschrift;850,00
+03.02.2025;Mieter Wohnung 2;Miete und Nebenkosten Februar;Gutschrift;720,00
+20.02.2025;Muster Gebaeudereinigung;Rechnung RE-2025-001 Treppenhausreinigung Januar;Ueberweisung;-95,20
+15.03.2025;Beispiel Versicherung AG;Wohngebaeudeversicherung 2025;Lastschrift;-1.034,60
+02.04.2025;Beispiel Gemeinde;Grundbesitzabgaben Q2 Grundsteuer Muell Strassenreinigung;Lastschrift;-412,35
+18.06.2025;Muster Heizungsbau;Rechnung RE-0815 Wartung Heizungsanlage;Ueberweisung;-289,00
+30.06.2025;Muster Heizungsbau;Rechnung RE-0816 Austausch Umwaelzpumpe;Ueberweisung;-640,50
+14.08.2025;Beispiel Brennstoffhandel;Lieferung Heizoel 3000 l;Ueberweisung;-3.105,00
+10.10.2025;Muster Messdienst;Heizkostenabrechnung 2024 Geraetemiete;Lastschrift;-310,12

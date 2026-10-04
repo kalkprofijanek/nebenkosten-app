@@ -1,0 +1,53 @@
+name: Fehler melden
+description: Etwas funktioniert nicht oder rechnet falsch.
+title: '[Fehler] '
+labels: ['fehler']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Keine echten Daten!** Keine Namen, Adressen, IBANs, Rechnungen, Zählernummern, Sicherungsdateien oder Screenshots mit echten Werten. Beschreiben Sie den Fall mit erfundenen Zahlen.
+  - type: input
+    id: version
+    attributes:
+      label: App-Version
+      description: Steht in der App unten bzw. im Kopfbereich (z. B. 1.2.2).
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser und Betriebssystem
+      placeholder: z. B. Chrome 140 unter Windows 11
+    validations:
+      required: true
+  - type: textarea
+    id: schritte
+    attributes:
+      label: Schritte zum Nachstellen
+      placeholder: |
+        1. Unter Kosten eine Kostenart „Wasser“ mit Schlüssel Fläche anlegen
+        2. Kostenposition über 100,00 € erfassen
+        3. Berechnung starten
+    validations:
+      required: true
+  - type: textarea
+    id: erwartet
+    attributes:
+      label: Erwartetes Ergebnis
+      description: Bei Rechenfehlern bitte die erwartete Rechnung mit Rechtsgrundlage angeben.
+    validations:
+      required: true
+  - type: textarea
+    id: tatsaechlich
+    attributes:
+      label: Tatsächliches Ergebnis / Fehlermeldung
+    validations:
+      required: true
+  - type: checkboxes
+    id: datenschutz
+    attributes:
+      label: Datenschutz
+      options:
+        - label: Ich habe keine echten personenbezogenen Daten, Bankdaten oder Belege angehängt.
+          required: true

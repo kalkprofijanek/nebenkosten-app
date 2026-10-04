@@ -1,0 +1,38 @@
+name: Funktionswunsch
+description: Vorschlag für eine neue Funktion oder ein weiteres Bank-CSV-Format.
+title: '[Wunsch] '
+labels: ['wunsch']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bitte zuerst prüfen, ob es schon ein Issue dazu gibt. **Keine echten Daten** anhängen – bei Bankformaten nur die Kopfzeile (Spaltennamen).
+  - type: textarea
+    id: problem
+    attributes:
+      label: Welches Problem soll gelöst werden?
+    validations:
+      required: true
+  - type: textarea
+    id: vorschlag
+    attributes:
+      label: Lösungsvorschlag
+  - type: textarea
+    id: rechtsbezug
+    attributes:
+      label: Fachlicher oder rechtlicher Bezug (falls vorhanden)
+  - type: dropdown
+    id: mitarbeit
+    attributes:
+      label: Mitarbeit
+      options:
+        - Ich möchte das selbst umsetzen (Pull Request)
+        - Ich kann beim Testen helfen
+        - Nur Vorschlag
+  - type: checkboxes
+    id: datenschutz
+    attributes:
+      label: Datenschutz
+      options:
+        - label: Ich habe keine echten personenbezogenen Daten, Bankdaten oder Belege angehängt.
+          required: true
