@@ -85,7 +85,7 @@ export const bankBookingSchema = z.strictObject({
   isCaretakerContract: z.boolean().nullish(),
   importedAt: isoTimestampSchema.nullish(),
   /**
-   * Mietkonto (ab 1.3.0, ADR-0003): Mietverhältnis, dem ein Mieteingang
+   * Mietkonto (ab 1.4.0, ADR-0003): Mietverhältnis, dem ein Mieteingang
    * zugeordnet ist. Ohne Einfluss auf die Nebenkostenberechnung.
    */
   tenancyId: entityIdSchema.nullish(),

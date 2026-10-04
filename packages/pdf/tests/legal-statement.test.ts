@@ -218,6 +218,36 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
 
   it('nennt den Schätzgrund und die Kürzung nach § 12 HeizKV', () => {
     const appData = buildFixtureAppData('case-06-heating-oil-fifo')
+    // Nur u1 geschätzt und mit kleiner Fläche: unter 25 % (§ 9a Abs. 2).
+    appData.masterData.units = appData.masterData.units.map((unit) =>
+      unit.id === 'u1'
+        ? { ...unit, heatedAreaSqm: { value: 10, unit: 'm2' as const } }
+        : unit,
+    )
+    appData.billingData.occupancyPeriods =
+      appData.billingData.occupancyPeriods.map((occupancy) =>
+        occupancy.unitId === 'u1'
+          ? {
+              ...occupancy,
+              consumptionUnitsEstimated: true,
+              consumptionUnitsEstimateReason: 'Zähler war nicht ablesbar',
+              applySection12Reduction: true,
+            }
+          : occupancy,
+      )
+    const serialized = text(
+      buildTenantStatement(buildFixtureTenantStatementContext(appData)),
+    )
+
+    expect(serialized).toContain(
+      'Grund der Schätzung: Zähler war nicht ablesbar',
+    )
+    expect(serialized).toContain('× 85 % (Kürzung § 12 HeizKV)')
+    expect(serialized).not.toContain('§ 9a Abs. 2 HeizKV')
+  })
+
+  it('verteilt bei über 25 % Schätzung nur nach Fläche, ohne § 12-Kürzung', () => {
+    const appData = buildFixtureAppData('case-06-heating-oil-fifo')
     appData.billingData.occupancyPeriods =
       appData.billingData.occupancyPeriods.map((occupancy) => ({
         ...occupancy,
@@ -230,9 +260,12 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     )
 
     expect(serialized).toContain(
-      'Grund der Schätzung: Zähler war nicht ablesbar',
+      'Verbrauchskosten: entfallen (§ 9a Abs. 2 HeizKV, Verteilung nur nach Fläche)',
     )
-    expect(serialized).toContain('× 85 % (Kürzung § 12 HeizKV)')
+    expect(serialized).toContain(
+      'Heizkostenverteilung (§ 9a Abs. 2 HeizKV): Für 100 % der beheizten Fläche',
+    )
+    expect(serialized).not.toContain('Kürzung § 12 HeizKV')
   })
 
   it('fordert eine Nachzahlung mit Frist, IBAN und Verwendungszweck an', () => {
@@ -314,15 +347,22 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     expect(serialized).toContain(
       'Abrechnungs- und Verbrauchsinformationen (§ 6a HeizKV)',
     )
-    expect(serialized).toContain('Energieträger Ihres Heizkreises')
-    expect(serialized).toContain('Heizoel')
+    expect(serialized).toContain('Eingesetzte Energieträger Ihres Heizkreises')
     expect(serialized).toContain(
-      'Durchschnitt Ihres Heizkreises (rechnerisch, kein normierter Durchschnittsnutzer)',
+      'Heizoel 100 % (Anteil am Energieeinsatz in kWh)',
     )
+    // Der Heizkreis-Mittelwert ist kein normierter Durchschnittsnutzer und
+    // wird nicht als solcher Vergleich ausgegeben.
+    expect(serialized).toContain('Mittlerer Verbrauch im Heizkreis')
+    expect(serialized).not.toContain('Durchschnitt Ihres Heizkreises')
+    expect(serialized).not.toContain('Durchschnittsnutzer')
     expect(serialized).not.toContain('Durchschnittlicher vergleichbarer Nutzer')
     expect(serialized).toContain('Verbraucherzentralen')
     expect(serialized).toContain(
-      'Ein Vergleich mit dem Vorjahr ist nicht möglich, weil für das Vorjahr keine vergleichbaren Verbrauchsdaten vorliegen (Eigentümer- bzw. Abrechnungswechsel).',
+      'Vergleich mit dem vorhergehenden Abrechnungszeitraum',
+    )
+    expect(serialized).toContain(
+      'Ein grafischer, witterungsbereinigter Vergleich mit dem vorhergehenden Abrechnungszeitraum ist nicht möglich, weil für diesen Zeitraum keine Verbrauchsdaten vorliegen (Eigentümer- bzw. Abrechnungswechsel).',
     )
     expect(serialized).toContain(
       'gesetzlichen Steuern und Abgaben (Umsatzsteuer, Energiesteuer, ggf. CO2-Kosten nach BEHG)',

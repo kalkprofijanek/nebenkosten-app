@@ -389,7 +389,7 @@ MIGRATION.md 4.12. Kategorien-Enum identisch zu Legacy
 `BUCH_KATEGORIEN`. Bankdaten sind Local-only-Daten (niemals in
 Fixtures oder GitHub).
 
-Ab 1.3.0 (additiv, ADR-0003): `tenancyId` ordnet einen Mieteingang einem
+Ab 1.4.0 (additiv, ADR-0003): `tenancyId` ordnet einen Mieteingang einem
 Mietverhältnis zu (Mietkonto), `tenancyAssignment` (`auto` | `manual`)
 hält fest, ob die Zuordnung eindeutig automatisch oder von Hand erfolgte.
 Beides hat keinen Einfluss auf die Nebenkostenberechnung.

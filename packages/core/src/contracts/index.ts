@@ -148,7 +148,21 @@ export interface CircuitHeatingSplitTrace {
   consumptionDenominator: number
   baseCents: number
   consumptionCents: number
+  /**
+   * Zeitanteiliger Anteil der beheizten Fläche mit geschätztem Verbrauch an
+   * allen Mieter-Nutzungen des Heizkreises (0–100). Fehlt in älteren
+   * Rechenständen.
+   */
+  estimatedAreaSharePercent?: number
+  /**
+   * § 9a Abs. 2 HeizKV: Über 25 % geschätzter Fläche werden die Heizkosten
+   * ausschließlich nach Fläche verteilt. Fehlt in älteren Rechenständen.
+   */
+  areaOnlySection9a?: boolean
 }
+
+/** § 9a Abs. 2 HeizKV: Grenze des geschätzten Flächenanteils. */
+export const SECTION_9A_ESTIMATED_AREA_LIMIT = 0.25
 
 export interface CircuitHeatingReconciliation {
   fifoConsumptionCostCents: number

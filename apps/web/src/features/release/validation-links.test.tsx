@@ -52,6 +52,19 @@ describe('validationIssueLink', () => {
         issue('heating', undefined, 'heating.delivery_missing'),
       ),
     ).toEqual({ href: '#/heizkreise?tab=fuel', label: 'Lieferung bearbeiten' })
+
+    expect(
+      validationIssueLink(
+        issue(
+          'costs',
+          { type: 'CostEntry', id: 'cost-2' },
+          'costs.entry_ambiguous',
+        ),
+      ),
+    ).toEqual({
+      href: '#/kosten?tab=entries&edit=cost-2',
+      label: 'Kostenposition bearbeiten',
+    })
   })
 
   it('führt Firmenbefunde gezielt zur Firmenverwaltung', () => {
@@ -147,7 +160,7 @@ describe('validationIssueLink', () => {
     ).toEqual({ href: '#/nutzer', label: 'Nutzerzeiträume bearbeiten' })
   })
 
-  it('führt fehlende Verbrauchseinheiten zum Nutzerzeitraum', () => {
+  it('führt fehlende Verbrauchseinheiten zur Verbrauchsseite', () => {
     expect(
       validationIssueLink(
         issue(
@@ -157,12 +170,12 @@ describe('validationIssueLink', () => {
         ),
       ),
     ).toEqual({
-      href: '#/nutzer?edit=occ%201',
-      label: 'Verbrauchseinheiten ergänzen',
+      href: '#/verbrauch?occupancy=occ%201',
+      label: 'Verbrauch erfassen oder schätzen',
     })
   })
 
-  it('führt Zählerstand-Befunde zur Nutzerbearbeitung', () => {
+  it('führt Zählerstand-Befunde zur Verbrauchsseite', () => {
     for (const code of [
       'heating.meter_reading_mismatch',
       'heating.meter_reading_incomplete',
@@ -172,7 +185,7 @@ describe('validationIssueLink', () => {
           issue('occupancy', { type: 'OccupancyPeriod', id: 'occ-2' }, code),
         ),
       ).toEqual({
-        href: '#/nutzer?edit=occ-2',
+        href: '#/verbrauch?occupancy=occ-2',
         label: 'Zählerstände prüfen',
       })
   })

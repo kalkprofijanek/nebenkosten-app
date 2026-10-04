@@ -51,7 +51,7 @@ bisher aber nicht verwendet.
 
 - Bestehende Dateien bleiben gültig; es ist keine Migration nötig.
 - Eine Datei mit zugeordneten Mieteingängen kann von App-Versionen bis
-  1.2.2 nicht mehr geöffnet werden (strikte Schemaprüfung). Das betrifft nur
+  1.3.0 nicht mehr geöffnet werden (strikte Schemaprüfung). Das betrifft nur
   Nutzer, die zu einer älteren Version zurückkehren.
 - Offen: Kaltmiete als Staffel (heute ein Wert je Mietverhältnis) und das
   Ansetzen tatsächlich gezahlter Vorauszahlungen in der Abrechnung.

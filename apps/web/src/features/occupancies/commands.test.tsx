@@ -10,6 +10,7 @@ import {
   addVacancyOccupancy,
   deleteOccupancy,
   setOccupancyPrepayment,
+  updateOccupancyConsumption,
   updateTenantOccupancy,
   updateVacancyOccupancy,
 } from './commands'
@@ -511,6 +512,90 @@ describe('Nutzer-Commands', () => {
     expect(() =>
       updateTenantOccupancy(source, { ...base, heatMeterReading: 'kaputt' }),
     ).toThrow('Ungültige Eingabe für Zählerstände.')
+  })
+
+  it('ändert über die Verbrauchserfassung nur Verbrauch und Zählerstände', () => {
+    const source = addTenantOccupancy(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Fiktiver Nutzer' },
+        occupancy: { from: '2026-01-01', persons: 2 },
+        prepayment: { mode: 'monthly', monthlyAmountCents: 5_000 },
+      },
+      sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+    )
+    const estimated = updateOccupancyConsumption(source, {
+      occupancyPeriodId: IDS.occupancy,
+      consumptionUnits: 42.5,
+      consumptionUnitsEstimated: true,
+      consumptionUnitsEstimateReason: 'Fiktiver Grund',
+      heatMeterReading: { meterNumber: 'HZ-1', startValue: 10, endValue: 10 },
+      coldWater: 30.5,
+      warmWater: 12,
+    })
+    expect(estimated.billingData.occupancyPeriods[0]).toMatchObject({
+      coldWater: { value: 30.5, unit: 'm3' },
+      warmWater: { value: 12, unit: 'm3' },
+      persons: { value: 2 },
+      consumptionUnits: { value: 42.5, unit: 'einheiten' },
+      consumptionUnitsEstimated: true,
+      consumptionUnitsEstimateReason: 'Fiktiver Grund',
+      heatMeterReading: { meterNumber: 'HZ-1', startValue: 10, endValue: 10 },
+    })
+    expect(estimated.billingData.prepayments).toEqual(
+      source.billingData.prepayments,
+    )
+    const cleared = updateOccupancyConsumption(estimated, {
+      occupancyPeriodId: IDS.occupancy,
+    })
+    const occupancy = cleared.billingData.occupancyPeriods[0]!
+    for (const key of [
+      'consumptionUnits',
+      'consumptionUnitsEstimated',
+      'consumptionUnitsEstimateReason',
+      'heatMeterReading',
+      'coldWater',
+      'warmWater',
+    ])
+      expect(occupancy).not.toHaveProperty(key)
+    expect(occupancy.persons).toEqual({ value: 2, unit: 'personen' })
+
+    const base = { occupancyPeriodId: IDS.occupancy }
+    expect(() =>
+      updateOccupancyConsumption(source, { ...base, consumptionUnits: -1 }),
+    ).toThrow('Verbrauchseinheiten müssen eine Zahl ab 0 sein.')
+    expect(() =>
+      updateOccupancyConsumption(source, { ...base, coldWater: -1 }),
+    ).toThrow('Kaltwasser muss eine Zahl ab 0 sein.')
+    expect(() =>
+      updateOccupancyConsumption(source, { ...base, warmWater: Number.NaN }),
+    ).toThrow('Warmwasser muss eine Zahl ab 0 sein.')
+    expect(() =>
+      updateOccupancyConsumption(source, {
+        ...base,
+        consumptionUnitsEstimated: 'ja',
+      }),
+    ).toThrow('Ungültige boolesche Nutzereingabe.')
+    expect(() =>
+      updateOccupancyConsumption(source, {
+        ...base,
+        consumptionUnitsEstimated: true,
+      }),
+    ).toThrow('Eine Schätzung braucht einen Verbrauchswert.')
+    expect(() =>
+      updateOccupancyConsumption(source, {
+        ...base,
+        heatMeterReading: { startDate: '31.12.2026' },
+      }),
+    ).toThrow('Ungültige Eingabe für Zählerstände.')
+    expect(() =>
+      updateOccupancyConsumption(source, { ...base, persons: 3 }),
+    ).toThrow('Ungültige Eingabe für Verbrauchserfassung.')
+    expect(() =>
+      updateOccupancyConsumption(source, { occupancyPeriodId: 'fehlt' }),
+    ).toThrow('Nutzerzeitraum wurde nicht gefunden.')
   })
 
   it('hält eine teilweise ergänzte Versandanschrift JSON-sicher', async () => {

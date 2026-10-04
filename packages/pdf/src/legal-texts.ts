@@ -33,6 +33,12 @@ export function baseAreaLabel(basis: BaseAreaBasis): string {
 }
 
 /** Dativform für „nach …“-Formulierungen. */
+function formatSharePercent(value: number): string {
+  return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 }).format(
+    value,
+  )
+}
+
 function baseAreaDative(basis: BaseAreaBasis): string {
   return basis === 'usable_area' ? 'Wohnfläche' : 'beheizter Fläche'
 }
@@ -50,6 +56,8 @@ export function heatingSplitExplanation(
     readonly baseAreaBasis?: BaseAreaBasis
     readonly captureMode?: ConsumptionCaptureMode
     readonly hasCentralHotWater?: boolean
+    /** § 9a Abs. 2 HeizKV: geschätzter Flächenanteil in Prozent. */
+    readonly areaOnlySection9aPercent?: number
   } = {},
 ): string {
   const basePercent = 100 - consumptionSharePercent
@@ -60,6 +68,8 @@ export function heatingSplitExplanation(
   const hotWater = options.hasCentralHotWater
     ? ' Die Kosten der zentralen Warmwasserbereitung werden gesondert ermittelt und verteilt (§ 9 HeizKV).'
     : ''
+  if (options.areaOnlySection9aPercent !== undefined)
+    return `Heizkostenverteilung (§ 9a Abs. 2 HeizKV): Für ${formatSharePercent(options.areaOnlySection9aPercent)} % der beheizten Fläche Ihres Heizkreises konnte der Verbrauch nicht ordnungsgemäß erfasst werden und wurde geschätzt. Bei mehr als 25 % sind die Heizkosten ausschließlich nach ${area} zu verteilen; ein verbrauchsabhängiger Anteil entfällt. Die CO2-Kosten werden nach dem CO2KostAufG gesondert ausgewiesen und sind im Heizkostenbetrag nicht enthalten.${hotWater}`
   return `Heizkostenverteilung (§§ 7, 8 HeizKV): Die Heizkosten Ihres Heizkreises werden zu ${consumptionSharePercent} % nach ${capture} und zu ${basePercent} % nach ${area} (Grundkosten) verteilt. Die CO2-Kosten werden nach dem CO2KostAufG gesondert ausgewiesen und sind im Heizkostenbetrag nicht enthalten.${hotWater}`
 }
 
@@ -146,13 +156,45 @@ export function meteringFeesText(amount: string | null): string {
 export const DISPUTE_RESOLUTION_NOTICE =
   'Bei Streitigkeiten können Sie sich an die Allgemeine Verbraucherschlichtungsstelle des Zentrums für Schlichtung e. V., Straßburger Straße 8, 77694 Kehl (www.verbraucher-schlichter.de) wenden. Der Vermieter ist zur Teilnahme an einem Streitbeilegungsverfahren nicht verpflichtet und nimmt daran nicht teil.'
 
-/** § 6a HeizKV: Vorjahresvergleich ohne Vorjahreswerte. */
-export const NO_PREVIOUS_YEAR_COMPARISON =
-  'Ein Vergleich mit dem Vorjahr ist nicht möglich, weil für das Vorjahr keine vergleichbaren Verbrauchsdaten vorliegen (Eigentümer- bzw. Abrechnungswechsel).'
+/** § 6a HeizKV: Energieträger mit Anteilen. */
+export const ENERGY_CARRIER_MIX_LABEL =
+  'Eingesetzte Energieträger Ihres Heizkreises'
 
-/** § 6a HeizKV: Bezeichnung des Vergleichswerts. */
+/** § 6a HeizKV: Überschrift des Vorjahresvergleichs. */
+export const PREVIOUS_PERIOD_COMPARISON_HEADING =
+  'Vergleich mit dem vorhergehenden Abrechnungszeitraum'
+
+/** Vorjahresvergleich: Grafik ohne Witterungsbereinigung. */
+export const PREVIOUS_PERIOD_NOT_WEATHER_ADJUSTED =
+  'Darstellung der erfassten Verbrauchswerte ohne Witterungsbereinigung.'
+
+/** § 6a HeizKV: Kein Vorjahresvergleich, weil keine Vorjahresabrechnung vorliegt. */
+export const NO_PREVIOUS_PERIOD_DATA =
+  'Ein grafischer, witterungsbereinigter Vergleich mit dem vorhergehenden Abrechnungszeitraum ist nicht möglich, weil für diesen Zeitraum keine Verbrauchsdaten vorliegen (Eigentümer- bzw. Abrechnungswechsel).'
+
+/** § 6a HeizKV: Vorjahresabrechnung vorhanden, aber ohne Verbrauch der Wohnung. */
+export const NO_PREVIOUS_PERIOD_CONSUMPTION =
+  'Ein grafischer, witterungsbereinigter Vergleich mit dem vorhergehenden Abrechnungszeitraum ist nicht möglich, weil für Ihre Nutzung in diesem Zeitraum keine Verbrauchswerte erfasst sind.'
+
+/** § 6a HeizKV: Nutzer hat die Wohnung im Vorjahr noch nicht genutzt. */
+export const NOT_RESIDENT_IN_PREVIOUS_PERIOD =
+  'Ein Vergleich mit dem vorhergehenden Abrechnungszeitraum entfällt, weil Sie die Wohnung in diesem Zeitraum noch nicht genutzt haben.'
+
+/**
+ * Mittelwert des Heizkreises. Er ist kein Vergleich mit einem normierten
+ * oder durch Vergleichstests ermittelten Durchschnittsnutzer (§ 6a Abs. 3
+ * HeizKV) und wird deshalb nur als Einordnung im Gebäude bezeichnet.
+ */
 export const CIRCUIT_AVERAGE_LABEL =
-  'Durchschnitt Ihres Heizkreises (rechnerisch, kein normierter Durchschnittsnutzer)'
+  'Mittlerer Verbrauch im Heizkreis (umgerechnet auf Ihre Fläche und Nutzungsdauer)'
+
+/** Erläuterung des Heizkreis-Mittelwerts. */
+export function circuitAverageExplanation(
+  totalConsumption: string,
+  area: string,
+): string {
+  return `Der mittlere Verbrauch im Heizkreis ergibt sich aus dem Gesamtverbrauch des Heizkreises (${totalConsumption}) geteilt durch die Fläche (${area}); er dient der Einordnung Ihres Verbrauchs innerhalb des Gebäudes.`
+}
 
 /**
  * Erläuterung zur Bescheinigung nach § 35a EStG (Legacy: Hinweis zum

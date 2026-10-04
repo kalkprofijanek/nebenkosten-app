@@ -35,7 +35,10 @@ export function validationIssueLink(
   ) {
     return { href: '#/heizkreise?tab=fuel', label: 'Lieferung bearbeiten' }
   }
-  if (issue.code === 'documents.booking_link_missing') {
+  if (
+    issue.code === 'documents.booking_link_missing' ||
+    issue.code === 'costs.entry_ambiguous'
+  ) {
     if (issue.entity?.type === 'CostEntry') {
       return {
         href: `#/kosten?tab=entries&edit=${encodeURIComponent(issue.entity.id)}`,
@@ -63,8 +66,8 @@ export function validationIssueLink(
     issue.entity?.type === 'OccupancyPeriod'
   )
     return {
-      href: `#/nutzer?edit=${encodeURIComponent(issue.entity.id)}`,
-      label: 'Verbrauchseinheiten ergänzen',
+      href: `#/verbrauch?occupancy=${encodeURIComponent(issue.entity.id)}`,
+      label: 'Verbrauch erfassen oder schätzen',
     }
 
   if (
@@ -73,7 +76,7 @@ export function validationIssueLink(
     issue.entity?.type === 'OccupancyPeriod'
   )
     return {
-      href: `#/nutzer?edit=${encodeURIComponent(issue.entity.id)}`,
+      href: `#/verbrauch?occupancy=${encodeURIComponent(issue.entity.id)}`,
       label: 'Zählerstände prüfen',
     }
 

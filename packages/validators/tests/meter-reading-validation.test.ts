@@ -62,6 +62,33 @@ describe('Zählerstände je Belegung', () => {
     expect(warning!.detail).toContain('keine Verbrauchseinheiten')
   })
 
+  it('warnt nicht bei begründeter Schätzung, wohl aber ohne Schätzgrund', () => {
+    const estimated = {
+      consumptionUnits: { value: 480, unit: 'einheiten' as const },
+      consumptionUnitsEstimated: true,
+      heatMeterReading: { startValue: 1000, endValue: 1000 },
+    }
+    expect(
+      find(
+        withReading({
+          ...estimated,
+          consumptionUnitsEstimateReason: 'Zähler defekt, § 9a HeizKV',
+        }),
+        'heating.meter_reading_mismatch',
+      ),
+    ).toEqual([])
+    for (const reason of [undefined, '  '])
+      expect(
+        find(
+          withReading({
+            ...estimated,
+            consumptionUnitsEstimateReason: reason,
+          }),
+          'heating.meter_reading_mismatch',
+        ),
+      ).toHaveLength(1)
+  })
+
   it('meldet eine Zählernummer ohne beide Stände als Hinweis', () => {
     const onlyStart = withReading({
       heatMeterReading: { meterNumber: ' HZ-7 ', startValue: 1 },

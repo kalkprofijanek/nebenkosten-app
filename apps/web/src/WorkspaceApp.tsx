@@ -13,6 +13,7 @@ import { MigrationPanel } from './MigrationPanel'
 import { PdfExportRoute } from './PdfExportRoute'
 import { PrepaymentsRoute } from './features/prepayments/PrepaymentsRoute'
 import { RentLedgerRoute } from './features/rent-ledger/RentLedgerRoute'
+import { ConsumptionRoute } from './features/consumption/ConsumptionRoute'
 import { ReleaseRoute } from './ReleaseRoute'
 import { WorkflowRoute } from './WorkflowRoute'
 import {
@@ -175,6 +176,12 @@ export function WorkspaceApp({
                 />
               ) : path === '/pdf-export' ? (
                 <PdfExportRoute
+                  data={workspaceState.data!}
+                  billingPeriodId={normalizedSelection.billingPeriodId}
+                  onApply={(transform) => controller.update(transform)}
+                />
+              ) : path === '/verbrauch' ? (
+                <ConsumptionRoute
                   data={workspaceState.data!}
                   billingPeriodId={normalizedSelection.billingPeriodId}
                   onApply={(transform) => controller.update(transform)}

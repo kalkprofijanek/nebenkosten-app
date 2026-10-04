@@ -33,7 +33,7 @@ import {
   circuitTitle,
   co2Table,
   consumptionUnitLabel,
-  energyCarrierLabel,
+  energyCarrierMixLabel,
   fuelAccountTable,
   heatingCompilationTable,
   heatingOperatingCostLines,
@@ -49,7 +49,13 @@ import {
   DISPUTE_RESOLUTION_NOTICE,
   ENERGY_ADVICE_NOTICE,
   ENERGY_TAXES_NOTICE,
-  NO_PREVIOUS_YEAR_COMPARISON,
+  ENERGY_CARRIER_MIX_LABEL,
+  NO_PREVIOUS_PERIOD_CONSUMPTION,
+  NO_PREVIOUS_PERIOD_DATA,
+  NOT_RESIDENT_IN_PREVIOUS_PERIOD,
+  PREVIOUS_PERIOD_COMPARISON_HEADING,
+  PREVIOUS_PERIOD_NOT_WEATHER_ADJUSTED,
+  circuitAverageExplanation,
   OBJECTION_NOTICE,
   PROPERTY_DATA_HEADING,
   ROUNDING_DIFFERENCE_NOTICE,
@@ -470,6 +476,7 @@ function costCategoryTable(
 function section12Applies(context: TenantStatementContext): boolean {
   const { occupancyPeriod } = context
   return Boolean(
+    !circuitTraceFor(context)?.split.areaOnlySection9a &&
     occupancyPeriod.applySection12Reduction &&
     occupancyPeriod.consumptionUnitsEstimated &&
     captureModeFor(context.calculation, resolvedBuildingId(context)) !==
@@ -511,7 +518,9 @@ function tenantHeatingTable(
       amountCell(costBreakdown.heatingBaseCents),
     ],
     [
-      `Verbrauchskosten: ${formatUnitPrice(consumptionPrice, unit === 'kWh' ? 'kWh' : 'Einheit')} × ${formatNumber(facts.basis.consumption)} ${unit}${reduction}`,
+      split.areaOnlySection9a
+        ? 'Verbrauchskosten: entfallen (§ 9a Abs. 2 HeizKV, Verteilung nur nach Fläche)'
+        : `Verbrauchskosten: ${formatUnitPrice(consumptionPrice, unit === 'kWh' ? 'kWh' : 'Einheit')} × ${formatNumber(facts.basis.consumption)} ${unit}${reduction}`,
       amountCell(costBreakdown.heatingConsumptionCents),
     ],
   ]
@@ -627,7 +636,9 @@ function consumptionCapture(
     )
   }
   lines.push(
-    `Verbrauchskosten = ${formatUnitPrice(consumptionPrice, unitSingular)} × ${formatNumber(consumption)} ${unit}${reduction} = ${formatEuroCents(costBreakdown.heatingConsumptionCents)}`,
+    split.areaOnlySection9a
+      ? 'Verbrauchskosten entfallen (§ 9a Abs. 2 HeizKV): Verteilung ausschließlich nach Fläche'
+      : `Verbrauchskosten = ${formatUnitPrice(consumptionPrice, unitSingular)} × ${formatNumber(consumption)} ${unit}${reduction} = ${formatEuroCents(costBreakdown.heatingConsumptionCents)}`,
     `Grundkosten = ${formatUnitPrice(basePrice, 'm²')} × ${formatNumber(ownArea)} m² × ${timeText}${reduction} = ${formatEuroCents(costBreakdown.heatingBaseCents)}`,
   )
   const hasHotWater = circuit.warmWater.method !== 'none'
@@ -712,6 +723,9 @@ function heatingSection(
         baseAreaBasis: circuit.split.baseAreaBasis,
         captureMode: mode,
         hasCentralHotWater: circuit.warmWater.method !== 'none',
+        areaOnlySection9aPercent: circuit.split.areaOnlySection9a
+          ? circuit.split.estimatedAreaSharePercent
+          : undefined,
       }),
       fontSize: 8,
       color: MUTED,
@@ -802,31 +816,130 @@ function section35aContent(context: TenantStatementContext): Content[] {
     },
   ]
 }
+type PreviousPeriodComparison =
+  | { readonly kind: 'no_period' }
+  | { readonly kind: 'not_resident' }
+  | { readonly kind: 'no_consumption' }
+  | {
+      readonly kind: 'available'
+      readonly year: number
+      readonly value: number
+    }
 
 /**
- * Verbrauch derselben Mietpartei im Vorjahr (gleiches Objekt und gleiche
- * Wohnung); `undefined`, wenn keine vergleichbaren Daten vorliegen.
+ * Vorjahresvergleich derselben Mietpartei (gleiches Objekt und gleiche
+ * Wohnung). Unterscheidet fehlende Vorjahresabrechnung (z. B.
+ * Eigentümerwechsel), fehlende Nutzung im Vorjahr und fehlende Verbrauchswerte.
  */
-function previousYearConsumption(
+function previousPeriodComparison(
   context: TenantStatementContext,
-): { readonly year: number; readonly value: number } | undefined {
+): PreviousPeriodComparison {
   const { appData, billingPeriod, occupancyPeriod } = context
   const previousPeriod = appData.billingData.billingPeriods.find(
     (period) =>
       period.propertyId === billingPeriod.propertyId &&
       period.year === billingPeriod.year - 1,
   )
-  if (!previousPeriod || !occupancyPeriod.tenancyId) return undefined
-  const previous = appData.billingData.occupancyPeriods.find(
+  if (!previousPeriod) return { kind: 'no_period' }
+  const previous = appData.billingData.occupancyPeriods.filter(
     (occupancy) =>
       occupancy.billingPeriodId === previousPeriod.id &&
-      occupancy.tenancyId === occupancyPeriod.tenancyId &&
       occupancy.unitId === occupancyPeriod.unitId &&
-      occupancy.consumptionUnits != null,
+      occupancy.tenancyId != null &&
+      occupancy.tenancyId === occupancyPeriod.tenancyId,
   )
-  return previous?.consumptionUnits
-    ? { year: previousPeriod.year, value: previous.consumptionUnits.value }
-    : undefined
+  if (previous.length === 0) return { kind: 'not_resident' }
+  const withConsumption = previous.find(
+    (occupancy) => occupancy.consumptionUnits != null,
+  )
+  return withConsumption?.consumptionUnits
+    ? {
+        kind: 'available',
+        year: previousPeriod.year,
+        value: withConsumption.consumptionUnits.value,
+      }
+    : { kind: 'no_consumption' }
+}
+
+const BAR_WIDTH = 200
+
+/** Balkengrafik Vorjahr / Abrechnungsjahr (§ 6a Abs. 3 HeizKV). */
+function previousPeriodChart(
+  bars: readonly { readonly label: string; readonly value: number }[],
+  unit: string,
+): Content {
+  const max = Math.max(...bars.map(({ value }) => value), 0)
+  return {
+    table: {
+      widths: [150, BAR_WIDTH + 4, '*'],
+      body: bars.map(({ label, value }): TableCell[] => [
+        label,
+        {
+          canvas: [
+            {
+              type: 'rect',
+              x: 0,
+              y: 1,
+              w: max > 0 ? Math.max(1, (value / max) * BAR_WIDTH) : 1,
+              h: 8,
+              color: MUTED,
+            },
+          ],
+        },
+        {
+          text: `${formatNumber(value)} ${unit}`,
+          alignment: 'right',
+          noWrap: true,
+        },
+      ]),
+    },
+    layout: 'noBorders',
+    margin: [0, 0, 0, 2],
+  }
+}
+
+function previousPeriodSection(
+  context: TenantStatementContext,
+  facts: TenantFacts,
+  unit: string,
+): Content[] {
+  const comparison = previousPeriodComparison(context)
+  const heading: Content = {
+    text: PREVIOUS_PERIOD_COMPARISON_HEADING,
+    bold: true,
+    margin: [0, 4, 0, 2],
+  }
+  if (comparison.kind !== 'available') {
+    const text =
+      comparison.kind === 'no_period'
+        ? NO_PREVIOUS_PERIOD_DATA
+        : comparison.kind === 'not_resident'
+          ? NOT_RESIDENT_IN_PREVIOUS_PERIOD
+          : NO_PREVIOUS_PERIOD_CONSUMPTION
+    return [heading, { text, margin: [0, 0, 0, 4] }]
+  }
+  return [
+    heading,
+    previousPeriodChart(
+      [
+        {
+          label: `Ihr Verbrauch im Vorjahr (${comparison.year})`,
+          value: comparison.value,
+        },
+        {
+          label: `Ihr Verbrauch (${context.billingPeriod.year})`,
+          value: facts.basis.consumption,
+        },
+      ],
+      unit,
+    ),
+    {
+      text: PREVIOUS_PERIOD_NOT_WEATHER_ADJUSTED,
+      fontSize: 8,
+      color: MUTED,
+      margin: [0, 0, 0, 4],
+    },
+  ]
 }
 
 /** Abrechnungs- und Verbrauchsinformationen nach § 6a HeizKV. */
@@ -845,10 +958,7 @@ function consumptionInformation(
       ? facts.basis.usableAreaSqm
       : facts.basis.heatedAreaSqm
   const rows: TableCell[][] = [
-    [
-      'Energieträger Ihres Heizkreises',
-      energyCarrierLabel(context.appData, circuit),
-    ],
+    [ENERGY_CARRIER_MIX_LABEL, energyCarrierMixLabel(context.appData, circuit)],
     [
       'Ihr Verbrauch im Nutzungszeitraum',
       `${formatNumber(facts.basis.consumption)} ${unit}${
@@ -858,22 +968,15 @@ function consumptionInformation(
       }`,
     ],
   ]
-  if (split.baseDenominator > 0 && split.consumptionDenominator > 0) {
+  const hasAverage =
+    split.baseDenominator > 0 && split.consumptionDenominator > 0
+  if (hasAverage) {
     const averagePerSqm = split.consumptionDenominator / split.baseDenominator
     rows.push([
       CIRCUIT_AVERAGE_LABEL,
       `${formatNumber(averagePerSqm * ownArea * (facts.days / facts.periodDays))} ${unit} (${formatNumber(averagePerSqm)} ${unit} je m²)`,
     ])
   }
-  const previous = previousYearConsumption(context)
-  rows.push(
-    previous
-      ? [
-          `Ihr Verbrauch im Vorjahr (${previous.year})`,
-          `${formatNumber(previous.value)} ${unit}`,
-        ]
-      : [{ text: NO_PREVIOUS_YEAR_COMPARISON, colSpan: 2 }, {}],
-  )
   const fees = meteringFeeCents(
     context.appData,
     context.billingPeriod.id,
@@ -886,6 +989,12 @@ function consumptionInformation(
     },
     {},
   ])
+  const averageText = hasAverage
+    ? `${circuitAverageExplanation(
+        `${formatNumber(split.consumptionDenominator)} ${unit}`,
+        `${formatNumber(split.baseDenominator)} m² ${baseAreaLabel(split.baseAreaBasis)}`,
+      )} `
+    : ''
   return [
     {
       text: CONSUMPTION_INFORMATION_HEADING,
@@ -897,8 +1006,9 @@ function consumptionInformation(
       layout: 'lightHorizontalLines',
       margin: [0, 0, 0, 2],
     },
+    ...previousPeriodSection(context, facts, unit),
     {
-      text: `Der Durchschnitt ergibt sich aus dem Gesamtverbrauch des Heizkreises (${formatNumber(split.consumptionDenominator)} ${unit}) geteilt durch die Fläche (${formatNumber(split.baseDenominator)} m² ${baseAreaLabel(split.baseAreaBasis)}). ${ENERGY_TAXES_NOTICE} ${ENERGY_ADVICE_NOTICE} ${DISPUTE_RESOLUTION_NOTICE}`,
+      text: `${averageText}${ENERGY_TAXES_NOTICE} ${ENERGY_ADVICE_NOTICE} ${DISPUTE_RESOLUTION_NOTICE}`,
       fontSize: 8,
       color: MUTED,
       margin: [0, 0, 0, 8],

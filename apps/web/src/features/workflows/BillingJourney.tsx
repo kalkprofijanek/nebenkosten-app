@@ -141,7 +141,7 @@ export function BillingJourney({ data, billingPeriodId, renderStep }: Props) {
               Heizkreis. Ohne Aktivierung gelten weiterhin die manuell erfassten
               Verbrauchseinheiten.
             </p>
-            <a href="#/nutzer">Verbrauch je Belegung bearbeiten</a>
+            <a href="#/verbrauch">Verbrauch je Belegung bearbeiten</a>
           </aside>
         ) : null}
         {validationError ? <p role="alert">{validationError}</p> : null}

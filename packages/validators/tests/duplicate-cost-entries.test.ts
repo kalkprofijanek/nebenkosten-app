@@ -44,12 +44,31 @@ describe('Hinweis auf doppelt erfasste Rechnungen', () => {
   it('meldet gleichen Betrag am gleichen Tag in derselben Kostenart', () => {
     const issues = duplicates(
       withEntries(
-        { receiptReference: 'A-1', date: '2025-03-01' },
-        { receiptReference: 'A-2', date: '2025-03-01' },
+        { receiptReference: 'A-1', date: '2025-03-01', description: 'Wartung' },
+        { receiptReference: 'A-2', date: '2025-03-01', description: 'Messung' },
       ),
     )
     expect(issues).toHaveLength(1)
     expect(issues[0]!.detail).toContain('denselben Betrag und dasselbe Datum')
+  })
+
+  it('überlässt gleich bezeichnete Belege am selben Tag dem Hinweis auf Mehrdeutigkeit', () => {
+    expect(
+      duplicates(
+        withEntries(
+          {
+            receiptReference: 'A-1',
+            date: '2025-03-01',
+            description: 'Wartung',
+          },
+          {
+            receiptReference: 'A-2',
+            date: '2025-03-01',
+            description: 'wartung ',
+          },
+        ),
+      ),
+    ).toEqual([])
   })
 
   it('meldet nichts bei verschiedenen Rechnungen', () => {

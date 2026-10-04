@@ -20,6 +20,7 @@ import {
 } from './helpers'
 import { issue } from './issues'
 import { legalRule, legalRulesForPeriod } from './legal-rules'
+import { ambiguousCostEntries, heatingInformation } from './billing-information'
 
 type Add = (value: ValidationIssue) => void
 type CategoryScope = NonNullable<
@@ -1025,7 +1026,8 @@ function formatReadingNumber(value: number): string {
 /**
  * Zählerstände je Belegung (`heatMeterReading`): Stand neu − Stand alt muss
  * zu den Verbrauchseinheiten passen; eine Zählernummer ohne beide Stände
- * ist unvollständig.
+ * ist unvollständig. Eine begründete Schätzung (§ 9a HeizKV, Kennzeichen und
+ * Schätzgrund) ersetzt die Ablesung und löst keine Abweichungswarnung aus.
  */
 function meterReadings(
   data: AppDataFile,
@@ -1040,7 +1042,11 @@ function meterReadings(
     const entity = { type: 'OccupancyPeriod', id: occupancy.id }
     const hasStart = typeof reading.startValue === 'number'
     const hasEnd = typeof reading.endValue === 'number'
+    const justifiedEstimate =
+      occupancy.consumptionUnitsEstimated === true &&
+      !blank(occupancy.consumptionUnitsEstimateReason)
     if (hasStart && hasEnd) {
+      if (justifiedEstimate) continue
       const difference = reading.endValue! - reading.startValue!
       const units = occupancy.consumptionUnits?.value
       if (
@@ -1075,6 +1081,10 @@ function meterReadings(
   }
 }
 
+function normalizedDescription(value: string | null | undefined): string {
+  return (value ?? '').trim().replace(/\s+/gu, ' ').toLocaleLowerCase('de-DE')
+}
+
 /** Belegnummer ohne Groß-/Kleinschreibung, Leer- und Satzzeichen. */
 function normalizedReceipt(value: string | null | undefined): string {
   return (value ?? '').toLocaleLowerCase('de-DE').replace(/[^\p{L}\p{N}]/gu, '')
@@ -1095,7 +1105,7 @@ function duplicateCostEntries(
     periodCategories(data, period.id).map(({ id }) => id),
   )
   const seenReceipts = new Map<string, string>()
-  const seenAmounts = new Map<string, string>()
+  const seenAmounts = new Map<string, string[]>()
   for (const entry of data.billingData.costEntries) {
     if (!categoryIds.has(entry.costCategoryId)) continue
     const receipt = normalizedReceipt(entry.receiptReference)
@@ -1103,8 +1113,12 @@ function duplicateCostEntries(
       entry.amountCents !== 0 && entry.date
         ? `${entry.costCategoryId}|${entry.date}|${entry.amountCents}`
         : ''
+    const description = normalizedDescription(entry.description)
     const firstByReceipt = receipt ? seenReceipts.get(receipt) : undefined
-    const firstByAmount = amountKey ? seenAmounts.get(amountKey) : undefined
+    // Gleiche Bezeichnung am selben Tag meldet bereits costs.entry_ambiguous.
+    const firstByAmount = amountKey
+      ? seenAmounts.get(amountKey)?.some((seen) => seen !== description)
+      : false
     if (firstByReceipt || firstByAmount)
       add(
         issue(
@@ -1122,8 +1136,11 @@ function duplicateCostEntries(
       )
     if (receipt && !seenReceipts.has(receipt))
       seenReceipts.set(receipt, entry.id)
-    if (amountKey && !seenAmounts.has(amountKey))
-      seenAmounts.set(amountKey, entry.id)
+    if (amountKey)
+      seenAmounts.set(amountKey, [
+        ...(seenAmounts.get(amountKey) ?? []),
+        description,
+      ])
   }
 }
 
@@ -1230,7 +1247,9 @@ export function collectStaticIssues(
   duplicateCostEntries(data, period, add)
   legalRules(data, period, add)
   rentArrears(data, period, add)
+  ambiguousCostEntries(data, period, add)
   heating(data, period, add)
+  heatingInformation(data, period, add)
   meterReadings(data, period, add)
   meters(data, period, add)
   return result

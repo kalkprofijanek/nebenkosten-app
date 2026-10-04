@@ -27,7 +27,56 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 - Prüfkatalog mit **Handrechnung**: sieben Fälle (Mieterwechsel, Schaltjahr
   und Leerstand, Restcent, nicht umlagefähige Anteile, gemischte Schlüssel,
   Heizöl-FIFO mit CO₂-Aufteilung manuell und nach Stufenmodell, § 35a), von
-  Hand aus der Rechtslage hergeleitet und ohne Toleranz geprüft,
+  Hand aus der Rechtslage hergeleitet und ohne Toleranz geprüft.
+
+## 1.3.0 – 4. Oktober 2026
+
+- Neuer Arbeitsbereich „Verbrauch“ (zwischen „Nutzer“ und
+  „Vorauszahlungen“): Zählernummer, Stand alt/neu mit Ablesedatum, Differenz,
+  Verbrauchseinheiten, Kalt- und Warmwasser (m³) und Status aller Mieter eines
+  Abrechnungsjahres in einer Tabelle; zeilenweise speichern oder verwerfen,
+  Filter „Nur offene und abweichende Zeilen“,
+- Schätzung nach § 9a HeizKV je Zeile („Schätzen“) und für alle fehlenden
+  oder 0-Werte auf einmal („Alle fehlenden schätzen“); ist keine Schätzung
+  möglich, nennt die Zeile den Grund (kein Gebäude, keine beheizte Fläche,
+  keine gemessenen Vergleichsnutzungen),
+- § 9a Abs. 2 HeizKV: Sind in einem Heizkreis mehr als 25 % der beheizten
+  Fläche (zeitanteilig) geschätzt, verteilt die Berechnung dessen Heizkosten
+  und CO₂-Mieteranteil ausschließlich nach Fläche; eine § 12-Kürzung entfällt
+  dann. Die Einzelabrechnung begründet das; die Verbrauchsseite zeigt beim
+  Klick auf „Schätzen“ einen Hinweis, sobald die Grenze überschritten wird,
+- Prüfung: `heating.meter_reading_mismatch` entfällt bei einer begründeten
+  Schätzung (Kennzeichen „geschätzt“ und Schätzgrund), z. B. bei defektem
+  Zähler; ohne Schätzgrund bleibt die Warnung,
+- Nutzerbearbeitung zeigt Heizverbrauch und Wasser nur noch an und verlinkt
+  auf die neue Seite; Speichern dort lässt diese Werte unverändert,
+- Prüfhinweise `heating.consumption_units_missing`,
+  `heating.meter_reading_mismatch` und `heating.meter_reading_incomplete`
+  sowie die geführte Jahresabrechnung führen zur betroffenen Zeile der
+  Verbrauchsseite. Keine Schemaänderung.
+
+## 1.2.3 – 4. Oktober 2026
+
+- § 6a HeizKV: Der mittlere Verbrauch des Heizkreises wird nicht mehr als
+  Vergleichswert („Durchschnitt …, kein normierter Durchschnittsnutzer“)
+  ausgegeben, sondern nur als „Mittlerer Verbrauch im Heizkreis“; neue
+  Prüfwarnung `heating.consumption_benchmark_missing`, solange kein Vergleich
+  mit einem normierten Durchschnittsnutzer hinterlegt werden kann,
+- § 6a HeizKV: Anteile der Energieträger am Energieeinsatz (kWh) in der
+  Einzelabrechnung, z. B. „Flüssiggas 77 %, Strom 23 %“; Prüfwarnung, wenn
+  Menge oder Heizwert fehlen,
+- Vorjahresvergleich: getrennte Begründungen für fehlende
+  Vorjahresabrechnung (Eigentümer- bzw. Abrechnungswechsel), fehlende Nutzung
+  und fehlende Verbrauchswerte; vorhandene Vorjahreswerte als Balkengrafik,
+- Strom/Wärmepumpe, Fernwärme, Erdgas: Darstellung als „Energierechnungen“
+  („Rechnung vom … : Beschreibung“) statt Brennstoffkonto mit Anfangs-,
+  Endbestand und FIFO; Prüfwarnungen für Rechnungen ohne kWh und für
+  Rechnungen außerhalb des Abrechnungszeitraums ohne angegebenen
+  Verbrauchszeitraum,
+- Brennstoffrechnungen ohne Liefermenge heißen „Rechnung vom … ohne
+  Liefermenge“ statt „Lieferung … 0,00 l“; Prüfwarnung ohne Beschreibung,
+- Prüfung: Hinweis `costs.entry_ambiguous` bei gleich bezeichneten Belegen
+  derselben Kostenart am selben Tag (mögliche Doppelposition),
 - Öffnung für Dritte (nur Dokumentation und Repository-Einstellungen, keine
   Codeänderung): Lizenz AGPL-3.0, Benutzerhandbuch, Anleitung für Claude/ChatGPT
   mit Erfassungsliste und Arbeitsanweisung, Beschreibung des Bank-CSV-Formats

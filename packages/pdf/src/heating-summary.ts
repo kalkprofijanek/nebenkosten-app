@@ -1,14 +1,17 @@
 import type { Content, TableCell } from 'pdfmake/interfaces'
-import type {
-  CalculationOutput,
-  EnergySourceCalculationTrace,
-  HeatingCircuitTrace,
+import {
+  isGridEnergySource,
+  type CalculationOutput,
+  type EnergySourceCalculationTrace,
+  type FuelLotTrace,
+  type HeatingCircuitTrace,
 } from '@nebenkosten/core'
 import type {
   AllocationScope,
   AppDataFile,
   CostCategory,
   CostEntry,
+  EnergySource,
   Property,
 } from '@nebenkosten/schema'
 import {
@@ -90,14 +93,29 @@ export function circuitTitle(
   return `Heizkreis ${buildingName(appData, circuit.buildingId)}`
 }
 
+function energySourceFor(
+  appData: AppDataFile,
+  trace: EnergySourceCalculationTrace,
+): EnergySource | undefined {
+  return appData.billingData.energySources.find(
+    ({ id }) => id === trace.energySourceId,
+  )
+}
+
 function sourceLabel(
   appData: AppDataFile,
   trace: EnergySourceCalculationTrace,
 ): string {
-  const source = appData.billingData.energySources.find(
-    ({ id }) => id === trace.energySourceId,
-  )
+  const source = energySourceFor(appData, trace)
   return source?.name ?? source?.sourceType ?? source?.key ?? 'Energiequelle'
+}
+
+function carrierName(
+  appData: AppDataFile,
+  trace: EnergySourceCalculationTrace,
+): string | null {
+  const source = energySourceFor(appData, trace)
+  return source?.sourceType ?? source?.name ?? source?.key ?? null
 }
 
 /** Energieträger eines Heizkreises (Namen bzw. Art der Energiequellen). */
@@ -107,15 +125,83 @@ export function energyCarrierLabel(
 ): string {
   const labels = [
     ...new Set(
-      circuit.energySources.map((trace) => {
-        const source = appData.billingData.energySources.find(
-          ({ id }) => id === trace.energySourceId,
-        )
-        return source?.sourceType ?? source?.name ?? source?.key ?? null
-      }),
+      circuit.energySources.map((trace) => carrierName(appData, trace)),
     ),
   ].filter((label): label is string => Boolean(label))
   return labels.length > 0 ? labels.join(', ') : 'nicht angegeben'
+}
+
+/**
+ * Energieeinsatz einer Energiequelle in kWh: Heizwert × Verbrauch bzw. bei
+ * Abrechnung in kWh (Strom, Fernwärme) die abgerechnete Menge selbst.
+ */
+function energyInputKwh(trace: EnergySourceCalculationTrace): number {
+  if (trace.energyKwh > 0) return trace.energyKwh
+  return trace.quantityUnit === 'kWh' ? trace.consumedQuantity : 0
+}
+
+export interface EnergyCarrierShare {
+  readonly label: string
+  readonly kwh: number
+  readonly percent: number
+}
+
+/**
+ * Anteile der eingesetzten Energieträger am Energieeinsatz (kWh) des
+ * Heizkreises (§ 6a Abs. 3 HeizKV). `null`, wenn für eine Energiequelle mit
+ * Kosten kein Energieeinsatz ermittelbar ist (Menge oder Heizwert fehlt).
+ * Ganze Prozent, Restverteilung nach größtem Rest (Summe 100 %).
+ */
+export function energyCarrierShares(
+  appData: AppDataFile,
+  circuit: HeatingCircuitTrace,
+): EnergyCarrierShare[] | null {
+  const byCarrier = new Map<string, number>()
+  for (const trace of circuit.energySources) {
+    const kwh = energyInputKwh(trace)
+    if (kwh <= 0 && trace.fifoConsumptionCostCents > 0) return null
+    if (kwh <= 0) continue
+    const label = carrierName(appData, trace) ?? sourceLabel(appData, trace)
+    byCarrier.set(label, (byCarrier.get(label) ?? 0) + kwh)
+  }
+  const total = [...byCarrier.values()].reduce((sum, kwh) => sum + kwh, 0)
+  if (total <= 0) return null
+  const raw = [...byCarrier].map(([label, kwh]) => ({
+    label,
+    kwh,
+    exact: (kwh / total) * 100,
+  }))
+  const floors = raw.map(({ exact }) => Math.floor(exact))
+  let missing = 100 - floors.reduce((sum, value) => sum + value, 0)
+  const order = raw
+    .map(({ exact }, index) => ({ index, rest: exact - Math.floor(exact) }))
+    .sort((left, right) => right.rest - left.rest || left.index - right.index)
+  for (const { index } of order) {
+    if (missing <= 0) break
+    floors[index] = floors[index]! + 1
+    missing -= 1
+  }
+  return raw.map(({ label, kwh }, index) => ({
+    label,
+    kwh,
+    percent: floors[index]!,
+  }))
+}
+
+/**
+ * Energieträger mit Anteilen am Energieeinsatz, z. B. „Strom 40 %,
+ * Flüssiggas 60 % (Anteil am Energieeinsatz in kWh)“; ohne ermittelbare
+ * Anteile nur die Energieträger.
+ */
+export function energyCarrierMixLabel(
+  appData: AppDataFile,
+  circuit: HeatingCircuitTrace,
+): string {
+  const shares = energyCarrierShares(appData, circuit)
+  if (!shares) return energyCarrierLabel(appData, circuit)
+  return `${shares
+    .map(({ label, percent }) => `${label} ${formatPercent(percent)}`)
+    .join(', ')} (Anteil am Energieeinsatz in kWh)`
 }
 
 /** Messart des Heizkreises: Wärmemengenzähler (kWh) oder Ablesung. */
@@ -139,6 +225,96 @@ function quantity(value: number, unit: string | null): string {
   return `${formatNumber(value, 2)}${label ? ` ${label}` : ''}`
 }
 
+/**
+ * Abrechnung als Rechnungsliste statt Brennstoffkonto: leitungsgebundene
+ * Energie ohne Lagerbestand (Strom, Wärmepumpe, Fernwärme, Erdgas) und
+ * Rechnungen ohne Mengenangabe.
+ */
+function isInvoiceBased(
+  appData: AppDataFile,
+  trace: EnergySourceCalculationTrace,
+): boolean {
+  if (trace.method === 'direct_cost_without_quantity') return true
+  const source = energySourceFor(appData, trace)
+  return (
+    source != null &&
+    isGridEnergySource(source) &&
+    !trace.lots.some(({ kind }) => kind === 'opening_stock') &&
+    trace.requestedRemainingQuantity === 0
+  )
+}
+
+function lotDescription(
+  appData: AppDataFile,
+  lot: FuelLotTrace,
+): string | null {
+  const delivery = appData.billingData.fuelDeliveries.find(
+    ({ id }) => id === lot.sourceId,
+  )
+  return delivery?.description?.trim() || null
+}
+
+/** „Rechnung vom 17.02.2026: Jahresabrechnung 2025“ bzw. ohne Datum. */
+function invoiceLabel(appData: AppDataFile, lot: FuelLotTrace): string {
+  const description = lotDescription(appData, lot)
+  const head = lot.date
+    ? `Rechnung vom ${formatIsoDate(lot.date)}`
+    : 'Rechnung ohne Datum'
+  return description ? `${head}: ${description}` : head
+}
+
+/** Lieferzeile im Brennstoffkonto; Kosten ohne Liefermenge eigens benannt. */
+function deliveryLabel(appData: AppDataFile, lot: FuelLotTrace): string {
+  if (lot.quantity === 0 && lot.valueCents !== 0) {
+    const description = lotDescription(appData, lot)
+    const head = `+ Rechnung vom ${formatIsoDate(lot.date)} ohne Liefermenge`
+    return description ? `${head}: ${description}` : head
+  }
+  return `+ Lieferung ${formatIsoDate(lot.date)}`
+}
+
+function quantityCell(
+  value: number,
+  unit: string | null,
+  bold?: boolean,
+): TableCell {
+  return { text: quantity(value, unit), alignment: 'right', noWrap: true, bold }
+}
+
+const NO_QUANTITY: TableCell = { text: '–', alignment: 'right' }
+
+/** Rechnungsliste je Energiequelle: Summe der Rechnungen = Energiekosten. */
+function invoiceRows(
+  appData: AppDataFile,
+  trace: EnergySourceCalculationTrace,
+  title: TableCell[],
+): TableCell[][] {
+  const unit = trace.quantityUnit
+  const withQuantity = trace.method === 'fifo' && trace.consumedQuantity > 0
+  const invoices = trace.lots.filter(({ kind }) => kind === 'delivery')
+  return [
+    title,
+    ...invoices.map((lot): TableCell[] => [
+      invoiceLabel(appData, lot),
+      lot.quantity > 0 ? quantityCell(lot.quantity, unit) : NO_QUANTITY,
+      amountCell(lot.valueCents),
+    ]),
+    [
+      {
+        text:
+          trace.method === 'direct_cost_without_quantity'
+            ? '= Energiekosten laut Rechnungen (ohne Mengenangabe)'
+            : '= Energiekosten laut Rechnungen',
+        bold: true,
+      },
+      withQuantity
+        ? quantityCell(trace.consumedQuantity, unit, true)
+        : NO_QUANTITY,
+      amountCell(trace.fifoConsumptionCostCents, { bold: true }),
+    ],
+  ]
+}
+
 /** Brennstoffkonto je Energiequelle: Anfang + Lieferungen − Ende = Verbrauch. */
 function fuelAccountRows(
   appData: AppDataFile,
@@ -149,22 +325,13 @@ function fuelAccountRows(
     {},
     {},
   ]
-  if (trace.method === 'direct_cost_without_quantity') {
-    return [
-      title,
-      [
-        'Energiekosten laut Rechnungen (ohne Mengenangabe)',
-        { text: '–', alignment: 'right' },
-        amountCell(trace.fifoConsumptionCostCents),
-      ],
-    ]
-  }
+  if (isInvoiceBased(appData, trace)) return invoiceRows(appData, trace, title)
   const unit = trace.quantityUnit
   const lots = trace.lots.map((lot): TableCell[] => [
     lot.kind === 'opening_stock'
       ? 'Anfangsbestand'
-      : `+ Lieferung ${formatIsoDate(lot.date)}`,
-    { text: quantity(lot.quantity, unit), alignment: 'right', noWrap: true },
+      : deliveryLabel(appData, lot),
+    quantityCell(lot.quantity, unit),
     amountCell(lot.valueCents),
   ])
   return [
@@ -174,31 +341,35 @@ function fuelAccountRows(
       : [
           [
             'Anfangsbestand',
-            { text: quantity(0, unit), alignment: 'right', noWrap: true },
+            quantityCell(0, unit),
             amountCell(0),
           ] as TableCell[],
         ]),
     ...lots,
     [
       '− Endbestand',
-      {
-        text: quantity(trace.valuedRemainingQuantity, unit),
-        alignment: 'right',
-        noWrap: true,
-      },
+      quantityCell(trace.valuedRemainingQuantity, unit),
       amountCell(trace.remainingValueCents),
     ],
     [
       { text: '= Verbrauch (FIFO-Bewertung)', bold: true },
-      {
-        text: quantity(trace.consumedQuantity, unit),
-        alignment: 'right',
-        noWrap: true,
-        bold: true,
-      },
+      quantityCell(trace.consumedQuantity, unit, true),
       amountCell(trace.fifoConsumptionCostCents, { bold: true }),
     ],
   ]
+}
+
+function fuelTableHeading(
+  appData: AppDataFile,
+  circuit: HeatingCircuitTrace,
+): string {
+  const invoiceBased = circuit.energySources.map((trace) =>
+    isInvoiceBased(appData, trace),
+  )
+  if (invoiceBased.every(Boolean)) return 'Energierechnungen'
+  if (invoiceBased.some(Boolean))
+    return 'Brennstoffkonto bzw. Energierechnungen'
+  return 'Brennstoffkonto'
 }
 
 export function fuelAccountTable(
@@ -217,7 +388,7 @@ export function fuelAccountTable(
       widths: ['*', 90, 80],
       body: [
         [
-          { text: 'Brennstoffkonto', style: 'th' },
+          { text: fuelTableHeading(appData, circuit), style: 'th' },
           { text: 'Menge', style: 'th', alignment: 'right' },
           { text: 'Betrag', style: 'th', alignment: 'right' },
         ],
