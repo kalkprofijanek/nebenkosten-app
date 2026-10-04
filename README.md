@@ -171,7 +171,7 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) – Build, Pages und Rollback
 - [`docs/RELEASE-STATUS.md`](docs/RELEASE-STATUS.md) – offene Abschlussgates
 - [`docs/REVIEW-PROCESS.md`](docs/REVIEW-PROCESS.md) – Review- und Freigabeprozess
-- [`docs/DECISIONS/`](docs/DECISIONS) – Architecture Decision Records
+- [`docs/DECISIONS/`](docs/DECISIONS) – Architecture Decision Records (u. a. ADR-0003 Mietkonto)
 
 ## Status
 

@@ -1,4 +1,5 @@
 import {
+  calculateRentLedger,
   createCalculationInput,
   resolveMeteredConsumption,
   resolveShippingAddress,
@@ -1145,7 +1146,7 @@ function legalRules(data: AppDataFile, period: BillingPeriod, add: Add): void {
         add(
           issue(
             'warning',
-            'rules.cable-tv-signal',
+            'rules.cable_tv_signal',
             'costs',
             'Kabel-TV-Kosten prüfen',
             {
@@ -1163,10 +1164,55 @@ function legalRules(data: AppDataFile, period: BillingPeriod, add: Add): void {
   ) {
     const rule = legalRule('remote-reading')
     add(
-      issue('info', 'rules.remote-reading', 'heating', rule.title, {
+      issue('info', 'rules.remote_reading', 'heating', rule.title, {
         entity: { type: 'BillingPeriod', id: period.id },
         detail: `${rule.summary} (${rule.norm})`,
       }),
+    )
+  }
+}
+
+const euroFormatter = new Intl.NumberFormat('de-DE', {
+  style: 'currency',
+  currency: 'EUR',
+})
+
+function euro(cents: number): string {
+  return euroFormatter.format(cents / 100).replace(/\u00a0/gu, ' ')
+}
+
+/**
+ * Mietkonto (ADR-0003): Rückstand eines Mietverhältnisses im
+ * Abrechnungsjahr. Nur wenn dem Mietverhältnis im Jahr Zahlungen
+ * zugeordnet sind; die Abrechnung rechnet weiter mit dem Soll.
+ */
+function rentArrears(data: AppDataFile, period: BillingPeriod, add: Add): void {
+  for (const occupancy of periodOccupancies(data, period.id)) {
+    const tenancyId = occupancy.tenancyId
+    if (
+      occupancy.kind !== 'tenant' ||
+      !tenancyId ||
+      !data.masterData.tenancies.some(({ id }) => id === tenancyId)
+    )
+      continue
+    const ledger = calculateRentLedger(
+      data,
+      tenancyId,
+      period.year,
+      period.periodEnd,
+    )
+    if (ledger.payments.length === 0 || ledger.arrearsCents <= 0) continue
+    add(
+      issue(
+        'warning',
+        'rent.arrears',
+        'prepayments',
+        'Mietrückstand laut Mietkonto',
+        {
+          entity: { type: 'OccupancyPeriod', id: occupancy.id },
+          detail: `Laut Mietkonto fehlen ${euro(ledger.arrearsCents)} (Soll ${euro(ledger.dueToDateCents)}, gezahlt ${euro(ledger.paidCents)}). In der Abrechnung sind die vereinbarten Vorauszahlungen angesetzt; prüfen Sie, ob nur die tatsächlich gezahlten Vorauszahlungen angerechnet werden dürfen.`,
+        },
+      ),
     )
   }
 }
@@ -1183,6 +1229,7 @@ export function collectStaticIssues(
   costs(data, period, add)
   duplicateCostEntries(data, period, add)
   legalRules(data, period, add)
+  rentArrears(data, period, add)
   heating(data, period, add)
   meterReadings(data, period, add)
   meters(data, period, add)

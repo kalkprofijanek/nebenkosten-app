@@ -49,7 +49,7 @@ describe('Regelverzeichnis', () => {
     const [issue] = issuesWithPrefix(data)
     expect(issue).toMatchObject({
       severity: 'warning',
-      code: 'rules.cable-tv-signal',
+      code: 'rules.cable_tv_signal',
       area: 'costs',
       entity: { type: 'CostCategory', id: 'category-1' },
     })
@@ -76,13 +76,36 @@ describe('Regelverzeichnis', () => {
       hasCentralHotWater: false,
     })
     const issue = issuesWithPrefix(data).find(
-      ({ code }) => code === 'rules.remote-reading',
+      ({ code }) => code === 'rules.remote_reading',
     )
     expect(issue).toMatchObject({ severity: 'info', area: 'heating' })
     expect(issue!.detail).toContain('31.12.2026')
 
     expect(
       issuesWithPrefix(periodData(2027)).map(({ code }) => code),
-    ).not.toContain('rules.remote-reading')
+    ).not.toContain('rules.remote_reading')
+  })
+})
+
+describe('Prüfhinweis-Codes', () => {
+  it('entsprechen dem Schema-Muster', async () => {
+    const { validationIssueSchema } = await import('@nebenkosten/schema')
+    const data = periodData(2027)
+    data.billingData.costCategories[0]!.betrkvCategory = '§2 Nr. 15'
+    data.billingData.heatingCircuits.push({
+      id: 'circuit-1',
+      billingPeriodId: 'period-1',
+      heatingSystemId: 'system-1',
+      buildingId: 'building-1',
+      hasCentralHotWater: false,
+    })
+    const issues = issuesWithPrefix(data)
+    expect(issues).toHaveLength(2)
+    for (const issue of issues) {
+      const persisted = Object.fromEntries(
+        Object.entries(issue).filter(([field]) => field !== 'key'),
+      )
+      expect(validationIssueSchema.safeParse(persisted).success).toBe(true)
+    }
   })
 })

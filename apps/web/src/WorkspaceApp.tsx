@@ -12,6 +12,7 @@ import { ImportControl } from './ImportControl'
 import { MigrationPanel } from './MigrationPanel'
 import { PdfExportRoute } from './PdfExportRoute'
 import { PrepaymentsRoute } from './features/prepayments/PrepaymentsRoute'
+import { RentLedgerRoute } from './features/rent-ledger/RentLedgerRoute'
 import { ReleaseRoute } from './ReleaseRoute'
 import { WorkflowRoute } from './WorkflowRoute'
 import {
@@ -181,6 +182,13 @@ export function WorkspaceApp({
               ) : path === '/vorauszahlungen' ? (
                 <PrepaymentsRoute
                   data={workspaceState.data!}
+                  billingPeriodId={normalizedSelection.billingPeriodId}
+                  onApply={(transform) => controller.update(transform)}
+                />
+              ) : path === '/mietkonto' ? (
+                <RentLedgerRoute
+                  data={workspaceState.data!}
+                  propertyId={normalizedSelection.propertyId}
                   billingPeriodId={normalizedSelection.billingPeriodId}
                   onApply={(transform) => controller.update(transform)}
                 />

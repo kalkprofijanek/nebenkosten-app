@@ -22,6 +22,7 @@ import {
   decodeBankBookingCsv,
   parseBankBookingCsv,
 } from '../costs/bank-booking-csv'
+import { autoAssignRentPayments } from '../rent-ledger/commands'
 import { TableToolbar } from '../../components/TableToolbar'
 import { CostDataOverview } from '../costs/CostDataOverview'
 import {
@@ -518,15 +519,22 @@ export function CostsRoute({
       )
       let addedCount = 0
       let duplicateCount = 0
+      let rentCount = 0
       const accepted = apply((current) => {
         const result = importBankBookings(current, period.propertyId, rows)
         addedCount = result.addedCount
         duplicateCount = result.duplicateCount
-        return result.data
+        const rent = autoAssignRentPayments(result.data, period.propertyId)
+        rentCount = rent.assignedCount
+        return rent.data
       })
       if (accepted) {
         setImportNotice(
-          `${addedCount} Buchungen importiert, ${duplicateCount} Duplikate übersprungen. Alle neuen Buchungen stehen auf „Offen“.`,
+          `${addedCount} Buchungen importiert, ${duplicateCount} Duplikate übersprungen. ${
+            rentCount > 0
+              ? `${rentCount} Mieteingänge wurden eindeutig einem Mietverhältnis zugeordnet (Mietkonto), alle übrigen neuen Buchungen stehen auf „Offen“.`
+              : 'Alle neuen Buchungen stehen auf „Offen“.'
+          }`,
         )
       }
     } catch (caught) {
