@@ -1024,7 +1024,8 @@ function formatReadingNumber(value: number): string {
 /**
  * Zählerstände je Belegung (`heatMeterReading`): Stand neu − Stand alt muss
  * zu den Verbrauchseinheiten passen; eine Zählernummer ohne beide Stände
- * ist unvollständig.
+ * ist unvollständig. Eine begründete Schätzung (§ 9a HeizKV, Kennzeichen und
+ * Schätzgrund) ersetzt die Ablesung und löst keine Abweichungswarnung aus.
  */
 function meterReadings(
   data: AppDataFile,
@@ -1039,7 +1040,11 @@ function meterReadings(
     const entity = { type: 'OccupancyPeriod', id: occupancy.id }
     const hasStart = typeof reading.startValue === 'number'
     const hasEnd = typeof reading.endValue === 'number'
+    const justifiedEstimate =
+      occupancy.consumptionUnitsEstimated === true &&
+      !blank(occupancy.consumptionUnitsEstimateReason)
     if (hasStart && hasEnd) {
+      if (justifiedEstimate) continue
       const difference = reading.endValue! - reading.startValue!
       const units = occupancy.consumptionUnits?.value
       if (

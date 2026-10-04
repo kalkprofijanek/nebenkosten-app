@@ -42,6 +42,21 @@ export function workflowProgress(
       data?.billingData.occupancyPeriods.some(
         ({ billingPeriodId }) => billingPeriodId === periodId,
       ) ?? false,
+    '/verbrauch': (() => {
+      const tenants =
+        data?.billingData.occupancyPeriods.filter(
+          ({ billingPeriodId, kind }) =>
+            billingPeriodId === periodId && kind === 'tenant',
+        ) ?? []
+      return (
+        tenants.length > 0 &&
+        tenants.every(
+          ({ consumptionUnits, consumptionUnitsEstimated }) =>
+            (consumptionUnits?.value ?? 0) > 0 ||
+            consumptionUnitsEstimated === true,
+        )
+      )
+    })(),
     '/vorauszahlungen': (() => {
       const tenants =
         data?.billingData.occupancyPeriods.filter(

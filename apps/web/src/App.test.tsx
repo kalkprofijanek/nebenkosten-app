@@ -26,7 +26,7 @@ describe('App', () => {
       screen.getByRole('heading', { name: 'Abrechnung im Blick' }),
     ).toBeVisible()
     expect(screen.getByText('Noch nicht gespeichert')).toBeVisible()
-    expect(screen.getByText('Schema v5 · Version 1.2.3')).toBeVisible()
+    expect(screen.getByText('Schema v5 · Version 1.3.0')).toBeVisible()
 
     const navigation = screen.getByRole('navigation', {
       name: 'Abrechnungsbereiche',
@@ -227,7 +227,7 @@ describe('App', () => {
 
     render(<App initialPath="/" workspaceState={workspaceState} />)
 
-    expect(screen.getByText('3 von 12 Schritten')).toBeVisible()
+    expect(screen.getByText('3 von 13 Schritten')).toBeVisible()
     expect(screen.getAllByText('Erfasst')).toHaveLength(3)
     expect(
       screen.getByText(/Änderungen werden automatisch im lokalen Speicher/),

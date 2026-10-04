@@ -2,6 +2,32 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
+## 1.3.0 – 4. Oktober 2026
+
+- Neuer Arbeitsbereich „Verbrauch“ (zwischen „Nutzer“ und
+  „Vorauszahlungen“): Zählernummer, Stand alt/neu mit Ablesedatum, Differenz,
+  Verbrauchseinheiten, Kalt- und Warmwasser (m³) und Status aller Mieter eines
+  Abrechnungsjahres in einer Tabelle; zeilenweise speichern oder verwerfen,
+  Filter „Nur offene und abweichende Zeilen“,
+- Schätzung nach § 9a HeizKV je Zeile („Schätzen“) und für alle fehlenden
+  oder 0-Werte auf einmal („Alle fehlenden schätzen“); ist keine Schätzung
+  möglich, nennt die Zeile den Grund (kein Gebäude, keine beheizte Fläche,
+  keine gemessenen Vergleichsnutzungen),
+- § 9a Abs. 2 HeizKV: Sind in einem Heizkreis mehr als 25 % der beheizten
+  Fläche (zeitanteilig) geschätzt, verteilt die Berechnung dessen Heizkosten
+  und CO₂-Mieteranteil ausschließlich nach Fläche; eine § 12-Kürzung entfällt
+  dann. Die Einzelabrechnung begründet das; die Verbrauchsseite zeigt beim
+  Klick auf „Schätzen“ einen Hinweis, sobald die Grenze überschritten wird,
+- Prüfung: `heating.meter_reading_mismatch` entfällt bei einer begründeten
+  Schätzung (Kennzeichen „geschätzt“ und Schätzgrund), z. B. bei defektem
+  Zähler; ohne Schätzgrund bleibt die Warnung,
+- Nutzerbearbeitung zeigt Heizverbrauch und Wasser nur noch an und verlinkt
+  auf die neue Seite; Speichern dort lässt diese Werte unverändert,
+- Prüfhinweise `heating.consumption_units_missing`,
+  `heating.meter_reading_mismatch` und `heating.meter_reading_incomplete`
+  sowie die geführte Jahresabrechnung führen zur betroffenen Zeile der
+  Verbrauchsseite. Keine Schemaänderung.
+
 ## 1.2.3 – 4. Oktober 2026
 
 - § 6a HeizKV: Der mittlere Verbrauch des Heizkreises wird nicht mehr als

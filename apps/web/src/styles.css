@@ -84,6 +84,8 @@ a {
   height: 100vh;
   flex-direction: column;
   padding: 1.75rem 1rem 1.25rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--forest);
   color: #eef9f3;
 }
@@ -1992,4 +1994,161 @@ h1 {
   padding-left: 1rem;
   color: var(--muted);
   font-size: 0.8rem;
+}
+
+.consumption-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 1rem 0 0.75rem;
+}
+
+.consumption-table th,
+.consumption-table td {
+  padding-right: 0.5rem;
+  padding-left: 0.5rem;
+  vertical-align: top;
+}
+
+.main-content .consumption-table input,
+.main-content .consumption-table textarea {
+  min-height: 2.1rem;
+  padding: 0.3rem 0.45rem;
+  border-radius: 0.45rem;
+  font-size: 0.85rem;
+}
+
+.main-content .consumption-table input.consumption-number {
+  width: 6.5rem;
+  text-align: right;
+}
+
+.main-content .consumption-table input.consumption-water {
+  width: 4.8rem;
+  text-align: right;
+}
+
+.main-content .consumption-table input.consumption-meter {
+  width: 6.5rem;
+}
+
+.main-content .consumption-table input[type='date'] {
+  width: 8.6rem;
+}
+
+.consumption-reading {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.consumption-difference {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.consumption-estimated {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.main-content .consumption-table .consumption-estimated input {
+  width: 1rem;
+  min-height: 1rem;
+  margin: 0;
+  accent-color: var(--forest);
+}
+
+.consumption-status-cell {
+  min-width: 10rem;
+  max-width: 13rem;
+}
+
+.consumption-table th[scope='row'] {
+  color: var(--ink);
+  font-size: 0.9rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.consumption-table th[scope='row'] strong,
+.consumption-table th[scope='row'] small {
+  display: block;
+  white-space: nowrap;
+}
+
+.consumption-table th[scope='row'] small {
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.main-content .consumption-table textarea.consumption-reason {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+}
+
+.consumption-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+}
+
+.consumption-actions .button {
+  min-height: 2rem;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+.consumption-units-cell {
+  max-width: 11rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.consumption-units-cell small {
+  white-space: normal;
+}
+
+.consumption-status {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 99rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.consumption-status--measured {
+  background: var(--mint-soft);
+  color: var(--forest);
+}
+
+.consumption-status--estimated {
+  background: #fff3ce;
+  color: #755109;
+}
+
+.consumption-status--zero,
+.consumption-status--missing {
+  background: #fbeaea;
+  color: #8a1c1c;
+}
+
+.consumption-row--highlighted {
+  outline: 3px solid var(--mint);
+  outline-offset: -3px;
+}
+
+.consumption-note {
+  margin: 0.5rem 0;
+  color: var(--muted);
+  font-size: 0.85rem;
 }

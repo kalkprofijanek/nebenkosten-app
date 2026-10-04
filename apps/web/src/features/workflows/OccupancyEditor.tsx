@@ -1,19 +1,13 @@
-import { useState, type FormEvent, type MouseEvent } from 'react'
+import type { FormEvent } from 'react'
 import type {
   AppDataFile,
   OccupancyPeriod,
   BillingPeriod,
 } from '@nebenkosten/schema'
 import { WorkflowField } from './form-support'
-import { formatEuroInput, parseOptionalNumber } from '../../app/form-parsers'
-import { estimateConsumptionUnits } from '../occupancies/estimate-consumption'
-function decimalInput(value: number): string {
-  return String(value).replace('.', ',')
-}
-
-function optionalDecimal(value: number | null | undefined): string {
-  return value == null ? '' : decimalInput(value)
-}
+import { formatEuroInput } from '../../app/form-parsers'
+const m3 = (value: number | undefined) =>
+  value === undefined ? '–' : String(value).replace('.', ',')
 
 interface Props {
   data: AppDataFile
@@ -44,56 +38,7 @@ export function OccupancyEditor({
       : currentPrepayment?.mode === 'annual'
         ? currentPrepayment.annualAmountCents
         : undefined
-  const estimate = estimateConsumptionUnits(data, occupancy.id)
-  function applyEstimate(event: MouseEvent<HTMLButtonElement>) {
-    const form = event.currentTarget.form
-    if (!form || !estimate) return
-    const field = (name: string) => form.elements.namedItem(name)
-    const units = field('consumptionUnits')
-    const estimated = field('consumptionUnitsEstimated')
-    const reason = field('consumptionUnitsEstimateReason')
-    if (units instanceof HTMLInputElement)
-      units.value = String(estimate.value).replace('.', ',')
-    if (estimated instanceof HTMLInputElement) estimated.checked = true
-    if (reason instanceof HTMLInputElement) reason.value = estimate.reason
-  }
-  const reading = occupancy.heatMeterReading
-  const [readingMessage, setReadingMessage] = useState<string | null>(null)
-  function applyMeterReadings(event: MouseEvent<HTMLButtonElement>) {
-    const form = event.currentTarget.form
-    if (!form) return
-    const field = (name: string) => form.elements.namedItem(name)
-    const value = (name: string) => {
-      const element = field(name)
-      return element instanceof HTMLInputElement ? element.value : ''
-    }
-    let start: number | null
-    let end: number | null
-    try {
-      start = parseOptionalNumber(value('meterStartValue'))
-      end = parseOptionalNumber(value('meterEndValue'))
-    } catch {
-      setReadingMessage('Bitte gültige Zählerstände eingeben.')
-      return
-    }
-    if (start === null || end === null) {
-      setReadingMessage('Bitte Stand alt und Stand neu eintragen.')
-      return
-    }
-    const consumption = Math.round((end - start) * 1000) / 1000
-    if (consumption < 0) {
-      setReadingMessage('Stand neu ist kleiner als Stand alt.')
-      return
-    }
-    const units = field('consumptionUnits')
-    const estimated = field('consumptionUnitsEstimated')
-    if (units instanceof HTMLInputElement)
-      units.value = decimalInput(consumption)
-    if (estimated instanceof HTMLInputElement) estimated.checked = false
-    setReadingMessage(
-      `Verbrauch ${decimalInput(consumption)} Einheiten vorbelegt; erst „Speichern“ übernimmt ihn.`,
-    )
-  }
+  const consumption = occupancy.consumptionUnits?.value
   return (
     <>
       {' '}
@@ -172,88 +117,26 @@ export function OccupancyEditor({
             Objektanschrift, auch nach einem Auszug. Eine bekannte neue
             Anschrift hier eintragen.
           </small>
-          <fieldset className="meter-reading-fields">
-            <legend>Zählerstände Heizung (Verbrauchserfassung)</legend>
-            <WorkflowField
-              label="Zählernummer bearbeiten"
-              name="meterNumber"
-              defaultValue={reading?.meterNumber ?? ''}
-            />
-            <WorkflowField
-              label="Stand alt bearbeiten"
-              name="meterStartValue"
-              defaultValue={optionalDecimal(reading?.startValue)}
-            />
-            <WorkflowField
-              label="Datum alt bearbeiten"
-              name="meterStartDate"
-              type="date"
-              defaultValue={reading?.startDate ?? ''}
-            />
-            <WorkflowField
-              label="Stand neu bearbeiten"
-              name="meterEndValue"
-              defaultValue={optionalDecimal(reading?.endValue)}
-            />
-            <WorkflowField
-              label="Datum neu bearbeiten"
-              name="meterEndDate"
-              type="date"
-              defaultValue={reading?.endDate ?? ''}
-            />
-            <button type="button" onClick={applyMeterReadings}>
-              Verbrauch aus Zählerständen übernehmen
-            </button>
-            {readingMessage ? (
-              <small role="status">{readingMessage}</small>
-            ) : (
-              <small>
-                Setzt die Verbrauchseinheiten auf Stand neu − Stand alt; erst
-                „Speichern“ übernimmt den Wert.
-              </small>
-            )}
-          </fieldset>
-          <WorkflowField
-            label="Verbrauchseinheiten bearbeiten"
-            name="consumptionUnits"
-            defaultValue={occupancy.consumptionUnits?.value ?? ''}
-          />
-          <label className="checkbox-field">
-            <input
-              type="checkbox"
-              name="consumptionUnitsEstimated"
-              defaultChecked={occupancy.consumptionUnitsEstimated ?? false}
-            />
-            <span>Verbrauchseinheiten geschätzt</span>
-          </label>
-          {estimate ? (
-            <div className="estimate-hint">
-              <button type="button" onClick={applyEstimate}>
-                Aus Heizkreis-Mittel schätzen (
-                {String(estimate.value).replace('.', ',')} Einheiten)
-              </button>
-              <small>
-                Füllt Wert, „geschätzt“ und Schätzgrund vor; erst „Speichern“
-                übernimmt die Schätzung. Grundlage: {estimate.comparableCount}{' '}
-                gemessene Nutzungen desselben Heizkreises.
-              </small>
-            </div>
-          ) : null}
-          <WorkflowField
-            label="Schätzgrund Verbrauch bearbeiten"
-            name="consumptionUnitsEstimateReason"
-            defaultValue={occupancy.consumptionUnitsEstimateReason ?? ''}
-          />
-          <WorkflowField
-            label="Kaltwasser in m³ bearbeiten"
-            name="coldWater"
-            defaultValue={occupancy.coldWater?.value ?? ''}
-          />
-          <WorkflowField
-            label="Warmwasser in m³ bearbeiten"
-            name="warmWater"
-            defaultValue={occupancy.warmWater?.value ?? ''}
-          />
+          <p className="consumption-hint">
+            Heizverbrauch:{' '}
+            {consumption == null
+              ? 'nicht erfasst'
+              : `${String(consumption).replace('.', ',')} Einheiten${
+                  occupancy.consumptionUnitsEstimated ? ' (geschätzt)' : ''
+                }`}
+            {occupancy.heatMeterReading?.meterNumber
+              ? ` · Zähler ${occupancy.heatMeterReading.meterNumber}`
+              : ''}
+            {occupancy.coldWater || occupancy.warmWater
+              ? ` · Wasser kalt ${m3(occupancy.coldWater?.value)} / warm ${m3(occupancy.warmWater?.value)} m³`
+              : ''}
+            .{' '}
+            <a
+              href={`#/verbrauch?occupancy=${encodeURIComponent(occupancy.id)}`}
+            >
+              Zählerstände, Verbrauch und Wasser bearbeiten
+            </a>
+          </p>
           <label className="checkbox-field">
             <input
               type="checkbox"

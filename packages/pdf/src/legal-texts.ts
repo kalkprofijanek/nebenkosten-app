@@ -33,6 +33,12 @@ export function baseAreaLabel(basis: BaseAreaBasis): string {
 }
 
 /** Dativform für „nach …“-Formulierungen. */
+function formatSharePercent(value: number): string {
+  return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 }).format(
+    value,
+  )
+}
+
 function baseAreaDative(basis: BaseAreaBasis): string {
   return basis === 'usable_area' ? 'Wohnfläche' : 'beheizter Fläche'
 }
@@ -50,6 +56,8 @@ export function heatingSplitExplanation(
     readonly baseAreaBasis?: BaseAreaBasis
     readonly captureMode?: ConsumptionCaptureMode
     readonly hasCentralHotWater?: boolean
+    /** § 9a Abs. 2 HeizKV: geschätzter Flächenanteil in Prozent. */
+    readonly areaOnlySection9aPercent?: number
   } = {},
 ): string {
   const basePercent = 100 - consumptionSharePercent
@@ -60,6 +68,8 @@ export function heatingSplitExplanation(
   const hotWater = options.hasCentralHotWater
     ? ' Die Kosten der zentralen Warmwasserbereitung werden gesondert ermittelt und verteilt (§ 9 HeizKV).'
     : ''
+  if (options.areaOnlySection9aPercent !== undefined)
+    return `Heizkostenverteilung (§ 9a Abs. 2 HeizKV): Für ${formatSharePercent(options.areaOnlySection9aPercent)} % der beheizten Fläche Ihres Heizkreises konnte der Verbrauch nicht ordnungsgemäß erfasst werden und wurde geschätzt. Bei mehr als 25 % sind die Heizkosten ausschließlich nach ${area} zu verteilen; ein verbrauchsabhängiger Anteil entfällt. Die CO2-Kosten werden nach dem CO2KostAufG gesondert ausgewiesen und sind im Heizkostenbetrag nicht enthalten.${hotWater}`
   return `Heizkostenverteilung (§§ 7, 8 HeizKV): Die Heizkosten Ihres Heizkreises werden zu ${consumptionSharePercent} % nach ${capture} und zu ${basePercent} % nach ${area} (Grundkosten) verteilt. Die CO2-Kosten werden nach dem CO2KostAufG gesondert ausgewiesen und sind im Heizkostenbetrag nicht enthalten.${hotWater}`
 }
 

@@ -13,6 +13,7 @@ import {
   type CalculationOutput,
   type CircuitCo2Trace,
   type CircuitHeatingSplitTrace,
+  SECTION_9A_ESTIMATED_AREA_LIMIT,
   type CircuitWarmWaterTrace,
   type OperatingPositionTrace,
   type TenantAllocationBasis,
@@ -541,14 +542,26 @@ function rawCircuitResults(
         operatingElectricityByBuildingId.get(buildingId) ?? 0
       const heatingTotal =
         fuelConsumption - hotWater + heatingOperating + operatingElectricity
-      const consumptionFactor =
-        (circuit?.overrides?.consumptionSharePercent ??
-          defaults?.consumptionSharePercent ??
-          70) / 100
-      const baseFactor =
-        (circuit?.overrides?.baseSharePercent ??
-          defaults?.baseSharePercent ??
-          30) / 100
+      const estimatedAreaShare = measuredKwhDenominatorByBuildingId?.has(
+        buildingId,
+      )
+        ? 0
+        : estimatedHeatedAreaShare(circuitContexts)
+      // § 9a Abs. 2 HeizKV: Ist für mehr als 25 % der beheizten Fläche der
+      // Verbrauch nicht ordnungsgemäß erfasst (hier: geschätzt), sind die
+      // Kosten ausschließlich nach der Fläche zu verteilen.
+      const areaOnlySection9a =
+        estimatedAreaShare > SECTION_9A_ESTIMATED_AREA_LIMIT
+      const consumptionFactor = areaOnlySection9a
+        ? 0
+        : (circuit?.overrides?.consumptionSharePercent ??
+            defaults?.consumptionSharePercent ??
+            70) / 100
+      const baseFactor = areaOnlySection9a
+        ? 1
+        : (circuit?.overrides?.baseSharePercent ??
+            defaults?.baseSharePercent ??
+            30) / 100
       const baseCosts = heatingTotal * baseFactor
       const consumptionCosts = heatingTotal * consumptionFactor
       const useUsableArea = defaults?.baseCostAreaBasis === 'usable_area'
@@ -625,6 +638,8 @@ function rawCircuitResults(
         consumptionDenominator: roundQuantity(consumptionDenominator, 3),
         baseCents: roundedHeatingSplit.get('base')!,
         consumptionCents: roundedHeatingSplit.get('consumption')!,
+        estimatedAreaSharePercent: roundQuantity(estimatedAreaShare * 100, 3),
+        areaOnlySection9a,
       }
       return {
         buildingId,
@@ -663,9 +678,29 @@ function rawCircuitResults(
         operatingElectricity,
         operatingElectricityIntended,
         splitTrace,
+        areaOnlySection9a,
       }
     },
   )
+}
+
+/**
+ * Zeitanteiliger Anteil der beheizten Fläche von Mieter-Nutzungen mit als
+ * geschätzt gekennzeichnetem Verbrauch (§ 9a HeizKV); Leerstände zählen
+ * nicht, weil für sie im manuellen Modus kein Verbrauch erfasst wird.
+ */
+function estimatedHeatedAreaShare(
+  contexts: readonly OccupancyContext[],
+): number {
+  let total = 0
+  let estimated = 0
+  for (const context of contexts) {
+    if (context.occupancy.kind === 'vacancy') continue
+    const weight = context.heatedArea * context.timeFactor
+    total += weight
+    if (context.occupancy.consumptionUnitsEstimated) estimated += weight
+  }
+  return total > 0 ? estimated / total : 0
 }
 
 function rawTenantShare(
@@ -718,8 +753,11 @@ function rawTenantShare(
         ? context.persons
         : 1
   heating += circuit.hotWaterPricePerPerson * persons * context.timeFactor
+  // § 12 HeizKV gilt nicht, wenn nach § 9a Abs. 2 HeizKV zulässig nur nach
+  // Fläche verteilt wird.
   if (
     !isMeteredOccupancy &&
+    !circuit.areaOnlySection9a &&
     context.occupancy.consumptionUnitsEstimated &&
     context.occupancy.applySection12Reduction
   ) {
@@ -796,6 +834,7 @@ function rawTenantShareBreakdown(
   const reduction =
     context.occupancy.applySection12Reduction &&
     !isMeteredOccupancy &&
+    !circuit.areaOnlySection9a &&
     context.occupancy.consumptionUnitsEstimated
       ? 0.85
       : 1

@@ -475,6 +475,7 @@ function costCategoryTable(
 function section12Applies(context: TenantStatementContext): boolean {
   const { occupancyPeriod } = context
   return Boolean(
+    !circuitTraceFor(context)?.split.areaOnlySection9a &&
     occupancyPeriod.applySection12Reduction &&
     occupancyPeriod.consumptionUnitsEstimated &&
     captureModeFor(context.calculation, resolvedBuildingId(context)) !==
@@ -516,7 +517,9 @@ function tenantHeatingTable(
       amountCell(costBreakdown.heatingBaseCents),
     ],
     [
-      `Verbrauchskosten: ${formatUnitPrice(consumptionPrice, unit === 'kWh' ? 'kWh' : 'Einheit')} × ${formatNumber(facts.basis.consumption)} ${unit}${reduction}`,
+      split.areaOnlySection9a
+        ? 'Verbrauchskosten: entfallen (§ 9a Abs. 2 HeizKV, Verteilung nur nach Fläche)'
+        : `Verbrauchskosten: ${formatUnitPrice(consumptionPrice, unit === 'kWh' ? 'kWh' : 'Einheit')} × ${formatNumber(facts.basis.consumption)} ${unit}${reduction}`,
       amountCell(costBreakdown.heatingConsumptionCents),
     ],
   ]
@@ -632,7 +635,9 @@ function consumptionCapture(
     )
   }
   lines.push(
-    `Verbrauchskosten = ${formatUnitPrice(consumptionPrice, unitSingular)} × ${formatNumber(consumption)} ${unit}${reduction} = ${formatEuroCents(costBreakdown.heatingConsumptionCents)}`,
+    split.areaOnlySection9a
+      ? 'Verbrauchskosten entfallen (§ 9a Abs. 2 HeizKV): Verteilung ausschließlich nach Fläche'
+      : `Verbrauchskosten = ${formatUnitPrice(consumptionPrice, unitSingular)} × ${formatNumber(consumption)} ${unit}${reduction} = ${formatEuroCents(costBreakdown.heatingConsumptionCents)}`,
     `Grundkosten = ${formatUnitPrice(basePrice, 'm²')} × ${formatNumber(ownArea)} m² × ${timeText}${reduction} = ${formatEuroCents(costBreakdown.heatingBaseCents)}`,
   )
   const hasHotWater = circuit.warmWater.method !== 'none'
@@ -717,6 +722,9 @@ function heatingSection(
         baseAreaBasis: circuit.split.baseAreaBasis,
         captureMode: mode,
         hasCentralHotWater: circuit.warmWater.method !== 'none',
+        areaOnlySection9aPercent: circuit.split.areaOnlySection9a
+          ? circuit.split.estimatedAreaSharePercent
+          : undefined,
       }),
       fontSize: 8,
       color: MUTED,

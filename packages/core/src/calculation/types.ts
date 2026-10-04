@@ -62,6 +62,8 @@ export interface RawCircuitResult {
   operatingElectricity: number
   operatingElectricityIntended: number
   splitTrace: CircuitHeatingSplitTrace
+  /** § 9a Abs. 2 HeizKV: Verteilung ausschließlich nach Fläche. */
+  areaOnlySection9a: boolean
 }
 
 export interface RawCostPosition {
