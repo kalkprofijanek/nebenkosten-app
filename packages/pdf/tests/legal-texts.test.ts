@@ -68,5 +68,10 @@ describe('legal-texts', () => {
       'Bitte überweisen Sie den Nachzahlungsbetrag von 10,00 € bis zum 14.02.2026, Verwendungszweck „NK 2025 WE 1“.',
     )
     expect(creditText('5,00 €')).toContain('innerhalb von vier Wochen')
+    expect(creditText('5,00 €')).toContain('nächsten Miete')
+    expect(creditText('5,00 €', { movedOut: true })).not.toContain(
+      'nächsten Miete',
+    )
+    expect(creditText('5,00 €', { movedOut: true })).toContain('Bankverbindung')
   })
 })

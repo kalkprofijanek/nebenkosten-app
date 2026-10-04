@@ -7,6 +7,14 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 - Einzelabrechnung: Der **Schätzgrund (§ 9a HeizKV)** steht nur noch einmal
   unter „Ihre Verbrauchserfassung“; oben bleibt ein kurzer Hinweis mit
   Verweis darauf (vorher erschien die Begründung doppelt),
+- Einzelabrechnung bei **§ 9a Abs. 2 HeizKV** (über 25 % geschätzt):
+  „Verteilung nach § 9a Abs. 2 HeizKV: 100 % nach Fläche“ statt
+  „Grundkosten 100 %“, „Heizkosten nach Fläche“ statt „Grundkosten“; der
+  geschätzte Verbrauch ist als „nur zur Information“ gekennzeichnet,
+- **Guthaben nach Auszug**: kein Verweis mehr auf die Verrechnung mit der
+  „nächsten Miete“, stattdessen Bitte um die Bankverbindung,
+- Brennstoffkonto: Lieferzeilen nennen die Belegbezeichnung (z. B. vom
+  Voreigentümer übernommener Verbrauch),
 - **Mietkonto** (neue Seite): Soll aus Kaltmiete und Vorauszahlung je
   Monat, Ist aus zugeordneten Mieteingängen, Monatsübersicht
   (bezahlt/teilweise/offen), Rückstand und Guthaben. Eindeutige Mieteingänge

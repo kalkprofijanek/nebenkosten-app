@@ -270,7 +270,11 @@ function deliveryLabel(appData: AppDataFile, lot: FuelLotTrace): string {
     const head = `+ Rechnung vom ${formatIsoDate(lot.date)} ohne Liefermenge`
     return description ? `${head}: ${description}` : head
   }
-  return `+ Lieferung ${formatIsoDate(lot.date)}`
+  // Die Belegbezeichnung zeigt, woher der Zugang stammt (z. B. der vom
+  // Voreigentümer übernommene Verbrauch), statt nur „Lieferung“ zu nennen.
+  const description = lotDescription(appData, lot)
+  const head = `+ Lieferung ${formatIsoDate(lot.date)}`
+  return description ? `${head}: ${description}` : head
 }
 
 function quantityCell(
@@ -650,16 +654,26 @@ export function heatingSplitTotalsTable(
   return {
     table: {
       widths: ['*', 80],
-      body: [
-        [
-          `Grundkosten ${formatPercent(split.baseSharePercent)}: ${formatEuroCents(split.baseCents)} : ${formatNumber(split.baseDenominator)} m² ${baseAreaLabel(split.baseAreaBasis)} = ${formatUnitPrice(basePrice, 'm²')}`,
-          amountCell(split.baseCents),
-        ],
-        [
-          `Verbrauchskosten ${formatPercent(split.consumptionSharePercent)}: ${formatEuroCents(split.consumptionCents)} : ${formatNumber(split.consumptionDenominator)} ${unit} = ${formatUnitPrice(consumptionPrice, unit === 'kWh' ? 'kWh' : 'Einheit')}`,
-          amountCell(split.consumptionCents),
-        ],
-      ],
+      // § 9a Abs. 2 HeizKV: Die gesamten Heizkosten werden nach Fläche
+      // verteilt – keine „auf 100 % erhöhten Grundkosten“.
+      body: split.areaOnlySection9a
+        ? [
+            [
+              `Verteilung nach § 9a Abs. 2 HeizKV: 100 % nach Fläche: ${formatEuroCents(split.baseCents)} : ${formatNumber(split.baseDenominator)} m² ${baseAreaLabel(split.baseAreaBasis)} = ${formatUnitPrice(basePrice, 'm²')}`,
+              amountCell(split.baseCents),
+            ],
+            ['Verbrauchsabhängiger Anteil: entfällt', amountCell(0)],
+          ]
+        : [
+            [
+              `Grundkosten ${formatPercent(split.baseSharePercent)}: ${formatEuroCents(split.baseCents)} : ${formatNumber(split.baseDenominator)} m² ${baseAreaLabel(split.baseAreaBasis)} = ${formatUnitPrice(basePrice, 'm²')}`,
+              amountCell(split.baseCents),
+            ],
+            [
+              `Verbrauchskosten ${formatPercent(split.consumptionSharePercent)}: ${formatEuroCents(split.consumptionCents)} : ${formatNumber(split.consumptionDenominator)} ${unit} = ${formatUnitPrice(consumptionPrice, unit === 'kWh' ? 'kWh' : 'Einheit')}`,
+              amountCell(split.consumptionCents),
+            ],
+          ],
     },
     layout: 'lightHorizontalLines',
     margin: [0, 2, 0, 4],
