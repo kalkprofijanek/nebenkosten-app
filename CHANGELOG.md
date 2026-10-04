@@ -13,9 +13,11 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
   oder 0-Werte auf einmal („Alle fehlenden schätzen“); ist keine Schätzung
   möglich, nennt die Zeile den Grund (kein Gebäude, keine beheizte Fläche,
   keine gemessenen Vergleichsnutzungen),
-- Hinweis, wenn in einem Gebäude mehr als 25 % der Fläche (zeitanteilig)
-  geschätzt sind (§ 9a Abs. 2 HeizKV); die Berechnung wird dadurch nicht
-  umgestellt,
+- § 9a Abs. 2 HeizKV: Sind in einem Heizkreis mehr als 25 % der beheizten
+  Fläche (zeitanteilig) geschätzt, verteilt die Berechnung dessen Heizkosten
+  und CO₂-Mieteranteil ausschließlich nach Fläche; eine § 12-Kürzung entfällt
+  dann. Die Einzelabrechnung begründet das; die Verbrauchsseite zeigt beim
+  Klick auf „Schätzen“ einen Hinweis, sobald die Grenze überschritten wird,
 - Prüfung: `heating.meter_reading_mismatch` entfällt bei einer begründeten
   Schätzung (Kennzeichen „geschätzt“ und Schätzgrund), z. B. bei defektem
   Zähler; ohne Schätzgrund bleibt die Warnung,

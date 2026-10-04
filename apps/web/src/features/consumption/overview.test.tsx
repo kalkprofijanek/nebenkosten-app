@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { consumptionFixture } from './consumption-fixture'
-import { buildConsumptionOverview, needsEstimate } from './overview'
+import {
+  buildConsumptionOverview,
+  needsEstimate,
+  section9aHint,
+} from './overview'
 
 describe('buildConsumptionOverview', () => {
   it('ordnet Status, Zählerdifferenz und Schätzung je Mieter zu', () => {
@@ -76,5 +80,23 @@ describe('buildConsumptionOverview', () => {
     )
     expect(metered.openCount).toBe(0)
     expect(metered.estimatedShares).toEqual([])
+  })
+
+  it('meldet das Überschreiten der 25-%-Grenze nur beim Übergang', () => {
+    const overview = buildConsumptionOverview(consumptionFixture(), 'y')!
+    expect(section9aHint(overview.rows, new Set())).toBeNull()
+    expect(section9aHint(overview.rows, new Set(['o3']))).toContain(
+      'in Haus A 33 % der Fläche geschätzt',
+    )
+    const already = buildConsumptionOverview(
+      consumptionFixture({
+        o2: {
+          consumptionUnitsEstimated: true,
+          consumptionUnitsEstimateReason: 'Fiktiv',
+        },
+      }),
+      'y',
+    )!
+    expect(section9aHint(already.rows, new Set(['o3']))).toBeNull()
   })
 })

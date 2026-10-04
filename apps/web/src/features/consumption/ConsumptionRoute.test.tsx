@@ -66,6 +66,10 @@ describe('ConsumptionRoute', () => {
       target.getByLabelText('Verbrauchseinheiten Wohnung 3 Fiktiv 3'),
     ).toHaveValue('500')
     expect(target.getByLabelText('geschätzt Wohnung 3 Fiktiv 3')).toBeChecked()
+    // 50 von 150 m² geschätzt → über 25 %: Hinweis beim Klick
+    expect(screen.getByRole('note')).toHaveTextContent(
+      'in Haus A 33 % der Fläche geschätzt',
+    )
     expect(
       (
         target.getByLabelText(
@@ -223,9 +227,12 @@ describe('ConsumptionRoute', () => {
     expect(
       screen.getByRole('button', { name: 'Alle fehlenden schätzen (0)' }),
     ).toBeDisabled()
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Haus A: 67 % der Fläche',
+    expect(screen.getByRole('note')).toHaveTextContent(
+      'Hinweis § 9a Abs. 2 HeizKV: Mit dieser Schätzung sind in Haus A 67 % der Fläche geschätzt.',
     )
+    expect(
+      screen.getByText(/Haus A: 67 % der Fläche geschätzt – Heizkosten werden/),
+    ).toBeVisible()
   })
 
   it('nennt den Grund, wenn nicht geschätzt werden kann', () => {

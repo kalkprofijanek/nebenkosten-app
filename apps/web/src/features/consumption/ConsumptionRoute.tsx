@@ -11,6 +11,7 @@ import {
   buildConsumptionOverview,
   ESTIMATED_SHARE_LIMIT,
   needsEstimate,
+  section9aHint,
   type ConsumptionRow,
   type ConsumptionStatus,
 } from './overview'
@@ -171,11 +172,13 @@ function ConsumptionTableRow({
   locked,
   highlighted,
   onSave,
+  onEstimate,
 }: {
   readonly row: ConsumptionRow
   readonly locked: boolean
   readonly highlighted: boolean
   readonly onSave: (row: ConsumptionRow, draft: Draft) => void
+  readonly onEstimate: (row: ConsumptionRow) => void
 }) {
   const initial = initialDraft(row)
   const [draft, setDraft] = useState(initial)
@@ -315,13 +318,14 @@ function ConsumptionTableRow({
                   type="button"
                   aria-label={`Verbrauch schätzen ${label}`}
                   title={estimate.reason}
-                  onClick={() =>
+                  onClick={() => {
                     set({
                       units: input(estimate.value),
                       estimated: true,
                       reason: estimate.reason,
                     })
-                  }
+                    onEstimate(row)
+                  }}
                 >
                   Schätzen ({decimal(estimate.value)})
                 </button>
@@ -413,6 +417,7 @@ function ConsumptionTable({
   )
   const { feedback, run } = useApply(onApply, period.id)
   const [onlyOpen, setOnlyOpen] = useState(false)
+  const [hint, setHint] = useState<string | null>(null)
   const [highlightId] = useState(requestedOccupancyId)
   const locked = period.status !== 'DRAFT'
   const estimable = overview.rows.filter(
@@ -442,6 +447,7 @@ function ConsumptionTable({
 
   function estimateAll() {
     const ids = estimable.map(({ occupancy }) => occupancy.id)
+    setHint(section9aHint(overview.rows, new Set(ids)))
     run((current) => {
       // Schätzungen nutzen nur gemessene Werte; die Reihenfolge ist egal.
       let next = current
@@ -488,19 +494,18 @@ function ConsumptionTable({
           gespeicherten Rechenstand dieses Jahres.
         </p>
       )}
+      {hint ? (
+        <p className="calculation-warnings" role="note" aria-live="polite">
+          {hint}
+        </p>
+      ) : null}
       {overview.estimatedShares
         .filter(({ estimatedShare }) => estimatedShare > ESTIMATED_SHARE_LIMIT)
         .map((share) => (
-          <p
-            key={share.buildingId}
-            className="calculation-warnings"
-            role="alert"
-          >
+          <p key={share.buildingId} className="consumption-note">
             {share.buildingName}: {Math.round(share.estimatedShare * 100)} % der
-            Fläche (zeitanteilig) sind geschätzt. Nach § 9a Abs. 2 HeizKV sind
-            die Kosten bei mehr als 25 % nur nach Fläche oder umbautem Raum zu
-            verteilen – bitte prüfen. Die Berechnung stellt das nicht
-            automatisch um.
+            Fläche geschätzt – Heizkosten werden nach § 9a Abs. 2 HeizKV
+            ausschließlich nach Fläche verteilt.
           </p>
         ))}
       <div className="consumption-toolbar">
@@ -565,6 +570,11 @@ function ConsumptionTable({
                   locked={locked}
                   highlighted={row.occupancy.id === highlightId}
                   onSave={save}
+                  onEstimate={(row) =>
+                    setHint(
+                      section9aHint(overview.rows, new Set([row.occupancy.id])),
+                    )
+                  }
                 />
               ))}
             </tbody>

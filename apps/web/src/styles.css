@@ -2144,3 +2144,9 @@ h1 {
   outline: 3px solid var(--mint);
   outline-offset: -3px;
 }
+
+.consumption-note {
+  margin: 0.5rem 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}

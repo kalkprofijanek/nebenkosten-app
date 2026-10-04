@@ -37,10 +37,19 @@ Browserfall `tests/e2e/consumption-page.spec.ts` bei 1440 px ohne
 horizontalen Seitenüberlauf. Bestehende Tests der Nutzerbearbeitung und
 Prüflinks wurden auf das neue Ziel angepasst.
 
+## § 9a Abs. 2 HeizKV (Nutzerentscheidung 4. Oktober 2026)
+
+„So wie es das Gesetz vorschreibt, dann nur ein Hinweis beim Klick“: Über
+25 % geschätzter Fläche je Heizkreis verteilt der Rechenkern die Heizkosten
+ausschließlich nach Fläche (Details in `docs/HEATING-CO2.md`). Die
+Verbrauchsseite zeigt beim Klick auf „Schätzen“ bzw. „Alle fehlenden
+schätzen“ einen Hinweis, sobald die Grenze dadurch überschritten wird, und
+danach eine ruhige Statuszeile. Kein Schemawechsel; neue optionale
+Trace-Felder. Charakterisierungsfälle unverändert (keine Schätzungen).
+
 ## Offene fachliche Entscheidungen
 
-- § 9a Abs. 2 HeizKV ist zwingend: Bei mehr als 25 % geschätzter Fläche sind
-  die Kosten ausschließlich nach Fläche oder umbautem Raum zu verteilen. Die
-  Seite zeigt dazu bisher nur einen Hinweis. Offen ist die Umsetzung im
-  Rechenkern (automatische Umstellung, Sperre der Freigabe oder Warnung).
+- Als „nicht ordnungsgemäß erfasst“ zählen nur als geschätzt markierte
+  Nutzungen; fehlende oder 0-Werte ohne Kennzeichen zählen nicht mit (die
+  Prüfung meldet sie gesondert).
 - Leerstandsverbrauch bleibt vorerst in der Nutzerbearbeitung.

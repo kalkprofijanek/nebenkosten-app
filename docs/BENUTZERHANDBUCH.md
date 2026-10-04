@@ -46,8 +46,9 @@ Die App startet leer. Legen Sie die Stammdaten in dieser Reihenfolge an
    Wohnungen desselben Gebäudes; **Alle fehlenden schätzen** erledigt das für
    alle offenen Zeilen. Ist keine Schätzung möglich, steht der Grund in der
    Zeile (z. B. fehlende Wohnfläche). Sind in einem Gebäude mehr als 25 % der
-   Fläche geschätzt, erscheint ein Hinweis: Nach § 9a Abs. 2 HeizKV ist dann
-   nur nach Fläche zu verteilen.
+   Fläche geschätzt, verteilt die Berechnung die Heizkosten dieses Gebäudes nach § 9a Abs. 2 HeizKV
+   automatisch nur nach Fläche; beim Klick auf „Schätzen“ erscheint dazu ein
+   Hinweis.
 6. **Vorauszahlungen** – monatliche Vorauszahlungen je Nutzer.
 
 Haben Sie Daten aus der früheren Einzeldatei-App (`nk-daten.json`), wählen

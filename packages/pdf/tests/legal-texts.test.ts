@@ -28,6 +28,16 @@ describe('legal-texts', () => {
     expect(text).not.toContain('Heizkostenverteiler')
   })
 
+  it('erläutert die reine Flächenverteilung nach § 9a Abs. 2 HeizKV', () => {
+    const text = heatingSplitExplanation(0, {
+      areaOnlySection9aPercent: 33.333,
+    })
+    expect(text).toContain('§ 9a Abs. 2 HeizKV')
+    expect(text).toContain('Für 33,3 % der beheizten Fläche')
+    expect(text).toContain('ausschließlich nach beheizter Fläche')
+    expect(text).not.toContain('nach erfasstem Verbrauch')
+  })
+
   it('formuliert die CO2-Mieteranteil-Zeile je nach Emissionsfreiheit', () => {
     expect(co2TenantShareLine(50, false)).toBe(
       'CO2-Kosten Mieteranteil 50 % (Stufenmodell § 5 CO2KostAufG)',

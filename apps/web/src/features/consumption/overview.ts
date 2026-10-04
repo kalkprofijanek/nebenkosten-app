@@ -1,4 +1,7 @@
-import { calculateOccupancyDays } from '@nebenkosten/core'
+import {
+  calculateOccupancyDays,
+  SECTION_9A_ESTIMATED_AREA_LIMIT,
+} from '@nebenkosten/core'
 import type {
   AppDataFile,
   BillingPeriod,
@@ -28,6 +31,8 @@ export interface ConsumptionRow {
   readonly to: string
   readonly days: number
   readonly areaSqm: number | null
+  /** Fläche wie im Rechenkern (beheizt, sonst Wohnfläche) für § 9a Abs. 2. */
+  readonly allocationAreaSqm: number
   readonly reading: HeatMeterReading | undefined
   readonly units: number | null
   readonly estimated: boolean
@@ -61,8 +66,8 @@ export interface ConsumptionOverview {
   readonly estimatedShares: readonly BuildingEstimateShare[]
 }
 
-/** § 9a Abs. 2 HeizKV: über 25 % geschätzter Fläche keine Verbrauchsverteilung. */
-export const ESTIMATED_SHARE_LIMIT = 0.25
+/** § 9a Abs. 2 HeizKV: über 25 % geschätzter Fläche nur Flächenverteilung. */
+export const ESTIMATED_SHARE_LIMIT = SECTION_9A_ESTIMATED_AREA_LIMIT
 
 const collator = new Intl.Collator('de-DE', { numeric: true })
 
@@ -142,6 +147,8 @@ export function buildConsumptionOverview(
         to: occupancy.to ?? period.periodEnd,
         days: days(occupancy.from, occupancy.to),
         areaSqm: unit?.heatedAreaSqm?.value ?? null,
+        allocationAreaSqm:
+          unit?.heatedAreaSqm?.value || unit?.usableAreaSqm?.value || 0,
         reading,
         units,
         estimated,
@@ -166,33 +173,67 @@ export function buildConsumptionOverview(
         left.from.localeCompare(right.from),
     )
 
+  return {
+    period,
+    rows,
+    openCount: rows.filter(needsEstimate).length,
+    estimatedShares: estimatedSharesWith(rows),
+  }
+}
+
+/**
+ * Geschätzter Flächenanteil je Gebäude wie im Rechenkern (§ 9a Abs. 2
+ * HeizKV); `additional` simuliert weitere Schätzungen vor dem Speichern.
+ */
+export function estimatedSharesWith(
+  rows: readonly ConsumptionRow[],
+  additional: ReadonlySet<string> = new Set(),
+): BuildingEstimateShare[] {
   const shares = new Map<
     string,
     { name: string; total: number; estimated: number }
   >()
   for (const row of rows) {
     if (row.buildingId === null || row.meteredCircuit) continue
-    const weight = (row.areaSqm ?? 0) * row.days
+    const weight = row.allocationAreaSqm * row.days
     const entry = shares.get(row.buildingId) ?? {
       name: row.buildingName,
       total: 0,
       estimated: 0,
     }
     entry.total += weight
-    if (row.estimated) entry.estimated += weight
+    if (row.estimated || additional.has(row.occupancy.id))
+      entry.estimated += weight
     shares.set(row.buildingId, entry)
   }
+  return [...shares]
+    .filter(([, entry]) => entry.total > 0 && entry.estimated > 0)
+    .map(([buildingId, entry]) => ({
+      buildingId,
+      buildingName: entry.name,
+      estimatedShare: entry.estimated / entry.total,
+    }))
+}
 
-  return {
-    period,
-    rows,
-    openCount: rows.filter(needsEstimate).length,
-    estimatedShares: [...shares]
-      .filter(([, entry]) => entry.total > 0 && entry.estimated > 0)
-      .map(([buildingId, entry]) => ({
-        buildingId,
-        buildingName: entry.name,
-        estimatedShare: entry.estimated / entry.total,
-      })),
-  }
+/** Hinweistext, wenn Schätzungen die Grenze von § 9a Abs. 2 überschreiten. */
+export function section9aHint(
+  rows: readonly ConsumptionRow[],
+  additional: ReadonlySet<string>,
+): string | null {
+  const before = new Map(
+    estimatedSharesWith(rows).map((share) => [share.buildingId, share]),
+  )
+  const crossed = estimatedSharesWith(rows, additional).filter(
+    (share) =>
+      share.estimatedShare > ESTIMATED_SHARE_LIMIT &&
+      (before.get(share.buildingId)?.estimatedShare ?? 0) <=
+        ESTIMATED_SHARE_LIMIT,
+  )
+  if (crossed.length === 0) return null
+  return crossed
+    .map(
+      (share) =>
+        `Hinweis § 9a Abs. 2 HeizKV: Mit dieser Schätzung sind in ${share.buildingName} ${Math.round(share.estimatedShare * 100)} % der Fläche geschätzt. Nach dem Speichern werden die Heizkosten von ${share.buildingName} ausschließlich nach Fläche verteilt; der Verbrauch wirkt sich dann nicht mehr aus.`,
+    )
+    .join(' ')
 }
