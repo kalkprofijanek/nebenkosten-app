@@ -72,6 +72,20 @@ export function workflowProgress(
         )
       )
     })(),
+    '/mietkonto': (() => {
+      const rentPayments = (data?.billingData.bankBookings ?? []).filter(
+        (booking) =>
+          period !== undefined &&
+          booking.propertyId === selection.propertyId &&
+          booking.category === 'MIETEINGANG' &&
+          booking.amountCents > 0 &&
+          booking.date?.startsWith(`${period.year}-`) === true,
+      )
+      return (
+        rentPayments.length > 0 &&
+        rentPayments.every(({ tenancyId }) => tenancyId != null)
+      )
+    })(),
     '/kosten':
       data?.billingData.costEntries.some(({ costCategoryId }) =>
         periodCategoryIds.has(costCategoryId),

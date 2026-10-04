@@ -89,6 +89,15 @@ Unter **Kosten**:
 3. Unter **Zahlungsnachweis** die Position mit der passenden Bankbuchung
    verknüpfen oder die externe Zahlung begründen.
 
+Ab dem zweiten Jahr übernimmt **„Kostenarten aus <Vorjahr> übernehmen“**
+alle noch fehlenden Kostenarten mit Umlageschlüssel, Anteilen und Text – ohne
+Beträge. Erfassen Sie danach nur noch die Rechnungen des neuen Jahres.
+
+Ist ein Lohnanteil hinterlegt, enthält jede Einzelabrechnung eine
+**Bescheinigung nach § 35a EStG** für die Steuererklärung des Mieters.
+Doppelt erfasste Rechnungen (gleiche Belegnummer oder gleicher Betrag am
+gleichen Tag) meldet die Prüfung als Hinweis.
+
 Achten Sie besonders auf:
 
 - **Leistungszeitraum statt Rechnungsdatum.** Maßgeblich ist, welches Jahr die
@@ -108,6 +117,22 @@ Ausprobieren: [`beispiel/bankbuchungen-beispiel.csv`](beispiel/bankbuchungen-bei
 
 Alle importierten Buchungen stehen zunächst auf „Offen“ und müssen einer
 Kategorie und dem Abrechnungsjahr zugeordnet werden.
+
+## 5a. Mietkonto
+
+Unter **Mietkonto** sehen Sie je Mietverhältnis und Monat, ob Kaltmiete und
+Vorauszahlung bezahlt sind. Voraussetzung: Kaltmiete am Mietverhältnis
+(**Nutzer**) und Mieteingänge als Bankbuchungen.
+
+- Nach jedem CSV-Import ordnet die App Mieteingänge **ohne Rückfrage** zu,
+  wenn Name oder Mandatsreferenz eindeutig zu genau einem Mietverhältnis
+  passen. Noch offene Eingänge werden nur zugeordnet, wenn der Betrag genau
+  dem Monatssoll entspricht.
+- Mehrdeutige oder unbekannte Zahlungen ordnen Sie auf der Seite von Hand zu.
+  Jede Zuordnung lässt sich wieder aufheben.
+- Die Nebenkostenabrechnung rechnet weiter mit den **vereinbarten**
+  Vorauszahlungen. Besteht laut Mietkonto ein Rückstand, zeigt die Prüfung
+  einen Hinweis.
 
 ## 6. Arbeiten mit Claude oder ChatGPT
 

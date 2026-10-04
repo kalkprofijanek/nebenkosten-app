@@ -77,6 +77,14 @@ export const appRoutes = [
       'Vorauszahlungen aller Mieter im Überblick pflegen und nach der Abrechnung nach § 560 BGB anpassen.',
   },
   {
+    path: '/mietkonto',
+    label: 'Mietkonto',
+    eyebrow: 'Zahlungen',
+    title: 'Mietkonto',
+    description:
+      'Soll und Ist je Monat: Kaltmiete und Vorauszahlung gegen die zugeordneten Mieteingänge.',
+  },
+  {
     path: '/kosten',
     label: 'Kosten',
     eyebrow: 'Betriebskosten',

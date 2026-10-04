@@ -1,4 +1,5 @@
 import {
+  calculateRentLedger,
   createCalculationInput,
   resolveMeteredConsumption,
   resolveShippingAddress,
@@ -18,6 +19,7 @@ import {
   wholeYear,
 } from './helpers'
 import { issue } from './issues'
+import { legalRule, legalRulesForPeriod } from './legal-rules'
 import { ambiguousCostEntries, heatingInformation } from './billing-information'
 
 type Add = (value: ValidationIssue) => void
@@ -1079,6 +1081,159 @@ function meterReadings(
   }
 }
 
+function normalizedDescription(value: string | null | undefined): string {
+  return (value ?? '').trim().replace(/\s+/gu, ' ').toLocaleLowerCase('de-DE')
+}
+
+/** Belegnummer ohne Groß-/Kleinschreibung, Leer- und Satzzeichen. */
+function normalizedReceipt(value: string | null | undefined): string {
+  return (value ?? '').toLocaleLowerCase('de-DE').replace(/[^\p{L}\p{N}]/gu, '')
+}
+
+/**
+ * Mögliche Doppelerfassung derselben Rechnung: gleiche Belegnummer im
+ * Abrechnungsjahr oder gleicher Betrag am gleichen Tag in derselben
+ * Kostenart. Ob es dieselbe Rechnung ist, entscheidet der Mensch; deshalb
+ * nur eine Warnung am später erfassten Beleg.
+ */
+function duplicateCostEntries(
+  data: AppDataFile,
+  period: BillingPeriod,
+  add: Add,
+): void {
+  const categoryIds = new Set(
+    periodCategories(data, period.id).map(({ id }) => id),
+  )
+  const seenReceipts = new Map<string, string>()
+  const seenAmounts = new Map<string, string[]>()
+  for (const entry of data.billingData.costEntries) {
+    if (!categoryIds.has(entry.costCategoryId)) continue
+    const receipt = normalizedReceipt(entry.receiptReference)
+    const amountKey =
+      entry.amountCents !== 0 && entry.date
+        ? `${entry.costCategoryId}|${entry.date}|${entry.amountCents}`
+        : ''
+    const description = normalizedDescription(entry.description)
+    const firstByReceipt = receipt ? seenReceipts.get(receipt) : undefined
+    // Gleiche Bezeichnung am selben Tag meldet bereits costs.entry_ambiguous.
+    const firstByAmount = amountKey
+      ? seenAmounts.get(amountKey)?.some((seen) => seen !== description)
+      : false
+    if (firstByReceipt || firstByAmount)
+      add(
+        issue(
+          'warning',
+          'costs.entry_possible_duplicate',
+          'costs',
+          'Rechnung möglicherweise doppelt erfasst',
+          {
+            entity: { type: 'CostEntry', id: entry.id },
+            detail: firstByReceipt
+              ? 'Ein anderer Beleg in diesem Abrechnungsjahr hat dieselbe Belegnummer.'
+              : 'Ein anderer Beleg derselben Kostenart hat denselben Betrag und dasselbe Datum.',
+          },
+        ),
+      )
+    if (receipt && !seenReceipts.has(receipt))
+      seenReceipts.set(receipt, entry.id)
+    if (amountKey)
+      seenAmounts.set(amountKey, [
+        ...(seenAmounts.get(amountKey) ?? []),
+        description,
+      ])
+  }
+}
+
+/** BetrKV-Kategorie „§ 2 Nr. 15“ in allen üblichen Schreibweisen. */
+function isCableTvCategory(value: string | null | undefined): boolean {
+  return /§\s*2\s*Nr\.?\s*15(?!\d)/iu.test(value ?? '')
+}
+
+/** Prüfungen aus dem Regelverzeichnis für den Abrechnungszeitraum. */
+function legalRules(data: AppDataFile, period: BillingPeriod, add: Add): void {
+  const codes = new Set(
+    legalRulesForPeriod(period.periodStart, period.periodEnd).map(
+      ({ code }) => code,
+    ),
+  )
+  if (codes.has('cable-tv-signal')) {
+    const rule = legalRule('cable-tv-signal')
+    for (const category of periodCategories(data, period.id))
+      if (isCableTvCategory(category.betrkvCategory))
+        add(
+          issue(
+            'warning',
+            'rules.cable_tv_signal',
+            'costs',
+            'Kabel-TV-Kosten prüfen',
+            {
+              entity: { type: 'CostCategory', id: category.id },
+              detail: `${rule.summary} (${rule.norm})`,
+            },
+          ),
+        )
+  }
+  if (
+    codes.has('remote-reading') &&
+    data.billingData.heatingCircuits.some(
+      ({ billingPeriodId }) => billingPeriodId === period.id,
+    )
+  ) {
+    const rule = legalRule('remote-reading')
+    add(
+      issue('info', 'rules.remote_reading', 'heating', rule.title, {
+        entity: { type: 'BillingPeriod', id: period.id },
+        detail: `${rule.summary} (${rule.norm})`,
+      }),
+    )
+  }
+}
+
+const euroFormatter = new Intl.NumberFormat('de-DE', {
+  style: 'currency',
+  currency: 'EUR',
+})
+
+function euro(cents: number): string {
+  return euroFormatter.format(cents / 100).replace(/\u00a0/gu, ' ')
+}
+
+/**
+ * Mietkonto (ADR-0003): Rückstand eines Mietverhältnisses im
+ * Abrechnungsjahr. Nur wenn dem Mietverhältnis im Jahr Zahlungen
+ * zugeordnet sind; die Abrechnung rechnet weiter mit dem Soll.
+ */
+function rentArrears(data: AppDataFile, period: BillingPeriod, add: Add): void {
+  for (const occupancy of periodOccupancies(data, period.id)) {
+    const tenancyId = occupancy.tenancyId
+    if (
+      occupancy.kind !== 'tenant' ||
+      !tenancyId ||
+      !data.masterData.tenancies.some(({ id }) => id === tenancyId)
+    )
+      continue
+    const ledger = calculateRentLedger(
+      data,
+      tenancyId,
+      period.year,
+      period.periodEnd,
+    )
+    if (ledger.payments.length === 0 || ledger.arrearsCents <= 0) continue
+    add(
+      issue(
+        'warning',
+        'rent.arrears',
+        'prepayments',
+        'Mietrückstand laut Mietkonto',
+        {
+          entity: { type: 'OccupancyPeriod', id: occupancy.id },
+          detail: `Laut Mietkonto fehlen ${euro(ledger.arrearsCents)} (Soll ${euro(ledger.dueToDateCents)}, gezahlt ${euro(ledger.paidCents)}). In der Abrechnung sind die vereinbarten Vorauszahlungen angesetzt; prüfen Sie, ob nur die tatsächlich gezahlten Vorauszahlungen angerechnet werden dürfen.`,
+        },
+      ),
+    )
+  }
+}
+
 export function collectStaticIssues(
   data: AppDataFile,
   period: BillingPeriod,
@@ -1089,6 +1244,9 @@ export function collectStaticIssues(
   periodChecks(period, add)
   occupancies(data, period, add)
   costs(data, period, add)
+  duplicateCostEntries(data, period, add)
+  legalRules(data, period, add)
+  rentArrears(data, period, add)
   ambiguousCostEntries(data, period, add)
   heating(data, period, add)
   heatingInformation(data, period, add)

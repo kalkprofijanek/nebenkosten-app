@@ -195,3 +195,11 @@ export function circuitAverageExplanation(
 ): string {
   return `Der mittlere Verbrauch im Heizkreis ergibt sich aus dem Gesamtverbrauch des Heizkreises (${totalConsumption}) geteilt durch die Fläche (${area}); er dient der Einordnung Ihres Verbrauchs innerhalb des Gebäudes.`
 }
+
+/**
+ * Erläuterung zur Bescheinigung nach § 35a EStG (Legacy: Hinweis zum
+ * geschätzten Lohnanteil). Keine Zuordnung zu Abs. 2 oder 3 – sie richtet
+ * sich nach der Art der Leistung (offene Entscheidung, keine Steuerberatung).
+ */
+export const SECTION_35A_NOTICE =
+  'Die Beträge sind Ihr Anteil an den in den Rechnungen enthaltenen Arbeits-, Maschinen- und Fahrtkosten (ohne Material), soweit sie in Ihren Betriebskosten enthalten sind; der Lohnanteil ist je Kostenart angegeben und kann auf Rechnungsangaben oder einer Schätzung beruhen. Ob es sich um haushaltsnahe Dienstleistungen (§ 35a Abs. 2 EStG) oder Handwerkerleistungen (§ 35a Abs. 3 EStG) handelt, richtet sich nach der Art der Leistung. Diese Angaben sind keine Steuerberatung.'

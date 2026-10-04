@@ -4,6 +4,7 @@ import {
   costEntrySchema,
   uuidSchema,
   type AppDataFile,
+  type BillingPeriod,
   type BookingLink,
   type CostCategory,
   type CostEntry,
@@ -553,4 +554,137 @@ export function deleteCostCategory(
       ),
     },
   })
+}
+
+/** Felder einer Kostenart, die als Regel ins Folgejahr übernommen werden. */
+const CARRY_OVER_KEYS = [
+  'standardKey',
+  'kind',
+  'label',
+  'statementText',
+  'betrkvCategory',
+  'allocationKey',
+  'scope',
+  'isOperatingElectricitySource',
+  'hideWhenZero',
+  'allocablePercent',
+  'laborSharePercent',
+] as const satisfies readonly (keyof CostCategory)[]
+
+export interface PreviousYearCostCategories {
+  readonly sourcePeriod: BillingPeriod | undefined
+  /** Kostenarten des Vorjahres, die im Zieljahr noch fehlen. */
+  readonly candidates: readonly CostCategory[]
+  /** Kostenarten des Vorjahres, die im Zieljahr schon vorhanden sind. */
+  readonly existingCount: number
+}
+
+export interface CopyCostCategoriesResult {
+  readonly data: AppDataFile
+  readonly sourceYear: number
+  readonly copiedCount: number
+  readonly skippedCount: number
+}
+
+function normalizedLabel(value: string): string {
+  return value.trim().toLocaleLowerCase('de-DE')
+}
+
+function sameCategory(left: CostCategory, right: CostCategory): boolean {
+  if (left.standardKey && right.standardKey)
+    return left.standardKey === right.standardKey
+  return (
+    left.kind === right.kind &&
+    normalizedLabel(left.label) === normalizedLabel(right.label)
+  )
+}
+
+/**
+ * Kostenarten des jüngsten früheren Abrechnungsjahres derselben
+ * Liegenschaft, die im Zieljahr noch fehlen (gleicher Standardschlüssel,
+ * sonst gleiche Art und Bezeichnung).
+ */
+export function previousYearCostCategories(
+  file: AppDataFile,
+  billingPeriodId: string,
+): PreviousYearCostCategories {
+  const target = file.billingData.billingPeriods.find(
+    ({ id }) => id === billingPeriodId,
+  )
+  const sourcePeriod = target
+    ? file.billingData.billingPeriods
+        .filter(
+          ({ propertyId, year }) =>
+            propertyId === target.propertyId && year < target.year,
+        )
+        .sort((left, right) => right.year - left.year)[0]
+    : undefined
+  if (!target || !sourcePeriod)
+    return { sourcePeriod, candidates: [], existingCount: 0 }
+  const existing = file.billingData.costCategories.filter(
+    (category) => category.billingPeriodId === target.id,
+  )
+  const previous = file.billingData.costCategories.filter(
+    (category) => category.billingPeriodId === sourcePeriod.id,
+  )
+  const candidates = previous.filter(
+    (category) => !existing.some((current) => sameCategory(current, category)),
+  )
+  return {
+    sourcePeriod,
+    candidates,
+    existingCount: previous.length - candidates.length,
+  }
+}
+
+/**
+ * Übernimmt die Regeln fehlender Kostenarten aus dem Vorjahr – ohne
+ * Beträge, Belege und Rechnungsdatum. Die Beträge des neuen Jahres werden
+ * danach als Kostenpositionen erfasst.
+ */
+export function copyCostCategoriesFromPreviousYear(
+  file: AppDataFile,
+  billingPeriodId: string,
+  createId: IdFactory = () => crypto.randomUUID(),
+): CopyCostCategoriesResult {
+  if (!file.billingData.billingPeriods.some(({ id }) => id === billingPeriodId))
+    throw new CostCommandError('Abrechnungsjahr wurde nicht gefunden.')
+  const { sourcePeriod, candidates, existingCount } =
+    previousYearCostCategories(file, billingPeriodId)
+  if (!sourcePeriod)
+    throw new CostCommandError('Für diese Liegenschaft gibt es kein Vorjahr.')
+  if (candidates.length === 0)
+    throw new CostCommandError(
+      'Im Vorjahr gibt es keine Kostenarten, die noch fehlen.',
+    )
+  let working = file
+  const copied: CostCategory[] = []
+  for (const source of candidates) {
+    const id = uniqueId(working, createId)
+    const rule = Object.fromEntries(
+      CARRY_OVER_KEYS.filter((key) => source[key] != null).map((key) => [
+        key,
+        source[key],
+      ]),
+    )
+    const category = parseEntity<CostCategory>(
+      costCategorySchema,
+      { id, billingPeriodId, ...rule },
+      'Kostenart',
+    )
+    copied.push(category)
+    working = {
+      ...working,
+      billingData: {
+        ...working.billingData,
+        costCategories: [...working.billingData.costCategories, category],
+      },
+    }
+  }
+  return {
+    data: validatedFile(working),
+    sourceYear: sourcePeriod.year,
+    copiedCount: copied.length,
+    skippedCount: existingCount,
+  }
 }

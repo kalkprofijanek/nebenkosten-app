@@ -244,6 +244,23 @@ export interface TenantAllocationBasis {
   consumptionUnit: 'kWh' | 'Einheiten'
 }
 
+/** Lohnanteil einer Kostenart, der auf diesen Nutzer entfällt (§ 35a EStG). */
+export interface TenantSection35aItem {
+  costCategoryId: string
+  laborCents: number
+}
+
+/**
+ * Geschätzter Lohn-/Fahrtkostenanteil für die Steuererklärung des Mieters
+ * (§ 35a EStG, Legacy `lohn35a`). Rein informativ, ohne Einfluss auf Anteil
+ * und Saldo. Heizungs-Betriebskosten werden nach dem Anteil des Nutzers an
+ * Grund- und Verbrauchskosten seines Heizkreises zugerechnet.
+ */
+export interface TenantSection35a {
+  totalCents: number
+  items: TenantSection35aItem[]
+}
+
 export interface TenantCalculationResult {
   id: string
   isVacancy: boolean
@@ -257,6 +274,8 @@ export interface TenantCalculationResult {
   /** Nutzungstage ÷ Periodentage (Kalendertage, § 9b HeizKV). */
   timeFactor?: number
   ownBasis?: TenantAllocationBasis
+  /** § 35a EStG; fehlt in Snapshots vor seiner Einführung. */
+  section35a?: TenantSection35a
 }
 
 /**

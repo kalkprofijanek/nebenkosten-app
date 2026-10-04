@@ -84,5 +84,12 @@ export const bankBookingSchema = z.strictObject({
   /** Hauswartvertrags-Buchung mit spezieller Split-Vorlage (Legacy). */
   isCaretakerContract: z.boolean().nullish(),
   importedAt: isoTimestampSchema.nullish(),
+  /**
+   * Mietkonto (ab 1.4.0, ADR-0003): Mietverhältnis, dem ein Mieteingang
+   * zugeordnet ist. Ohne Einfluss auf die Nebenkostenberechnung.
+   */
+  tenancyId: entityIdSchema.nullish(),
+  /** Herkunft der Zuordnung: eindeutig automatisch oder von Hand. */
+  tenancyAssignment: z.enum(['auto', 'manual']).nullish(),
 })
 export type BankBooking = z.infer<typeof bankBookingSchema>

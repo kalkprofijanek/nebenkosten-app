@@ -22,10 +22,13 @@ import {
   decodeBankBookingCsv,
   parseBankBookingCsv,
 } from '../costs/bank-booking-csv'
+import { autoAssignRentPayments } from '../rent-ledger/commands'
 import { TableToolbar } from '../../components/TableToolbar'
 import { CostDataOverview } from '../costs/CostDataOverview'
 import {
   addCostCategory,
+  copyCostCategoriesFromPreviousYear,
+  previousYearCostCategories,
   addCostEntry,
   deleteCostCategory,
   deleteCostEntry,
@@ -344,6 +347,7 @@ export function CostsRoute({
   const [entrySearch, setEntrySearch] = useState('')
   const [entryFilter, setEntryFilter] = useState('all')
   const [importNotice, setImportNotice] = useState<string | null>(null)
+  const [categoryNotice, setCategoryNotice] = useState<string | null>(null)
   const [entryFormVersion, setEntryFormVersion] = useState(0)
   const period = data.billingData.billingPeriods.find(
     ({ id }) => id === selection.billingPeriodId,
@@ -433,6 +437,25 @@ export function CostsRoute({
     }
   }
 
+  const carryOver = previousYearCostCategories(data, period.id)
+
+  function copyFromPreviousYear() {
+    setCategoryNotice(null)
+    let copiedCount = 0
+    let sourceYear = 0
+    if (
+      apply((current) => {
+        const result = copyCostCategoriesFromPreviousYear(current, period.id)
+        copiedCount = result.copiedCount
+        sourceYear = result.sourceYear
+        return result.data
+      })
+    )
+      setCategoryNotice(
+        `${copiedCount} ${copiedCount === 1 ? 'Kostenart' : 'Kostenarten'} aus ${sourceYear} übernommen. Beträge bitte als Kostenpositionen erfassen.`,
+      )
+  }
+
   function createCategory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
@@ -496,15 +519,22 @@ export function CostsRoute({
       )
       let addedCount = 0
       let duplicateCount = 0
+      let rentCount = 0
       const accepted = apply((current) => {
         const result = importBankBookings(current, period.propertyId, rows)
         addedCount = result.addedCount
         duplicateCount = result.duplicateCount
-        return result.data
+        const rent = autoAssignRentPayments(result.data, period.propertyId)
+        rentCount = rent.assignedCount
+        return rent.data
       })
       if (accepted) {
         setImportNotice(
-          `${addedCount} Buchungen importiert, ${duplicateCount} Duplikate übersprungen. Alle neuen Buchungen stehen auf „Offen“.`,
+          `${addedCount} Buchungen importiert, ${duplicateCount} Duplikate übersprungen. ${
+            rentCount > 0
+              ? `${rentCount} Mieteingänge wurden eindeutig einem Mietverhältnis zugeordnet (Mietkonto), alle übrigen neuen Buchungen stehen auf „Offen“.`
+              : 'Alle neuen Buchungen stehen auf „Offen“.'
+          }`,
         )
       }
     } catch (caught) {
@@ -629,6 +659,17 @@ export function CostsRoute({
 
       {activeTab === 'categories' ? (
         <>
+          {carryOver.sourcePeriod && carryOver.candidates.length > 0 ? (
+            <p>
+              <button type="button" onClick={copyFromPreviousYear}>
+                Kostenarten aus {carryOver.sourcePeriod.year} übernehmen (
+                {carryOver.candidates.length})
+              </button>{' '}
+              Übernimmt Bezeichnung, Umlageschlüssel und Anteile – ohne Beträge
+              und Belege.
+            </p>
+          ) : null}
+          {categoryNotice ? <p role="status">{categoryNotice}</p> : null}
           <form noValidate onSubmit={createCategory}>
             <CategoryFields category={undefined} buildings={buildings} />
             <button type="submit">Kostenart anlegen</button>

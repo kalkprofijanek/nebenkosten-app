@@ -1021,6 +1021,48 @@ describe('WorkflowRoute', () => {
     ).toBeVisible()
   })
 
+  it('übernimmt fehlende Kostenarten aus dem Vorjahr ohne Beträge', () => {
+    let data = createBillingPeriod(
+      seededData(),
+      { propertyId: SEEDED_IDS.property, year: 2025 },
+      { createId: () => '20000000-0000-4000-8000-0000000000a1' },
+    )
+    data = addCostCategory(
+      data,
+      {
+        billingPeriodId: '20000000-0000-4000-8000-0000000000a1',
+        kind: 'operating',
+        label: 'Gebäudereinigung',
+        allocationKey: 'residential_units',
+        totalAmountCents: 48_000,
+      },
+      () => '20000000-0000-4000-8000-0000000000a2',
+    )
+    const result = renderRoute('/kosten', data, SEEDED_SELECTION)
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Kostenarten aus 2025 übernehmen (1)',
+      }),
+    )
+
+    const copied = result
+      .getData()
+      .billingData.costCategories.filter(
+        ({ billingPeriodId }) => billingPeriodId === SEEDED_IDS.period,
+      )
+    expect(copied).toEqual([
+      expect.objectContaining({
+        label: 'Gebäudereinigung',
+        allocationKey: 'residential_units',
+      }),
+    ])
+    expect(copied[0]?.totalAmountCents).toBeUndefined()
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '1 Kostenart aus 2025 übernommen. Beträge bitte als Kostenpositionen erfassen.',
+    )
+  })
+
   it('erfasst Kostenarten und beliebig viele Positionen getrennt', () => {
     const result = renderRoute('/kosten', seededData(), SEEDED_SELECTION)
 

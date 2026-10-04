@@ -59,6 +59,7 @@ import {
   OBJECTION_NOTICE,
   PROPERTY_DATA_HEADING,
   ROUNDING_DIFFERENCE_NOTICE,
+  SECTION_35A_NOTICE,
   TIME_FACTOR_EXPLANATION,
   additionalPaymentText,
   baseAreaLabel,
@@ -751,6 +752,70 @@ function co2Section(context: TenantStatementContext): Content[] {
   )
 }
 
+/** Bescheinigung nach § 35a EStG; entfällt ohne erfassten Lohnanteil. */
+function section35aContent(context: TenantStatementContext): Content[] {
+  const section = tenantResult(context).section35a
+  if (!section || section.items.length === 0) return []
+  const categoriesById = new Map(
+    context.costCategories.map((category) => [category.id, category]),
+  )
+  const rows = section.items.map(({ costCategoryId, laborCents }) => {
+    const category = categoriesById.get(costCategoryId)
+    const row: TableCell[] = [
+      { text: category?.statementText ?? category?.label ?? costCategoryId },
+      {
+        text:
+          category?.laborSharePercent != null
+            ? formatPercent(category.laborSharePercent)
+            : '',
+        alignment: 'right',
+        noWrap: true,
+      },
+      { text: formatEuroCents(laborCents), alignment: 'right', noWrap: true },
+    ]
+    return row
+  })
+  return [
+    {
+      text: 'Bescheinigung nach § 35a EStG',
+      style: 'th',
+      margin: [0, 8, 0, 4],
+    },
+    {
+      table: {
+        headerRows: 1,
+        widths: ['*', 'auto', 'auto'],
+        body: [
+          [
+            { text: 'Kostenart', bold: true },
+            { text: 'Lohnanteil', bold: true, alignment: 'right' },
+            { text: 'Ihr Anteil', bold: true, alignment: 'right' },
+          ],
+          ...rows,
+          [
+            { text: 'Summe', bold: true, fillColor: LIGHT_FILL },
+            { text: '', fillColor: LIGHT_FILL },
+            {
+              text: formatEuroCents(section.totalCents),
+              bold: true,
+              alignment: 'right',
+              noWrap: true,
+              fillColor: LIGHT_FILL,
+            },
+          ],
+        ],
+      },
+      layout: 'lightHorizontalLines',
+      margin: [0, 0, 0, 4],
+    },
+    {
+      text: SECTION_35A_NOTICE,
+      fontSize: 8,
+      color: MUTED,
+      margin: [0, 0, 0, 8],
+    },
+  ]
+}
 type PreviousPeriodComparison =
   | { readonly kind: 'no_period' }
   | { readonly kind: 'not_resident' }
@@ -1194,6 +1259,7 @@ export function buildTenantStatement(
       ...meteringStatement(context.calculation, context.occupancyPeriod.id),
       ...co2Section(context),
       ...consumptionInformation(context, facts),
+      ...section35aContent(context),
       {
         text: TIME_FACTOR_EXPLANATION,
         fontSize: 8,

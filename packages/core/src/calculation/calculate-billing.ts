@@ -18,6 +18,7 @@ import {
   type OperatingPositionTrace,
   type TenantAllocationBasis,
   type TenantCostBreakdown,
+  type TenantSection35a,
 } from '../contracts'
 import { calculateOccupancyDays, calculatePeriodDays } from '../periods'
 import { calculatePrepaymentCents } from '../prepayments'
@@ -773,6 +774,88 @@ function rawTenantShare(
 }
 
 /**
+ * § 35a EStG: Lohnanteil je Kostenart, der auf diesen Nutzer entfällt
+ * (Legacy `lohn35a`). Betriebs- und Wasserkosten: Anteil des Nutzers ×
+ * Lohnanteil der Kostenart. Heizungs-Betriebskosten des Heizkreises:
+ * umlagefähiger Betrag × Lohnanteil × Anteil des Nutzers an Grund- und
+ * Verbrauchskosten (ohne Kürzung nach § 12 HeizKV, wie Legacy).
+ */
+function rawTenantSection35a(
+  context: OccupancyContext,
+  positions: readonly RawCostPosition[],
+  circuits: readonly RawCircuitResult[],
+  defaultsBasis: 'usable_area' | 'heated_area',
+  measuredKwhByOccupancy?: ReadonlyMap<string, number>,
+  measuredKwhDenominatorByBuildingId?: ReadonlyMap<string, number>,
+): TenantSection35a {
+  const laborPercent = (position: RawCostPosition) =>
+    (position.category.laborSharePercent ?? 0) / 100
+  const circuit = circuits.find(
+    ({ buildingId }) => buildingId === context.buildingId,
+  )
+  const isMeteredOccupancy = Boolean(
+    circuit &&
+    measuredKwhDenominatorByBuildingId?.has(context.buildingId ?? ''),
+  )
+  const exactItems = positions
+    .filter(
+      (position) =>
+        laborPercent(position) > 0 &&
+        position.category.kind !== 'heating' &&
+        position.category.betrkvCategory !== 'NICHT_UML' &&
+        position.category.allocationKey !== 'direct' &&
+        !isExcludedFromOperatingShare(position.category),
+    )
+    .map((position) => ({
+      costCategoryId: position.category.id,
+      exactCents:
+        costShare(
+          position,
+          context,
+          isMeteredOccupancy ? measuredKwhByOccupancy : undefined,
+          measuredKwhDenominatorByBuildingId,
+        ) * laborPercent(position),
+    }))
+  if (circuit && circuit.heatingTotal > 0) {
+    const baseArea =
+      defaultsBasis === 'usable_area' ? context.usableArea : context.heatedArea
+    const tenantHeating =
+      circuit.basePrice * baseArea * context.timeFactor +
+      circuit.consumptionPrice *
+        (isMeteredOccupancy
+          ? (measuredKwhByOccupancy!.get(context.occupancy.id) ?? 0)
+          : context.consumptionUnits)
+    const heatingFraction = tenantHeating / circuit.heatingTotal
+    for (const position of positions) {
+      if (
+        laborPercent(position) > 0 &&
+        position.category.kind === 'heating' &&
+        position.category.scope?.kind === 'building' &&
+        position.category.scope.buildingId === circuit.buildingId
+      ) {
+        exactItems.push({
+          costCategoryId: position.category.id,
+          exactCents:
+            position.effectiveAmount * laborPercent(position) * heatingFraction,
+        })
+      }
+    }
+  }
+  const items = exactItems
+    .map(({ costCategoryId, exactCents }) => ({
+      costCategoryId,
+      laborCents: roundCentsHalfAwayFromZero(exactCents),
+    }))
+    .filter(({ laborCents }) => laborCents !== 0)
+  return {
+    totalCents: roundCentsHalfAwayFromZero(
+      exactItems.reduce((sum, { exactCents }) => sum + exactCents, 0),
+    ),
+    items,
+  }
+}
+
+/**
  * Zusätzliche, rein informative Aufschlüsselung je Mieter für die
  * Einzelabrechnung (PR 11). Berechnet unabhängig von `rawTenantShare` und
  * hat keinerlei Einfluss auf `shareCents`/`balanceCents` oder die
@@ -1032,6 +1115,14 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
         context,
         measuredKwhByOccupancy,
         measuredBuildingIds,
+      ),
+      section35a: rawTenantSection35a(
+        context,
+        positions,
+        circuits,
+        defaultsBasis,
+        usesMeteredConsumption ? measuredKwhByOccupancy : undefined,
+        usesMeteredConsumption ? measuredKwhDenominatorByBuildingId : undefined,
       ),
     }
   })

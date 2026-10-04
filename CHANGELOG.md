@@ -2,6 +2,33 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
+## Unveröffentlicht
+
+- **Mietkonto** (neue Seite): Soll aus Kaltmiete und Vorauszahlung je
+  Monat, Ist aus zugeordneten Mieteingängen, Monatsübersicht
+  (bezahlt/teilweise/offen), Rückstand und Guthaben. Eindeutige Mieteingänge
+  werden nach dem CSV-Import automatisch zugeordnet (Name oder
+  Mandatsreferenz), mehrdeutige von Hand. Die Abrechnung rechnet weiter mit
+  den vereinbarten Vorauszahlungen; ein Rückstand erscheint als Prüfhinweis
+  (ADR-0003, Schema v5 additiv um `tenancyId`/`tenancyAssignment` ergänzt),
+- **Regelverzeichnis**: Rechtsregeln mit Geltungszeitraum; Warnung bei
+  Kabel-TV-Kosten (§ 2 Nr. 15 BetrKV) nach dem 30.06.2024, Hinweis auf
+  Fernablesbarkeit nach HeizkostenV ab dem Abrechnungsjahr 2027,
+- Einzelabrechnung: **Bescheinigung nach § 35a EStG** mit dem Lohnanteil je
+  Kostenart und Summe. Der Lohnanteil wurde schon erfasst, seit der Migration
+  aber nicht mehr ausgewiesen (Alt-App: Hinweis `lohn35a`). Heizungs-Wartung
+  wird nach dem Anteil an Grund- und Verbrauchskosten zugerechnet,
+- Kosten: **„Kostenarten aus <Vorjahr> übernehmen“** legt fehlende
+  Kostenarten mit Umlageschlüssel, Anteilen und Abrechnungstext an – ohne
+  Beträge und Belege,
+- Prüfhinweis **„Rechnung möglicherweise doppelt erfasst“** bei gleicher
+  Belegnummer im Abrechnungsjahr oder gleichem Betrag am gleichen Tag in
+  derselben Kostenart,
+- Prüfkatalog mit **Handrechnung**: sieben Fälle (Mieterwechsel, Schaltjahr
+  und Leerstand, Restcent, nicht umlagefähige Anteile, gemischte Schlüssel,
+  Heizöl-FIFO mit CO₂-Aufteilung manuell und nach Stufenmodell, § 35a), von
+  Hand aus der Rechtslage hergeleitet und ohne Toleranz geprüft.
+
 ## 1.3.0 – 4. Oktober 2026
 
 - Neuer Arbeitsbereich „Verbrauch“ (zwischen „Nutzer“ und

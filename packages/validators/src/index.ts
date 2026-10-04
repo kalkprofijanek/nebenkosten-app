@@ -18,3 +18,10 @@ export {
   type ValidationOptions,
   type ValidationReport,
 } from './types'
+export {
+  LEGAL_RULES,
+  LEGAL_RULES_AS_OF,
+  legalRule,
+  legalRulesForPeriod,
+  type LegalRule,
+} from './legal-rules'
