@@ -177,25 +177,25 @@ Neu als eigene Entität (v3 vermischt Einheit, Person und Vertrag im
 
 ### 3.8 OccupancyPeriod / Nutzungszeitraum (`occupancyPeriodSchema`)
 
-| Feld                             | Typ                   | P/opt                      | Legacy                                                                       |
-| -------------------------------- | --------------------- | -------------------------- | ---------------------------------------------------------------------------- |
-| `id`                             | EntityId              | P                          | — (neu)                                                                      |
-| `billingPeriodId`, `unitId`      | EntityId              | P                          | Position im Baum                                                             |
-| `tenancyId`                      | EntityId              | opt (`null` bei Leerstand) | `Nutzer.id`                                                                  |
-| `kind`                           | `tenant` \| `vacancy` | P                          | `istLeerstand()`-Disjunktion                                                 |
-| `legacyActiveFlag`               | string                | opt                        | `aktiv` (Anzeige-Ampel, ohne Rechenwirkung)                                  |
-| `displayOrder`                   | int                   | opt                        | `nr`                                                                         |
-| `from`, `to`                     | IsoDate               | opt                        | `eingezogen`, `ausgezogen` (auf Periode bezogen)                             |
-| `persons`                        | Quantity(personen)    | opt                        | `personen`                                                                   |
-| `consumptionUnits`               | Quantity(einheiten)   | opt                        | `einheiten`                                                                  |
-| `consumptionUnitsEstimated`      | boolean               | opt                        | `einheiten_geschaetzt`                                                       |
-| `consumptionUnitsEstimateReason` | string                | opt                        | `einheiten_schatz_grund`                                                     |
+| Feld                             | Typ                   | P/opt                      | Legacy                                           |
+| -------------------------------- | --------------------- | -------------------------- | ------------------------------------------------ |
+| `id`                             | EntityId              | P                          | — (neu)                                          |
+| `billingPeriodId`, `unitId`      | EntityId              | P                          | Position im Baum                                 |
+| `tenancyId`                      | EntityId              | opt (`null` bei Leerstand) | `Nutzer.id`                                      |
+| `kind`                           | `tenant` \| `vacancy` | P                          | `istLeerstand()`-Disjunktion                     |
+| `legacyActiveFlag`               | string                | opt                        | `aktiv` (Anzeige-Ampel, ohne Rechenwirkung)      |
+| `displayOrder`                   | int                   | opt                        | `nr`                                             |
+| `from`, `to`                     | IsoDate               | opt                        | `eingezogen`, `ausgezogen` (auf Periode bezogen) |
+| `persons`                        | Quantity(personen)    | opt                        | `personen`                                       |
+| `consumptionUnits`               | Quantity(einheiten)   | opt                        | `einheiten`                                      |
+| `consumptionUnitsEstimated`      | boolean               | opt                        | `einheiten_geschaetzt`                           |
+| `consumptionUnitsEstimateReason` | string                | opt                        | `einheiten_schatz_grund`                         |
 | `heatMeterReading`               | HeatMeterReading      | opt (ab 1.2.1)             | `wmz_nr`, `wmz_stand_alt`, `wmz_datum_alt`, `wmz_stand_neu`, `wmz_datum_neu` |
-| `applySection12Reduction`        | boolean               | opt                        | `kuerzung12_anwenden` (§ 12 HeizKV)                                          |
-| `costScope`, `propertyTaxScope`  | AllocationScope       | opt                        | `kosten_scope`, `grundsteuer_key`                                            |
-| `coldWater`, `warmWater`         | Quantity(m3)          | opt                        | `kaltwasser_m3`, `wasser_m3`                                                 |
-| `dispatchDate`                   | IsoDate               | opt                        | `versanddatum_nutzer`                                                        |
-| `note`                           | string                | opt                        | `bemerkung`                                                                  |
+| `applySection12Reduction`        | boolean               | opt                        | `kuerzung12_anwenden` (§ 12 HeizKV)              |
+| `costScope`, `propertyTaxScope`  | AllocationScope       | opt                        | `kosten_scope`, `grundsteuer_key`                |
+| `coldWater`, `warmWater`         | Quantity(m3)          | opt                        | `kaltwasser_m3`, `wasser_m3`                     |
+| `dispatchDate`                   | IsoDate               | opt                        | `versanddatum_nutzer`                            |
+| `note`                           | string                | opt                        | `bemerkung`                                      |
 
 `HeatMeterReading` (`heatMeterReadingSchema`, strikt, alle Felder
 `nullish`): `meterNumber` (string), `startValue`/`endValue` (endliche Zahl,
