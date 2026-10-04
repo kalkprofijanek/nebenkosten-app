@@ -654,15 +654,20 @@ function consumptionCapture(
   const hasHotWater = circuit.warmWater.method !== 'none'
   if (hasHotWater)
     lines.push(`Warmwasser = ${formatEuroCents(costBreakdown.hotWaterCents)}`)
-  lines.push(
-    `Heizkosten gesamt = Grundkosten + Verbrauchskosten${hasHotWater ? ' + Warmwasser' : ''} = ${[
-      costBreakdown.heatingBaseCents,
-      costBreakdown.heatingConsumptionCents,
-      ...(hasHotWater ? [costBreakdown.hotWaterCents] : []),
-    ]
-      .map(formatEuroCents)
-      .join(' + ')} = ${formatEuroCents(heatingTotalCents(tenant))}`,
-  )
+  if (split.areaOnlySection9a && !hasHotWater)
+    lines.push(
+      `Heizkosten gesamt = Heizkosten nach Fläche = ${formatEuroCents(heatingTotalCents(tenant))}`,
+    )
+  else
+    lines.push(
+      `Heizkosten gesamt = Grundkosten + Verbrauchskosten${hasHotWater ? ' + Warmwasser' : ''} = ${[
+        costBreakdown.heatingBaseCents,
+        costBreakdown.heatingConsumptionCents,
+        ...(hasHotWater ? [costBreakdown.hotWaterCents] : []),
+      ]
+        .map(formatEuroCents)
+        .join(' + ')} = ${formatEuroCents(heatingTotalCents(tenant))}`,
+    )
   if (costBreakdown.heatingCo2Cents !== 0 && co2.tenantCents !== 0) {
     const co2BasePrice =
       split.baseDenominator > 0
@@ -973,7 +978,9 @@ function consumptionInformation(
       'Ihr Verbrauch im Nutzungszeitraum',
       `${formatNumber(facts.basis.consumption)} ${unit}${
         ownArea > 0
-          ? ` (${formatNumber(facts.basis.consumption / ownArea)} ${unit} je m²)`
+          ? facts.days < facts.periodDays && facts.days > 0
+            ? ` (${formatNumber((facts.basis.consumption / ownArea) * (facts.periodDays / facts.days))} ${unit} je m², auf ein ganzes Jahr hochgerechnet)`
+            : ` (${formatNumber(facts.basis.consumption / ownArea)} ${unit} je m²)`
           : ''
       }`,
     ],

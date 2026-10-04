@@ -273,6 +273,7 @@ function deliveryLabel(appData: AppDataFile, lot: FuelLotTrace): string {
   // Die Belegbezeichnung zeigt, woher der Zugang stammt (z. B. der vom
   // Voreigentümer übernommene Verbrauch), statt nur „Lieferung“ zu nennen.
   const description = lotDescription(appData, lot)
+  if (description?.startsWith('Verbrauch ')) return `+ ${description}`
   const head = `+ Lieferung ${formatIsoDate(lot.date)}`
   return description ? `${head}: ${description}` : head
 }
@@ -775,7 +776,8 @@ export function co2Table(
       margin: [0, 0, 0, 2],
     },
     {
-      text: `${co2LandlordDeductedSentence(formatEuroCents(co2.landlordCents))} ${co2DistributionSentence(split.baseSharePercent, split.consumptionSharePercent, split.baseAreaBasis)}`,
+      // Bei 0 € Vermieteranteil (Stufe 1) wäre der Abzugssatz irreführend.
+      text: `${co2.landlordCents !== 0 ? `${co2LandlordDeductedSentence(formatEuroCents(co2.landlordCents))} ` : ''}${co2DistributionSentence(split.baseSharePercent, split.consumptionSharePercent, split.baseAreaBasis)}`,
       fontSize: 8,
       color: MUTED,
       margin: [0, 0, 0, 8],

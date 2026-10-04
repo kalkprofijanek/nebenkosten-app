@@ -202,7 +202,7 @@ describe('Rechtliche Nachbesserungen', () => {
     const context = buildFixtureTenantStatementContext(buildFixtureAppData())
     const serialized = text(buildTenantStatement(context))
     expect(serialized).toContain(
-      'Aufgrund der Berechnung mit ungerundeten Einzelwerten können Rundungsdifferenzen von 0,01 € auftreten.',
+      'Aufgrund der Berechnung mit ungerundeten Einzelwerten können Rundungsdifferenzen von wenigen Cent auftreten.',
     )
     expect(serialized).toContain('Liegenschafts- und Abrechnungsdaten')
     expect(serialized).not.toContain('Liegenschaftsdaten (§ 259 BGB)')

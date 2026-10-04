@@ -501,9 +501,19 @@ function rawCircuitResults(
         kind: 'building',
         buildingId,
       })
+      // Trägt ein Leerstand Heizverbrauch (z. B. nach Gradtagszahlen
+      // aufgeteilt, § 9b HeizKV), wird er ihm auch berechnet – dann muss er
+      // im Nenner stehen, sonst wird mehr verteilt als angefallen ist.
+      const vacancyConsumptionUnits = circuitContexts
+        .filter(
+          (context) =>
+            context.occupancy.kind === 'vacancy' &&
+            occupancyMatchesScope(context, { kind: 'building', buildingId }),
+        )
+        .reduce((sum, context) => sum + context.consumptionUnits, 0)
       const consumptionDenominator =
         measuredKwhDenominatorByBuildingId?.get(buildingId) ??
-        basis.consumptionUnits
+        basis.consumptionUnits + vacancyConsumptionUnits
       const heatedArea = basis.heatedArea
       const automaticIntensity =
         heatedArea > 0 ? (fuel.co2Kg * (365 / periodDays)) / heatedArea : 0
