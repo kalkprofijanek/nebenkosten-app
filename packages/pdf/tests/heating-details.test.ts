@@ -213,6 +213,29 @@ describe('Rechtliche Nachbesserungen', () => {
     )
     const billingPeriodId = appData.billingData.billingPeriods[0]!.id
     expect(meteringFeeCents(appData, billingPeriodId, 'B1')).toBe(20_000)
+    expect(
+      meteringFeeCents(
+        {
+          ...appData,
+          billingData: {
+            ...appData.billingData,
+            costEntries: appData.billingData.costEntries.map((entry) => ({
+              ...entry,
+              description: 'Erwerberabrechnung Voreigentümer',
+            })),
+            costCategories: appData.billingData.costCategories.map(
+              (category) => ({
+                ...category,
+                label: 'Wartung',
+                statementText: null,
+              }),
+            ),
+          },
+        },
+        billingPeriodId,
+        'B1',
+      ),
+    ).toBeNull()
     const serialized = text(
       buildTenantStatement(buildFixtureTenantStatementContext(appData)),
     )

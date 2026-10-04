@@ -465,4 +465,28 @@ describe('buildTenantStatement', () => {
     ) => { text: string }
     expect(footer(2, 4).text).not.toContain('·  ·')
   })
+
+  it('setzt die Anschrift in die Prüfbox der Versanddienste (Fensterkuvert)', () => {
+    const definition = buildTenantStatement(
+      buildFixtureTenantStatementContext(buildFixtureAppData()),
+    )
+    const content = definition.content as Array<{
+      absolutePosition?: { x: number; y: number }
+      stack?: unknown[]
+      margin?: number[]
+      style?: string
+    }>
+    const mm = (pt: number) => pt / 2.835
+    const recipient = content.find(
+      (item) => item.stack && item.absolutePosition?.x === 71,
+    )!
+    const top = mm(recipient.absolutePosition!.y)
+    const left = mm(recipient.absolutePosition!.x)
+    const bottom = top + mm(recipient.stack!.length * 12)
+    expect(left).toBeGreaterThanOrEqual(22)
+    expect(top).toBeGreaterThanOrEqual(54)
+    expect(bottom).toBeLessThanOrEqual(88)
+    const title = content.find((item) => item.style === 'title')!
+    expect(mm(46 + (title.margin?.[1] ?? 0))).toBeGreaterThan(92)
+  })
 })

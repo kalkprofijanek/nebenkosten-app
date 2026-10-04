@@ -8,7 +8,7 @@ nachweisbar verhaltensgleich in prüfbare Pakete überführt.
 
 ## Nutzung
 
-**Aktuelle Version: 1.2.1 · Schema v5** – direkt im Browser:
+**Aktuelle Version: 1.2.2 · Schema v5** – direkt im Browser:
 **<https://kalkprofijanek.github.io/nebenkosten-app/>**
 
 - Ausschließlich für **Desktop-Browser** gedacht (siehe
@@ -111,23 +111,24 @@ Schritte als separate Checks (`lint`, `typecheck`, diverse `*-tests`,
 Umgesetzt und auf `main` gemergt (Aufgabenbeschreibungen unter
 [`docs/TASKS/`](docs/TASKS)):
 
-| PR       | Inhalt                                  | Ergebnis                                              |
-| -------- | --------------------------------------- | ----------------------------------------------------- |
-| PR 00–02 | Grundschutz, Bestandsaufnahme, Scaffold | Guards, CI, pnpm-Monorepo                             |
-| PR 03–05 | Schema, Legacy-Importer, Golden-Fälle   | Zod-Schema, v3-Import, Characterization Tests         |
-| PR 06–07 | Berechnung, Heizkosten & CO₂            | Umlage, FIFO, 70/30, Warmwasser, CO2KostAufG          |
-| PR 08–11 | Persistenz, UI, Freigabe, PDF           | lokaler Arbeitsablauf bis Einzelabrechnung            |
-| PR 12–13 | Produktionsabnahme, Release-Build       | Vergleich, Rollback, GitHub Pages, `v1.0.0`           |
-| PR 14–19 | Datensichten, Workflows, Bank, Tabellen | Kosten-, Buchungs- und Stammdaten-Arbeitsplätze       |
-| PR 20    | Belegungen je Wohnung, Heizungsaudit    | Nutzerwechsel und Leerstände je Einheit               |
-| PR 21    | Geführte Jahresabrechnung               | acht Schritte mit Prüfhinweisen                       |
-| PR 22    | Schema v5, Wohnungswärme aus Ablesungen | Messverbrauch, v4→v5-Migration, `v1.1.0`              |
-| PR 47–50 | Praxisabgleich mit Echtbestand          | Versandanschrift, Flüssiggas, Importprüfung, `v1.1.1` |
-| PR 52–53 | Prüfhinweise, Verbrauchsschätzung       | „Betrifft“-Angaben, Schätzung § 9a HeizKV, `v1.1.2`   |
-| PR 55    | Salden-Übersicht                        | Summen Nachzahlung/Guthaben, `v1.1.3`                 |
-| PR 56    | PDF-Download, Briefkopf                 | Speichern-Link, Absender, Nutzungszeitraum, `v1.1.4`  |
-| PR 57–58 | Rechtssichere PDFs, Vorauszahlungen     | § 7 HeizKV, CO2KostAufG, § 560 BGB, `v1.2.0`          |
-| PR 59    | Zählerstände, Rechtstexte, Freigabe     | Verbrauchserfassung, § 6a HeizKV, `v1.2.1`            |
+| PR       | Inhalt                                  | Ergebnis                                                |
+| -------- | --------------------------------------- | ------------------------------------------------------- |
+| PR 00–02 | Grundschutz, Bestandsaufnahme, Scaffold | Guards, CI, pnpm-Monorepo                               |
+| PR 03–05 | Schema, Legacy-Importer, Golden-Fälle   | Zod-Schema, v3-Import, Characterization Tests           |
+| PR 06–07 | Berechnung, Heizkosten & CO₂            | Umlage, FIFO, 70/30, Warmwasser, CO2KostAufG            |
+| PR 08–11 | Persistenz, UI, Freigabe, PDF           | lokaler Arbeitsablauf bis Einzelabrechnung              |
+| PR 12–13 | Produktionsabnahme, Release-Build       | Vergleich, Rollback, GitHub Pages, `v1.0.0`             |
+| PR 14–19 | Datensichten, Workflows, Bank, Tabellen | Kosten-, Buchungs- und Stammdaten-Arbeitsplätze         |
+| PR 20    | Belegungen je Wohnung, Heizungsaudit    | Nutzerwechsel und Leerstände je Einheit                 |
+| PR 21    | Geführte Jahresabrechnung               | acht Schritte mit Prüfhinweisen                         |
+| PR 22    | Schema v5, Wohnungswärme aus Ablesungen | Messverbrauch, v4→v5-Migration, `v1.1.0`                |
+| PR 47–50 | Praxisabgleich mit Echtbestand          | Versandanschrift, Flüssiggas, Importprüfung, `v1.1.1`   |
+| PR 52–53 | Prüfhinweise, Verbrauchsschätzung       | „Betrifft“-Angaben, Schätzung § 9a HeizKV, `v1.1.2`     |
+| PR 55    | Salden-Übersicht                        | Summen Nachzahlung/Guthaben, `v1.1.3`                   |
+| PR 56    | PDF-Download, Briefkopf                 | Speichern-Link, Absender, Nutzungszeitraum, `v1.1.4`    |
+| PR 57–58 | Rechtssichere PDFs, Vorauszahlungen     | § 7 HeizKV, CO2KostAufG, § 560 BGB, `v1.2.0`            |
+| PR 59    | Zählerstände, Rechtstexte, Freigabe     | Verbrauchserfassung, § 6a HeizKV, `v1.2.1`              |
+| PR 60    | Anschriftfeld Versand                   | Fensterkuvert/Versandbox, Zeilen ohne Umbruch, `v1.2.2` |
 
 Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsystem
 (der Legacy-Wert 0,50 € bleibt nur dokumentierter Warnwert, siehe
@@ -148,7 +149,7 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 
 ## Status
 
-Version **1.2.1** ist veröffentlicht (GitHub Pages, Release-Tag `v1.2.1`). Das
+Version **1.2.2** ist veröffentlicht (GitHub Pages, Release-Tag `v1.2.2`). Das
 Repository ist öffentlich und enthält ausschließlich fiktive Testdaten. Offen
 für spätere Versionen: Import von Heizkostenverteiler-Werten des Messdienstes
 und ein Mehrbenutzer-/Mandantenbetrieb.

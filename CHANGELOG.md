@@ -2,6 +2,18 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
+## 1.2.2 – 4. Oktober 2026
+
+- Einzelabrechnung: Anschriftfeld nach DIN 5008 Form B verschoben (Empfänger
+  ab ca. 56 mm von oben, Rücksendeangabe darüber, Titel unterhalb des
+  Fensters), damit die Anschrift in der Prüfbox von Druck- und
+  Versanddiensten liegt; Test sichert die Lage ab,
+- Betriebskostentabelle: Zeilen werden nicht mehr über einen Seitenumbruch
+  getrennt,
+- § 6a HeizKV: „Erwerberabrechnung“ o. Ä. zählt nicht mehr als Entgelt für
+  Verbrauchserfassung (nur Heizkosten-/Verbrauchsabrechnung, Messdienst,
+  Gerätemiete, Eichung u. Ä.).
+
 ## 1.2.1 – 4. Oktober 2026
 
 - Zählerstände je Nutzer: An der Belegung können Zählernummer, Stand alt und
