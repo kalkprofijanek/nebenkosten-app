@@ -22,7 +22,10 @@ import {
 } from './fixture'
 
 const text = (document: { content: unknown }) =>
-  JSON.stringify(document.content).replace(/[  ]/gu, ' ')
+  JSON.stringify(document.content).replace(
+    new RegExp('[' + String.fromCharCode(0xa0, 0x202f) + ']', 'gu'),
+    ' ',
+  )
 
 function firstTenant(appData: AppDataFile) {
   return appData.billingData.occupancyPeriods.find(

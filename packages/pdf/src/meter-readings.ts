@@ -18,7 +18,10 @@ import { buildingName } from './heating-summary'
 export function formatMeterValue(value: number): string {
   return value
     .toLocaleString('de-DE', { maximumFractionDigits: 3 })
-    .replace(/[  ]/gu, ' ')
+    .replace(
+      new RegExp('[' + String.fromCharCode(0xa0, 0x202f) + ']', 'gu'),
+      ' ',
+    )
 }
 
 /** „Wert (Datum)“ bzw. „–“ ohne Wert. */
