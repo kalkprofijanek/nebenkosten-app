@@ -21,6 +21,8 @@ interface ExpectedTenant {
   shareCents: number
   prepaymentCents: number
   balanceCents: number
+  /** § 35a EStG: Lohnanteil des Mieters (nur angegeben, wenn geprüft). */
+  section35aCents?: number
 }
 
 interface HandCalculatedCase {
@@ -79,10 +81,26 @@ describe.each(file.cases.map((entry) => [entry.scenario.id, entry] as const))(
           prepaymentCents: tenant.prepaymentCents,
           balanceCents: tenant.balanceCents,
         })),
-      ).toEqual(expected.tenants)
+      ).toEqual(
+        expected.tenants.map((tenant) => ({
+          id: tenant.id,
+          shareCents: tenant.shareCents,
+          prepaymentCents: tenant.prepaymentCents,
+          balanceCents: tenant.balanceCents,
+        })),
+      )
       expect(actual.totals).toMatchObject(expected.totals)
       expect(actual.totals.controlDifferenceCents).toBe(0)
       expect(actual.vacancyLandlordCents).toBe(expected.vacancyLandlordCents)
+      for (const tenant of expected.tenants) {
+        if (tenant.section35aCents === undefined) continue
+        const result = actual.tenants.find(
+          ({ id }) => id.replace(/^op-/u, '') === tenant.id,
+        )
+        expect(result?.section35a?.totalCents, tenant.id).toBe(
+          tenant.section35aCents,
+        )
+      }
       if (expected.co2) expect(actual.co2).toEqual(expected.co2)
     })
   },

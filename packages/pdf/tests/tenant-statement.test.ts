@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { buildTenantStatement } from '../src/tenant-statement'
 import { MissingShippingAddressError } from '../src/contracts'
+import { formatEuroCents } from '../src/format'
+import { SECTION_35A_NOTICE } from '../src/legal-texts'
 import {
   buildFixtureAppData,
   buildFixtureTenantStatementContext,
@@ -488,5 +490,44 @@ describe('buildTenantStatement', () => {
     expect(bottom).toBeLessThanOrEqual(88)
     const title = content.find((item) => item.style === 'title')!
     expect(mm(46 + (title.margin?.[1] ?? 0))).toBeGreaterThan(92)
+  })
+  it('weist den Lohnanteil nach § 35a EStG je Kostenart aus', () => {
+    const appData = buildFixtureAppData('case-01-full-year')
+    const category = appData.billingData.costCategories[0]!
+    category.laborSharePercent = 40
+    const context = buildFixtureTenantStatementContext(appData)
+    const tenant = context.calculation.tenants.find(
+      ({ id }) => id === context.occupancyPeriod.id,
+    )!
+    const laborCents = tenant.section35a!.totalCents
+    expect(laborCents).toBeGreaterThan(0)
+
+    const serialized = JSON.stringify(buildTenantStatement(context).content)
+
+    expect(serialized).toContain('Bescheinigung nach § 35a EStG')
+    expect(serialized).toContain(category.statementText ?? category.label)
+    expect(serialized).toContain('40 %')
+    expect(serialized).toContain(formatEuroCents(laborCents))
+    expect(serialized).toContain(SECTION_35A_NOTICE)
+  })
+
+  it('lässt die § 35a-Bescheinigung ohne Lohnanteil weg', () => {
+    const appData = buildFixtureAppData('case-01-full-year')
+    const context = buildFixtureTenantStatementContext(appData)
+
+    const serialized = JSON.stringify(buildTenantStatement(context).content)
+
+    expect(serialized).not.toContain('§ 35a EStG')
+  })
+
+  it('verträgt Berechnungsstände ohne § 35a-Angaben', () => {
+    const appData = buildFixtureAppData('case-01-full-year')
+    appData.billingData.costCategories[0]!.laborSharePercent = 40
+    const context = buildFixtureTenantStatementContext(appData)
+    for (const tenant of context.calculation.tenants) delete tenant.section35a
+
+    const serialized = JSON.stringify(buildTenantStatement(context).content)
+
+    expect(serialized).not.toContain('§ 35a EStG')
   })
 })

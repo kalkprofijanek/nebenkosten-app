@@ -392,7 +392,8 @@
               "kind": "property"
             },
             "amountEur": 1200,
-            "allocablePercent": 75
+            "allocablePercent": 75,
+            "laborPercent": 40
           },
           {
             "id": "k-verwaltung",
@@ -447,13 +448,15 @@
             "id": "t1",
             "shareCents": 63000,
             "prepaymentCents": 72000,
-            "balanceCents": -9000
+            "balanceCents": -9000,
+            "section35aCents": 25200
           },
           {
             "id": "t2",
             "shareCents": 27000,
             "prepaymentCents": 30000,
-            "balanceCents": -3000
+            "balanceCents": -3000,
+            "section35aCents": 10800
           }
         ],
         "totals": {
@@ -688,7 +691,8 @@
               "kind": "building",
               "buildingId": "B1"
             },
-            "amountEur": 200
+            "amountEur": 200,
+            "laborPercent": 50
           }
         ],
         "tenants": [
@@ -731,13 +735,15 @@
             "id": "t1",
             "shareCents": 208800,
             "prepaymentCents": 240000,
-            "balanceCents": -31200
+            "balanceCents": -31200,
+            "section35aCents": 7250
           },
           {
             "id": "t2",
             "shareCents": 79200,
             "prepaymentCents": 96000,
-            "balanceCents": -16800
+            "balanceCents": -16800,
+            "section35aCents": 2750
           }
         ],
         "totals": {
@@ -822,7 +828,8 @@
               "kind": "building",
               "buildingId": "B1"
             },
-            "amountEur": 200
+            "amountEur": 200,
+            "laborPercent": 50
           }
         ],
         "tenants": [
@@ -865,13 +872,15 @@
             "id": "t1",
             "shareCents": 192309,
             "prepaymentCents": 240000,
-            "balanceCents": -47691
+            "balanceCents": -47691,
+            "section35aCents": 7250
           },
           {
             "id": "t2",
             "shareCents": 72945,
             "prepaymentCents": 96000,
-            "balanceCents": -23055
+            "balanceCents": -23055,
+            "section35aCents": 2750
           }
         ],
         "totals": {
