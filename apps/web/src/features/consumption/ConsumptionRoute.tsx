@@ -38,6 +38,8 @@ interface Draft {
   readonly units: string
   readonly estimated: boolean
   readonly reason: string
+  readonly coldWater: string
+  readonly warmWater: string
 }
 
 const STATUS_LABELS: Readonly<Record<ConsumptionStatus, string>> = {
@@ -67,6 +69,8 @@ function initialDraft(row: ConsumptionRow): Draft {
     units: input(row.units),
     estimated: row.estimated,
     reason: row.estimateReason ?? '',
+    coldWater: input(row.coldWater),
+    warmWater: input(row.warmWater),
   }
 }
 
@@ -119,6 +123,8 @@ function commandInput(occupancyPeriodId: string, draft: Draft) {
     heatMeterReading: Object.values(reading).some((value) => value != null)
       ? reading
       : undefined,
+    coldWater: parse(draft.coldWater, 'Kaltwasser'),
+    warmWater: parse(draft.warmWater, 'Warmwasser'),
   }
 }
 
@@ -198,7 +204,13 @@ function ConsumptionTableRow({
           : 'zero'
     : row.status
   const textField = (
-    key: 'meterNumber' | 'startValue' | 'endValue' | 'units',
+    key:
+      | 'meterNumber'
+      | 'startValue'
+      | 'endValue'
+      | 'units'
+      | 'coldWater'
+      | 'warmWater',
     name: string,
     className = 'consumption-number',
   ) =>
@@ -254,30 +266,32 @@ function ConsumptionTableRow({
         <div className="consumption-reading">
           {textField('endValue', 'Stand neu')}
           {dateField('endDate', 'Datum neu')}
+          {difference === null ? null : (
+            <span className="consumption-difference">
+              = {decimal(difference)}
+            </span>
+          )}
+          {difference !== null && difference < 0 ? (
+            <small role="alert">Stand neu kleiner als Stand alt</small>
+          ) : null}
+          {!locked &&
+          difference !== null &&
+          difference >= 0 &&
+          (draftUnits === null ||
+            draft.estimated ||
+            Math.abs(draftUnits - difference) > 0.0005) ? (
+            <button
+              className="button button--quiet"
+              type="button"
+              aria-label={`Verbrauch aus Zählerständen übernehmen ${label}`}
+              onClick={() =>
+                set({ units: input(difference), estimated: false, reason: '' })
+              }
+            >
+              übernehmen →
+            </button>
+          ) : null}
         </div>
-      </td>
-      <td className="data-table__amount">
-        {difference === null ? '—' : decimal(difference)}
-        {difference !== null && difference < 0 ? (
-          <small role="alert">Stand neu kleiner als Stand alt</small>
-        ) : null}
-        {!locked &&
-        difference !== null &&
-        difference >= 0 &&
-        (draftUnits === null ||
-          draft.estimated ||
-          Math.abs(draftUnits - difference) > 0.0005) ? (
-          <button
-            className="button button--quiet"
-            type="button"
-            aria-label={`Verbrauch aus Zählerständen übernehmen ${label}`}
-            onClick={() =>
-              set({ units: input(difference), estimated: false, reason: '' })
-            }
-          >
-            übernehmen →
-          </button>
-        ) : null}
       </td>
       <td className="consumption-units-cell">
         {textField('units', 'Verbrauchseinheiten')}
@@ -321,6 +335,12 @@ function ConsumptionTableRow({
           </div>
         )}
       </td>
+      <td>
+        <div className="consumption-reading">
+          {textField('coldWater', 'Kaltwasser', 'consumption-water')}
+          {textField('warmWater', 'Warmwasser', 'consumption-water')}
+        </div>
+      </td>
       <td className="consumption-status-cell">
         <span className={`consumption-status consumption-status--${status}`}>
           {STATUS_LABELS[status]}
@@ -333,7 +353,7 @@ function ConsumptionTableRow({
         {!dirty && row.readingMismatch ? (
           <small role="alert">
             {row.estimated
-              ? 'Zählerdifferenz weicht von der Schätzung ab; in der Freigabe bestätigen.'
+              ? 'Zählerdifferenz weicht ab; für eine Schätzung bitte den Schätzgrund angeben.'
               : 'Zählerdifferenz passt nicht zum Verbrauch.'}
           </small>
         ) : null}
@@ -437,6 +457,8 @@ function ConsumptionTable({
           consumptionUnitsEstimated: true,
           consumptionUnitsEstimateReason: result.estimate.reason,
           heatMeterReading: occupancy.heatMeterReading ?? undefined,
+          coldWater: occupancy.coldWater?.value,
+          warmWater: occupancy.warmWater?.value,
         })
       }
       return next
@@ -522,9 +544,9 @@ function ConsumptionTable({
                 <th scope="col">Wohnung / Nutzer</th>
                 <th scope="col">Zähler</th>
                 <th scope="col">Stand alt</th>
-                <th scope="col">Stand neu</th>
-                <th scope="col">Differenz</th>
+                <th scope="col">Stand neu / Differenz</th>
                 <th scope="col">Verbrauchseinheiten</th>
+                <th scope="col">Wasser m³ kalt / warm</th>
                 <th scope="col">Status</th>
               </tr>
             </thead>
@@ -536,6 +558,8 @@ function ConsumptionTable({
                     row.estimated,
                     row.estimateReason,
                     row.reading,
+                    row.coldWater,
+                    row.warmWater,
                   ])}`}
                   row={row}
                   locked={locked}
@@ -548,10 +572,7 @@ function ConsumptionTable({
         </div>
       )}
       <p>
-        <small>
-          Kalt- und Warmwasser sowie Leerstände werden weiterhin unter „Nutzer“
-          gepflegt.
-        </small>
+        <small>Leerstände werden weiterhin unter „Nutzer“ gepflegt.</small>
       </p>
     </section>
   )

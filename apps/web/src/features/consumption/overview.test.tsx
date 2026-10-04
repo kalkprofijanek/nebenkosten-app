@@ -48,8 +48,8 @@ describe('buildConsumptionOverview', () => {
       'estimated',
       'zero',
     ])
-    // Wie die Freigabeprüfung: auch eine Schätzung weicht von 5 → 5 ab.
-    expect(overview.rows[1]!.readingMismatch).toBe(true)
+    // Wie die Freigabeprüfung: eine begründete Schätzung ersetzt 5 → 5.
+    expect(overview.rows[1]!.readingMismatch).toBe(false)
     expect(overview.estimatedShares).toEqual([
       { buildingId: 'b1', buildingName: 'Haus A', estimatedShare: 1 / 3 },
     ])

@@ -65,6 +65,7 @@ describe('OccupancyEditor', () => {
       consumptionUnits: { value: 119.5, unit: 'einheiten' },
       consumptionUnitsEstimated: true,
       heatMeterReading: { meterNumber: 'HZ-12' },
+      coldWater: { value: 12.5, unit: 'm3' },
     }
     render(
       <OccupancyEditor
@@ -80,11 +81,15 @@ describe('OccupancyEditor', () => {
     ).toBeVisible()
     expect(
       screen.getByRole('link', {
-        name: 'Zählerstände und Verbrauch bearbeiten',
+        name: 'Zählerstände, Verbrauch und Wasser bearbeiten',
       }),
     ).toHaveAttribute('href', '#/verbrauch?occupancy=o2')
+    expect(screen.getByText(/Wasser kalt 12,5 \/ warm – m³/)).toBeVisible()
     expect(
       screen.queryByLabelText('Verbrauchseinheiten bearbeiten'),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('Kaltwasser in m³ bearbeiten'),
     ).not.toBeInTheDocument()
   })
 

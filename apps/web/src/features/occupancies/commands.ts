@@ -752,8 +752,8 @@ export function updateTenantOccupancy(
 }
 
 /**
- * Setzt ausschließlich Heizverbrauch, Schätzkennzeichen, Schätzgrund und
- * Zählerstände einer Mieter-Belegung. Fehlende Felder werden entfernt; alle
+ * Setzt ausschließlich Heizverbrauch, Schätzkennzeichen, Schätzgrund,
+ * Zählerstände sowie Kalt- und Warmwasser einer Mieter-Belegung. Fehlende Felder werden entfernt; alle
  * übrigen Angaben (Person, Zeitraum, Vorauszahlung …) bleiben unverändert.
  */
 export function updateOccupancyConsumption(
@@ -768,6 +768,8 @@ export function updateOccupancyConsumption(
       'consumptionUnitsEstimated',
       'consumptionUnitsEstimateReason',
       'heatMeterReading',
+      'coldWater',
+      'warmWater',
     ],
     'Verbrauchserfassung',
   )
@@ -782,6 +784,15 @@ export function updateOccupancyConsumption(
     throw new OccupancyCommandError(
       'Verbrauchseinheiten müssen eine Zahl ab 0 sein.',
     )
+  const water = (key: 'coldWater' | 'warmWater', label: string) => {
+    const value = input[key]
+    if (value === undefined) return undefined
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0)
+      throw new OccupancyCommandError(`${label} muss eine Zahl ab 0 sein.`)
+    return { value, unit: 'm3' as const }
+  }
+  const coldWater = water('coldWater', 'Kaltwasser')
+  const warmWater = water('warmWater', 'Warmwasser')
   const estimated = input.consumptionUnitsEstimated
   if (estimated !== undefined && typeof estimated !== 'boolean')
     throw new OccupancyCommandError('Ungültige boolesche Nutzereingabe.')
@@ -811,6 +822,8 @@ export function updateOccupancyConsumption(
   delete rest.consumptionUnitsEstimated
   delete rest.consumptionUnitsEstimateReason
   delete rest.heatMeterReading
+  delete rest.coldWater
+  delete rest.warmWater
   return validatedFile({
     ...file,
     billingData: {
@@ -826,6 +839,8 @@ export function updateOccupancyConsumption(
               consumptionUnitsEstimated: estimated,
               consumptionUnitsEstimateReason: reason,
               heatMeterReading,
+              coldWater,
+              warmWater,
             })
           : item,
       ),

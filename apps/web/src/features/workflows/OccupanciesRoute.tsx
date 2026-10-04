@@ -127,7 +127,7 @@ export function OccupanciesRoute({
     const form = new FormData(event.currentTarget)
     if (
       apply((current) => {
-        // Heizverbrauch und Zählerstände pflegt die Seite „Verbrauch“.
+        // Heizverbrauch, Zählerstände und Wasser pflegt die Seite „Verbrauch“.
         const existing = current.billingData.occupancyPeriods.find(
           ({ id }) => id === occupancyId,
         )
@@ -156,8 +156,8 @@ export function OccupanciesRoute({
           consumptionUnitsEstimateReason:
             existing?.consumptionUnitsEstimateReason ?? undefined,
           heatMeterReading: existing?.heatMeterReading ?? undefined,
-          coldWater: optionalNumber(form, 'coldWater'),
-          warmWater: optionalNumber(form, 'warmWater'),
+          coldWater: existing?.coldWater?.value,
+          warmWater: existing?.warmWater?.value,
           applySection12Reduction: form.has('applySection12Reduction'),
           costScope: formOptionalText(form, 'costScopeBuildingId')
             ? {

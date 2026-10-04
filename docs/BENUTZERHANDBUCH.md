@@ -39,7 +39,16 @@ Die App startet leer. Legen Sie die Stammdaten in dieser Reihenfolge an
 3. **Abrechnungsjahre** – Abrechnungszeitraum (in der Regel Kalenderjahr).
 4. **Nutzer** – Mieter je Wohnung mit Ein-/Auszugsdatum; Leerstände ergeben
    sich aus Lücken.
-5. **Vorauszahlungen** – monatliche Vorauszahlungen je Nutzer.
+5. **Verbrauch** – Zählerstände, Heizverbrauch (Verbrauchseinheiten) sowie
+   Kalt- und Warmwasser aller Nutzer in einer Tabelle. „Stand neu − Stand alt“
+   lässt sich per Klick übernehmen. Fehlt ein Wert oder ist er 0, schätzt
+   **Schätzen** ihn nach § 9a HeizKV aus dem Durchschnitt je m² der gemessenen
+   Wohnungen desselben Gebäudes; **Alle fehlenden schätzen** erledigt das für
+   alle offenen Zeilen. Ist keine Schätzung möglich, steht der Grund in der
+   Zeile (z. B. fehlende Wohnfläche). Sind in einem Gebäude mehr als 25 % der
+   Fläche geschätzt, erscheint ein Hinweis: Nach § 9a Abs. 2 HeizKV ist dann
+   nur nach Fläche zu verteilen.
+6. **Vorauszahlungen** – monatliche Vorauszahlungen je Nutzer.
 
 Haben Sie Daten aus der früheren Einzeldatei-App (`nk-daten.json`), wählen
 Sie stattdessen oben rechts **Daten importieren**. Die Importvorschau zeigt,

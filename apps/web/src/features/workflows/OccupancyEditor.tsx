@@ -6,6 +6,9 @@ import type {
 } from '@nebenkosten/schema'
 import { WorkflowField } from './form-support'
 import { formatEuroInput } from '../../app/form-parsers'
+const m3 = (value: number | undefined) =>
+  value === undefined ? '–' : String(value).replace('.', ',')
+
 interface Props {
   data: AppDataFile
   occupancy: OccupancyPeriod
@@ -124,23 +127,16 @@ export function OccupancyEditor({
             {occupancy.heatMeterReading?.meterNumber
               ? ` · Zähler ${occupancy.heatMeterReading.meterNumber}`
               : ''}
+            {occupancy.coldWater || occupancy.warmWater
+              ? ` · Wasser kalt ${m3(occupancy.coldWater?.value)} / warm ${m3(occupancy.warmWater?.value)} m³`
+              : ''}
             .{' '}
             <a
               href={`#/verbrauch?occupancy=${encodeURIComponent(occupancy.id)}`}
             >
-              Zählerstände und Verbrauch bearbeiten
+              Zählerstände, Verbrauch und Wasser bearbeiten
             </a>
           </p>
-          <WorkflowField
-            label="Kaltwasser in m³ bearbeiten"
-            name="coldWater"
-            defaultValue={occupancy.coldWater?.value ?? ''}
-          />
-          <WorkflowField
-            label="Warmwasser in m³ bearbeiten"
-            name="warmWater"
-            defaultValue={occupancy.warmWater?.value ?? ''}
-          />
           <label className="checkbox-field">
             <input
               type="checkbox"

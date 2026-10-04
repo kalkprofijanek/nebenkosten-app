@@ -112,7 +112,7 @@ describe('ConsumptionRoute', () => {
     fireEvent.change(target.getByLabelText(`Datum neu ${label}`), {
       target: { value: '2025-12-31' },
     })
-    expect(target.getByText('419,5')).toBeVisible()
+    expect(target.getByText('= 419,5')).toBeVisible()
     fireEvent.click(
       target.getByRole('button', {
         name: `Verbrauch aus Zählerständen übernehmen ${label}`,
@@ -137,6 +137,35 @@ describe('ConsumptionRoute', () => {
     expect(result.occupancy('o1')).not.toHaveProperty(
       'consumptionUnitsEstimated',
     )
+  })
+
+  it('pflegt Kalt- und Warmwasser und behält es bei der Sammelschätzung', () => {
+    const result = renderHarness(
+      consumptionFixture({ o3: { warmWater: { value: 3, unit: 'm3' } } }),
+    )
+    const target = within(row('Wohnung 1'))
+    const label = 'Wohnung 1 Fiktiv 1'
+    fireEvent.change(target.getByLabelText(`Kaltwasser ${label}`), {
+      target: { value: '42,5' },
+    })
+    fireEvent.change(target.getByLabelText(`Warmwasser ${label}`), {
+      target: { value: '18' },
+    })
+    fireEvent.click(
+      target.getByRole('button', { name: `Verbrauch speichern ${label}` }),
+    )
+    expect(result.occupancy('o1')).toMatchObject({
+      coldWater: { value: 42.5, unit: 'm3' },
+      warmWater: { value: 18, unit: 'm3' },
+      consumptionUnits: { value: 400 },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Alle fehlenden schätzen (1)' }),
+    )
+    expect(result.occupancy('o3')).toMatchObject({
+      warmWater: { value: 3, unit: 'm3' },
+      consumptionUnitsEstimated: true,
+    })
   })
 
   it('meldet fallende Stände, ungültige Zahlen und fehlenden Schätzgrund', () => {

@@ -887,6 +887,8 @@ describe('WorkflowRoute', () => {
         endValue: 199.5,
         endDate: '2026-12-31',
       },
+      coldWater: 10,
+      warmWater: 4,
     })
     const result = renderRoute('/nutzer', data, SEEDED_SELECTION)
     fireEvent.click(
@@ -917,15 +919,9 @@ describe('WorkflowRoute', () => {
     })
     expect(
       screen.getByRole('link', {
-        name: 'Zählerstände und Verbrauch bearbeiten',
+        name: 'Zählerstände, Verbrauch und Wasser bearbeiten',
       }),
     ).toHaveAttribute('href', `#/verbrauch?occupancy=${occupancyId}`)
-    fireEvent.change(screen.getByLabelText('Kaltwasser in m³ bearbeiten'), {
-      target: { value: '10' },
-    })
-    fireEvent.change(screen.getByLabelText('Warmwasser in m³ bearbeiten'), {
-      target: { value: '4' },
-    })
     fireEvent.change(screen.getByLabelText('Kostenbereich bearbeiten'), {
       target: { value: SEEDED_IDS.building },
     })

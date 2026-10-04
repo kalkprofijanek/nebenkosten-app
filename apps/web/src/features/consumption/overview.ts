@@ -32,9 +32,14 @@ export interface ConsumptionRow {
   readonly units: number | null
   readonly estimated: boolean
   readonly estimateReason: string | null
+  readonly coldWater: number | null
+  readonly warmWater: number | null
   /** Stand neu − Stand alt, sofern beide Stände erfasst sind. */
   readonly readingDifference: number | null
-  /** Zählerdifferenz weicht vom erfassten Wert ab (wie die Freigabeprüfung). */
+  /**
+   * Zählerdifferenz weicht vom erfassten Wert ab (wie die Freigabeprüfung);
+   * eine begründete Schätzung gilt nicht als Abweichung.
+   */
   readonly readingMismatch: boolean
   readonly status: ConsumptionStatus
   /** Heizkreis rechnet mit Wohnungswärmezählern (kWh); Werte hier unwirksam. */
@@ -141,9 +146,12 @@ export function buildConsumptionOverview(
         units,
         estimated,
         estimateReason: occupancy.consumptionUnitsEstimateReason ?? null,
+        coldWater: occupancy.coldWater?.value ?? null,
+        warmWater: occupancy.warmWater?.value ?? null,
         readingDifference,
         readingMismatch:
           readingDifference !== null &&
+          !(estimated && occupancy.consumptionUnitsEstimateReason?.trim()) &&
           (units === null ||
             Math.abs(readingDifference - units) > METER_READING_TOLERANCE),
         status: statusOf(units, estimated),

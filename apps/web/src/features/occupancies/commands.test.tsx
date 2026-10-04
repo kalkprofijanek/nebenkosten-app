@@ -532,8 +532,12 @@ describe('Nutzer-Commands', () => {
       consumptionUnitsEstimated: true,
       consumptionUnitsEstimateReason: 'Fiktiver Grund',
       heatMeterReading: { meterNumber: 'HZ-1', startValue: 10, endValue: 10 },
+      coldWater: 30.5,
+      warmWater: 12,
     })
     expect(estimated.billingData.occupancyPeriods[0]).toMatchObject({
+      coldWater: { value: 30.5, unit: 'm3' },
+      warmWater: { value: 12, unit: 'm3' },
       persons: { value: 2 },
       consumptionUnits: { value: 42.5, unit: 'einheiten' },
       consumptionUnitsEstimated: true,
@@ -552,6 +556,8 @@ describe('Nutzer-Commands', () => {
       'consumptionUnitsEstimated',
       'consumptionUnitsEstimateReason',
       'heatMeterReading',
+      'coldWater',
+      'warmWater',
     ])
       expect(occupancy).not.toHaveProperty(key)
     expect(occupancy.persons).toEqual({ value: 2, unit: 'personen' })
@@ -560,6 +566,12 @@ describe('Nutzer-Commands', () => {
     expect(() =>
       updateOccupancyConsumption(source, { ...base, consumptionUnits: -1 }),
     ).toThrow('Verbrauchseinheiten müssen eine Zahl ab 0 sein.')
+    expect(() =>
+      updateOccupancyConsumption(source, { ...base, coldWater: -1 }),
+    ).toThrow('Kaltwasser muss eine Zahl ab 0 sein.')
+    expect(() =>
+      updateOccupancyConsumption(source, { ...base, warmWater: Number.NaN }),
+    ).toThrow('Warmwasser muss eine Zahl ab 0 sein.')
     expect(() =>
       updateOccupancyConsumption(source, {
         ...base,

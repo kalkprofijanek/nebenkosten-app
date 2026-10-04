@@ -2023,6 +2023,11 @@ h1 {
   text-align: right;
 }
 
+.main-content .consumption-table input.consumption-water {
+  width: 4.8rem;
+  text-align: right;
+}
+
 .main-content .consumption-table input.consumption-meter {
   width: 6.5rem;
 }
@@ -2034,6 +2039,11 @@ h1 {
 .consumption-reading {
   display: grid;
   gap: 0.3rem;
+}
+
+.consumption-difference {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
 }
 
 .consumption-estimated {
