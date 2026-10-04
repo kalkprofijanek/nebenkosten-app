@@ -257,7 +257,15 @@ function paymentContent(context: TenantStatementContext): Content[] {
   }
   if (tenant.balanceCents < 0) {
     return [
-      { text: creditText(amount), margin: [0, 0, 0, 4] },
+      {
+        text: creditText(amount, {
+          movedOut: Boolean(
+            context.occupancyPeriod.to &&
+            context.occupancyPeriod.to < billingPeriod.periodEnd,
+          ),
+        }),
+        margin: [0, 0, 0, 4],
+      },
       ...(notes?.credit
         ? [{ text: notes.credit, margin: [0, 0, 0, 4] } as Content]
         : []),
@@ -514,7 +522,7 @@ function tenantHeatingTable(
       { text: '', style: 'th' },
     ],
     [
-      `Grundkosten: ${formatUnitPrice(basePrice, 'm²')} × ${formatNumber(ownArea)} m² ${baseAreaLabel(split.baseAreaBasis)} × ${facts.days}/${facts.periodDays} Tage${reduction}`,
+      `${split.areaOnlySection9a ? 'Heizkosten nach Fläche (§ 9a Abs. 2 HeizKV)' : 'Grundkosten'}: ${formatUnitPrice(basePrice, 'm²')} × ${formatNumber(ownArea)} m² ${baseAreaLabel(split.baseAreaBasis)} × ${facts.days}/${facts.periodDays} Tage${reduction}`,
       amountCell(costBreakdown.heatingBaseCents),
     ],
     [
@@ -597,7 +605,9 @@ function consumptionCapture(
       fontSize: 8,
       margin: [0, 0, 0, 2],
     })
-    lines.push(`Verbrauch (geschätzt) = ${formatNumber(consumption)} ${unit}`)
+    lines.push(
+      `Verbrauch (geschätzt) = ${formatNumber(consumption)} ${unit}${split.areaOnlySection9a ? ' (nur zur Information, nicht zur Kostenverteilung verwendet)' : ''}`,
+    )
   } else if (hasReading(reading)) {
     content.push({
       table: {
@@ -639,7 +649,7 @@ function consumptionCapture(
     split.areaOnlySection9a
       ? 'Verbrauchskosten entfallen (§ 9a Abs. 2 HeizKV): Verteilung ausschließlich nach Fläche'
       : `Verbrauchskosten = ${formatUnitPrice(consumptionPrice, unitSingular)} × ${formatNumber(consumption)} ${unit}${reduction} = ${formatEuroCents(costBreakdown.heatingConsumptionCents)}`,
-    `Grundkosten = ${formatUnitPrice(basePrice, 'm²')} × ${formatNumber(ownArea)} m² × ${timeText}${reduction} = ${formatEuroCents(costBreakdown.heatingBaseCents)}`,
+    `${split.areaOnlySection9a ? 'Heizkosten nach Fläche' : 'Grundkosten'} = ${formatUnitPrice(basePrice, 'm²')} × ${formatNumber(ownArea)} m² × ${timeText}${reduction} = ${formatEuroCents(costBreakdown.heatingBaseCents)}`,
   )
   const hasHotWater = circuit.warmWater.method !== 'none'
   if (hasHotWater)

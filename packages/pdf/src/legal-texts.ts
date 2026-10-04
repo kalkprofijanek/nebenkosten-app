@@ -122,9 +122,17 @@ export function additionalPaymentText(options: {
   return `Bitte überweisen Sie den Nachzahlungsbetrag von ${options.amount} bis zum ${options.dueDate}${account}, Verwendungszweck „${options.reference}“.`
 }
 
-/** Hinweis bei Guthaben. */
-export function creditText(amount: string): string {
-  return `Ihr Guthaben von ${amount} überweisen wir Ihnen innerhalb von vier Wochen bzw. verrechnen es mit der nächsten Miete.`
+/**
+ * Hinweis bei Guthaben. Nach Auszug gibt es keine nächste Miete mehr, mit
+ * der verrechnet werden könnte – dann nur Überweisung.
+ */
+export function creditText(
+  amount: string,
+  options: { readonly movedOut?: boolean } = {},
+): string {
+  return options.movedOut
+    ? `Ihr Guthaben von ${amount} überweisen wir Ihnen innerhalb von vier Wochen. Bitte teilen Sie uns hierfür Ihre aktuelle Bankverbindung mit.`
+    : `Ihr Guthaben von ${amount} überweisen wir Ihnen innerhalb von vier Wochen bzw. verrechnen es mit der nächsten Miete.`
 }
 
 export const BALANCED_TEXT =

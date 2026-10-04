@@ -266,6 +266,15 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
       'Heizkostenverteilung (§ 9a Abs. 2 HeizKV): Für 100 % der beheizten Fläche',
     )
     expect(serialized).not.toContain('Kürzung § 12 HeizKV')
+    expect(serialized).toContain(
+      'Verteilung nach § 9a Abs. 2 HeizKV: 100 % nach Fläche:',
+    )
+    expect(serialized).toContain('Verbrauchsabhängiger Anteil: entfällt')
+    expect(serialized).not.toContain('Grundkosten 100 %')
+    expect(serialized).toContain('Heizkosten nach Fläche (§ 9a Abs. 2 HeizKV):')
+    expect(serialized).toContain(
+      '(nur zur Information, nicht zur Kostenverteilung verwendet)',
+    )
   })
 
   it('fordert eine Nachzahlung mit Frist, IBAN und Verwendungszweck an', () => {
