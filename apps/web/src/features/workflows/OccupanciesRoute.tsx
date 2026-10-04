@@ -30,6 +30,20 @@ function prepayment(form: FormData) {
   } as const
 }
 
+/** Zählerstände der Nutzerbearbeitung; ohne Eingaben `undefined`. */
+function heatMeterReading(form: FormData) {
+  const reading = {
+    meterNumber: formOptionalText(form, 'meterNumber'),
+    startValue: optionalNumber(form, 'meterStartValue'),
+    startDate: formOptionalText(form, 'meterStartDate'),
+    endValue: optionalNumber(form, 'meterEndValue'),
+    endDate: formOptionalText(form, 'meterEndDate'),
+  }
+  return Object.values(reading).some((value) => value !== undefined)
+    ? reading
+    : undefined
+}
+
 function optionalEuro(form: FormData, name: string) {
   const value = formOptionalText(form, name)
   return value === undefined ? undefined : parseEuroCents(value)
@@ -152,6 +166,7 @@ export function OccupanciesRoute({
             form,
             'consumptionUnitsEstimateReason',
           ),
+          heatMeterReading: heatMeterReading(form),
           coldWater: optionalNumber(form, 'coldWater'),
           warmWater: optionalNumber(form, 'warmWater'),
           applySection12Reduction: form.has('applySection12Reduction'),

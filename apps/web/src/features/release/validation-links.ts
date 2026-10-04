@@ -67,6 +67,16 @@ export function validationIssueLink(
       label: 'Verbrauchseinheiten ergänzen',
     }
 
+  if (
+    (issue.code === 'heating.meter_reading_mismatch' ||
+      issue.code === 'heating.meter_reading_incomplete') &&
+    issue.entity?.type === 'OccupancyPeriod'
+  )
+    return {
+      href: `#/nutzer?edit=${encodeURIComponent(issue.entity.id)}`,
+      label: 'Zählerstände prüfen',
+    }
+
   if (issue.code === 'occupancy.shipping_address_previous')
     return {
       href: `#/nutzer?edit=${encodeURIComponent(issue.entity?.id ?? '')}`,

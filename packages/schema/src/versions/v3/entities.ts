@@ -94,6 +94,11 @@ export const v3NutzerSchema = z.looseObject({
   bemerkung: v3StringishSchema.optional(),
   kaltwasser_m3: v3NumberishSchema.optional(),
   wasser_m3: v3NumberishSchema.optional(),
+  wmz_nr: v3NumberishSchema.optional(),
+  wmz_stand_alt: v3NumberishSchema.optional(),
+  wmz_datum_alt: v3DateishSchema.optional(),
+  wmz_stand_neu: v3NumberishSchema.optional(),
+  wmz_datum_neu: v3DateishSchema.optional(),
   _abrStatus: v3StringishSchema.optional(),
 })
 export type V3Nutzer = z.infer<typeof v3NutzerSchema>

@@ -1,5 +1,10 @@
 export { issueKey } from './issues'
-export { validateBillingPeriod } from './validate'
+export {
+  validateBillingPeriod,
+  validateBillingPeriodCached,
+  withConfirmedWarnings,
+} from './validate'
+export { METER_READING_TOLERANCE } from './static-validation'
 export { transitionBillingPeriod } from './transition'
 export {
   getFinalizationDocumentStatus,

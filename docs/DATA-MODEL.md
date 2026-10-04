@@ -190,11 +190,24 @@ Neu als eigene Entität (v3 vermischt Einheit, Person und Vertrag im
 | `consumptionUnits`               | Quantity(einheiten)   | opt                        | `einheiten`                                      |
 | `consumptionUnitsEstimated`      | boolean               | opt                        | `einheiten_geschaetzt`                           |
 | `consumptionUnitsEstimateReason` | string                | opt                        | `einheiten_schatz_grund`                         |
+| `heatMeterReading`               | HeatMeterReading      | opt (ab 1.2.1)             | `wmz_nr`, `wmz_stand_alt`, `wmz_datum_alt`, `wmz_stand_neu`, `wmz_datum_neu` |
 | `applySection12Reduction`        | boolean               | opt                        | `kuerzung12_anwenden` (§ 12 HeizKV)              |
 | `costScope`, `propertyTaxScope`  | AllocationScope       | opt                        | `kosten_scope`, `grundsteuer_key`                |
 | `coldWater`, `warmWater`         | Quantity(m3)          | opt                        | `kaltwasser_m3`, `wasser_m3`                     |
 | `dispatchDate`                   | IsoDate               | opt                        | `versanddatum_nutzer`                            |
 | `note`                           | string                | opt                        | `bemerkung`                                      |
+
+`HeatMeterReading` (`heatMeterReadingSchema`, strikt, alle Felder
+`nullish`): `meterNumber` (string), `startValue`/`endValue` (endliche Zahl,
+Zählerstand alt/neu), `startDate`/`endDate` (IsoDate, Ablesedatum alt/neu).
+Das Feld dokumentiert die Ablesung für die Einzelabrechnung („Ihre
+Verbrauchserfassung“) und ändert keine Rechenregel: maßgeblich für die
+Verteilung bleibt `consumptionUnits`. Die Validierung warnt mit
+`heating.meter_reading_mismatch`, wenn `endValue − startValue` um mehr als
+0,5 von `consumptionUnits` abweicht, und meldet
+`heating.meter_reading_incomplete` (Hinweis), wenn eine Zählernummer ohne
+beide Stände erfasst ist. Das Feld ist optional; Dateien ohne das Feld
+bleiben gültig, daher bleibt `schemaVersion` 5 (keine Migration nötig).
 
 ### 3.9 BillingPeriod / Abrechnungsjahr (`billingPeriodSchema`)
 

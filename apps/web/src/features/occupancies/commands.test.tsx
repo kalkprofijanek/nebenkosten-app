@@ -464,6 +464,55 @@ describe('Nutzer-Commands', () => {
     })
   })
 
+  it('speichert Zählerstände und lehnt ungültige Zählerstände ab', () => {
+    const source = addTenantOccupancy(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Fiktiver Nutzer' },
+        occupancy: { from: '2026-01-01' },
+        prepayment: { mode: 'none_agreed' },
+      },
+      sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+    )
+    const base = {
+      occupancyPeriodId: IDS.occupancy,
+      displayName: 'Fiktiver Nutzer',
+      from: '2026-01-01',
+      prepayment: { mode: 'none_agreed' },
+    }
+    const result = updateTenantOccupancy(source, {
+      ...base,
+      heatMeterReading: {
+        meterNumber: 'HZ-0815',
+        startValue: 100,
+        startDate: '2026-01-01',
+        endValue: 180.5,
+        endDate: undefined,
+      },
+    })
+    expect(result.billingData.occupancyPeriods[0]?.heatMeterReading).toEqual({
+      meterNumber: 'HZ-0815',
+      startValue: 100,
+      startDate: '2026-01-01',
+      endValue: 180.5,
+    })
+    const cleared = updateTenantOccupancy(result, base)
+    expect(cleared.billingData.occupancyPeriods[0]).not.toHaveProperty(
+      'heatMeterReading',
+    )
+    expect(() =>
+      updateTenantOccupancy(source, {
+        ...base,
+        heatMeterReading: { startDate: '31.12.2026' },
+      }),
+    ).toThrow('Ungültige Eingabe für Zählerstände.')
+    expect(() =>
+      updateTenantOccupancy(source, { ...base, heatMeterReading: 'kaputt' }),
+    ).toThrow('Ungültige Eingabe für Zählerstände.')
+  })
+
   it('hält eine teilweise ergänzte Versandanschrift JSON-sicher', async () => {
     const source = addTenantOccupancy(
       validFile(),

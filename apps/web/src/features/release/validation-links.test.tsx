@@ -162,6 +162,21 @@ describe('validationIssueLink', () => {
     })
   })
 
+  it('führt Zählerstand-Befunde zur Nutzerbearbeitung', () => {
+    for (const code of [
+      'heating.meter_reading_mismatch',
+      'heating.meter_reading_incomplete',
+    ])
+      expect(
+        validationIssueLink(
+          issue('occupancy', { type: 'OccupancyPeriod', id: 'occ-2' }, code),
+        ),
+      ).toEqual({
+        href: '#/nutzer?edit=occ-2',
+        label: 'Zählerstände prüfen',
+      })
+  })
+
   it('führt den Auszugshinweis zur Nutzerbearbeitung', () => {
     expect(
       validationIssueLink(
