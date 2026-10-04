@@ -22,3 +22,9 @@ Die Sanitisation ersetzte nicht nur Kontaktdaten, sondern auch Seed-, Zuordnungs
 - Der Masterplan-Grundsatz „Legacy unverändert“ gilt für GitHub ab der sanitisierten Baseline, nicht rückwirkend für die lokale produktive Originaldatei.
 - Verhaltensunterschiede in bereinigten Seed- und Klassifizierungsbereichen müssen in der Behavior Map und späteren Characterization Tests sichtbar ausgewiesen werden.
 - Alte Commits oder PR-Refs dürfen niemals gemergt, cherry-gepickt oder erneut gepusht werden.
+
+## Nachtrag 2026-10-04: Öffentliche Freigabe
+
+- Das Repository ist öffentlich. Nach Angabe des Maintainers sind die Bedingungen aus Entscheidung 5 erfüllt (Bestätigung durch GitHub Support, bestandene Historienprüfung).
+- Entscheidungen 1 bis 4 und die Konsequenzen gelten unverändert weiter.
+- Für Beiträge Dritter gilt zusätzlich: Pull Requests aus Forks dürfen keine Inhalte aus alten, bereinigten Commits oder PR-Refs wieder einführen.

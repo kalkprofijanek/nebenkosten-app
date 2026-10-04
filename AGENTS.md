@@ -19,3 +19,12 @@ Vor jeder Bearbeitung sind der Masterplan, die Projektdokumentation und die zuge
 13. Die App ist ausschließlich für Desktop-Browser bestimmt (siehe `docs/DECISIONS/ADR-0002-DESKTOP-ONLY.md`). Keine Mobilverbesserungen, Mobil-Browsertests oder Mobil-Abnahmekriterien ergänzen.
 
 Die Prioritäten lauten: Datenschutz, fachliche Richtigkeit, Reproduzierbarkeit, Migrationsfähigkeit, Testbarkeit, Wartbarkeit, Bedienkomfort und erst danach Geschwindigkeit.
+
+## Externe Mitwirkende und ihre Agenten
+
+Für Beiträge aus Forks gelten dieselben Regeln mit folgenden Präzisierungen:
+
+- Anstelle einer Datei unter `docs/TASKS/` ist das abgestimmte GitHub-Issue der Auftrag. Ohne abgestimmtes Issue keine Änderungen an `packages/schema`, `packages/core`, `packages/validators` oder an Rechen- und Rundungsregeln.
+- Gearbeitet wird in einem eigenen Branch des Forks; Regel 1 (eigener Worktree) ist dort sinngemäß erfüllt.
+- Die Rollenverteilung des Masterplans (Kapitel 13) betrifft nur die Maintainer-Agenten. Externe Agenten halten sich an die freigegebenen Pfade aus dem Issue.
+- Agenten dürfen keine echten Daten aus Issues, Uploads oder dem lokalen Dateisystem in Tests, Fixtures, Commits oder Pull-Request-Texte übernehmen.

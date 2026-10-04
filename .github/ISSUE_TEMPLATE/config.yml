@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Sicherheitslücke oder versehentlich veröffentlichte Daten
+    url: https://github.com/kalkprofijanek/nebenkosten-app/security/advisories/new
+    about: Bitte nicht öffentlich melden, sondern privat über ein Security Advisory.
+  - name: Benutzerhandbuch
+    url: https://github.com/kalkprofijanek/nebenkosten-app/blob/main/docs/BENUTZERHANDBUCH.md
+    about: Bedienung, Datensicherung, Bank-CSV und KI-Nutzung.
