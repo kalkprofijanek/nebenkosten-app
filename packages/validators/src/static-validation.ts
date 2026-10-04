@@ -18,6 +18,7 @@ import {
   wholeYear,
 } from './helpers'
 import { issue } from './issues'
+import { legalRule, legalRulesForPeriod } from './legal-rules'
 
 type Add = (value: ValidationIssue) => void
 type CategoryScope = NonNullable<
@@ -1125,6 +1126,51 @@ function duplicateCostEntries(
   }
 }
 
+/** BetrKV-Kategorie „§ 2 Nr. 15“ in allen üblichen Schreibweisen. */
+function isCableTvCategory(value: string | null | undefined): boolean {
+  return /§\s*2\s*Nr\.?\s*15(?!\d)/iu.test(value ?? '')
+}
+
+/** Prüfungen aus dem Regelverzeichnis für den Abrechnungszeitraum. */
+function legalRules(data: AppDataFile, period: BillingPeriod, add: Add): void {
+  const codes = new Set(
+    legalRulesForPeriod(period.periodStart, period.periodEnd).map(
+      ({ code }) => code,
+    ),
+  )
+  if (codes.has('cable-tv-signal')) {
+    const rule = legalRule('cable-tv-signal')
+    for (const category of periodCategories(data, period.id))
+      if (isCableTvCategory(category.betrkvCategory))
+        add(
+          issue(
+            'warning',
+            'rules.cable-tv-signal',
+            'costs',
+            'Kabel-TV-Kosten prüfen',
+            {
+              entity: { type: 'CostCategory', id: category.id },
+              detail: `${rule.summary} (${rule.norm})`,
+            },
+          ),
+        )
+  }
+  if (
+    codes.has('remote-reading') &&
+    data.billingData.heatingCircuits.some(
+      ({ billingPeriodId }) => billingPeriodId === period.id,
+    )
+  ) {
+    const rule = legalRule('remote-reading')
+    add(
+      issue('info', 'rules.remote-reading', 'heating', rule.title, {
+        entity: { type: 'BillingPeriod', id: period.id },
+        detail: `${rule.summary} (${rule.norm})`,
+      }),
+    )
+  }
+}
+
 export function collectStaticIssues(
   data: AppDataFile,
   period: BillingPeriod,
@@ -1136,6 +1182,7 @@ export function collectStaticIssues(
   occupancies(data, period, add)
   costs(data, period, add)
   duplicateCostEntries(data, period, add)
+  legalRules(data, period, add)
   heating(data, period, add)
   meterReadings(data, period, add)
   meters(data, period, add)
