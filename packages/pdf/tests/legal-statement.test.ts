@@ -314,15 +314,22 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     expect(serialized).toContain(
       'Abrechnungs- und Verbrauchsinformationen (§ 6a HeizKV)',
     )
-    expect(serialized).toContain('Energieträger Ihres Heizkreises')
-    expect(serialized).toContain('Heizoel')
+    expect(serialized).toContain('Eingesetzte Energieträger Ihres Heizkreises')
     expect(serialized).toContain(
-      'Durchschnitt Ihres Heizkreises (rechnerisch, kein normierter Durchschnittsnutzer)',
+      'Heizoel 100 % (Anteil am Energieeinsatz in kWh)',
     )
+    // Der Heizkreis-Mittelwert ist kein normierter Durchschnittsnutzer und
+    // wird nicht als solcher Vergleich ausgegeben.
+    expect(serialized).toContain('Mittlerer Verbrauch im Heizkreis')
+    expect(serialized).not.toContain('Durchschnitt Ihres Heizkreises')
+    expect(serialized).not.toContain('Durchschnittsnutzer')
     expect(serialized).not.toContain('Durchschnittlicher vergleichbarer Nutzer')
     expect(serialized).toContain('Verbraucherzentralen')
     expect(serialized).toContain(
-      'Ein Vergleich mit dem Vorjahr ist nicht möglich, weil für das Vorjahr keine vergleichbaren Verbrauchsdaten vorliegen (Eigentümer- bzw. Abrechnungswechsel).',
+      'Vergleich mit dem vorhergehenden Abrechnungszeitraum',
+    )
+    expect(serialized).toContain(
+      'Ein grafischer, witterungsbereinigter Vergleich mit dem vorhergehenden Abrechnungszeitraum ist nicht möglich, weil für diesen Zeitraum keine Verbrauchsdaten vorliegen (Eigentümer- bzw. Abrechnungswechsel).',
     )
     expect(serialized).toContain(
       'gesetzlichen Steuern und Abgaben (Umsatzsteuer, Energiesteuer, ggf. CO2-Kosten nach BEHG)',

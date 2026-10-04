@@ -2,6 +2,29 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
+## 1.2.3 – 4. Oktober 2026
+
+- § 6a HeizKV: Der mittlere Verbrauch des Heizkreises wird nicht mehr als
+  Vergleichswert („Durchschnitt …, kein normierter Durchschnittsnutzer“)
+  ausgegeben, sondern nur als „Mittlerer Verbrauch im Heizkreis“; neue
+  Prüfwarnung `heating.consumption_benchmark_missing`, solange kein Vergleich
+  mit einem normierten Durchschnittsnutzer hinterlegt werden kann,
+- § 6a HeizKV: Anteile der Energieträger am Energieeinsatz (kWh) in der
+  Einzelabrechnung, z. B. „Flüssiggas 77 %, Strom 23 %“; Prüfwarnung, wenn
+  Menge oder Heizwert fehlen,
+- Vorjahresvergleich: getrennte Begründungen für fehlende
+  Vorjahresabrechnung (Eigentümer- bzw. Abrechnungswechsel), fehlende Nutzung
+  und fehlende Verbrauchswerte; vorhandene Vorjahreswerte als Balkengrafik,
+- Strom/Wärmepumpe, Fernwärme, Erdgas: Darstellung als „Energierechnungen“
+  („Rechnung vom … : Beschreibung“) statt Brennstoffkonto mit Anfangs-,
+  Endbestand und FIFO; Prüfwarnungen für Rechnungen ohne kWh und für
+  Rechnungen außerhalb des Abrechnungszeitraums ohne angegebenen
+  Verbrauchszeitraum,
+- Brennstoffrechnungen ohne Liefermenge heißen „Rechnung vom … ohne
+  Liefermenge“ statt „Lieferung … 0,00 l“; Prüfwarnung ohne Beschreibung,
+- Prüfung: Hinweis `costs.entry_ambiguous` bei gleich bezeichneten Belegen
+  derselben Kostenart am selben Tag (mögliche Doppelposition).
+
 ## 1.2.2 – 4. Oktober 2026
 
 - Einzelabrechnung: Anschriftfeld nach DIN 5008 Form B verschoben (Empfänger

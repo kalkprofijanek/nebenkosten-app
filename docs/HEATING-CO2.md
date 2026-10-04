@@ -135,6 +135,56 @@ Verbrauchskosten; das Datenmodell lässt den fachlich vorgesehenen Bereich von
   unveränderliche Datenobjekte voraus) und `withConfirmedWarnings` (bestätigte
   Warnungen ohne erneute Prüfung anwenden) bereit; die Oberfläche nutzt beide.
 
+## Energierechnungen und § 6a HeizKV (ab 1.2.3)
+
+Die Rechenlogik (Core, Trace-Format) bleibt unverändert; geändert sind
+Darstellung und Prüfhinweise.
+
+- **Leitungsgebundene Energie** (Strom inkl. Wärmepumpenstrom, Fern-/Nahwärme,
+  Erdgas; `isGridEnergySource` im Core, erkannt an Art, Name oder Schlüssel
+  der Energiequelle) ohne Anfangs- und Restbestand erscheint in den PDFs als
+  Liste „Energierechnungen“: „Rechnung vom TT.MM.JJJJ: Beschreibung“, Menge,
+  Betrag, Summe „= Energiekosten laut Rechnungen“. Kein Anfangsbestand,
+  Endbestand oder FIFO. Den abgerechneten Liefer- bzw. Verbrauchszeitraum
+  trägt die Beschreibung der Lieferung (kein eigenes Schemafeld).
+- **Lagerfähige Brennstoffe** behalten das Brennstoffkonto mit FIFO. Eine
+  Rechnung mit Betrag, aber ohne Liefermenge heißt „+ Rechnung vom … ohne
+  Liefermenge: Beschreibung“ statt „Lieferung“.
+- **Anteile der Energieträger** (`energyCarrierShares`): Energieeinsatz in kWh
+  je Energieträger (Heizwert × Verbrauch, bei Abrechnung in kWh die Menge),
+  ganze Prozent, Restverteilung nach größtem Rest. Fehlt für eine
+  kostenbehaftete Quelle Menge oder Heizwert, nennt die Abrechnung nur die
+  Energieträger; die Prüfung warnt (`heating.energy_share_not_determinable`).
+- **Vergleichswerte:** Der mittlere Verbrauch des eigenen Heizkreises ist kein
+  Vergleich mit einem normierten oder durch Vergleichstests ermittelten
+  Durchschnittsnutzer und wird nur als „Mittlerer Verbrauch im Heizkreis“
+  ausgewiesen. Die Prüfung meldet je Abrechnungsjahr mit Heizkreis
+  `heating.consumption_benchmark_missing` (3-%-Kürzungsrecht nach § 12 Abs. 1
+  HeizKV).
+- **Vorjahresvergleich:** Ohne Vorjahresabrechnung des Objekts (z. B.
+  Eigentümerwechsel) bzw. ohne Nutzung oder Verbrauchswerte im Vorjahr steht
+  ein eigener, begründeter Satz. Liegen Vorjahreswerte derselben Mietpartei
+  vor, zeigt die Einzelabrechnung eine Balkengrafik mit dem Hinweis „ohne
+  Witterungsbereinigung“.
+- Weitere Prüfhinweise: `heating.energy_invoice_quantity_missing` (Strom- bzw.
+  Fernwärmerechnung ohne kWh), `heating.energy_invoice_period_missing`
+  (Rechnung außerhalb des Abrechnungszeitraums ohne Beschreibung),
+  `heating.cost_only_delivery_unlabelled` (Brennstoffrechnung ohne Menge und
+  ohne Beschreibung), `costs.entry_ambiguous` (gleich bezeichnete Belege
+  derselben Kostenart am selben Tag).
+
+### Offene Entscheidungen
+
+1. **Normierter Durchschnittsnutzer:** Quelle der Vergleichswerte (Messdienst,
+   bundesweiter Heizspiegel o. Ä.), Nutzerkategorie und Umrechnung bei
+   Verbrauchseinheiten statt kWh sind festzulegen; erst danach erhält der
+   Heizkreis ein Feld für den Vergleichswert.
+2. **Witterungsbereinigung:** Verfahren (Gradtagzahlen bzw. Klimafaktoren je
+   Standort und Jahr) und Datenquelle sind festzulegen.
+3. **Lieferzeitraum als Feld:** Bei Bedarf eigene Felder für Beginn und Ende
+   des abgerechneten Zeitraums an `FuelDelivery` (Schemaerweiterung mit
+   Migration) statt der Beschreibung.
+
 ## Betriebsstrom als budgetgedeckte Netto-null-Umbuchung
 
 Eine Kostenart ist nur dann Quelle, wenn sie ausdrücklich als

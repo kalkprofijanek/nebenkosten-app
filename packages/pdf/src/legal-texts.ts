@@ -146,10 +146,42 @@ export function meteringFeesText(amount: string | null): string {
 export const DISPUTE_RESOLUTION_NOTICE =
   'Bei Streitigkeiten können Sie sich an die Allgemeine Verbraucherschlichtungsstelle des Zentrums für Schlichtung e. V., Straßburger Straße 8, 77694 Kehl (www.verbraucher-schlichter.de) wenden. Der Vermieter ist zur Teilnahme an einem Streitbeilegungsverfahren nicht verpflichtet und nimmt daran nicht teil.'
 
-/** § 6a HeizKV: Vorjahresvergleich ohne Vorjahreswerte. */
-export const NO_PREVIOUS_YEAR_COMPARISON =
-  'Ein Vergleich mit dem Vorjahr ist nicht möglich, weil für das Vorjahr keine vergleichbaren Verbrauchsdaten vorliegen (Eigentümer- bzw. Abrechnungswechsel).'
+/** § 6a HeizKV: Energieträger mit Anteilen. */
+export const ENERGY_CARRIER_MIX_LABEL =
+  'Eingesetzte Energieträger Ihres Heizkreises'
 
-/** § 6a HeizKV: Bezeichnung des Vergleichswerts. */
+/** § 6a HeizKV: Überschrift des Vorjahresvergleichs. */
+export const PREVIOUS_PERIOD_COMPARISON_HEADING =
+  'Vergleich mit dem vorhergehenden Abrechnungszeitraum'
+
+/** Vorjahresvergleich: Grafik ohne Witterungsbereinigung. */
+export const PREVIOUS_PERIOD_NOT_WEATHER_ADJUSTED =
+  'Darstellung der erfassten Verbrauchswerte ohne Witterungsbereinigung.'
+
+/** § 6a HeizKV: Kein Vorjahresvergleich, weil keine Vorjahresabrechnung vorliegt. */
+export const NO_PREVIOUS_PERIOD_DATA =
+  'Ein grafischer, witterungsbereinigter Vergleich mit dem vorhergehenden Abrechnungszeitraum ist nicht möglich, weil für diesen Zeitraum keine Verbrauchsdaten vorliegen (Eigentümer- bzw. Abrechnungswechsel).'
+
+/** § 6a HeizKV: Vorjahresabrechnung vorhanden, aber ohne Verbrauch der Wohnung. */
+export const NO_PREVIOUS_PERIOD_CONSUMPTION =
+  'Ein grafischer, witterungsbereinigter Vergleich mit dem vorhergehenden Abrechnungszeitraum ist nicht möglich, weil für Ihre Nutzung in diesem Zeitraum keine Verbrauchswerte erfasst sind.'
+
+/** § 6a HeizKV: Nutzer hat die Wohnung im Vorjahr noch nicht genutzt. */
+export const NOT_RESIDENT_IN_PREVIOUS_PERIOD =
+  'Ein Vergleich mit dem vorhergehenden Abrechnungszeitraum entfällt, weil Sie die Wohnung in diesem Zeitraum noch nicht genutzt haben.'
+
+/**
+ * Mittelwert des Heizkreises. Er ist kein Vergleich mit einem normierten
+ * oder durch Vergleichstests ermittelten Durchschnittsnutzer (§ 6a Abs. 3
+ * HeizKV) und wird deshalb nur als Einordnung im Gebäude bezeichnet.
+ */
 export const CIRCUIT_AVERAGE_LABEL =
-  'Durchschnitt Ihres Heizkreises (rechnerisch, kein normierter Durchschnittsnutzer)'
+  'Mittlerer Verbrauch im Heizkreis (umgerechnet auf Ihre Fläche und Nutzungsdauer)'
+
+/** Erläuterung des Heizkreis-Mittelwerts. */
+export function circuitAverageExplanation(
+  totalConsumption: string,
+  area: string,
+): string {
+  return `Der mittlere Verbrauch im Heizkreis ergibt sich aus dem Gesamtverbrauch des Heizkreises (${totalConsumption}) geteilt durch die Fläche (${area}); er dient der Einordnung Ihres Verbrauchs innerhalb des Gebäudes.`
+}
