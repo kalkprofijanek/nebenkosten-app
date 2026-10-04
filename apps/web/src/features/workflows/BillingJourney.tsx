@@ -1,5 +1,5 @@
 import type { AppDataFile } from '@nebenkosten/schema'
-import { validateBillingPeriod } from '@nebenkosten/validators'
+import { validateBillingPeriodCached } from '@nebenkosten/validators'
 import { useState, type ReactNode } from 'react'
 import { validationIssueLink } from '../release/validation-links'
 import { billingJourneySteps } from './billing-journey-steps'
@@ -62,10 +62,10 @@ export function BillingJourney({ data, billingPeriodId, renderStep }: Props) {
   const emptyUnits = units.filter(
     ({ id }) => !occupancies.some(({ unitId }) => unitId === id),
   )
-  let issues: ReturnType<typeof validateBillingPeriod>['issues'] = []
+  let issues: ReturnType<typeof validateBillingPeriodCached>['issues'] = []
   let validationError: string | null = null
   try {
-    issues = validateBillingPeriod(data, period.id).issues
+    issues = validateBillingPeriodCached(data, period.id).issues
   } catch {
     validationError =
       'Die Angaben konnten nicht geprüft werden. Öffne die Freigabeprüfung für weitere Informationen.'

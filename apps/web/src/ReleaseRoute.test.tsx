@@ -20,11 +20,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ReleaseRoute } from './ReleaseRoute'
 
-vi.mock('@nebenkosten/validators', () => ({
-  getFinalizationDocumentStatus: vi.fn(),
-  validateBillingPeriod: vi.fn(),
-  transitionBillingPeriod: vi.fn(),
-}))
+vi.mock('@nebenkosten/validators', async () => {
+  const actual = await vi.importActual<
+    typeof import('@nebenkosten/validators')
+  >('@nebenkosten/validators')
+  const validate = vi.fn()
+  return {
+    getFinalizationDocumentStatus: vi.fn(),
+    validateBillingPeriod: validate,
+    validateBillingPeriodCached: validate,
+    withConfirmedWarnings: actual.withConfirmedWarnings,
+    transitionBillingPeriod: vi.fn(),
+  }
+})
 
 afterEach(cleanup)
 
@@ -243,6 +251,62 @@ describe('ReleaseRoute', () => {
       {
         confirmedWarningKeys: ['warning:tenant-1', 'warning:tenant-2'],
       },
+    )
+  })
+
+  it('prüft beim Bestätigen nicht neu und bestätigt alle Warnungen mit einem Klick', () => {
+    vi.mocked(validateBillingPeriod).mockImplementation(() =>
+      report([errorIssue, warningOne, warningTwo]),
+    )
+    render(
+      <ReleaseRoute
+        data={fileWithPeriod('IN_REVIEW')}
+        billingPeriodId="period-1"
+        onApply={vi.fn(() => true)}
+      />,
+    )
+    const callsAfterRender = vi.mocked(validateBillingPeriod).mock.calls.length
+    const boxes = screen.getAllByRole('checkbox', {
+      name: /Vorauszahlung fehlt/,
+    })
+    fireEvent.click(boxes[0]!)
+    fireEvent.click(boxes[0]!)
+    expect(vi.mocked(validateBillingPeriod).mock.calls.length).toBe(
+      callsAfterRender,
+    )
+    expect(screen.getByText('0 von 2 Warnungen bestätigt')).toBeVisible()
+    const confirmAll = screen.getByRole('button', {
+      name: 'Alle angezeigten Warnungen bestätigen (2)',
+    })
+    fireEvent.click(confirmAll)
+    expect(screen.getByText('2 von 2 Warnungen bestätigt')).toBeVisible()
+    for (const box of screen.getAllByRole('checkbox', {
+      name: /Vorauszahlung fehlt/,
+    }))
+      expect(box).toBeChecked()
+    expect(confirmAll).toBeDisabled()
+    // Fehler blockieren weiterhin die Freigabe.
+    expect(
+      screen.getByRole('button', { name: 'Für PDF freigeben' }),
+    ).toBeDisabled()
+    expect(vi.mocked(validateBillingPeriod).mock.calls.length).toBe(
+      callsAfterRender,
+    )
+  })
+
+  it('zeigt eine fehlgeschlagene Prüfung als Alert', () => {
+    vi.mocked(validateBillingPeriod).mockImplementation(() => {
+      throw new Error('Prüfung fehlgeschlagen (fiktiv).')
+    })
+    render(
+      <ReleaseRoute
+        data={fileWithPeriod('IN_REVIEW')}
+        billingPeriodId="period-1"
+        onApply={vi.fn(() => true)}
+      />,
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Prüfung fehlgeschlagen (fiktiv).',
     )
   })
 

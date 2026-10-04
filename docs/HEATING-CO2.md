@@ -108,6 +108,33 @@ Periodenvorgaben übernommen. Der Standard ist 30 % Grundkosten und 70 %
 Verbrauchskosten; das Datenmodell lässt den fachlich vorgesehenen Bereich von
 50 % bis 70 % Verbrauchsanteil zu.
 
+## Ausweis in den PDFs (ab 1.2.1)
+
+- Die Heizkosten-Zusammenstellung schlüsselt
+  `reconciliation.plusHeatingOperatingCostsCents` in „davon“-Zeilen auf
+  (`heatingOperatingCostLines` in `packages/pdf`). Die Zuordnung entspricht
+  `heatingOperating` im Core: Kostenarten der Art „Heizung“ mit Gebäude-Bereich
+  des Heizkreises, Belege einzeln, ein nicht umlagefähiger Anteil als eigene
+  Zeile, eine verbleibende Centdifferenz als „Rundung“. Die Summe der Zeilen
+  ist damit exakt der Betrag der Zusammenstellung.
+- Entgelte für Verbrauchserfassung und Abrechnung (§ 6a HeizKV) werden aus
+  denselben Kostenarten erkannt (`meteringFeeCents`), wenn Kostenart oder
+  Belegbeschreibung z. B. „Wärmezähler“, „Messdienst“, „Ablesung“,
+  „Abrechnung“ oder „Eichung“ enthält; sonst lautet der Hinweis, dass sie in
+  den Betriebskosten der Heizungsanlage enthalten sind.
+- Zählerstände (`OccupancyPeriod.heatMeterReading`) sind rein dokumentarisch;
+  maßgeblich für die Verteilung bleiben `consumptionUnits` bzw. die gemessenen
+  kWh. Die Einzelabrechnung zeigt sie unter „Ihre Verbrauchserfassung“ mit der
+  Rechnung der Grund-, Verbrauchs- und CO₂-Anteile; der CO₂-Verbrauchsanteil
+  wird als Differenz zum gerundeten CO₂-Gesamtanteil des Mieters ausgewiesen,
+  damit die gedruckte Summe stimmt.
+- Ohne konfigurierte Warmwasserabgrenzung (`warmWater.method = 'none'`)
+  enthalten die PDFs keinen Satz zum Warmwasser (Vermieterentscheidung).
+- `@nebenkosten/validators` stellt zusätzlich `validateBillingPeriodCached`
+  (Ergebnis je Datenobjekt und Abrechnungsjahr zwischengespeichert, setzt
+  unveränderliche Datenobjekte voraus) und `withConfirmedWarnings` (bestätigte
+  Warnungen ohne erneute Prüfung anwenden) bereit; die Oberfläche nutzt beide.
+
 ## Betriebsstrom als budgetgedeckte Netto-null-Umbuchung
 
 Eine Kostenart ist nur dann Quelle, wenn sie ausdrücklich als

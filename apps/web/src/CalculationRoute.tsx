@@ -2,7 +2,7 @@ import type { AppDataFile, ValidationIssue } from '@nebenkosten/schema'
 import { useState } from 'react'
 import {
   latestCalculationRun,
-  validateBillingPeriod,
+  validateBillingPeriodCached,
 } from '@nebenkosten/validators'
 import { StatementPreview } from './features/calculation/StatementPreview'
 
@@ -28,7 +28,7 @@ function meteredBlockers(
   billingPeriodId: string,
 ): readonly ValidationIssue[] {
   try {
-    return validateBillingPeriod(data, billingPeriodId).issues.filter(
+    return validateBillingPeriodCached(data, billingPeriodId).issues.filter(
       ({ code, severity }) =>
         severity === 'error' &&
         code.startsWith('metered.') &&

@@ -393,6 +393,16 @@ describe('PrepaymentsRoute – VZ-Anpassung', () => {
     expect(within(table).queryByText('Einheit u2')).not.toBeInTheDocument()
   })
 
+  it('erklärt, in welches Abrechnungsjahr die neue Vorauszahlung eingetragen wird', () => {
+    render(<Harness initial={withFollowYear()} />)
+    expect(
+      screen.getByText(
+        /Bei „Ja“ wird die neue Vorauszahlung im Abrechnungsjahr eingetragen, ab dem sie gilt \(Standard: nächster zulässiger 01\.01\. nach Versand\), und das Anpassungsschreiben an die Einzelabrechnung angehängt\./,
+      ),
+    ).toBeVisible()
+    expect(screen.queryByText(/im Folgejahr eingetragen/)).toBeNull()
+  })
+
   it('speichert „Ja“ ins Folgejahr und „Nein“ als Entscheidung', () => {
     const onChange = vi.fn()
     render(<Harness initial={withFollowYear()} onChange={onChange} />)

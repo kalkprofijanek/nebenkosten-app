@@ -1,5 +1,5 @@
 import type { AppDataFile, BillingPeriod } from '@nebenkosten/schema'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { formatEuroInput, parseEuroCents } from '../../app/form-parsers'
 import { setOccupancyPrepayment } from '../occupancies/commands'
 import { applyEditableBillingPeriodChange } from '../release/edit-guard'
@@ -224,7 +224,10 @@ function PrepaymentTable({
   readonly onApply: Apply
 }) {
   const { feedback, setFeedback, run } = useApply(onApply)
-  const overview = buildPrepaymentOverview(data, billingPeriodId)!
+  const overview = useMemo(
+    () => buildPrepaymentOverview(data, billingPeriodId)!,
+    [data, billingPeriodId],
+  )
   const { period, rows, totals, previousPeriod } = overview
   const locked = period.status !== 'DRAFT'
 
@@ -503,14 +506,21 @@ function AdjustmentSection({
   const validFromValid =
     isFirstOfMonth(validFrom) && validFrom > period.periodEnd
 
-  let proposals: AdjustmentProposal[] | null
-  let snapshotError = false
-  try {
-    proposals = proposePrepaymentAdjustments(data, period.id)
-  } catch {
-    proposals = null
-    snapshotError = true
-  }
+  // Vorschläge nur bei geändertem Datenbestand neu berechnen (nicht bei
+  // jeder Eingabe, z. B. dem Gültigkeitsdatum).
+  const { proposals, snapshotError } = useMemo((): {
+    readonly proposals: AdjustmentProposal[] | null
+    readonly snapshotError: boolean
+  } => {
+    try {
+      return {
+        proposals: proposePrepaymentAdjustments(data, period.id),
+        snapshotError: false,
+      }
+    } catch {
+      return { proposals: null, snapshotError: true }
+    }
+  }, [data, period.id])
 
   function decide(
     proposal: AdjustmentProposal,
@@ -559,9 +569,10 @@ function AdjustmentSection({
         Vorschläge für Mieter mit Nachzahlung, laufendem Mietverhältnis und
         monatlicher Vorauszahlung: Kostenanteil hochgerechnet auf 365 Tage,
         geteilt durch 12 und auf volle Euro aufgerundet; vorgeschlagen ab einer
-        Erhöhung um 5 €. Bei „Ja“ wird die neue Vorauszahlung im Folgejahr
-        eingetragen und das Anpassungsschreiben an die Einzelabrechnung
-        angehängt.
+        Erhöhung um 5 €. Bei „Ja“ wird die neue Vorauszahlung im
+        Abrechnungsjahr eingetragen, ab dem sie gilt (Standard: nächster
+        zulässiger 01.01. nach Versand), und das Anpassungsschreiben an die
+        Einzelabrechnung angehängt.
       </p>
       {snapshotError ? (
         <p className="calculation-warnings">

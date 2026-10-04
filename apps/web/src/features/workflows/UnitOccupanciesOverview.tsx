@@ -1,6 +1,6 @@
 import { useState, type ComponentProps } from 'react'
 import type { OccupancyPeriod, Unit } from '@nebenkosten/schema'
-import { validateBillingPeriod } from '@nebenkosten/validators'
+import { validateBillingPeriodCached } from '@nebenkosten/validators'
 import { TableToolbar } from '../../components/TableToolbar'
 import { OccupancyRows } from './OccupancyRows'
 import { unitOccupancies } from './unit-occupancies'
@@ -32,7 +32,7 @@ export function UnitOccupanciesOverview({
   const { data, period } = props
   const validationIssues = (() => {
     try {
-      return validateBillingPeriod(data, period.id).issues
+      return validateBillingPeriodCached(data, period.id).issues
     } catch {
       return []
     }

@@ -1,6 +1,6 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
 import { CURRENT_SCHEMA_VERSION } from '@nebenkosten/schema'
-import { validateBillingPeriod } from '@nebenkosten/validators'
+import { validateBillingPeriodCached } from '@nebenkosten/validators'
 
 import { appRoutes, findRoute } from './app/navigation'
 import {
@@ -316,7 +316,7 @@ export function App({
   let validationWarningCount = 0
   if (workspaceState?.data && activeBillingPeriod) {
     try {
-      const report = validateBillingPeriod(
+      const report = validateBillingPeriodCached(
         workspaceState.data,
         activeBillingPeriod.id,
       )
