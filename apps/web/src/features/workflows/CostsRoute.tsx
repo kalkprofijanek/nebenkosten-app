@@ -26,6 +26,8 @@ import { TableToolbar } from '../../components/TableToolbar'
 import { CostDataOverview } from '../costs/CostDataOverview'
 import {
   addCostCategory,
+  copyCostCategoriesFromPreviousYear,
+  previousYearCostCategories,
   addCostEntry,
   deleteCostCategory,
   deleteCostEntry,
@@ -344,6 +346,7 @@ export function CostsRoute({
   const [entrySearch, setEntrySearch] = useState('')
   const [entryFilter, setEntryFilter] = useState('all')
   const [importNotice, setImportNotice] = useState<string | null>(null)
+  const [categoryNotice, setCategoryNotice] = useState<string | null>(null)
   const [entryFormVersion, setEntryFormVersion] = useState(0)
   const period = data.billingData.billingPeriods.find(
     ({ id }) => id === selection.billingPeriodId,
@@ -431,6 +434,25 @@ export function CostsRoute({
       )
       return false
     }
+  }
+
+  const carryOver = previousYearCostCategories(data, period.id)
+
+  function copyFromPreviousYear() {
+    setCategoryNotice(null)
+    let copiedCount = 0
+    let sourceYear = 0
+    if (
+      apply((current) => {
+        const result = copyCostCategoriesFromPreviousYear(current, period.id)
+        copiedCount = result.copiedCount
+        sourceYear = result.sourceYear
+        return result.data
+      })
+    )
+      setCategoryNotice(
+        `${copiedCount} ${copiedCount === 1 ? 'Kostenart' : 'Kostenarten'} aus ${sourceYear} übernommen. Beträge bitte als Kostenpositionen erfassen.`,
+      )
   }
 
   function createCategory(event: FormEvent<HTMLFormElement>) {
@@ -629,6 +651,17 @@ export function CostsRoute({
 
       {activeTab === 'categories' ? (
         <>
+          {carryOver.sourcePeriod && carryOver.candidates.length > 0 ? (
+            <p>
+              <button type="button" onClick={copyFromPreviousYear}>
+                Kostenarten aus {carryOver.sourcePeriod.year} übernehmen (
+                {carryOver.candidates.length})
+              </button>{' '}
+              Übernimmt Bezeichnung, Umlageschlüssel und Anteile – ohne Beträge
+              und Belege.
+            </p>
+          ) : null}
+          {categoryNotice ? <p role="status">{categoryNotice}</p> : null}
           <form noValidate onSubmit={createCategory}>
             <CategoryFields category={undefined} buildings={buildings} />
             <button type="submit">Kostenart anlegen</button>

@@ -79,6 +79,15 @@ Unter **Kosten**:
 3. Unter **Zahlungsnachweis** die Position mit der passenden Bankbuchung
    verknüpfen oder die externe Zahlung begründen.
 
+Ab dem zweiten Jahr übernimmt **„Kostenarten aus <Vorjahr> übernehmen“**
+alle noch fehlenden Kostenarten mit Umlageschlüssel, Anteilen und Text – ohne
+Beträge. Erfassen Sie danach nur noch die Rechnungen des neuen Jahres.
+
+Ist ein Lohnanteil hinterlegt, enthält jede Einzelabrechnung eine
+**Bescheinigung nach § 35a EStG** für die Steuererklärung des Mieters.
+Doppelt erfasste Rechnungen (gleiche Belegnummer oder gleicher Betrag am
+gleichen Tag) meldet die Prüfung als Hinweis.
+
 Achten Sie besonders auf:
 
 - **Leistungszeitraum statt Rechnungsdatum.** Maßgeblich ist, welches Jahr die

@@ -4,6 +4,20 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- Einzelabrechnung: **Bescheinigung nach § 35a EStG** mit dem Lohnanteil je
+  Kostenart und Summe. Der Lohnanteil wurde schon erfasst, seit der Migration
+  aber nicht mehr ausgewiesen (Alt-App: Hinweis `lohn35a`). Heizungs-Wartung
+  wird nach dem Anteil an Grund- und Verbrauchskosten zugerechnet,
+- Kosten: **„Kostenarten aus <Vorjahr> übernehmen“** legt fehlende
+  Kostenarten mit Umlageschlüssel, Anteilen und Abrechnungstext an – ohne
+  Beträge und Belege,
+- Prüfhinweis **„Rechnung möglicherweise doppelt erfasst“** bei gleicher
+  Belegnummer im Abrechnungsjahr oder gleichem Betrag am gleichen Tag in
+  derselben Kostenart,
+- Prüfkatalog mit **Handrechnung**: sieben Fälle (Mieterwechsel, Schaltjahr
+  und Leerstand, Restcent, nicht umlagefähige Anteile, gemischte Schlüssel,
+  Heizöl-FIFO mit CO₂-Aufteilung manuell und nach Stufenmodell, § 35a), von
+  Hand aus der Rechtslage hergeleitet und ohne Toleranz geprüft,
 - Öffnung für Dritte (nur Dokumentation und Repository-Einstellungen, keine
   Codeänderung): Lizenz AGPL-3.0, Benutzerhandbuch, Anleitung für Claude/ChatGPT
   mit Erfassungsliste und Arbeitsanweisung, Beschreibung des Bank-CSV-Formats

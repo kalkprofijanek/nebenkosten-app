@@ -1073,6 +1073,58 @@ function meterReadings(
   }
 }
 
+/** Belegnummer ohne Groß-/Kleinschreibung, Leer- und Satzzeichen. */
+function normalizedReceipt(value: string | null | undefined): string {
+  return (value ?? '').toLocaleLowerCase('de-DE').replace(/[^\p{L}\p{N}]/gu, '')
+}
+
+/**
+ * Mögliche Doppelerfassung derselben Rechnung: gleiche Belegnummer im
+ * Abrechnungsjahr oder gleicher Betrag am gleichen Tag in derselben
+ * Kostenart. Ob es dieselbe Rechnung ist, entscheidet der Mensch; deshalb
+ * nur eine Warnung am später erfassten Beleg.
+ */
+function duplicateCostEntries(
+  data: AppDataFile,
+  period: BillingPeriod,
+  add: Add,
+): void {
+  const categoryIds = new Set(
+    periodCategories(data, period.id).map(({ id }) => id),
+  )
+  const seenReceipts = new Map<string, string>()
+  const seenAmounts = new Map<string, string>()
+  for (const entry of data.billingData.costEntries) {
+    if (!categoryIds.has(entry.costCategoryId)) continue
+    const receipt = normalizedReceipt(entry.receiptReference)
+    const amountKey =
+      entry.amountCents !== 0 && entry.date
+        ? `${entry.costCategoryId}|${entry.date}|${entry.amountCents}`
+        : ''
+    const firstByReceipt = receipt ? seenReceipts.get(receipt) : undefined
+    const firstByAmount = amountKey ? seenAmounts.get(amountKey) : undefined
+    if (firstByReceipt || firstByAmount)
+      add(
+        issue(
+          'warning',
+          'costs.entry_possible_duplicate',
+          'costs',
+          'Rechnung möglicherweise doppelt erfasst',
+          {
+            entity: { type: 'CostEntry', id: entry.id },
+            detail: firstByReceipt
+              ? 'Ein anderer Beleg in diesem Abrechnungsjahr hat dieselbe Belegnummer.'
+              : 'Ein anderer Beleg derselben Kostenart hat denselben Betrag und dasselbe Datum.',
+          },
+        ),
+      )
+    if (receipt && !seenReceipts.has(receipt))
+      seenReceipts.set(receipt, entry.id)
+    if (amountKey && !seenAmounts.has(amountKey))
+      seenAmounts.set(amountKey, entry.id)
+  }
+}
+
 export function collectStaticIssues(
   data: AppDataFile,
   period: BillingPeriod,
@@ -1083,6 +1135,7 @@ export function collectStaticIssues(
   periodChecks(period, add)
   occupancies(data, period, add)
   costs(data, period, add)
+  duplicateCostEntries(data, period, add)
   heating(data, period, add)
   meterReadings(data, period, add)
   meters(data, period, add)
