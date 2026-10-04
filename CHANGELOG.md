@@ -2,13 +2,13 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
-## Unveröffentlicht
+## 1.3.0 – 4. Oktober 2026
 
 - Neuer Arbeitsbereich „Verbrauch“ (zwischen „Nutzer“ und
   „Vorauszahlungen“): Zählernummer, Stand alt/neu mit Ablesedatum, Differenz,
-  Verbrauchseinheiten und Status aller Mieter eines Abrechnungsjahres in einer
-  Tabelle; zeilenweise speichern oder verwerfen, Filter „Nur offene und
-  abweichende Zeilen“,
+  Verbrauchseinheiten, Kalt- und Warmwasser (m³) und Status aller Mieter eines
+  Abrechnungsjahres in einer Tabelle; zeilenweise speichern oder verwerfen,
+  Filter „Nur offene und abweichende Zeilen“,
 - Schätzung nach § 9a HeizKV je Zeile („Schätzen“) und für alle fehlenden
   oder 0-Werte auf einmal („Alle fehlenden schätzen“); ist keine Schätzung
   möglich, nennt die Zeile den Grund (kein Gebäude, keine beheizte Fläche,
@@ -16,12 +16,21 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 - Hinweis, wenn in einem Gebäude mehr als 25 % der Fläche (zeitanteilig)
   geschätzt sind (§ 9a Abs. 2 HeizKV); die Berechnung wird dadurch nicht
   umgestellt,
-- Nutzerbearbeitung zeigt den Heizverbrauch nur noch an und verlinkt auf die
-  neue Seite; Speichern dort lässt Verbrauch und Zählerstände unverändert,
+- Prüfung: `heating.meter_reading_mismatch` entfällt bei einer begründeten
+  Schätzung (Kennzeichen „geschätzt“ und Schätzgrund), z. B. bei defektem
+  Zähler; ohne Schätzgrund bleibt die Warnung,
+- Nutzerbearbeitung zeigt Heizverbrauch und Wasser nur noch an und verlinkt
+  auf die neue Seite; Speichern dort lässt diese Werte unverändert,
 - Prüfhinweise `heating.consumption_units_missing`,
   `heating.meter_reading_mismatch` und `heating.meter_reading_incomplete`
   sowie die geführte Jahresabrechnung führen zur betroffenen Zeile der
-  Verbrauchsseite. Keine Schemaänderung.
+  Verbrauchsseite. Keine Schemaänderung,
+- Öffnung für Dritte (nur Dokumentation und Repository-Einstellungen, keine
+  Codeänderung): Lizenz AGPL-3.0, Benutzerhandbuch, Anleitung für Claude/ChatGPT
+  mit Erfassungsliste und Arbeitsanweisung, Beschreibung des Bank-CSV-Formats
+  mit erfundener Beispieldatei, neue `CONTRIBUTING.md` (Fork-Workflow),
+  Verhaltenskodex, Issue-Vorlagen, erweiterte Pull-Request-Vorlage, Regeln für
+  externe Agenten in `AGENTS.md`, aktualisierte Datenschutzhinweise.
 
 ## 1.2.2 – 4. Oktober 2026
 
