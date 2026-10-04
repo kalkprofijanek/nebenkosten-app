@@ -1,0 +1,891 @@
+{
+  "note": "Frei erfundene Fälle. Erwartete Werte von Hand hergeleitet (README.md), nicht aus dem Code abgelesen.",
+  "cases": [
+    {
+      "scenario": {
+        "id": "H01-mieterwechsel-stichtag",
+        "title": "Mieterwechsel zum 30.06., Fläche, Restcent",
+        "coverage": [],
+        "year": 2025,
+        "from": "2025-01-01",
+        "to": "2025-12-31",
+        "defaults": {
+          "consumptionPercent": 70,
+          "basePercent": 30,
+          "baseArea": "heated",
+          "operatingElectricityPercent": 0
+        },
+        "buildings": [
+          {
+            "id": "B1",
+            "name": "Haus Nord",
+            "shortName": "AW1",
+            "energyType": null,
+            "mandatePrefixes": ["AW1"]
+          }
+        ],
+        "circuits": [],
+        "costs": [
+          {
+            "id": "k-grundsteuer",
+            "kind": "operating",
+            "label": "Grundsteuer",
+            "statementText": "Grundsteuer",
+            "betrkv": "§2 Nr. 1",
+            "allocationKey": "usable_area",
+            "scope": {
+              "kind": "property"
+            },
+            "amountEur": 1000
+          }
+        ],
+        "tenants": [
+          {
+            "id": "t1",
+            "unitId": "u1",
+            "buildingId": "B1",
+            "mandateSuffix": "0t1",
+            "kind": "tenant",
+            "usableAreaSqm": 60,
+            "heatedAreaSqm": 60,
+            "persons": 1,
+            "consumptionUnits": 0,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 50
+            },
+            "from": "2025-01-01",
+            "to": "2025-06-30"
+          },
+          {
+            "id": "t2",
+            "unitId": "u1",
+            "buildingId": "B1",
+            "mandateSuffix": "0t2",
+            "kind": "tenant",
+            "usableAreaSqm": 60,
+            "heatedAreaSqm": 60,
+            "persons": 1,
+            "consumptionUnits": 0,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 50
+            },
+            "from": "2025-07-01",
+            "to": "2025-12-31"
+          },
+          {
+            "id": "t3",
+            "unitId": "u2",
+            "buildingId": "B1",
+            "mandateSuffix": "0t3",
+            "kind": "tenant",
+            "usableAreaSqm": 40,
+            "heatedAreaSqm": 40,
+            "persons": 1,
+            "consumptionUnits": 0,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 40
+            }
+          }
+        ]
+      },
+      "expected": {
+        "periodDays": 365,
+        "tenants": [
+          {
+            "id": "t1",
+            "shareCents": 29753,
+            "prepaymentCents": 30000,
+            "balanceCents": -247
+          },
+          {
+            "id": "t2",
+            "shareCents": 30247,
+            "prepaymentCents": 30000,
+            "balanceCents": 247
+          },
+          {
+            "id": "t3",
+            "shareCents": 40000,
+            "prepaymentCents": 48000,
+            "balanceCents": -8000
+          }
+        ],
+        "totals": {
+          "recordedCostsCents": 100000,
+          "tenantTotalCents": 100000,
+          "landlordTotalCents": 0
+        },
+        "vacancyLandlordCents": 0
+      }
+    },
+    {
+      "scenario": {
+        "id": "H02-schaltjahr-leerstand",
+        "title": "Schaltjahr 2024, Leerstand bis 31.03., Einzug 01.04.",
+        "coverage": [],
+        "year": 2024,
+        "from": "2024-01-01",
+        "to": "2024-12-31",
+        "defaults": {
+          "consumptionPercent": 70,
+          "basePercent": 30,
+          "baseArea": "heated",
+          "operatingElectricityPercent": 0
+        },
+        "buildings": [
+          {
+            "id": "B1",
+            "name": "Haus Nord",
+            "shortName": "AW1",
+            "energyType": null,
+            "mandatePrefixes": ["AW1"]
+          }
+        ],
+        "circuits": [],
+        "costs": [
+          {
+            "id": "k-versicherung",
+            "kind": "operating",
+            "label": "Gebäudeversicherung",
+            "statementText": "Gebäudeversicherung",
+            "betrkv": "§2 Nr. 13",
+            "allocationKey": "usable_area",
+            "scope": {
+              "kind": "property"
+            },
+            "amountEur": 732
+          }
+        ],
+        "tenants": [
+          {
+            "id": "t1",
+            "unitId": "u1",
+            "buildingId": "B1",
+            "mandateSuffix": "0t1",
+            "kind": "tenant",
+            "usableAreaSqm": 50,
+            "heatedAreaSqm": 50,
+            "persons": 1,
+            "consumptionUnits": 0,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 30
+            }
+          },
+          {
+            "id": "v2",
+            "unitId": "u2",
+            "buildingId": "B1",
+            "mandateSuffix": "0v2",
+            "kind": "vacancy",
+            "usableAreaSqm": 50,
+            "heatedAreaSqm": 50,
+            "persons": 0,
+            "consumptionUnits": 0,
+            "prepay": {
+              "mode": "none"
+            },
+            "from": "2024-01-01",
+            "to": "2024-03-31"
+          },
+          {
+            "id": "t2",
+            "unitId": "u2",
+            "buildingId": "B1",
+            "mandateSuffix": "0t2",
+            "kind": "tenant",
+            "usableAreaSqm": 50,
+            "heatedAreaSqm": 50,
+            "persons": 1,
+            "consumptionUnits": 0,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 30
+            },
+            "from": "2024-04-01",
+            "to": "2024-12-31"
+          }
+        ]
+      },
+      "expected": {
+        "periodDays": 366,
+        "tenants": [
+          {
+            "id": "t1",
+            "shareCents": 36600,
+            "prepaymentCents": 36000,
+            "balanceCents": 600
+          },
+          {
+            "id": "v2",
+            "shareCents": 9100,
+            "prepaymentCents": 0,
+            "balanceCents": 9100
+          },
+          {
+            "id": "t2",
+            "shareCents": 27500,
+            "prepaymentCents": 27000,
+            "balanceCents": 500
+          }
+        ],
+        "totals": {
+          "recordedCostsCents": 73200,
+          "tenantTotalCents": 64100,
+          "landlordTotalCents": 9100
+        },
+        "vacancyLandlordCents": 9100
+      }
+    },
+    {
+      "scenario": {
+        "id": "H03-restcent-gleichstand",
+        "title": "100,00 € auf drei gleiche Wohneinheiten",
+        "coverage": [],
+        "year": 2025,
+        "from": "2025-01-01",
+        "to": "2025-12-31",
+        "defaults": {
+          "consumptionPercent": 70,
+          "basePercent": 30,
+          "baseArea": "heated",
+          "operatingElectricityPercent": 0
+        },
+        "buildings": [
+          {
+            "id": "B1",
+            "name": "Haus Nord",
+            "shortName": "AW1",
+            "energyType": null,
+            "mandatePrefixes": ["AW1"]
+          }
+        ],
+        "circuits": [],
+        "costs": [
+          {
+            "id": "k-muell",
+            "kind": "operating",
+            "label": "Müllbeseitigung",
+            "statementText": "Müllbeseitigung",
+            "betrkv": "§2 Nr. 8b",
+            "allocationKey": "residential_units",
+            "scope": {
+              "kind": "property"
+            },
+            "amountEur": 100
+          }
+        ],
+        "tenants": [
+          {
+            "id": "t1",
+            "unitId": "u1",
+            "buildingId": "B1",
+            "mandateSuffix": "0t1",
+            "kind": "tenant",
+            "usableAreaSqm": 50,
+            "heatedAreaSqm": 50,
+            "persons": 1,
+            "consumptionUnits": 0,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 0
+            }
+          },
+          {
+            "id": "t2",
+            "unitId": "u2",
+            "buildingId": "B1",
+            "mandateSuffix": "0t2",
+            "kind": "tenant",
+            "usableAreaSqm": 50,
+            "heatedAreaSqm": 50,
+            "persons": 1,
+            "consumptionUnits": 0,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 0
+            }
+          },
+          {
+            "id": "t3",
+            "unitId": "u3",
+            "buildingId": "B1",
+            "mandateSuffix": "0t3",
+            "kind": "tenant",
+            "usableAreaSqm": 50,
+            "heatedAreaSqm": 50,
+            "persons": 1,
+            "consumptionUnits": 0,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 0
+            }
+          }
+        ]
+      },
+      "expected": {
+        "periodDays": 365,
+        "tenants": [
+          {
+            "id": "t1",
+            "shareCents": 3334,
+            "prepaymentCents": 0,
+            "balanceCents": 3334
+          },
+          {
+            "id": "t2",
+            "shareCents": 3333,
+            "prepaymentCents": 0,
+            "balanceCents": 3333
+          },
+          {
+            "id": "t3",
+            "shareCents": 3333,
+            "prepaymentCents": 0,
+            "balanceCents": 3333
+          }
+        ],
+        "totals": {
+          "recordedCostsCents": 10000,
+          "tenantTotalCents": 10000,
+          "landlordTotalCents": 0
+        },
+        "vacancyLandlordCents": 0
+      }
+    },
+    {
+      "scenario": {
+        "id": "H04-nicht-umlagefaehig",
+        "title": "Hauswart mit 25 % Reparaturanteil, Verwaltung nicht umlagefähig",
+        "coverage": [],
+        "year": 2025,
+        "from": "2025-01-01",
+        "to": "2025-12-31",
+        "defaults": {
+          "consumptionPercent": 70,
+          "basePercent": 30,
+          "baseArea": "heated",
+          "operatingElectricityPercent": 0
+        },
+        "buildings": [
+          {
+            "id": "B1",
+            "name": "Haus Nord",
+            "shortName": "AW1",
+            "energyType": null,
+            "mandatePrefixes": ["AW1"]
+          }
+        ],
+        "circuits": [],
+        "costs": [
+          {
+            "id": "k-hauswart",
+            "kind": "operating",
+            "label": "Hauswart",
+            "statementText": "Hauswart",
+            "betrkv": "§2 Nr. 14",
+            "allocationKey": "usable_area",
+            "scope": {
+              "kind": "property"
+            },
+            "amountEur": 1200,
+            "allocablePercent": 75
+          },
+          {
+            "id": "k-verwaltung",
+            "kind": "operating",
+            "label": "Verwaltung",
+            "statementText": "Verwaltung",
+            "betrkv": "NICHT_UML",
+            "allocationKey": "usable_area",
+            "scope": {
+              "kind": "property"
+            },
+            "amountEur": 600
+          }
+        ],
+        "tenants": [
+          {
+            "id": "t1",
+            "unitId": "u1",
+            "buildingId": "B1",
+            "mandateSuffix": "0t1",
+            "kind": "tenant",
+            "usableAreaSqm": 70,
+            "heatedAreaSqm": 70,
+            "persons": 1,
+            "consumptionUnits": 0,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 60
+            }
+          },
+          {
+            "id": "t2",
+            "unitId": "u2",
+            "buildingId": "B1",
+            "mandateSuffix": "0t2",
+            "kind": "tenant",
+            "usableAreaSqm": 30,
+            "heatedAreaSqm": 30,
+            "persons": 1,
+            "consumptionUnits": 0,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 25
+            }
+          }
+        ]
+      },
+      "expected": {
+        "periodDays": 365,
+        "tenants": [
+          {
+            "id": "t1",
+            "shareCents": 63000,
+            "prepaymentCents": 72000,
+            "balanceCents": -9000
+          },
+          {
+            "id": "t2",
+            "shareCents": 27000,
+            "prepaymentCents": 30000,
+            "balanceCents": -3000
+          }
+        ],
+        "totals": {
+          "recordedCostsCents": 120000,
+          "tenantTotalCents": 90000,
+          "landlordTotalCents": 30000,
+          "internalCostsCents": 60000
+        },
+        "vacancyLandlordCents": 0
+      }
+    },
+    {
+      "scenario": {
+        "id": "H05-gemischte-schluessel",
+        "title": "Wohneinheiten mit Mieterwechsel 31.03. und Verbrauchseinheiten",
+        "coverage": [],
+        "year": 2025,
+        "from": "2025-01-01",
+        "to": "2025-12-31",
+        "defaults": {
+          "consumptionPercent": 70,
+          "basePercent": 30,
+          "baseArea": "heated",
+          "operatingElectricityPercent": 0
+        },
+        "buildings": [
+          {
+            "id": "B1",
+            "name": "Haus Nord",
+            "shortName": "AW1",
+            "energyType": null,
+            "mandatePrefixes": ["AW1"]
+          }
+        ],
+        "circuits": [],
+        "costs": [
+          {
+            "id": "k-muell",
+            "kind": "operating",
+            "label": "Müllbeseitigung",
+            "statementText": "Müllbeseitigung",
+            "betrkv": "§2 Nr. 8b",
+            "allocationKey": "residential_units",
+            "scope": {
+              "kind": "property"
+            },
+            "amountEur": 360
+          },
+          {
+            "id": "k-wasser",
+            "kind": "water",
+            "label": "Wasser",
+            "statementText": "Wasser",
+            "betrkv": "§2 Nr. 2",
+            "allocationKey": "consumption_units",
+            "scope": {
+              "kind": "property"
+            },
+            "amountEur": 800
+          }
+        ],
+        "tenants": [
+          {
+            "id": "t1",
+            "unitId": "u1",
+            "buildingId": "B1",
+            "mandateSuffix": "0t1",
+            "kind": "tenant",
+            "usableAreaSqm": 60,
+            "heatedAreaSqm": 60,
+            "persons": 1,
+            "consumptionUnits": 50,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 40
+            }
+          },
+          {
+            "id": "t2",
+            "unitId": "u2",
+            "buildingId": "B1",
+            "mandateSuffix": "0t2",
+            "kind": "tenant",
+            "usableAreaSqm": 60,
+            "heatedAreaSqm": 60,
+            "persons": 1,
+            "consumptionUnits": 10,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 40
+            },
+            "from": "2025-01-01",
+            "to": "2025-03-31"
+          },
+          {
+            "id": "t3",
+            "unitId": "u2",
+            "buildingId": "B1",
+            "mandateSuffix": "0t3",
+            "kind": "tenant",
+            "usableAreaSqm": 60,
+            "heatedAreaSqm": 60,
+            "persons": 1,
+            "consumptionUnits": 30,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 40
+            },
+            "from": "2025-04-01",
+            "to": "2025-12-31"
+          },
+          {
+            "id": "t4",
+            "unitId": "u3",
+            "buildingId": "B1",
+            "mandateSuffix": "0t4",
+            "kind": "tenant",
+            "usableAreaSqm": 60,
+            "heatedAreaSqm": 60,
+            "persons": 1,
+            "consumptionUnits": 70,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 40
+            }
+          }
+        ]
+      },
+      "expected": {
+        "periodDays": 365,
+        "tenants": [
+          {
+            "id": "t1",
+            "shareCents": 37000,
+            "prepaymentCents": 48000,
+            "balanceCents": -11000
+          },
+          {
+            "id": "t2",
+            "shareCents": 7959,
+            "prepaymentCents": 12000,
+            "balanceCents": -4041
+          },
+          {
+            "id": "t3",
+            "shareCents": 24041,
+            "prepaymentCents": 36000,
+            "balanceCents": -11959
+          },
+          {
+            "id": "t4",
+            "shareCents": 47000,
+            "prepaymentCents": 48000,
+            "balanceCents": -1000
+          }
+        ],
+        "totals": {
+          "recordedCostsCents": 116000,
+          "tenantTotalCents": 116000,
+          "landlordTotalCents": 0
+        },
+        "vacancyLandlordCents": 0
+      }
+    },
+    {
+      "scenario": {
+        "id": "H06-heizung-fifo-co2-manuell",
+        "title": "Heizöl FIFO, 30/70, CO₂-Abgabe 300 € mit 40 % Vermieteranteil",
+        "coverage": [],
+        "year": 2025,
+        "from": "2025-01-01",
+        "to": "2025-12-31",
+        "defaults": {
+          "consumptionPercent": 70,
+          "basePercent": 30,
+          "baseArea": "heated",
+          "operatingElectricityPercent": 0
+        },
+        "buildings": [
+          {
+            "id": "B1",
+            "name": "Haus Nord",
+            "shortName": "AW1",
+            "energyType": null,
+            "mandatePrefixes": ["AW1"]
+          }
+        ],
+        "circuits": [
+          {
+            "buildingId": "B1",
+            "hasCentralHotWater": false,
+            "hotWaterPercent": null,
+            "overrides": null,
+            "co2": {
+              "mode": "manual",
+              "levyEur": 300,
+              "landlordPercent": 40,
+              "intensity": 0
+            },
+            "sources": [
+              {
+                "key": "haupt",
+                "name": "Heizoel",
+                "type": "Heizoel",
+                "calorificKwh": 10,
+                "co2FactorKgPerKwh": 0.266,
+                "openingQuantity": 1000,
+                "openingUnit": "l",
+                "openingValueEur": 1000,
+                "remainingQuantity": 500,
+                "deliveries": [
+                  {
+                    "date": "2025-03-01",
+                    "quantity": 2000,
+                    "unit": "l",
+                    "amountEur": 2400
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "costs": [
+          {
+            "id": "k-wartung",
+            "kind": "heating",
+            "label": "Wartung Heizung",
+            "statementText": "Wartung Heizung",
+            "betrkv": "§2 Nr. 4a",
+            "allocationKey": "heated_area",
+            "scope": {
+              "kind": "building",
+              "buildingId": "B1"
+            },
+            "amountEur": 200
+          }
+        ],
+        "tenants": [
+          {
+            "id": "t1",
+            "unitId": "u1",
+            "buildingId": "B1",
+            "mandateSuffix": "0t1",
+            "kind": "tenant",
+            "usableAreaSqm": 80,
+            "heatedAreaSqm": 80,
+            "persons": 1,
+            "consumptionUnits": 600,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 200
+            }
+          },
+          {
+            "id": "t2",
+            "unitId": "u2",
+            "buildingId": "B1",
+            "mandateSuffix": "0t2",
+            "kind": "tenant",
+            "usableAreaSqm": 40,
+            "heatedAreaSqm": 40,
+            "persons": 1,
+            "consumptionUnits": 200,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 80
+            }
+          }
+        ]
+      },
+      "expected": {
+        "periodDays": 365,
+        "tenants": [
+          {
+            "id": "t1",
+            "shareCents": 208800,
+            "prepaymentCents": 240000,
+            "balanceCents": -31200
+          },
+          {
+            "id": "t2",
+            "shareCents": 79200,
+            "prepaymentCents": 96000,
+            "balanceCents": -16800
+          }
+        ],
+        "totals": {
+          "recordedCostsCents": 300000,
+          "tenantTotalCents": 288000,
+          "landlordTotalCents": 12000
+        },
+        "vacancyLandlordCents": 0,
+        "co2": {
+          "totalCostCents": 30000,
+          "tenantCents": 18000,
+          "landlordCents": 12000
+        }
+      }
+    },
+    {
+      "scenario": {
+        "id": "H07-heizung-co2-stufenmodell",
+        "title": "Heizöl FIFO, CO₂ automatisch nach Stufenmodell (≥ 52 kg/m²a)",
+        "coverage": [],
+        "year": 2025,
+        "from": "2025-01-01",
+        "to": "2025-12-31",
+        "defaults": {
+          "consumptionPercent": 70,
+          "basePercent": 30,
+          "baseArea": "heated",
+          "operatingElectricityPercent": 0
+        },
+        "buildings": [
+          {
+            "id": "B1",
+            "name": "Haus Nord",
+            "shortName": "AW1",
+            "energyType": null,
+            "mandatePrefixes": ["AW1"]
+          }
+        ],
+        "circuits": [
+          {
+            "buildingId": "B1",
+            "hasCentralHotWater": false,
+            "hotWaterPercent": null,
+            "overrides": null,
+            "co2": {
+              "mode": "auto",
+              "pricePerTonEur": 55,
+              "factorKgPerKwh": null
+            },
+            "sources": [
+              {
+                "key": "haupt",
+                "name": "Heizoel",
+                "type": "Heizoel",
+                "calorificKwh": 10,
+                "co2FactorKgPerKwh": 0.266,
+                "openingQuantity": 1000,
+                "openingUnit": "l",
+                "openingValueEur": 1000,
+                "remainingQuantity": 500,
+                "deliveries": [
+                  {
+                    "date": "2025-03-01",
+                    "quantity": 2000,
+                    "unit": "l",
+                    "amountEur": 2400
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "costs": [
+          {
+            "id": "k-wartung",
+            "kind": "heating",
+            "label": "Wartung Heizung",
+            "statementText": "Wartung Heizung",
+            "betrkv": "§2 Nr. 4a",
+            "allocationKey": "heated_area",
+            "scope": {
+              "kind": "building",
+              "buildingId": "B1"
+            },
+            "amountEur": 200
+          }
+        ],
+        "tenants": [
+          {
+            "id": "t1",
+            "unitId": "u1",
+            "buildingId": "B1",
+            "mandateSuffix": "0t1",
+            "kind": "tenant",
+            "usableAreaSqm": 80,
+            "heatedAreaSqm": 80,
+            "persons": 1,
+            "consumptionUnits": 600,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 200
+            }
+          },
+          {
+            "id": "t2",
+            "unitId": "u2",
+            "buildingId": "B1",
+            "mandateSuffix": "0t2",
+            "kind": "tenant",
+            "usableAreaSqm": 40,
+            "heatedAreaSqm": 40,
+            "persons": 1,
+            "consumptionUnits": 200,
+            "prepay": {
+              "mode": "monthly",
+              "amountEur": 80
+            }
+          }
+        ]
+      },
+      "expected": {
+        "periodDays": 365,
+        "tenants": [
+          {
+            "id": "t1",
+            "shareCents": 192309,
+            "prepaymentCents": 240000,
+            "balanceCents": -47691
+          },
+          {
+            "id": "t2",
+            "shareCents": 72945,
+            "prepaymentCents": 96000,
+            "balanceCents": -23055
+          }
+        ],
+        "totals": {
+          "recordedCostsCents": 300000,
+          "tenantTotalCents": 265254,
+          "landlordTotalCents": 34746
+        },
+        "vacancyLandlordCents": 0,
+        "co2": {
+          "totalCostCents": 36575,
+          "tenantCents": 1829,
+          "landlordCents": 34746
+        }
+      }
+    }
+  ]
+}
