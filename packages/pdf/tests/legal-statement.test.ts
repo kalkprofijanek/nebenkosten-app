@@ -136,7 +136,7 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
       'Verbrauchskosten 70 %',
       '€ je Einheit',
       'Ihre Heizkosten-Aufschlüsselung',
-      'nach erfasstem Verbrauch laut Ablesung',
+      'nach erfasstem Verbrauch (Verbrauchseinheiten laut Ablesung',
     ])
       expect(serialized).toContain(expected)
     expect(serialized).not.toContain('Warmwasser')
@@ -275,6 +275,10 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     expect(serialized).toContain(
       '(nur zur Information, nicht zur Kostenverteilung verwendet)',
     )
+    expect(serialized).toContain(
+      'Heizkosten gesamt = Heizkosten nach Fläche = ',
+    )
+    expect(serialized).not.toContain('Grundkosten + Verbrauchskosten')
   })
 
   it('fordert eine Nachzahlung mit Frist, IBAN und Verwendungszweck an', () => {
@@ -338,7 +342,7 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     expect(serialized).toContain('nach vorheriger Terminvereinbarung')
     expect(serialized).not.toMatch(/schriftlich/i)
     expect(serialized).toContain(
-      'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten erfolgt die Aufteilung bei Nutzerwechsel nach § 9b HeizKV: Grundkosten nach Kalendertagen, Verbrauchskosten nach dem erfassten Verbrauch.',
+      'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten erfolgt die Aufteilung bei Nutzerwechsel nach § 9b HeizKV: Grundkosten nach Kalendertagen, Verbrauchskosten nach dem erfassten Verbrauch bzw. – ohne Zwischenablesung – nach Gradtagszahlen.',
     )
     expect(serialized).toContain(
       'Leerstandszeiten entfallende Kosten trägt der Vermieter',
@@ -682,5 +686,6 @@ describe('Bausteine der Heizkosten-Zusammenstellung', () => {
     expect(formatQuantityUnit(null)).toBe('')
     expect(formatQuantityUnit('sonstiges')).toBe('sonstiges')
     expect(formatUnitPrice(123.456, 'm²')).toBe('1,2346 € je m²')
+    expect(formatUnitPrice(1.423711, 'Einheit')).toBe('0,014237 € je Einheit')
   })
 })

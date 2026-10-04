@@ -78,7 +78,10 @@ export function formatNumber(value: number, fractionDigits = 2): string {
 
 /** Cent-Betrag je Einheit als Euro-Preis mit vier Nachkommastellen. */
 export function formatUnitPrice(centsPerUnit: number, unit: string): string {
-  return `${formatNumber(centsPerUnit / 100, 4)} € je ${unit}`
+  // Preise unter 1 € (z. B. je Verbrauchseinheit) mit 6 Stellen, damit
+  // „Preis × Einheiten“ auf den Cent nachrechenbar bleibt.
+  const euros = centsPerUnit / 100
+  return `${formatNumber(euros, Math.abs(euros) < 1 ? 6 : 4)} € je ${unit}`
 }
 
 const quantityUnitLabels: Readonly<Record<string, string>> = {

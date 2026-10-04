@@ -18,11 +18,11 @@ export const ESTIMATED_CONSUMPTION_NOTE = estimatedConsumptionNote()
 
 /** Erläuterung des Zeitfaktors bei Teilzeiträumen (§ 9b HeizKV). */
 export const TIME_FACTOR_EXPLANATION =
-  'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten erfolgt die Aufteilung bei Nutzerwechsel nach § 9b HeizKV: Grundkosten nach Kalendertagen, Verbrauchskosten nach dem erfassten Verbrauch. Auf Leerstandszeiten entfallende Kosten trägt der Vermieter.'
+  'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten erfolgt die Aufteilung bei Nutzerwechsel nach § 9b HeizKV: Grundkosten nach Kalendertagen, Verbrauchskosten nach dem erfassten Verbrauch bzw. – ohne Zwischenablesung – nach Gradtagszahlen. Auf Leerstandszeiten entfallende Kosten trägt der Vermieter.'
 
 /** Hinweis unter der Ergebnistabelle (Rechnen mit ungerundeten Werten). */
 export const ROUNDING_DIFFERENCE_NOTICE =
-  'Aufgrund der Berechnung mit ungerundeten Einzelwerten können Rundungsdifferenzen von 0,01 € auftreten.'
+  'Aufgrund der Berechnung mit ungerundeten Einzelwerten können Rundungsdifferenzen von wenigen Cent auftreten.'
 
 export type ConsumptionCaptureMode = 'heat_meter' | 'manual_reading'
 
@@ -46,7 +46,7 @@ function baseAreaDative(basis: BaseAreaBasis): string {
 function captureLabel(mode: ConsumptionCaptureMode): string {
   return mode === 'heat_meter'
     ? 'gemessenem Wärmeverbrauch (Wohnungs-Wärmemengenzähler, kWh)'
-    : 'erfasstem Verbrauch laut Ablesung (Verbrauchseinheiten)'
+    : 'erfasstem Verbrauch (Verbrauchseinheiten laut Ablesung, bei Ausfall nach § 9a HeizKV geschätzt)'
 }
 
 /** Erläuterung der Heizkostenverteilung (§§ 7, 8 HeizKV). */
@@ -109,7 +109,7 @@ export function co2DistributionSentence(
 
 /** Einwendungsfrist und Belegeinsicht (§ 556 Abs. 3 BGB, § 259 BGB). */
 export const OBJECTION_NOTICE =
-  'Einwendungen gegen diese Abrechnung können Sie bis zum Ablauf des zwölften Monats nach Zugang der Abrechnung geltend machen (§ 556 Abs. 3 BGB). Die Abrechnungsbelege können Sie nach vorheriger Terminvereinbarung einsehen.'
+  'Einwendungen gegen diese Abrechnung können Sie bis zum Ablauf des zwölften Monats nach Zugang der Abrechnung geltend machen (§ 556 Abs. 3 BGB). Die Abrechnungsbelege können Sie nach vorheriger Terminvereinbarung einsehen; auf Wunsch übersenden wir Ihnen Kopien.'
 
 /** Zahlungsaufforderung bei Nachzahlung. */
 export function additionalPaymentText(options: {
