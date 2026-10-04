@@ -52,6 +52,19 @@ describe('validationIssueLink', () => {
         issue('heating', undefined, 'heating.delivery_missing'),
       ),
     ).toEqual({ href: '#/heizkreise?tab=fuel', label: 'Lieferung bearbeiten' })
+
+    expect(
+      validationIssueLink(
+        issue(
+          'costs',
+          { type: 'CostEntry', id: 'cost-2' },
+          'costs.entry_ambiguous',
+        ),
+      ),
+    ).toEqual({
+      href: '#/kosten?tab=entries&edit=cost-2',
+      label: 'Kostenposition bearbeiten',
+    })
   })
 
   it('führt Firmenbefunde gezielt zur Firmenverwaltung', () => {

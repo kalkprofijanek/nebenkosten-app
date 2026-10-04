@@ -176,8 +176,8 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 
 ## Status
 
-Version **1.3.0** ist vorbereitet (PR 63); veröffentlicht ist **1.2.2**
-(GitHub Pages, Release-Tag `v1.2.2`). Das
+Version **1.3.0** ist vorbereitet (PR 63); veröffentlicht ist **1.2.3**
+(GitHub Pages, Release-Tag `v1.2.3`). Das
 Repository ist öffentlich und enthält ausschließlich fiktive Testdaten. Offen
 für spätere Versionen: Import von Heizkostenverteiler-Werten des Messdienstes,
 ein strukturiertes Importformat für KI-ausgelesene Eingangsrechnungen und ein

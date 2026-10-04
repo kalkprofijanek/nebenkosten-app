@@ -18,6 +18,7 @@ import {
   wholeYear,
 } from './helpers'
 import { issue } from './issues'
+import { ambiguousCostEntries, heatingInformation } from './billing-information'
 
 type Add = (value: ValidationIssue) => void
 type CategoryScope = NonNullable<
@@ -1088,7 +1089,9 @@ export function collectStaticIssues(
   periodChecks(period, add)
   occupancies(data, period, add)
   costs(data, period, add)
+  ambiguousCostEntries(data, period, add)
   heating(data, period, add)
+  heatingInformation(data, period, add)
   meterReadings(data, period, add)
   meters(data, period, add)
   return result
