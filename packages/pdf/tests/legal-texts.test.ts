@@ -13,7 +13,7 @@ describe('legal-texts', () => {
     const text = heatingSplitExplanation(70)
     expect(text).toContain('zu 70 % nach erfasstem Verbrauch')
     expect(text).toContain('zu 30 % nach beheizter Fläche')
-    expect(text).toContain('Eine zentrale Warmwasserbereitung besteht nicht.')
+    expect(text).not.toContain('Warmwasser')
   })
 
   it('nennt Wärmemengenzähler, Wohnfläche und Warmwasser passend zur Konfiguration', () => {

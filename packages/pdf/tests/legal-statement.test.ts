@@ -6,6 +6,7 @@ import {
   co2Table,
   fuelAccountTable,
   heatingCompilationTable,
+  propertyUnitLabel,
   scopeLabel,
 } from '../src/heating-summary'
 import { addDaysIso, formatQuantityUnit, formatUnitPrice } from '../src/format'
@@ -58,7 +59,9 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
       'Summe Ihrer Betriebskosten',
     ])
       expect(serialized).toContain(header)
-    expect(serialized).toContain('Wohnanlage gesamt')
+    expect(serialized).toContain(propertyUnitLabel(context.property))
+    expect(serialized).toContain('Abrechnungseinheit Betriebskosten')
+    expect(serialized).not.toContain('Wohnanlage gesamt')
     expect(serialized).toContain('Ihre Nutzungstage')
     expect(serialized).toContain(
       `${context.calculation.periodDays} von ${context.calculation.periodDays} Tagen`,
@@ -133,11 +136,11 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
       'Verbrauchskosten 70 %',
       '€ je Einheit',
       'Ihre Heizkosten-Aufschlüsselung',
-      'Eine zentrale Warmwasserbereitung besteht nicht.',
       'nach erfasstem Verbrauch laut Ablesung',
     ])
       expect(serialized).toContain(expected)
-    expect(serialized).not.toContain('Warmwasser:')
+    expect(serialized).not.toContain('Warmwasser')
+    expect(serialized).not.toContain('zentrale Warmwasserbereitung')
     expect(serialized).not.toContain('Heizkostenverteiler-Ablesung')
     expect(serialized).toContain(' l"')
   })
@@ -293,7 +296,7 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     expect(serialized).toContain('nach vorheriger Terminvereinbarung')
     expect(serialized).not.toMatch(/schriftlich/i)
     expect(serialized).toContain(
-      'nach Kalendertagen anteilig berechnet (§ 9b HeizKV)',
+      'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten erfolgt die Aufteilung bei Nutzerwechsel nach § 9b HeizKV: Grundkosten nach Kalendertagen, Verbrauchskosten nach dem erfassten Verbrauch.',
     )
     expect(serialized).toContain(
       'Leerstandszeiten entfallende Kosten trägt der Vermieter',
@@ -313,9 +316,21 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     )
     expect(serialized).toContain('Energieträger Ihres Heizkreises')
     expect(serialized).toContain('Heizoel')
-    expect(serialized).toContain('Durchschnittlicher vergleichbarer Nutzer')
+    expect(serialized).toContain(
+      'Durchschnitt Ihres Heizkreises (rechnerisch, kein normierter Durchschnittsnutzer)',
+    )
+    expect(serialized).not.toContain('Durchschnittlicher vergleichbarer Nutzer')
     expect(serialized).toContain('Verbraucherzentralen')
-    expect(serialized).not.toContain('Vorjahr')
+    expect(serialized).toContain(
+      'Ein Vergleich mit dem Vorjahr ist nicht möglich, weil für das Vorjahr keine vergleichbaren Verbrauchsdaten vorliegen (Eigentümer- bzw. Abrechnungswechsel).',
+    )
+    expect(serialized).toContain(
+      'gesetzlichen Steuern und Abgaben (Umsatzsteuer, Energiesteuer, ggf. CO2-Kosten nach BEHG)',
+    )
+    expect(serialized).toContain(
+      'Allgemeine Verbraucherschlichtungsstelle des Zentrums für Schlichtung e. V., Straßburger Straße 8, 77694 Kehl (www.verbraucher-schlichter.de)',
+    )
+    expect(serialized).toContain('nimmt daran nicht teil.')
   })
 
   it('verzichtet ohne Heizkreis auf Heiz-, CO2- und Verbrauchsangaben', () => {
@@ -370,11 +385,8 @@ describe('Gesamtabrechnung – interne Fassung und Fassung für Mieter', () => {
   })
 
   it('nennt Vermieter, Zeitraum und je Kostenart brutto, nicht umlagefähig, umlagefähig', () => {
-    const serialized = text(
-      buildCombinedCostStatement(
-        buildFixtureCombinedContext(buildFixtureAppData(), 'tenant'),
-      ),
-    )
+    const context = buildFixtureCombinedContext(buildFixtureAppData(), 'tenant')
+    const serialized = text(buildCombinedCostStatement(context))
     for (const expected of [
       'Vermieter',
       'Abrechnungszeitraum',
@@ -383,7 +395,8 @@ describe('Gesamtabrechnung – interne Fassung und Fassung für Mieter', () => {
       'umlagefähig',
       'Schlüssel',
       'Gesamt-einheiten',
-      'Wohnanlage gesamt',
+      propertyUnitLabel(context.property),
+      'Abrechnungseinheit Betriebskosten',
       'nach Wohnfläche',
       ' m²',
     ])
@@ -596,6 +609,19 @@ describe('Bausteine der Heizkosten-Zusammenstellung', () => {
 
   it('benennt Abrechnungseinheiten und Formate', () => {
     expect(scopeLabel(context.appData, null)).toBe('Wohnanlage gesamt')
+    expect(
+      scopeLabel(context.appData, { kind: 'property' }, context.property),
+    ).toBe(propertyUnitLabel(context.property))
+    expect(propertyUnitLabel({ ...context.property, address: null })).toBe(
+      'Wohnanlage gesamt',
+    )
+    expect(
+      propertyUnitLabel({
+        ...context.property,
+        address: null,
+        internalNumber: ' OBJ-7 ',
+      }),
+    ).toBe('Objekt OBJ-7')
     expect(
       scopeLabel(context.appData, { kind: 'house', houseKey: 'AW1' }),
     ).toBe('Haus AW1')

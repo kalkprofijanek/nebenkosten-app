@@ -23,6 +23,7 @@ import {
   formatIban,
   formatIsoDate,
   formatNumber,
+  formatPercent,
   formatUnitPrice,
 } from './format'
 import {
@@ -35,23 +36,37 @@ import {
   energyCarrierLabel,
   fuelAccountTable,
   heatingCompilationTable,
+  heatingOperatingCostLines,
   heatingSplitTotalsTable,
-  hotWaterNotice,
+  meteringFeeCents,
+  propertyUnitLabel,
   scopeLabel,
 } from './heating-summary'
 import {
   BALANCED_TEXT,
+  CIRCUIT_AVERAGE_LABEL,
   CONSUMPTION_INFORMATION_HEADING,
+  DISPUTE_RESOLUTION_NOTICE,
   ENERGY_ADVICE_NOTICE,
+  ENERGY_TAXES_NOTICE,
+  NO_PREVIOUS_YEAR_COMPARISON,
   OBJECTION_NOTICE,
   PROPERTY_DATA_HEADING,
+  ROUNDING_DIFFERENCE_NOTICE,
   TIME_FACTOR_EXPLANATION,
   additionalPaymentText,
   baseAreaLabel,
   creditText,
   estimatedConsumptionNote,
   heatingSplitExplanation,
+  meteringFeesText,
 } from './legal-texts'
+import {
+  formatMeterValue,
+  hasReading,
+  readingCells,
+  readingDifference,
+} from './meter-readings'
 
 const BLUE = '#1a3a5c'
 const LIGHT_FILL = '#eef4fb'
@@ -244,6 +259,17 @@ function paymentContent(context: TenantStatementContext): Content[] {
   return [{ text: BALANCED_TEXT, margin: [0, 0, 0, 4] }]
 }
 
+/**
+ * Abrechnungseinheit der Betriebskosten: das Objekt (Objektanschrift bzw.
+ * -nummer), bei gebäudebezogener Kostenzuordnung der Gebäudename.
+ */
+function operatingUnitLabel(context: TenantStatementContext): string {
+  const { occupancyPeriod } = context
+  if (occupancyPeriod.costScope?.kind === 'building')
+    return `Gebäude ${buildingName(context.appData, occupancyPeriod.costScope.buildingId)}`
+  return propertyUnitLabel(context.property)
+}
+
 function basisTable(
   context: TenantStatementContext,
   facts: TenantFacts,
@@ -262,14 +288,15 @@ function basisTable(
       `${formatNumber(facts.basis.heatedAreaSqm)} m²`,
     ])
   }
-  rows.push([
-    'Abrechnungseinheit',
-    `Wohnanlage gesamt; Heizkosten: ${
+  rows.push(
+    ['Abrechnungseinheit Betriebskosten', operatingUnitLabel(context)],
+    [
+      'Abrechnungseinheit Heizkosten',
       circuit
         ? circuitTitle(context.appData, circuit)
-        : `Gebäude ${buildingName(context.appData, resolvedBuildingId(context))}`
-    }`,
-  ])
+        : `Gebäude ${buildingName(context.appData, resolvedBuildingId(context))}`,
+    ],
+  )
   return {
     table: { widths: ['*', 'auto'], body: rows },
     layout: 'lightHorizontalLines',
@@ -373,7 +400,7 @@ function costCategoryTable(
         stack: [
           position.label,
           {
-            text: scopeLabel(context.appData, position.scope),
+            text: scopeLabel(context.appData, position.scope, context.property),
             fontSize: 7,
             color: MUTED,
           },
@@ -503,6 +530,146 @@ function tenantHeatingTable(
   }
 }
 
+function isMeteredOccupancy(context: TenantStatementContext): boolean {
+  return Boolean(
+    context.calculation.meteringTrace?.circuits.some((circuit) =>
+      circuit.occupancies.some(
+        (occupancy) => occupancy.occupancyId === context.occupancyPeriod.id,
+      ),
+    ),
+  )
+}
+
+/**
+ * „Ihre Verbrauchserfassung“: Zählerstände (bzw. Schätzgrund) und die
+ * vollständige Rechnung der Heiz- und CO2-Kosten des Mieters.
+ */
+function consumptionCapture(
+  context: TenantStatementContext,
+  circuit: HeatingCircuitTrace,
+  facts: TenantFacts,
+): Content[] {
+  const tenant = tenantResult(context)
+  const { costBreakdown } = tenant
+  const { occupancyPeriod } = context
+  const { split, co2 } = circuit
+  const mode = captureModeFor(context.calculation, circuit.buildingId)
+  const unit =
+    facts.basis.consumptionUnit === 'kWh' ? 'kWh' : consumptionUnitLabel(mode)
+  const unitSingular = unit === 'kWh' ? 'kWh' : 'Einheit'
+  const consumption = facts.basis.consumption
+  const ownArea =
+    split.baseAreaBasis === 'usable_area'
+      ? facts.basis.usableAreaSqm
+      : facts.basis.heatedAreaSqm
+  const basePrice =
+    split.baseDenominator > 0 ? split.baseCents / split.baseDenominator : 0
+  const consumptionPrice =
+    split.consumptionDenominator > 0
+      ? split.consumptionCents / split.consumptionDenominator
+      : 0
+  const reduction = section12Applies(context) ? ' × 85 %' : ''
+  const timeText = `${facts.days}/${facts.periodDays} Tage`
+  const reading = occupancyPeriod.heatMeterReading
+  const estimated = Boolean(
+    occupancyPeriod.consumptionUnitsEstimated && !isMeteredOccupancy(context),
+  )
+  const content: Content[] = [
+    { text: 'Ihre Verbrauchserfassung', style: 'th', margin: [0, 6, 0, 2] },
+  ]
+  const lines: string[] = []
+  if (estimated) {
+    content.push({
+      text: estimatedConsumptionNote(
+        occupancyPeriod.consumptionUnitsEstimateReason,
+      ).replace(/^\* /u, ''),
+      fontSize: 8,
+      margin: [0, 0, 0, 2],
+    })
+    lines.push(`Verbrauch (geschätzt) = ${formatNumber(consumption)} ${unit}`)
+  } else if (hasReading(reading)) {
+    content.push({
+      table: {
+        headerRows: 1,
+        widths: ['auto', '*', '*', 'auto'],
+        body: [
+          [
+            { text: 'Zähler-Nr.', style: 'th' },
+            { text: 'Stand alt (Datum)', style: 'th' },
+            { text: 'Stand neu (Datum)', style: 'th' },
+            { text: 'Verbrauch', style: 'th', alignment: 'right' },
+          ],
+          readingCells(reading, unit),
+        ],
+      },
+      layout: 'lightHorizontalLines',
+      margin: [0, 0, 0, 2],
+    })
+    const difference = readingDifference(reading)
+    if (difference === null) {
+      lines.push(
+        `Verbrauch laut Erfassung = ${formatNumber(consumption)} ${unit}`,
+      )
+    } else {
+      lines.push(
+        `Verbrauch = Stand neu − Stand alt = ${formatMeterValue(reading.endValue!)} − ${formatMeterValue(reading.startValue!)} = ${formatMeterValue(difference)} ${unit}`,
+      )
+      if (Math.abs(difference - consumption) > 0.5)
+        lines.push(
+          `Abgerechnet werden ${formatNumber(consumption)} ${unit} laut Verbrauchserfassung.`,
+        )
+    }
+  } else {
+    lines.push(
+      `Verbrauch laut Erfassung = ${formatNumber(consumption)} ${unit}`,
+    )
+  }
+  lines.push(
+    `Verbrauchskosten = ${formatUnitPrice(consumptionPrice, unitSingular)} × ${formatNumber(consumption)} ${unit}${reduction} = ${formatEuroCents(costBreakdown.heatingConsumptionCents)}`,
+    `Grundkosten = ${formatUnitPrice(basePrice, 'm²')} × ${formatNumber(ownArea)} m² × ${timeText}${reduction} = ${formatEuroCents(costBreakdown.heatingBaseCents)}`,
+  )
+  const hasHotWater = circuit.warmWater.method !== 'none'
+  if (hasHotWater)
+    lines.push(`Warmwasser = ${formatEuroCents(costBreakdown.hotWaterCents)}`)
+  lines.push(
+    `Heizkosten gesamt = Grundkosten + Verbrauchskosten${hasHotWater ? ' + Warmwasser' : ''} = ${[
+      costBreakdown.heatingBaseCents,
+      costBreakdown.heatingConsumptionCents,
+      ...(hasHotWater ? [costBreakdown.hotWaterCents] : []),
+    ]
+      .map(formatEuroCents)
+      .join(' + ')} = ${formatEuroCents(heatingTotalCents(tenant))}`,
+  )
+  if (costBreakdown.heatingCo2Cents !== 0 && co2.tenantCents !== 0) {
+    const co2BasePrice =
+      split.baseDenominator > 0
+        ? (co2.tenantCents * (split.baseSharePercent / 100)) /
+          split.baseDenominator
+        : 0
+    const co2ConsumptionPrice =
+      split.consumptionDenominator > 0
+        ? (co2.tenantCents * (split.consumptionSharePercent / 100)) /
+          split.consumptionDenominator
+        : 0
+    const co2BaseCents = Math.round(
+      co2BasePrice * ownArea * (facts.days / facts.periodDays),
+    )
+    const co2ConsumptionCents = costBreakdown.heatingCo2Cents - co2BaseCents
+    lines.push(
+      `CO2-Kosten Mieteranteil des Heizkreises = ${formatEuroCents(co2.tenantCents)} (${formatPercent(split.baseSharePercent)} Grundanteil, ${formatPercent(split.consumptionSharePercent)} Verbrauchsanteil)`,
+      `CO2-Grundanteil = ${formatUnitPrice(co2BasePrice, 'm²')} × ${formatNumber(ownArea)} m² × ${timeText} = ${formatEuroCents(co2BaseCents)}`,
+      `CO2-Verbrauchsanteil = ${formatUnitPrice(co2ConsumptionPrice, unitSingular)} × ${formatNumber(consumption)} ${unit} = ${formatEuroCents(co2ConsumptionCents)}`,
+      `Ihr CO2-Kostenanteil = ${formatEuroCents(co2BaseCents)} + ${formatEuroCents(co2ConsumptionCents)} = ${formatEuroCents(costBreakdown.heatingCo2Cents)}`,
+    )
+  }
+  content.push({
+    stack: lines.map((text): Content => ({ text })),
+    fontSize: 8,
+    margin: [0, 0, 0, 6],
+  })
+  return content
+}
+
 function heatingSection(
   context: TenantStatementContext,
   facts: TenantFacts,
@@ -526,11 +693,18 @@ function heatingSection(
       margin: [0, 8, 0, 4],
     },
     fuelAccountTable(context.appData, circuit),
-    heatingCompilationTable(circuit),
+    heatingCompilationTable(
+      circuit,
+      heatingOperatingCostLines(
+        context.appData,
+        context.billingPeriod.id,
+        circuit,
+      ),
+    ),
     { text: 'Aufteilung der Heizkosten', style: 'th', margin: [0, 4, 0, 2] },
     heatingSplitTotalsTable(circuit, mode),
     tenantHeatingTable(context, circuit, facts),
-    ...hotWaterNotice(circuit),
+    ...consumptionCapture(context, circuit, facts),
     {
       text: heatingSplitExplanation(circuit.split.consumptionSharePercent, {
         baseAreaBasis: circuit.split.baseAreaBasis,
@@ -560,6 +734,32 @@ function co2Section(context: TenantStatementContext): Content[] {
     circuit,
     tenant.costBreakdown.heatingCo2Cents,
   )
+}
+
+/**
+ * Verbrauch derselben Mietpartei im Vorjahr (gleiches Objekt und gleiche
+ * Wohnung); `undefined`, wenn keine vergleichbaren Daten vorliegen.
+ */
+function previousYearConsumption(
+  context: TenantStatementContext,
+): { readonly year: number; readonly value: number } | undefined {
+  const { appData, billingPeriod, occupancyPeriod } = context
+  const previousPeriod = appData.billingData.billingPeriods.find(
+    (period) =>
+      period.propertyId === billingPeriod.propertyId &&
+      period.year === billingPeriod.year - 1,
+  )
+  if (!previousPeriod || !occupancyPeriod.tenancyId) return undefined
+  const previous = appData.billingData.occupancyPeriods.find(
+    (occupancy) =>
+      occupancy.billingPeriodId === previousPeriod.id &&
+      occupancy.tenancyId === occupancyPeriod.tenancyId &&
+      occupancy.unitId === occupancyPeriod.unitId &&
+      occupancy.consumptionUnits != null,
+  )
+  return previous?.consumptionUnits
+    ? { year: previousPeriod.year, value: previous.consumptionUnits.value }
+    : undefined
 }
 
 /** Abrechnungs- und Verbrauchsinformationen nach § 6a HeizKV. */
@@ -594,10 +794,31 @@ function consumptionInformation(
   if (split.baseDenominator > 0 && split.consumptionDenominator > 0) {
     const averagePerSqm = split.consumptionDenominator / split.baseDenominator
     rows.push([
-      'Durchschnittlicher vergleichbarer Nutzer (gleiche Fläche und Nutzungsdauer)',
+      CIRCUIT_AVERAGE_LABEL,
       `${formatNumber(averagePerSqm * ownArea * (facts.days / facts.periodDays))} ${unit} (${formatNumber(averagePerSqm)} ${unit} je m²)`,
     ])
   }
+  const previous = previousYearConsumption(context)
+  rows.push(
+    previous
+      ? [
+          `Ihr Verbrauch im Vorjahr (${previous.year})`,
+          `${formatNumber(previous.value)} ${unit}`,
+        ]
+      : [{ text: NO_PREVIOUS_YEAR_COMPARISON, colSpan: 2 }, {}],
+  )
+  const fees = meteringFeeCents(
+    context.appData,
+    context.billingPeriod.id,
+    circuit.buildingId,
+  )
+  rows.push([
+    {
+      text: meteringFeesText(fees === null ? null : formatEuroCents(fees)),
+      colSpan: 2,
+    },
+    {},
+  ])
   return [
     {
       text: CONSUMPTION_INFORMATION_HEADING,
@@ -610,7 +831,7 @@ function consumptionInformation(
       margin: [0, 0, 0, 2],
     },
     {
-      text: `Der Durchschnitt ergibt sich aus dem Gesamtverbrauch des Heizkreises (${formatNumber(split.consumptionDenominator)} ${unit}) geteilt durch die Fläche (${formatNumber(split.baseDenominator)} m² ${baseAreaLabel(split.baseAreaBasis)}). ${ENERGY_ADVICE_NOTICE}`,
+      text: `Der Durchschnitt ergibt sich aus dem Gesamtverbrauch des Heizkreises (${formatNumber(split.consumptionDenominator)} ${unit}) geteilt durch die Fläche (${formatNumber(split.baseDenominator)} m² ${baseAreaLabel(split.baseAreaBasis)}). ${ENERGY_TAXES_NOTICE} ${ENERGY_ADVICE_NOTICE} ${DISPUTE_RESOLUTION_NOTICE}`,
       fontSize: 8,
       color: MUTED,
       margin: [0, 0, 0, 8],
@@ -634,6 +855,7 @@ function propertyDataFooter(context: TenantStatementContext): Content {
                 .filter(Boolean)
                 .join(', ') || '–',
             ],
+            ['Abrechnungseinheit Betriebskosten', operatingUnitLabel(context)],
             [
               'Abrechnungszeitraum',
               `${formatIsoDate(billingPeriod.periodStart)} – ${formatIsoDate(billingPeriod.periodEnd)}`,
@@ -831,6 +1053,12 @@ export function buildTenantStatement(
       ...coverLetterContent,
       estimationNote(context),
       summaryTable(context),
+      {
+        text: ROUNDING_DIFFERENCE_NOTICE,
+        fontSize: 7,
+        color: MUTED,
+        margin: [0, 0, 0, 6],
+      },
       ...paymentContent(context),
       { text: 'Abrechnungsgrundlagen', style: 'th', margin: [0, 8, 0, 2] },
       basisTable(context, facts, circuit),
