@@ -4,6 +4,15 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Heizkosten bei Leerstand mit Verbrauch** (§ 9b HeizKV): Verbrauchseinheiten
+  eines Leerstands zählen jetzt im Heizkosten-Nenner mit. Vorher wurde bei
+  einem nach Gradtagen aufgeteilten Verbrauch mehr verteilt als angefallen,
+- Einzelabrechnung: Einheitspreise unter 1 € mit 6 Nachkommastellen,
+  Rundungshinweis „wenige Cent“, „Heizkosten nach Fläche“ bei § 9a Abs. 2,
+  übernommener Verbrauch als „+ Verbrauch …“ statt „Lieferung“, kein
+  CO2-Abzugssatz bei 0 € Vermieteranteil, Verbrauch je m² bei Teilzeitraum
+  aufs Jahr hochgerechnet, Gradtagszahlen- und Belegkopie-Hinweis,
+
 - Einzelabrechnung: Der **Schätzgrund (§ 9a HeizKV)** steht nur noch einmal
   unter „Ihre Verbrauchserfassung“; oben bleibt ein kurzer Hinweis mit
   Verweis darauf (vorher erschien die Begründung doppelt),
