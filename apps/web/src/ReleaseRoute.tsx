@@ -8,7 +8,9 @@ import type {
 import {
   getFinalizationDocumentStatus,
   transitionBillingPeriod,
-  validateBillingPeriod,
+  validateBillingPeriodCached,
+  withConfirmedWarnings,
+  type ValidationReport,
 } from '@nebenkosten/validators'
 import { useMemo, useState } from 'react'
 
@@ -113,6 +115,30 @@ export function ReleaseRoute({
       }
     }
   }, [billingPeriodId, data])
+  // Die Prüfung (Schema, Berechnung, Einzelprüfungen) ist bei großen
+  // Datenbeständen teuer. Sie hängt nur vom Datenbestand ab; bestätigte
+  // Warnungen werden danach günstig angewendet (kein Neuberechnen je Klick).
+  const baseReportResult = useMemo<
+    | { readonly report: ValidationReport; readonly error: null }
+    | { readonly report: null; readonly error: string }
+  >(() => {
+    if (billingPeriodId === null)
+      return { report: null, error: 'Kein Abrechnungsjahr gewählt.' }
+    try {
+      return {
+        report: validateBillingPeriodCached(data, billingPeriodId),
+        error: null,
+      }
+    } catch (caught) {
+      return {
+        report: null,
+        error:
+          caught instanceof Error
+            ? caught.message
+            : 'Die Freigabeprüfung konnte nicht ausgeführt werden.',
+      }
+    }
+  }, [billingPeriodId, data])
   const activeInteraction: ReleaseInteraction =
     interaction.billingPeriodId === billingPeriodId
       ? interaction
@@ -146,20 +172,13 @@ export function ReleaseRoute({
     )
   }
 
-  let report: ReturnType<typeof validateBillingPeriod>
-  try {
-    report = validateBillingPeriod(data, selectedBillingPeriodId, {
-      confirmedWarningKeys,
-    })
-  } catch (caught) {
-    return (
-      <p role="alert">
-        {caught instanceof Error
-          ? caught.message
-          : 'Die Freigabeprüfung konnte nicht ausgeführt werden.'}
-      </p>
-    )
+  if (baseReportResult.report === null) {
+    return <p role="alert">{baseReportResult.error}</p>
   }
+  const report = withConfirmedWarnings(
+    baseReportResult.report,
+    confirmedWarningKeys,
+  )
 
   const issues = report.issues as readonly IssueWithKey[]
   const warningKeys = issues
@@ -218,6 +237,15 @@ export function ReleaseRoute({
             : 'Der Freigabestatus konnte nicht geändert werden.',
       })
     }
+  }
+
+  function confirmAllWarnings() {
+    setInteraction({
+      ...activeInteraction,
+      confirmedWarningKeys: Array.from(
+        new Set([...confirmedWarningKeys, ...warningKeys]),
+      ),
+    })
   }
 
   function toggleWarning(key: string) {
@@ -299,6 +327,23 @@ export function ReleaseRoute({
           <a className="button button--quiet" href="#/pdf-export">
             Fehlende Dokumente erzeugen
           </a>
+        </div>
+      ) : null}
+
+      {billingPeriod.status === 'IN_REVIEW' && warningKeys.length > 0 ? (
+        <div className="form-actions" aria-label="Warnungen bestätigen">
+          <button
+            className="button button--quiet"
+            type="button"
+            disabled={confirmedCurrentWarningKeys.length === warningKeys.length}
+            onClick={confirmAllWarnings}
+          >
+            Alle angezeigten Warnungen bestätigen ({warningKeys.length})
+          </button>
+          <span>
+            {confirmedCurrentWarningKeys.length} von {warningKeys.length}{' '}
+            Warnungen bestätigt
+          </span>
         </div>
       ) : null}
 

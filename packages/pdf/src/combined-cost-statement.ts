@@ -21,10 +21,13 @@ import {
   co2Table,
   fuelAccountTable,
   heatingCompilationTable,
+  heatingOperatingCostLines,
   heatingSplitTotalsTable,
-  hotWaterNotice,
+  propertyUnitLabel,
   scopeLabel,
 } from './heating-summary'
+import { ROUNDING_DIFFERENCE_NOTICE } from './legal-texts'
+import { circuitMeterReadingTables } from './meter-readings'
 import { meteringStatement } from './metering-statement'
 
 const BLUE = '#1a3a5c'
@@ -166,7 +169,10 @@ function costCategoriesTable(
   const dash: TableCell = { text: '–', alignment: 'right' }
   const categoryRows = visible.map((position): TableCell[] => [
     { text: position.betrkvCategory ?? '–', noWrap: true },
-    labelWithScope(position.label, scopeLabel(context.appData, position.scope)),
+    labelWithScope(
+      position.label,
+      scopeLabel(context.appData, position.scope, context.property),
+    ),
     amountCell(position.grossCents),
     amountCell(position.nonAllocableCents),
     amountCell(position.allocableCents),
@@ -419,12 +425,18 @@ function heatingSections(context: CombinedCostStatementContext): Content[] {
         margin: [0, 8, 0, 4],
       },
       fuelAccountTable(context.appData, circuit),
-      heatingCompilationTable(circuit),
+      heatingCompilationTable(
+        circuit,
+        heatingOperatingCostLines(
+          context.appData,
+          context.billingPeriod.id,
+          circuit,
+        ),
+      ),
       heatingSplitTotalsTable(
         circuit,
         captureModeFor(context.calculation, circuit.buildingId),
       ),
-      ...hotWaterNotice(circuit),
       ...co2Table(context.appData, circuit),
     ])
 }
@@ -560,6 +572,10 @@ function headerTable(context: CombinedCostStatementContext): Content {
             .join(', ') || '–',
         ],
         [
+          'Abrechnungseinheit Betriebskosten',
+          propertyUnitLabel(context.property),
+        ],
+        [
           'Abrechnungszeitraum',
           `${formatIsoDate(context.billingPeriod.periodStart)} – ${formatIsoDate(context.billingPeriod.periodEnd)} (${context.calculation.periodDays} Tage)`,
         ],
@@ -598,6 +614,21 @@ export function buildCombinedCostStatement(
         balanceSummaryTable(balanceRows, context),
         { text: 'Mieter-Salden', style: 'th', margin: [0, 0, 0, 4] },
         tenantBalancesTable(balanceRows),
+        {
+          text: ROUNDING_DIFFERENCE_NOTICE,
+          fontSize: 7,
+          color: MUTED,
+          margin: [0, -8, 0, 8],
+        },
+        ...circuitMeterReadingTables(
+          context.appData,
+          context.calculation,
+          context.occupancyPeriods.filter(
+            ({ billingPeriodId }) =>
+              billingPeriodId === context.billingPeriod.id,
+          ),
+          context.units,
+        ),
         ...meteringStatement(context.calculation),
       ]
     : [
@@ -640,6 +671,12 @@ export function buildCombinedCostStatement(
         margin: [0, 0, 0, 4],
       },
       reconciliationTable(context, costs),
+      {
+        text: ROUNDING_DIFFERENCE_NOTICE,
+        fontSize: 7,
+        color: MUTED,
+        margin: [0, -8, 0, 8],
+      },
       ...vacancyTable(context),
       ...heatingSections(context),
       ...internalContent,

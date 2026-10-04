@@ -1013,6 +1013,66 @@ function meters(data: AppDataFile, period: BillingPeriod, add: Add): void {
   }
 }
 
+/** Toleranz zwischen Zählerdifferenz und Verbrauchseinheiten. */
+export const METER_READING_TOLERANCE = 0.5
+
+function formatReadingNumber(value: number): string {
+  return value.toLocaleString('de-DE', { maximumFractionDigits: 3 })
+}
+
+/**
+ * Zählerstände je Belegung (`heatMeterReading`): Stand neu − Stand alt muss
+ * zu den Verbrauchseinheiten passen; eine Zählernummer ohne beide Stände
+ * ist unvollständig.
+ */
+function meterReadings(
+  data: AppDataFile,
+  period: BillingPeriod,
+  add: Add,
+): void {
+  for (const occupancy of periodOccupancies(data, period.id)) {
+    const reading = occupancy.heatMeterReading
+    if (occupancy.kind === 'vacancy' || !reading) continue
+    const unit = data.masterData.units.find(({ id }) => id === occupancy.unitId)
+    const unitLabel = `Wohnung ${unit?.label ?? unit?.location ?? 'ohne Bezeichnung'}`
+    const entity = { type: 'OccupancyPeriod', id: occupancy.id }
+    const hasStart = typeof reading.startValue === 'number'
+    const hasEnd = typeof reading.endValue === 'number'
+    if (hasStart && hasEnd) {
+      const difference = reading.endValue! - reading.startValue!
+      const units = occupancy.consumptionUnits?.value
+      if (
+        units == null ||
+        Math.abs(difference - units) > METER_READING_TOLERANCE
+      )
+        add(
+          issue(
+            'warning',
+            'heating.meter_reading_mismatch',
+            'occupancy',
+            'Zählerstände passen nicht zu den Verbrauchseinheiten',
+            {
+              detail: `${unitLabel}: Stand neu − Stand alt = ${formatReadingNumber(difference)}, erfasst sind ${units == null ? 'keine' : formatReadingNumber(units)} Verbrauchseinheiten. Bitte Zählerstände oder Verbrauch prüfen (Übernahme per „Verbrauch aus Zählerständen übernehmen“).`,
+              entity,
+            },
+          ),
+        )
+    } else if (!blank(reading.meterNumber))
+      add(
+        issue(
+          'info',
+          'heating.meter_reading_incomplete',
+          'occupancy',
+          'Zählerstände sind unvollständig',
+          {
+            detail: `${unitLabel}: Für Zähler ${reading.meterNumber!.trim()} fehlt ${hasStart ? 'der neue' : hasEnd ? 'der alte' : 'der alte und der neue'} Zählerstand.`,
+            entity,
+          },
+        ),
+      )
+  }
+}
+
 export function collectStaticIssues(
   data: AppDataFile,
   period: BillingPeriod,
@@ -1024,6 +1084,7 @@ export function collectStaticIssues(
   occupancies(data, period, add)
   costs(data, period, add)
   heating(data, period, add)
+  meterReadings(data, period, add)
   meters(data, period, add)
   return result
 }

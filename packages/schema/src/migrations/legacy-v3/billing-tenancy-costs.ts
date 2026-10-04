@@ -1,4 +1,9 @@
-import type { LegacyUnmappedEntry, V3Abrechnung, V3Nutzer } from '../..'
+import type {
+  HeatMeterReading,
+  LegacyUnmappedEntry,
+  V3Abrechnung,
+  V3Nutzer,
+} from '../..'
 import type { JsonPath } from './context'
 import { MigrationContext } from './context'
 import { REDACTED_COST_KEY, reportBillingPeriodChanges } from './billing-report'
@@ -17,6 +22,7 @@ import {
   optionalDate,
   optionalInteger,
   optionalNonNegative,
+  optionalNumber,
   optionalPercent,
   optionalTimestamp,
 } from './values'
@@ -383,6 +389,70 @@ export function mapBillingPeriod(
   return year
 }
 
+/**
+ * Zählerstände des Legacy-Nutzers (`wmz_*`). Fehlen alle Felder, bleibt
+ * `heatMeterReading` ungesetzt; ungültige Werte werden wie üblich gemeldet
+ * und konserviert.
+ */
+function heatMeterReading(
+  context: MigrationContext,
+  user: V3Nutzer,
+  path: JsonPath,
+  legacy: LegacyUnmappedEntry[],
+): HeatMeterReading | undefined {
+  const keys = [
+    'wmz_nr',
+    'wmz_stand_alt',
+    'wmz_datum_alt',
+    'wmz_stand_neu',
+    'wmz_datum_neu',
+  ] as const
+  if (keys.every((key) => user[key] === undefined)) return undefined
+  const rawNumber = user.wmz_nr
+  const meterNumber =
+    typeof rawNumber === 'number' && Number.isFinite(rawNumber)
+      ? String(rawNumber)
+      : stringOrNullish(rawNumber)
+  const reading = {
+    meterNumber:
+      typeof meterNumber === 'string' && meterNumber.trim() === ''
+        ? null
+        : meterNumber,
+    startValue: optionalNumber(
+      context,
+      user.wmz_stand_alt,
+      [...path, 'wmz_stand_alt'],
+      ['wmz_stand_alt'],
+      legacy,
+    ),
+    startDate: optionalDate(
+      context,
+      user.wmz_datum_alt,
+      [...path, 'wmz_datum_alt'],
+      ['wmz_datum_alt'],
+      legacy,
+    ),
+    endValue: optionalNumber(
+      context,
+      user.wmz_stand_neu,
+      [...path, 'wmz_stand_neu'],
+      ['wmz_stand_neu'],
+      legacy,
+    ),
+    endDate: optionalDate(
+      context,
+      user.wmz_datum_neu,
+      [...path, 'wmz_datum_neu'],
+      ['wmz_datum_neu'],
+      legacy,
+    ),
+  }
+  const defined = Object.fromEntries(
+    Object.entries(reading).filter(([, value]) => value !== undefined),
+  ) as HeatMeterReading
+  return Object.keys(defined).length > 0 ? defined : undefined
+}
+
 function mapUser(
   state: MigrationState,
   context: MigrationContext,
@@ -431,6 +501,11 @@ function mapUser(
       'bemerkung',
       'kaltwasser_m3',
       'wasser_m3',
+      'wmz_nr',
+      'wmz_stand_alt',
+      'wmz_datum_alt',
+      'wmz_stand_neu',
+      'wmz_datum_neu',
       '_abrStatus',
     ],
     legacy,
@@ -737,6 +812,7 @@ function mapUser(
         consumptionUnitsEstimateReason: stringOrNullish(
           user.einheiten_schatz_grund,
         ),
+        heatMeterReading: heatMeterReading(context, user, path, legacy),
         applySection12Reduction: optionalBoolean(
           context,
           user.kuerzung12_anwenden,

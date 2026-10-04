@@ -1,6 +1,7 @@
 import {
   appDataFileSchema,
   allocationScopeSchema,
+  heatMeterReadingSchema,
   occupancyPeriodSchema,
   personSchema,
   prepaymentSchema,
@@ -560,6 +561,7 @@ export function updateTenantOccupancy(
       'consumptionUnits',
       'consumptionUnitsEstimated',
       'consumptionUnitsEstimateReason',
+      'heatMeterReading',
       'coldWater',
       'warmWater',
       'applySection12Reduction',
@@ -615,6 +617,17 @@ export function updateTenantOccupancy(
   )
   const dispatchDate = optionalString(input, 'dispatchDate', 10)
   const note = optionalString(input, 'note', 2_000)
+  const heatMeterReading =
+    input.heatMeterReading === undefined
+      ? undefined
+      : parseEntity(
+          heatMeterReadingSchema,
+          typeof input.heatMeterReading === 'object' &&
+            input.heatMeterReading !== null
+            ? withoutUndefined(input.heatMeterReading)
+            : input.heatMeterReading,
+          'Zählerstände',
+        )
   const costScope =
     input.costScope === undefined
       ? undefined
@@ -713,6 +726,7 @@ export function updateTenantOccupancy(
                   : { value: consumptionUnits, unit: 'einheiten' as const },
               consumptionUnitsEstimated,
               consumptionUnitsEstimateReason,
+              heatMeterReading,
               coldWater:
                 coldWater === undefined
                   ? undefined

@@ -2,6 +2,42 @@
 
 Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
+## 1.2.1 – 4. Oktober 2026
+
+- Zählerstände je Nutzer: An der Belegung können Zählernummer, Stand alt und
+  neu mit Ablesedatum erfasst werden (optionales Feld `heatMeterReading`,
+  Schema v5 bleibt gültig); der Legacy-Import übernimmt `wmz_nr`,
+  `wmz_stand_alt`, `wmz_datum_alt`, `wmz_stand_neu` und `wmz_datum_neu`,
+- Nutzerbearbeitung: Felder für die Zählerstände und Schaltfläche „Verbrauch
+  aus Zählerständen übernehmen“ (belegt die Verbrauchseinheiten vor; erst
+  „Speichern“ übernimmt sie),
+- Prüfung: Warnung `heating.meter_reading_mismatch`, wenn Stand neu − Stand
+  alt um mehr als 0,5 von den Verbrauchseinheiten abweicht, und Hinweis
+  `heating.meter_reading_incomplete` bei Zählernummer ohne beide Stände, je
+  mit Wohnung und Link zur Nutzerbearbeitung,
+- Einzelabrechnung: Abschnitt „Ihre Verbrauchserfassung“ mit Zählerständen
+  (bzw. Schätzgrund) und der vollständigen Rechnung von Verbrauch,
+  Verbrauchs-, Grund- und Heizkosten sowie des CO₂-Anteils; die interne
+  Gesamtabrechnung listet alle Zählerstände je Heizkreis,
+- Betriebskosten der Heizungsanlage werden in der Heizkosten-Zusammenstellung
+  als „davon“-Zeilen (Datum, Bezeichnung, Betrag) aufgeschlüsselt; die Summe
+  entspricht exakt dem Betrag der Zusammenstellung,
+- Warmwasser: Ohne konfigurierte Warmwasserabgrenzung enthalten die PDFs
+  keinen Satz mehr zum Warmwasser,
+- Rechtstexte: Rundungshinweis unter den Ergebnissen, „Liegenschafts- und
+  Abrechnungsdaten“, neuer Zeitfaktor-Text, ausdrücklich benannte
+  Abrechnungseinheit der Betriebskosten (Objekt bzw. Gebäude), § 6a HeizKV
+  mit Steuern und Abgaben, Entgelten der Verbrauchserfassung, Hinweis auf die
+  Verbraucherschlichtungsstelle, Vorjahresvergleich bzw. Begründung und
+  „Durchschnitt Ihres Heizkreises“,
+- Freigabe: Das Bestätigen einzelner Warnungen löst keine erneute Prüfung
+  mehr aus; neue Schaltfläche „Alle angezeigten Warnungen bestätigen“; die
+  Prüfung wird je Datenstand nur einmal berechnet (auch für Kopfzeile,
+  Berechnung, geführte Jahresabrechnung und Nutzerübersicht),
+- Vorauszahlungen: Übersicht und Anpassungsvorschläge werden nur bei
+  geändertem Datenstand neu berechnet; Erläuterung, in welches
+  Abrechnungsjahr die neue Vorauszahlung eingetragen wird.
+
 ## 1.2.0 – 3. Oktober 2026
 
 - Einzel- und Gesamtabrechnung nach mietrechtlicher Prüfung überarbeitet:

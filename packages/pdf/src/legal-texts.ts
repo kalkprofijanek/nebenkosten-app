@@ -18,7 +18,11 @@ export const ESTIMATED_CONSUMPTION_NOTE = estimatedConsumptionNote()
 
 /** Erläuterung des Zeitfaktors bei Teilzeiträumen (§ 9b HeizKV). */
 export const TIME_FACTOR_EXPLANATION =
-  'Zeitfaktor: Bei Teilzeiträumen werden flächen- und wohneinheitenbezogene Betriebskosten sowie die Heiz-Grundkosten nach Kalendertagen anteilig berechnet (§ 9b HeizKV); die Verbrauchskosten richten sich nach Ihrem erfassten Verbrauch im Nutzungszeitraum. Auf Leerstandszeiten entfallende Kosten trägt der Vermieter.'
+  'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten erfolgt die Aufteilung bei Nutzerwechsel nach § 9b HeizKV: Grundkosten nach Kalendertagen, Verbrauchskosten nach dem erfassten Verbrauch. Auf Leerstandszeiten entfallende Kosten trägt der Vermieter.'
+
+/** Hinweis unter der Ergebnistabelle (Rechnen mit ungerundeten Werten). */
+export const ROUNDING_DIFFERENCE_NOTICE =
+  'Aufgrund der Berechnung mit ungerundeten Einzelwerten können Rundungsdifferenzen von 0,01 € auftreten.'
 
 export type ConsumptionCaptureMode = 'heat_meter' | 'manual_reading'
 
@@ -51,14 +55,13 @@ export function heatingSplitExplanation(
   const basePercent = 100 - consumptionSharePercent
   const area = baseAreaDative(options.baseAreaBasis ?? 'heated_area')
   const capture = captureLabel(options.captureMode ?? 'manual_reading')
+  // Ohne konfigurierte Warmwasserabgrenzung wird Warmwasser bewusst nicht
+  // erwähnt (Vermieterentscheidung, keine Herausrechnung).
   const hotWater = options.hasCentralHotWater
     ? ' Die Kosten der zentralen Warmwasserbereitung werden gesondert ermittelt und verteilt (§ 9 HeizKV).'
-    : ' Eine zentrale Warmwasserbereitung besteht nicht.'
+    : ''
   return `Heizkostenverteilung (§§ 7, 8 HeizKV): Die Heizkosten Ihres Heizkreises werden zu ${consumptionSharePercent} % nach ${capture} und zu ${basePercent} % nach ${area} (Grundkosten) verteilt. Die CO2-Kosten werden nach dem CO2KostAufG gesondert ausgewiesen und sind im Heizkostenbetrag nicht enthalten.${hotWater}`
 }
-
-export const NO_CENTRAL_HOT_WATER =
-  'Eine zentrale Warmwasserbereitung besteht nicht.'
 
 /** Überschrift der CO2-Kostenaufteilung. */
 export const CO2_COST_ALLOCATION_HEADING =
@@ -125,5 +128,28 @@ export const CONSUMPTION_INFORMATION_HEADING =
 export const ENERGY_ADVICE_NOTICE =
   'Informationen zu Energieeffizienzmaßnahmen und unabhängiger Energieberatung erhalten Sie bei den Verbraucherzentralen (www.verbraucherzentrale-energieberatung.de) sowie bei Energieagenturen, z. B. der Deutschen Energie-Agentur (www.dena.de).'
 
-/** Liegenschaftsdaten-Fußtabelle (§ 259 BGB). */
-export const PROPERTY_DATA_HEADING = 'Liegenschaftsdaten (§ 259 BGB)'
+/** Liegenschafts- und Abrechnungsdaten (Fußtabelle). */
+export const PROPERTY_DATA_HEADING = 'Liegenschafts- und Abrechnungsdaten'
+
+/** § 6a HeizKV: Steuern und Abgaben in den Brennstoffkosten. */
+export const ENERGY_TAXES_NOTICE =
+  'In den Brennstoff- und Energiekosten sind die gesetzlichen Steuern und Abgaben (Umsatzsteuer, Energiesteuer, ggf. CO2-Kosten nach BEHG) enthalten.'
+
+/** § 6a HeizKV: Entgelte für die Verbrauchserfassung und Abrechnung. */
+export function meteringFeesText(amount: string | null): string {
+  return amount
+    ? `Entgelte für Verbrauchserfassung und Abrechnung (Gerätemiete, Ablesung, Abrechnung, Eichung): ${amount}; sie sind in den Betriebskosten der Heizungsanlage enthalten.`
+    : 'Die Entgelte für Verbrauchserfassung und Abrechnung sind in den Betriebskosten der Heizungsanlage enthalten.'
+}
+
+/** § 6a HeizKV: Hinweis auf die Verbraucherschlichtungsstelle. */
+export const DISPUTE_RESOLUTION_NOTICE =
+  'Bei Streitigkeiten können Sie sich an die Allgemeine Verbraucherschlichtungsstelle des Zentrums für Schlichtung e. V., Straßburger Straße 8, 77694 Kehl (www.verbraucher-schlichter.de) wenden. Der Vermieter ist zur Teilnahme an einem Streitbeilegungsverfahren nicht verpflichtet und nimmt daran nicht teil.'
+
+/** § 6a HeizKV: Vorjahresvergleich ohne Vorjahreswerte. */
+export const NO_PREVIOUS_YEAR_COMPARISON =
+  'Ein Vergleich mit dem Vorjahr ist nicht möglich, weil für das Vorjahr keine vergleichbaren Verbrauchsdaten vorliegen (Eigentümer- bzw. Abrechnungswechsel).'
+
+/** § 6a HeizKV: Bezeichnung des Vergleichswerts. */
+export const CIRCUIT_AVERAGE_LABEL =
+  'Durchschnitt Ihres Heizkreises (rechnerisch, kein normierter Durchschnittsnutzer)'

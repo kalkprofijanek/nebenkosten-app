@@ -34,6 +34,23 @@ export const tenancySchema = z.strictObject({
 export type Tenancy = z.infer<typeof tenancySchema>
 
 /**
+ * Zählerstände des Wohnungs-Wärmezählers bzw. Heizkostenverteilers eines
+ * Nutzungszeitraums (Legacy `wmz_nr`, `wmz_stand_alt`, `wmz_datum_alt`,
+ * `wmz_stand_neu`, `wmz_datum_neu`). Rein dokumentarisch für die
+ * Einzelabrechnung; maßgeblich für die Verteilung bleibt
+ * `consumptionUnits`. Abweichungen meldet die Validierung
+ * (`heating.meter_reading_mismatch`).
+ */
+export const heatMeterReadingSchema = z.strictObject({
+  meterNumber: z.string().nullish(),
+  startValue: z.number().finite().nullish(),
+  startDate: isoDateSchema.nullish(),
+  endValue: z.number().finite().nullish(),
+  endDate: isoDateSchema.nullish(),
+})
+export type HeatMeterReading = z.infer<typeof heatMeterReadingSchema>
+
+/**
  * OccupancyPeriod / Nutzungszeitraum innerhalb eines Abrechnungsjahres.
  * `kind: 'vacancy'` ersetzt die drei Legacy-Leerstandskriterien
  * (`leerstand`, `aktiv` enthält „Leerstand“, Mandatsref enthält
@@ -64,6 +81,8 @@ export const occupancyPeriodSchema = z.strictObject({
   consumptionUnits: quantitySchema.nullish(),
   consumptionUnitsEstimated: z.boolean().nullish(),
   consumptionUnitsEstimateReason: z.string().nullish(),
+  /** Zählerstände alt/neu zur Dokumentation des Verbrauchs (optional). */
+  heatMeterReading: heatMeterReadingSchema.nullish(),
   /** §12 HeizKV: 15-%-Kürzung in der Berechnung anwenden. */
   applySection12Reduction: z.boolean().nullish(),
   /** Manuelle Bereichszuordnung, überschreibt Mandatsref-Ableitung. */

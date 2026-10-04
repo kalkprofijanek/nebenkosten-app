@@ -910,6 +910,21 @@ describe('WorkflowRoute', () => {
       screen.getByLabelText('Schätzgrund Verbrauch bearbeiten'),
       { target: { value: 'Fiktiver Schätzgrund' } },
     )
+    fireEvent.change(screen.getByLabelText('Zählernummer bearbeiten'), {
+      target: { value: 'HZ-TEST-1' },
+    })
+    fireEvent.change(screen.getByLabelText('Stand alt bearbeiten'), {
+      target: { value: '100' },
+    })
+    fireEvent.change(screen.getByLabelText('Datum alt bearbeiten'), {
+      target: { value: '2026-01-01' },
+    })
+    fireEvent.change(screen.getByLabelText('Stand neu bearbeiten'), {
+      target: { value: '199,5' },
+    })
+    fireEvent.change(screen.getByLabelText('Datum neu bearbeiten'), {
+      target: { value: '2026-12-31' },
+    })
     fireEvent.change(screen.getByLabelText('Kaltwasser in m³ bearbeiten'), {
       target: { value: '10' },
     })
@@ -950,6 +965,13 @@ describe('WorkflowRoute', () => {
     })
     expect(result.getData().billingData.occupancyPeriods[0]).toMatchObject({
       consumptionUnitsEstimated: true,
+      heatMeterReading: {
+        meterNumber: 'HZ-TEST-1',
+        startValue: 100,
+        startDate: '2026-01-01',
+        endValue: 199.5,
+        endDate: '2026-12-31',
+      },
       coldWater: { value: 10, unit: 'm3' },
       warmWater: { value: 4, unit: 'm3' },
       costScope: { kind: 'building', buildingId: SEEDED_IDS.building },

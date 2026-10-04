@@ -1,12 +1,20 @@
-import type { FormEvent, MouseEvent } from 'react'
+import { useState, type FormEvent, type MouseEvent } from 'react'
 import type {
   AppDataFile,
   OccupancyPeriod,
   BillingPeriod,
 } from '@nebenkosten/schema'
 import { WorkflowField } from './form-support'
-import { formatEuroInput } from '../../app/form-parsers'
+import { formatEuroInput, parseOptionalNumber } from '../../app/form-parsers'
 import { estimateConsumptionUnits } from '../occupancies/estimate-consumption'
+function decimalInput(value: number): string {
+  return String(value).replace('.', ',')
+}
+
+function optionalDecimal(value: number | null | undefined): string {
+  return value == null ? '' : decimalInput(value)
+}
+
 interface Props {
   data: AppDataFile
   occupancy: OccupancyPeriod
@@ -48,6 +56,43 @@ export function OccupancyEditor({
       units.value = String(estimate.value).replace('.', ',')
     if (estimated instanceof HTMLInputElement) estimated.checked = true
     if (reason instanceof HTMLInputElement) reason.value = estimate.reason
+  }
+  const reading = occupancy.heatMeterReading
+  const [readingMessage, setReadingMessage] = useState<string | null>(null)
+  function applyMeterReadings(event: MouseEvent<HTMLButtonElement>) {
+    const form = event.currentTarget.form
+    if (!form) return
+    const field = (name: string) => form.elements.namedItem(name)
+    const value = (name: string) => {
+      const element = field(name)
+      return element instanceof HTMLInputElement ? element.value : ''
+    }
+    let start: number | null
+    let end: number | null
+    try {
+      start = parseOptionalNumber(value('meterStartValue'))
+      end = parseOptionalNumber(value('meterEndValue'))
+    } catch {
+      setReadingMessage('Bitte gültige Zählerstände eingeben.')
+      return
+    }
+    if (start === null || end === null) {
+      setReadingMessage('Bitte Stand alt und Stand neu eintragen.')
+      return
+    }
+    const consumption = Math.round((end - start) * 1000) / 1000
+    if (consumption < 0) {
+      setReadingMessage('Stand neu ist kleiner als Stand alt.')
+      return
+    }
+    const units = field('consumptionUnits')
+    const estimated = field('consumptionUnitsEstimated')
+    if (units instanceof HTMLInputElement)
+      units.value = decimalInput(consumption)
+    if (estimated instanceof HTMLInputElement) estimated.checked = false
+    setReadingMessage(
+      `Verbrauch ${decimalInput(consumption)} Einheiten vorbelegt; erst „Speichern“ übernimmt ihn.`,
+    )
   }
   return (
     <>
@@ -127,6 +172,47 @@ export function OccupancyEditor({
             Objektanschrift, auch nach einem Auszug. Eine bekannte neue
             Anschrift hier eintragen.
           </small>
+          <fieldset className="meter-reading-fields">
+            <legend>Zählerstände Heizung (Verbrauchserfassung)</legend>
+            <WorkflowField
+              label="Zählernummer bearbeiten"
+              name="meterNumber"
+              defaultValue={reading?.meterNumber ?? ''}
+            />
+            <WorkflowField
+              label="Stand alt bearbeiten"
+              name="meterStartValue"
+              defaultValue={optionalDecimal(reading?.startValue)}
+            />
+            <WorkflowField
+              label="Datum alt bearbeiten"
+              name="meterStartDate"
+              type="date"
+              defaultValue={reading?.startDate ?? ''}
+            />
+            <WorkflowField
+              label="Stand neu bearbeiten"
+              name="meterEndValue"
+              defaultValue={optionalDecimal(reading?.endValue)}
+            />
+            <WorkflowField
+              label="Datum neu bearbeiten"
+              name="meterEndDate"
+              type="date"
+              defaultValue={reading?.endDate ?? ''}
+            />
+            <button type="button" onClick={applyMeterReadings}>
+              Verbrauch aus Zählerständen übernehmen
+            </button>
+            {readingMessage ? (
+              <small role="status">{readingMessage}</small>
+            ) : (
+              <small>
+                Setzt die Verbrauchseinheiten auf Stand neu − Stand alt; erst
+                „Speichern“ übernimmt den Wert.
+              </small>
+            )}
+          </fieldset>
           <WorkflowField
             label="Verbrauchseinheiten bearbeiten"
             name="consumptionUnits"

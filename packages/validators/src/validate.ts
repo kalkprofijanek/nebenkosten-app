@@ -173,3 +173,55 @@ export function validateBillingPeriod(
     options,
   )
 }
+
+/**
+ * Wendet bestätigte Warnungen auf einen Prüfbericht an, ohne die (teure)
+ * Prüfung erneut auszuführen. Bestätigungen ändern nur
+ * `unconfirmedWarningKeys` und `canBecomeReady`.
+ */
+export function withConfirmedWarnings(
+  base: ValidationReport,
+  confirmedWarningKeys: readonly string[] = [],
+): ValidationReport {
+  const confirmed = new Set(confirmedWarningKeys)
+  const unconfirmedWarningKeys = base.issues
+    .filter(
+      ({ severity, key }) => severity === 'warning' && !confirmed.has(key),
+    )
+    .map(({ key }) => key)
+  return {
+    ...base,
+    unconfirmedWarningKeys,
+    canBecomeReady:
+      base.errorCount === 0 && unconfirmedWarningKeys.length === 0,
+  }
+}
+
+const reportCache = new WeakMap<object, Map<string, ValidationReport>>()
+
+/**
+ * Wie `validateBillingPeriod`, aber je Datenobjekt (Identität) und
+ * Abrechnungsjahr nur einmal berechnet. Voraussetzung: Der Datenbestand
+ * wird nicht in place verändert – die App erzeugt bei jeder Änderung ein
+ * neues Objekt (`WorkspaceController.update`). Die Prüfung hängt nicht von
+ * Uhrzeit oder Umgebung ab, daher ist das Ergebnis je Objekt stabil.
+ */
+export function validateBillingPeriodCached(
+  data: unknown,
+  billingPeriodId: string,
+  options: ValidationOptions = {},
+): ValidationReport {
+  if (data === null || typeof data !== 'object')
+    return validateBillingPeriod(data, billingPeriodId, options)
+  let byPeriod = reportCache.get(data)
+  if (!byPeriod) {
+    byPeriod = new Map()
+    reportCache.set(data, byPeriod)
+  }
+  let base = byPeriod.get(billingPeriodId)
+  if (!base) {
+    base = validateBillingPeriod(data, billingPeriodId)
+    byPeriod.set(billingPeriodId, base)
+  }
+  return withConfirmedWarnings(base, options.confirmedWarningKeys)
+}
