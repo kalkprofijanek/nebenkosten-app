@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { buildTenantStatementContext } from '../pdf/context'
 import { downloadBlob, renderPdfBlob } from '../pdf/render'
 import { buildTenantStatementWithAdjustment } from '../prepayments/statement-with-adjustment'
+import { tenantStatementFileName } from '../pdf/file-names'
 
 /**
  * Öffnet die Einzelabrechnung eines Mieters in einem neuen Tab. Vor der
@@ -38,9 +39,13 @@ export function OpenStatementButton({
     // Popup-Blocker nach der (asynchronen) PDF-Erzeugung.
     const target = window.open('', '_blank')
     try {
-      const definition = buildTenantStatementWithAdjustment(
-        buildTenantStatementContext(data, period, calculation, occupancy),
+      const context = buildTenantStatementContext(
+        data,
+        period,
+        calculation,
+        occupancy,
       )
+      const definition = buildTenantStatementWithAdjustment(context)
       const blob = await renderPdfBlob(
         draft
           ? {
@@ -52,7 +57,14 @@ export function OpenStatementButton({
       if (target) {
         target.location.href = URL.createObjectURL(blob)
       } else {
-        downloadBlob(blob, `Abrechnung_${period.year}_${occupancy.id}.pdf`)
+        downloadBlob(
+          blob,
+          tenantStatementFileName(
+            period.year,
+            context.unit.label ?? occupancy.unitId,
+            context.persons.map((person) => person.displayName),
+          ),
+        )
       }
     } catch (caught) {
       target?.close()

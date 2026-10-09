@@ -59,6 +59,10 @@ try {
   const core = await load('/packages/core/src/index.ts')
   const pdf = await load('/packages/pdf/src/index.ts')
   const context = await load('/apps/web/src/features/pdf/context.ts')
+  const names = await load('/apps/web/src/features/pdf/file-names.ts')
+  const { buildTenantStatementWithAdjustment } = await load(
+    '/apps/web/src/features/prepayments/statement-with-adjustment.ts',
+  )
 
   const imported = await io.importLegacyV3Bytes(await readFile(input), {
     sourceFileName: basename(input),
@@ -129,25 +133,25 @@ try {
       )
       written++
     }
+    const usedFileNames = new Set()
     for (const occupancy of context.tenantOccupancies(data, period.id)) {
       try {
-        const unit = data.masterData.units.find(
-          ({ id }) => id === occupancy.unitId,
-        )
-        const label = (unit?.label ?? occupancy.id).replace(
-          /[^\wäöüÄÖÜß]+/gu,
-          '_',
+        const statement = context.buildTenantStatementContext(
+          data,
+          period,
+          result,
+          occupancy,
         )
         await save(
-          `NK${year}_${label}_${occupancy.id.slice(-6)}.pdf`,
-          pdf.buildTenantStatement(
-            context.buildTenantStatementContext(
-              data,
-              period,
-              result,
-              occupancy,
+          names.uniqueFileName(
+            names.tenantStatementFileName(
+              year,
+              statement.unit.label ?? occupancy.unitId,
+              statement.persons.map((person) => person.displayName),
             ),
+            usedFileNames,
           ),
+          buildTenantStatementWithAdjustment(statement),
         )
       } catch (error) {
         failures.push(
@@ -158,7 +162,7 @@ try {
     for (const audience of ['internal', 'tenant']) {
       try {
         await save(
-          `Gesamtabrechnung_${year}_${audience}.pdf`,
+          names.combinedStatementFileName(year, audience),
           pdf.buildCombinedCostStatement(
             context.buildCombinedCostStatementContext(
               data,

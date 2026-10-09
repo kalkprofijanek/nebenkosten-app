@@ -12,6 +12,11 @@ import {
   tenantOccupancies,
 } from './features/pdf/context'
 import {
+  combinedStatementFileName,
+  tenantStatementFileName,
+  uniqueFileName,
+} from './features/pdf/file-names'
+import {
   recordGeneratedDocuments,
   type RecordGeneratedDocumentInput,
 } from './features/pdf/commands'
@@ -28,40 +33,6 @@ interface PdfExportRouteProps {
   readonly data: AppDataFile
   readonly billingPeriodId: string | null
   readonly onApply: (transform: (data: AppDataFile) => AppDataFile) => boolean
-}
-
-function safeFileNamePart(value: string): string {
-  return value.normalize('NFC').replace(/[^\p{L}\p{N}_-]/gu, '_')
-}
-
-function tenantFileName(
-  year: number,
-  unitLabel: string,
-  personName: string,
-): string {
-  return `NK_${year}_${safeFileNamePart(unitLabel)}_${safeFileNamePart(personName)}.pdf`
-}
-
-function uniqueFileName(fileName: string, usedFileNames: Set<string>): string {
-  const normalizedFileName = fileName.toLocaleLowerCase('de-DE')
-  if (!usedFileNames.has(normalizedFileName)) {
-    usedFileNames.add(normalizedFileName)
-    return fileName
-  }
-  const extensionIndex = fileName.lastIndexOf('.')
-  const baseName =
-    extensionIndex > 0 ? fileName.slice(0, extensionIndex) : fileName
-  const extension = extensionIndex > 0 ? fileName.slice(extensionIndex) : ''
-  let suffix = 2
-  while (
-    usedFileNames.has(
-      `${baseName}_${suffix}${extension}`.toLocaleLowerCase('de-DE'),
-    )
-  )
-    suffix += 1
-  const uniqueName = `${baseName}_${suffix}${extension}`
-  usedFileNames.add(uniqueName.toLocaleLowerCase('de-DE'))
-  return uniqueName
 }
 
 function documentIdentity(
@@ -243,13 +214,10 @@ export function PdfExportRoute({
       )
       const docDefinition = buildTenantStatementWithAdjustment(context)
       const blob = await renderPdfBlob(docDefinition)
-      const personName =
-        context.persons.map((person) => person.displayName ?? '').join('_') ||
-        'Unbekannt'
-      const fileName = tenantFileName(
+      const fileName = tenantStatementFileName(
         billingPeriod!.year,
         context.unit.label ?? occupancyPeriod.unitId,
-        personName,
+        context.persons.map((person) => person.displayName),
       )
       await record([
         {
@@ -274,7 +242,7 @@ export function PdfExportRoute({
       )
       const docDefinition = buildCombinedCostStatement(context)
       const blob = await renderPdfBlob(docDefinition)
-      const fileName = `NK_${billingPeriod!.year}_Gesamtabrechnung_${audience === 'internal' ? 'intern' : 'Mieter'}.pdf`
+      const fileName = combinedStatementFileName(billingPeriod!.year, audience)
       await record([
         {
           kind: 'combined_statement',
@@ -301,14 +269,11 @@ export function PdfExportRoute({
         )
         const docDefinition = buildTenantStatementWithAdjustment(context)
         const blob = await renderPdfBlob(docDefinition)
-        const personName =
-          context.persons.map((person) => person.displayName ?? '').join('_') ||
-          'Unbekannt'
         const fileName = uniqueFileName(
-          tenantFileName(
+          tenantStatementFileName(
             billingPeriod!.year,
             context.unit.label ?? occupancyPeriod.unitId,
-            personName,
+            context.persons.map((person) => person.displayName),
           ),
           usedFileNames,
         )
