@@ -474,8 +474,24 @@ function previousConsumption(
     ['vorjahr_jahr'],
     legacy,
   )
-  if (value == null || year == null) return undefined
-  return { year, value, source: stringOrNullish(user.vorjahr_quelle) }
+  if (value != null && year != null)
+    return { year, value, source: stringOrNullish(user.vorjahr_quelle) }
+  // Unvollständige Angabe: nicht still verwerfen, sondern konservieren.
+  for (const key of [
+    'vorjahr_verbrauch',
+    'vorjahr_jahr',
+    'vorjahr_quelle',
+  ] as const)
+    if (user[key] !== undefined)
+      addUnmapped(context, legacy, [key], [...path, key], user[key])
+  if (user.vorjahr_verbrauch !== undefined || user.vorjahr_jahr !== undefined)
+    context.issue(
+      'warning',
+      'migration.previous_consumption_incomplete',
+      'Vorjahresverbrauch ohne Jahr bzw. Jahr ohne Verbrauch – nicht übernommen',
+      path,
+    )
+  return undefined
 }
 
 function mapUser(

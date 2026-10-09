@@ -699,9 +699,11 @@ function consumptionCapture(
     fontSize: 8,
     margin: [0, 0, 0, 6],
   })
-  // Überschrift, Zählertabelle und Rechnung nicht über einen Seitenumbruch
-  // trennen (sonst steht die Überschrift allein am Seitenende).
-  return [{ stack: content, unbreakable: true }]
+  // Überschrift, Erläuterung und Zählertabelle nicht über einen Seitenumbruch
+  // trennen (sonst steht die Überschrift allein am Seitenende); die
+  // Rechenzeilen dürfen umbrechen, damit der Block nie höher als eine Seite wird.
+  const calculation = content.pop()!
+  return [{ stack: content, unbreakable: true }, calculation]
 }
 
 function heatingSection(

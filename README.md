@@ -79,26 +79,30 @@ Objekte oder als Kontrollansicht:
 
 **Abrechnung**
 
-- Betriebskosten nach BetrKV nach Fläche, Personen, Wohnungen, Verbrauch oder
-  Direktzuordnung; nicht umlagefähige Anteile, Lohnanteile und Bescheinigung
-  nach § 35a EStG.
+- Betriebskosten nach BetrKV nach Wohn- bzw. Heizfläche, Wohnungen, Verbrauch
+  oder Direktzuordnung; nicht umlagefähige Anteile, Lohnanteile und – sofern
+  erfasst – Bescheinigung nach § 35a EStG. Bankbuchungen per CSV-Import.
 - Heizkosten nach HeizKV: Brennstoffkonto mit FIFO-Bewertung (Öl, Pellets,
   Flüssiggas), Wärmepumpen- und Leitungsenergie, Verteilung 70/30 bzw. 50/50,
-  Warmwasser, Betriebsstrom.
+  Warmwasser (auch nach Personen), Betriebsstrom.
 - **Wärmemengenzähler** mit Zählerständen alt/neu je Mietpartei;
   **Schätzung nach § 9a HeizKV** mit Begründung und automatischer
   **Flächenverteilung über 25 %** (§ 9a Abs. 2); **Nutzerwechsel und
-  Leerstand nach Gradtagszahlen** (§ 9b HeizKV, VDI 2067).
+  Leerstand** (§ 9b HeizKV): Grundkosten nach Tagen, Verbrauch je Zeitraum
+  (z. B. im KI-Ablauf nach Gradtagszahlen VDI 2067 aufgeteilt); Verbrauch im
+  Leerstand trägt der Vermieter.
 - CO₂-Kosten nach CO2KostAufG (Stufenmodell, Mieter-/Vermieteranteil).
-- Abgrenzung nach Leistungszeitraum, Übernahme von Beständen und Kosten aus
-  einer **Erwerberabrechnung** (Eigentümerwechsel).
+- Eigentümerwechsel: Anfangsbestände, übernommene Kosten und Verbräuche des
+  Voreigentümers lassen sich erfassen; Abgrenzung nach Leistungszeitraum und
+  Auswertung einer **Erwerberabrechnung** erledigt der KI-Ablauf.
 
 **Prüfungen** (vor jeder Freigabe)
 
 - Kontrolldifferenz auf den Cent, mögliche Doppelbelege, negative Beträge,
-  fehlende Mengen bei Energierechnungen.
-- Zählerstände: Stand neu − Stand alt gegen erfassten Verbrauch, fehlende
-  Jahresrechnungen und Jahresstände, Schätzung ohne Begründung.
+  fehlende Mengen bei Energierechnungen, starker Kostenanstieg gegenüber dem
+  Vorjahr, Vorauszahlungen (doppelt, fehlend, negativ).
+- Zählerstände: Stand neu − Stand alt gegen erfassten Verbrauch (begründete
+  Schätzungen ausgenommen), fehlende Jahresrechnungen und Jahresstände.
 - Rechtsregeln mit Geltungszeitraum (z. B. Kabel-TV seit 01.07.2024,
   Fernablesbarkeit ab 2027), Rückstände aus dem Mietkonto.
 
@@ -124,8 +128,9 @@ Geplant bzw. sinnvoll (Beiträge willkommen):
   monatliche Verbrauchsinformation nach § 6a HeizKV.
 - **Zählertausch im Datenmodell**: mehrere Zähler je Nutzung mit Aus- und
   Einbaustand statt Schätzung.
-- **Vorjahreswerte und Zählerstände in der Oberfläche** pflegen (bisher über
-  den Import bzw. den KI-Ablauf).
+- **Vorjahreswerte in der Oberfläche** pflegen (bisher über den Import bzw.
+  den KI-Ablauf; Zählerstände sind unter „Verbrauch“ bereits pflegbar).
+- **Gradtag-Aufteilung bei Nutzerwechsel** in der App selbst berechnen.
 - **Witterungsbereinigung** des Vorjahresvergleichs (Gradtagszahlen des
   Standorts) und Vergleich mit einem normierten Durchschnittsnutzer.
 - Einheit **kWh** statt „Einheiten“ für Wärmemengenzähler durchgängig.

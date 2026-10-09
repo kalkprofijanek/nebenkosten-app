@@ -20,7 +20,13 @@ import { createServer } from 'vite'
 const args = process.argv.slice(2)
 const option = (name) => {
   const index = args.indexOf(name)
-  return index >= 0 ? args[index + 1] : undefined
+  if (index < 0) return undefined
+  const value = args[index + 1]
+  if (value === undefined || value.startsWith('--')) {
+    console.error(`Option ${name} braucht einen Wert.`)
+    process.exit(2)
+  }
+  return value
 }
 const input = args.find(
   (arg, index) => !arg.startsWith('--') && !args[index - 1]?.startsWith('--'),
@@ -63,6 +69,8 @@ try {
   const year = Number(
     option('--jahr') ?? Math.max(...periods.map((period) => period.year)),
   )
+  if (!Number.isInteger(year))
+    throw new Error('--jahr erwartet eine Jahreszahl.')
   const period = periods.find((candidate) => candidate.year === year)
   if (!period) throw new Error(`Kein Abrechnungszeitraum ${year} gefunden.`)
 
@@ -142,7 +150,9 @@ try {
           ),
         )
       } catch (error) {
-        failures.push(`${occupancy.id}: ${error.message}`)
+        failures.push(
+          `${occupancy.id}: ${error instanceof Error ? error.message : String(error)}`,
+        )
       }
     }
     for (const audience of ['internal', 'tenant']) {
@@ -159,7 +169,9 @@ try {
           ),
         )
       } catch (error) {
-        failures.push(`Gesamtabrechnung ${audience}: ${error.message}`)
+        failures.push(
+          `Gesamtabrechnung ${audience}: ${error instanceof Error ? error.message : String(error)}`,
+        )
       }
     }
     console.log(

@@ -108,7 +108,6 @@ describe('Zählerstände je Belegung (heatMeterReading)', () => {
       vorjahr_jahr: 2024,
       vorjahr_quelle: 'Heizkostenabrechnung 2024 des Voreigentümers',
     })
-    Object.assign(users[1]!, { vorjahr_verbrauch: 10 })
 
     const result = expectSuccess(migrateV3ToCurrent(input, OPTIONS))
     const withPrevious = result.data.billingData.occupancyPeriods.filter(
@@ -126,6 +125,22 @@ describe('Zählerstände je Belegung (heatMeterReading)', () => {
       ),
     ).toEqual([])
     expect(appDataFileSchema.safeParse(result.data).success).toBe(true)
+  })
+
+  it('konserviert unvollständige Vorjahresangaben und warnt', () => {
+    const input = createFictionalV3File() as UnknownRecord
+    const users = firstPeriod(input).nutzer as UnknownRecord[]
+    Object.assign(users[0]!, { vorjahr_verbrauch: 10, vorjahr_quelle: 'X' })
+
+    const result = expectSuccess(migrateV3ToCurrent(input, OPTIONS))
+    const occupancy = result.data.billingData.occupancyPeriods.find(
+      ({ legacyUnmapped }) =>
+        JSON.stringify(legacyUnmapped ?? []).includes('vorjahr_verbrauch'),
+    )
+    expect(occupancy?.previousConsumption ?? null).toBeNull()
+    expect(result.report.issues.map(({ code }) => code)).toContain(
+      'migration.previous_consumption_incomplete',
+    )
   })
 
   it('übernimmt numerische Zählernummern als Text und meldet ungültige Werte', () => {

@@ -130,8 +130,8 @@ describe('Einzelabrechnung – Ihre Verbrauchserfassung', () => {
       'Stand zum 31.12. abgeleitet aus der Vorjahresabrechnung.',
     )
     expect(serialized).not.toContain('Ihr Verbrauch wurde geschätzt')
-    expect(serialized).toMatch(
-      /"stack":\[\{"text":"Ihre Verbrauchserfassung"[^]*?"unbreakable":true/u,
+    expect(serialized).toContain(
+      '"unbreakable":true},{"stack":[{"text":"Verbrauch laut Erfassung',
     )
   })
 
