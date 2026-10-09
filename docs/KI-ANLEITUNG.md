@@ -6,19 +6,48 @@ Hand zu geben.
 
 ## Grundprinzip
 
-| Aufgabe                                          | Wer                                        |
-| ------------------------------------------------ | ------------------------------------------ |
-| Rechnungen lesen, Beträge und Zeiträume auslesen | KI (Vorschlag)                             |
-| Bankbuchungen vorkontieren, Rechnungen zuordnen  | KI (Vorschlag)                             |
-| Umlagefähigkeit beurteilen                       | KI-Vorschlag, **Mensch entscheidet**       |
-| Erfassen in der App                              | Mensch (oder Browser-Agent unter Aufsicht) |
-| Rechnen, Verteilen, Runden, Heizkosten, CO₂      | **ausschließlich die App**                 |
-| Freigabe und Versand                             | **ausschließlich der Mensch**              |
+| Aufgabe                                          | Wer                                                             |
+| ------------------------------------------------ | --------------------------------------------------------------- |
+| Rechnungen lesen, Beträge und Zeiträume auslesen | KI (Vorschlag)                                                  |
+| Bankbuchungen vorkontieren, Rechnungen zuordnen  | KI (Vorschlag)                                                  |
+| Umlagefähigkeit beurteilen                       | KI-Vorschlag, **Mensch entscheidet**                            |
+| Erfassen / Korrigieren                           | KI-Agent per Skript auf Sicherungskopie, oder Mensch in der App |
+| Unplausible Werte (Zählerstände, Bestände)       | **Mensch entscheidet** nach Vorlage der KI                      |
+| Rechnen, Verteilen, Runden, Heizkosten, CO₂      | **ausschließlich die Fachlogik** (App bzw. `pnpm abrechnung`)   |
+| Freigabe und Versand                             | **ausschließlich der Mensch**                                   |
 
-Die App hat bewusst **keine Schnittstelle nach außen**
-(Content Security Policy `connect-src 'none'`). Eine KI kann deshalb nicht
-direkt in Ihre Daten schreiben. Das ist gewollt: Jede Übernahme läuft über
-Sie.
+Die Browser-App hat bewusst **keine Schnittstelle nach außen**
+(Content Security Policy `connect-src 'none'`). Eine KI im Chat kann deshalb
+nicht direkt in Ihre Daten schreiben. Ein **KI-Coding-Agent** auf Ihrem
+Rechner (Ablauf 0) arbeitet dagegen auf einer lokalen Kopie und rechnet mit
+derselben Fachlogik ohne Browser.
+
+## Ablauf 0 (empfohlen): KI-Coding-Agent mit lokaler Kopie
+
+So wurde u. a. eine Abrechnung mit rund 65 Mietparteien, vier Heizkreisen
+und Eigentümerwechsel erstellt:
+
+1. Repository klonen, `pnpm install`. Datendatei (Sicherung aus der App oder
+   `nk-daten.json`) nach `private-data/` legen – dieser Ordner wird nie
+   committet.
+2. Den Agenten (z. B. **Claude Code**) die Belege lesen lassen: Rechnungen,
+   Kontoauszüge, Ablesebögen, Fotos, Mails. Für jeden übernommenen Wert nennt
+   er die Quelle.
+3. **Vor jeder Änderung eine Sicherungskopie**; Änderungen als kleines Skript
+   mit Kommentar (was, warum, welcher Beleg), damit sie nachvollziehbar und
+   wiederholbar sind. Keine Handänderung ohne Beleg.
+4. Unplausibles nicht „glattrechnen“: z. B. Zählerstände, die kleiner werden,
+   Verbräuche weit über Vorjahr, Bestände ohne Lieferung. Der Agent legt die
+   Fälle mit Optionen und Empfehlung zur Entscheidung vor.
+5. Rechnen und prüfen:
+   `pnpm abrechnung private-data/nk-daten.json --jahr 2025 --out private-data/pdf`
+   – Kontrolldifferenz, Heizkreise (25-%-Grenze § 9a Abs. 2 HeizKV),
+   Salden, Prüfhinweise und alle PDFs. Die PDFs gemeinsam durchsehen.
+6. Zum Abschluss die Datei in der App importieren, Prüfhinweise bestätigen,
+   freigeben und versenden.
+
+Bewährt hat sich, den Agenten am Ende jeder Sitzung eine **Übergabe-Notiz**
+(Stand, Entscheidungen, offene Punkte) neben die Daten schreiben zu lassen.
 
 ## Datenschutz – vor dem ersten Einsatz klären
 
@@ -88,9 +117,11 @@ Erfassungsliste eintragen. Das ist möglich, aber:
 - Kontrollieren Sie danach die Summe der Kostenpositionen gegen die
   Erfassungsliste.
 
-Nicht empfohlen ist, die JSON-Sicherung von einer KI bearbeiten zu lassen und
-zurückzuspielen. Der Import prüft zwar das Dateischema, erkennt aber keine
-fachlich falschen, formal gültigen Werte.
+Eine KI im **Chat** sollte die JSON-Sicherung nicht frei bearbeiten und
+zurückspielen: Der Import prüft zwar das Dateischema, erkennt aber keine
+fachlich falschen, formal gültigen Werte. Wenn Daten direkt geändert werden,
+dann nur nach Ablauf 0 (Sicherung, Skript, Beleg, Prüflauf mit
+`pnpm abrechnung`).
 
 ## Erfassungsliste (Austauschformat)
 

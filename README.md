@@ -1,13 +1,15 @@
 # Nebenkosten-App
 
 Betriebs- und Heizkostenabrechnung für Wohnraum – kostenlos, quelloffen und
-**vollständig lokal im Browser**. Umlage nach BetrKV, Heizkosten nach HeizKV
-(inkl. FIFO-Brennstoffbewertung und Warmwasser), CO₂-Kostenaufteilung nach
-CO2KostAufG, Vorauszahlungsanpassung nach § 560 BGB und PDF-Abrechnungen.
+**lokal**. Umlage nach BetrKV, Heizkosten nach HeizKV (Brennstoffkonto,
+Wärmemengenzähler, Schätzung nach § 9a, Nutzerwechsel nach § 9b),
+CO₂-Kostenaufteilung nach CO2KostAufG, Vorauszahlungsanpassung nach § 560 BGB
+und fertige PDF-Abrechnungen für jede Mietpartei.
 
-**[▶ App im Browser öffnen](https://kalkprofijanek.github.io/nebenkosten-app/)**
+**Empfohlen: [mit einem KI-Agenten arbeiten](#empfohlen-mit-ki-agent)**
+· [▶ App im Browser öffnen](https://kalkprofijanek.github.io/nebenkosten-app/)
+· [KI-Anleitung](docs/KI-ANLEITUNG.md)
 · [Benutzerhandbuch](docs/BENUTZERHANDBUCH.md)
-· [Mit Claude/ChatGPT arbeiten](docs/KI-ANLEITUNG.md)
 · [Mitwirken](CONTRIBUTING.md)
 
 > **Haftungsausschluss.** Die App ist ein Rechenwerkzeug und ersetzt keine
@@ -15,26 +17,121 @@ CO2KostAufG, Vorauszahlungsanpassung nach § 560 BGB und PDF-Abrechnungen.
 > der Abrechnende verantwortlich. Bereitstellung ohne Gewährleistung gemäß
 > [AGPL-3.0](LICENSE).
 
-## Nutzung
-
 **Aktuelle Version: 1.3.0 · Schema v5**
+
+## Empfohlen: mit KI-Agent
+
+Die meiste Arbeit einer Nebenkostenabrechnung ist nicht das Rechnen, sondern
+das **Zusammentragen und Prüfen**: Rechnungen lesen, Leistungszeiträume
+abgrenzen, Bankbuchungen zuordnen, Zählerstände plausibilisieren,
+Eigentümer- und Mieterwechsel sauber abbilden. Genau dafür eignet sich ein
+KI-Coding-Agent wie **Claude Code** (Terminal, Desktop-App oder IDE):
+
+1. Repository klonen, `pnpm install`, die eigene Datendatei nach
+   `private-data/` legen (wird nie committet).
+2. Den Agenten mit den Belegen arbeiten lassen: Rechnungen (PDF/Scan),
+   Kontoauszüge, Ablesebögen, Fotos von Zählerständen. Er liest aus, ordnet
+   zu, grenzt ab und schlägt Korrekturen vor – **mit Quelle für jeden Wert**.
+3. Korrekturen schreibt der Agent als kleine, nachvollziehbare Skripte auf die
+   Daten, **nach einer Sicherungskopie**. Unplausibles (z. B. Zählerstände,
+   die kleiner werden) legt er Ihnen zur Entscheidung vor.
+4. Rechnen, prüfen und PDFs erzeugen ohne Browser – mit exakt derselben
+   Fachlogik wie die App:
+
+   ```bash
+   pnpm abrechnung private-data/nk-daten.json --jahr 2025 --out private-data/pdf-2025
+   ```
+
+   Ausgabe: Summen und Kontrolldifferenz, Verteilung je Heizkreis (inkl.
+   25-%-Grenze nach § 9a Abs. 2 HeizKV), Nachzahlungen und Guthaben, alle
+   Prüfhinweise sowie die PDFs (Einzelabrechnungen, Gesamtabrechnung intern
+   und für Mieter). Mit `--json <datei>` zusätzlich maschinenlesbar.
+
+5. **Sie entscheiden und geben frei.** Zum Abschluss die Datei in der App
+   importieren, Prüfhinweise bestätigen, freigeben, versenden.
+
+Rechnen, Verteilen, Runden und Rechtstexte bleiben immer in der getesteten
+Fachlogik (`packages/core`, `packages/pdf`) – die KI liefert Daten und
+Begründungen, keine eigenen Rechenwege. Ablauf, Regeln und Datenschutz:
+[`docs/KI-ANLEITUNG.md`](docs/KI-ANLEITUNG.md).
+
+## Alternative: nur im Browser
+
+Ohne KI funktioniert alles auch direkt im Browser – praktisch für kleine
+Objekte oder als Kontrollansicht:
+**[App öffnen](https://kalkprofijanek.github.io/nebenkosten-app/)**.
 
 - Ausschließlich für **Desktop-Browser** gedacht (siehe
   [ADR-0002](docs/DECISIONS/ADR-0002-DESKTOP-ONLY.md)).
-- Alle Daten bleiben **lokal im Browser** (IndexedDB); es gibt keinen Server,
-  keine Anmeldung und keine Datenübertragung (Content Security Policy
-  `connect-src 'none'`). Jeder Nutzer hat seinen eigenen Datenbestand.
+- Alle Daten bleiben **lokal im Browser** (IndexedDB); kein Server, keine
+  Anmeldung, keine Datenübertragung (Content Security Policy
+  `connect-src 'none'`).
 - **Regelmäßig unter „Sicherung“ eine JSON-Sicherung herunterladen.** Werden
   die Browserdaten gelöscht, sind die Abrechnungsdaten ohne Sicherung verloren.
-- Ablauf: **Jahresabrechnung** führt in acht Schritten von Objekt und Belegung
-  über Heizung, Zähler, Energie und Kosten bis zu Berechnung, Freigabe, PDF und
+- **Jahresabrechnung** führt in acht Schritten von Objekt und Belegung über
+  Heizung, Zähler, Energie und Kosten bis zu Berechnung, Freigabe, PDF und
   Sicherung. Prüfhinweise verlinken direkt auf die Korrekturstelle.
-- Bankbuchungen lassen sich als CSV übernehmen
-  ([unterstützte Formate](docs/BANK-CSV-FORMAT.md),
-  [Beispieldatei](docs/beispiel/bankbuchungen-beispiel.csv)).
-- Bestehende Daten der Alt-App: oben rechts über **Daten importieren** die
-  `nk-daten.json` (Legacy v3) wählen. Die Importvorschau zeigt Migrationsbericht
-  und fachliche Prüfung, bevor etwas übernommen wird.
+- Bankbuchungen als CSV ([Formate](docs/BANK-CSV-FORMAT.md),
+  [Beispiel](docs/beispiel/bankbuchungen-beispiel.csv)); Daten der Alt-App
+  über **Daten importieren** (`nk-daten.json`, Legacy v3) mit Importvorschau.
+
+## Was die App kann
+
+**Abrechnung**
+
+- Betriebskosten nach BetrKV nach Fläche, Personen, Wohnungen, Verbrauch oder
+  Direktzuordnung; nicht umlagefähige Anteile, Lohnanteile und Bescheinigung
+  nach § 35a EStG.
+- Heizkosten nach HeizKV: Brennstoffkonto mit FIFO-Bewertung (Öl, Pellets,
+  Flüssiggas), Wärmepumpen- und Leitungsenergie, Verteilung 70/30 bzw. 50/50,
+  Warmwasser, Betriebsstrom.
+- **Wärmemengenzähler** mit Zählerständen alt/neu je Mietpartei;
+  **Schätzung nach § 9a HeizKV** mit Begründung und automatischer
+  **Flächenverteilung über 25 %** (§ 9a Abs. 2); **Nutzerwechsel und
+  Leerstand nach Gradtagszahlen** (§ 9b HeizKV, VDI 2067).
+- CO₂-Kosten nach CO2KostAufG (Stufenmodell, Mieter-/Vermieteranteil).
+- Abgrenzung nach Leistungszeitraum, Übernahme von Beständen und Kosten aus
+  einer **Erwerberabrechnung** (Eigentümerwechsel).
+
+**Prüfungen** (vor jeder Freigabe)
+
+- Kontrolldifferenz auf den Cent, mögliche Doppelbelege, negative Beträge,
+  fehlende Mengen bei Energierechnungen.
+- Zählerstände: Stand neu − Stand alt gegen erfassten Verbrauch, fehlende
+  Jahresrechnungen und Jahresstände, Schätzung ohne Begründung.
+- Rechtsregeln mit Geltungszeitraum (z. B. Kabel-TV seit 01.07.2024,
+  Fernablesbarkeit ab 2027), Rückstände aus dem Mietkonto.
+
+**Einzelabrechnung (PDF)**
+
+- Vollständige Rechnung je Kostenart, Brennstoffkonto, Heizkreis und
+  „Ihre Verbrauchserfassung“ mit Zählerständen, Herleitung bzw. Schätzgrund.
+- **Vorjahresvergleich als Grafik** (§ 6a HeizKV) – auch nach einem
+  Eigentümerwechsel mit Vorjahreswerten aus der Abrechnung des Voreigentümers
+  (mit Quellenangabe); Mittelwert des Heizkreises, Energieträger,
+  Verbraucherinformationen.
+- CO₂-Aufteilung nach § 7 Abs. 3 CO2KostAufG, Guthaben- und Nachzahlungstext
+  (auch nach Auszug), Anpassung der Vorauszahlung nach § 560 BGB mit
+  Rücksendeabschnitt, Anschriftfeld für Fensterkuverts.
+- Gesamtabrechnung in zwei Fassungen: intern und zur Einsicht für Mieter.
+
+## Was noch fehlt
+
+Geplant bzw. sinnvoll (Beiträge willkommen):
+
+- **Fernablesung / Messdienst-Import**: Ablesedaten funkauslesbarer Zähler
+  direkt übernehmen; Fernablesbarkeit ist ab 2027 Pflicht, dazu die
+  monatliche Verbrauchsinformation nach § 6a HeizKV.
+- **Zählertausch im Datenmodell**: mehrere Zähler je Nutzung mit Aus- und
+  Einbaustand statt Schätzung.
+- **Vorjahreswerte und Zählerstände in der Oberfläche** pflegen (bisher über
+  den Import bzw. den KI-Ablauf).
+- **Witterungsbereinigung** des Vorjahresvergleichs (Gradtagszahlen des
+  Standorts) und Vergleich mit einem normierten Durchschnittsnutzer.
+- Einheit **kWh** statt „Einheiten“ für Wärmemengenzähler durchgängig.
+- **Erfassungsliste der KI direkt importieren** (CSV → Kostenpositionen).
+- **Versand mit Nachweis** (Serien-E-Mail, Zustelldatum je Mietpartei) und
+  Mehrbenutzer-/Mandantenbetrieb.
 
 Änderungen je Version: [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -153,6 +250,8 @@ Umgesetzt und auf `main` gemergt (Aufgabenbeschreibungen unter
 | PR 59    | Zählerstände, Rechtstexte, Freigabe     | Verbrauchserfassung, § 6a HeizKV, `v1.2.1`              |
 | PR 60    | Anschriftfeld Versand                   | Fensterkuvert/Versandbox, Zeilen ohne Umbruch, `v1.2.2` |
 | PR 63    | Arbeitsbereich Verbrauch                | Zählerstände, Wasser, Schätzung § 9a HeizKV, `v1.3.0`   |
+| PR 66–68 | Praxisabrechnung 2025                   | § 9a Abs. 2, Leerstand im Heizkosten-Nenner, Texte      |
+| PR 70    | Vorjahresvergleich, KI-Ablauf           | Vorjahreswerte, Verbrauchserfassung, `pnpm abrechnung`  |
 
 Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsystem
 (der Legacy-Wert 0,50 € bleibt nur dokumentierter Warnwert, siehe
@@ -176,12 +275,9 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 
 ## Status
 
-Version **1.3.0** ist vorbereitet (PR 63); veröffentlicht ist **1.2.3**
-(GitHub Pages, Release-Tag `v1.2.3`). Das
-Repository ist öffentlich und enthält ausschließlich fiktive Testdaten. Offen
-für spätere Versionen: Import von Heizkostenverteiler-Werten des Messdienstes,
-ein strukturiertes Importformat für KI-ausgelesene Eingangsrechnungen und ein
-Mehrbenutzer-/Mandantenbetrieb.
+Die App ist auf GitHub Pages veröffentlicht und wird mit jedem Merge auf
+`main` aktualisiert. Das Repository ist öffentlich und enthält ausschließlich
+fiktive Testdaten. Offene Punkte: siehe [Was noch fehlt](#was-noch-fehlt).
 
 ## Lizenz
 

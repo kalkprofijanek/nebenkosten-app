@@ -4,6 +4,9 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Vorjahresvergleich nach Eigentümerwechsel** (§ 6a HeizKV): Vorjahresverbrauch je Nutzungsperiode (`vorjahr_verbrauch`/`vorjahr_jahr`/`vorjahr_quelle`) wird als Grafik mit Quellenangabe dargestellt, wenn keine Vorjahresabrechnung im System liegt; bei Einzug im Abrechnungsjahr Hinweis „noch nicht genutzt“,
+- Einzelabrechnung: **„Ihre Verbrauchserfassung“** zeigt die Herleitung auch bei gemessenem Verbrauch (z. B. abgeleiteter Anfangsstand, Gradtag-Aufteilung) und wird nicht mehr über einen Seitenumbruch getrennt,
+- **`pnpm abrechnung`**: Import, Berechnung, Prüfung und PDF-Erzeugung ohne Browser – Grundlage für die Arbeit mit einem KI-Coding-Agenten (README, docs/KI-ANLEITUNG.md),
 - **Heizkosten bei Leerstand mit Verbrauch** (§ 9b HeizKV): Verbrauchseinheiten
   eines Leerstands zählen jetzt im Heizkosten-Nenner mit. Vorher wurde bei
   einem nach Gradtagen aufgeteilten Verbrauch mehr verteilt als angefallen,
