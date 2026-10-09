@@ -609,6 +609,10 @@ function consumptionCapture(
       `Verbrauch (geschätzt) = ${formatNumber(consumption)} ${unit}${split.areaOnlySection9a ? ' (nur zur Information, nicht zur Kostenverteilung verwendet)' : ''}`,
     )
   } else if (hasReading(reading)) {
+    // Erläuterung zur Herleitung (z. B. abgeleiteter Anfangsstand, Aufteilung
+    // nach Gradtagszahlen bei Nutzerwechsel) auch bei gemessenem Verbrauch.
+    const note = occupancyPeriod.consumptionUnitsEstimateReason?.trim()
+    if (note) content.push({ text: note, fontSize: 8, margin: [0, 0, 0, 2] })
     content.push({
       table: {
         headerRows: 1,
@@ -695,7 +699,9 @@ function consumptionCapture(
     fontSize: 8,
     margin: [0, 0, 0, 6],
   })
-  return content
+  // Überschrift, Zählertabelle und Rechnung nicht über einen Seitenumbruch
+  // trennen (sonst steht die Überschrift allein am Seitenende).
+  return [{ stack: content, unbreakable: true }]
 }
 
 function heatingSection(
@@ -839,6 +845,7 @@ type PreviousPeriodComparison =
       readonly kind: 'available'
       readonly year: number
       readonly value: number
+      readonly source?: string | null
     }
 
 /**
@@ -855,7 +862,29 @@ function previousPeriodComparison(
       period.propertyId === billingPeriod.propertyId &&
       period.year === billingPeriod.year - 1,
   )
-  if (!previousPeriod) return { kind: 'no_period' }
+  // Ohne Vorjahresabrechnung im System: Vorjahreswert der Nutzungsperiode
+  // (z. B. aus der Abrechnung des Voreigentümers), sonst Einzug im Jahr.
+  const stored = occupancyPeriod.previousConsumption
+  if (
+    stored &&
+    stored.year === billingPeriod.year - 1 &&
+    (!previousPeriod ||
+      !appData.billingData.occupancyPeriods.some(
+        (occupancy) => occupancy.billingPeriodId === previousPeriod.id,
+      ))
+  )
+    return {
+      kind: 'available',
+      year: stored.year,
+      value: stored.value,
+      source: stored.source ?? null,
+    }
+  if (!previousPeriod)
+    return occupancyPeriod.kind === 'tenant' &&
+      occupancyPeriod.from != null &&
+      occupancyPeriod.from > billingPeriod.periodStart
+      ? { kind: 'not_resident' }
+      : { kind: 'no_period' }
   const previous = appData.billingData.occupancyPeriods.filter(
     (occupancy) =>
       occupancy.billingPeriodId === previousPeriod.id &&
@@ -949,7 +978,9 @@ function previousPeriodSection(
       unit,
     ),
     {
-      text: PREVIOUS_PERIOD_NOT_WEATHER_ADJUSTED,
+      text: comparison.source
+        ? `${PREVIOUS_PERIOD_NOT_WEATHER_ADJUSTED} Vorjahreswert: ${comparison.source}`
+        : PREVIOUS_PERIOD_NOT_WEATHER_ADJUSTED,
       fontSize: 8,
       color: MUTED,
       margin: [0, 0, 0, 4],

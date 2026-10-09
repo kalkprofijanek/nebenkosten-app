@@ -51,6 +51,18 @@ export const heatMeterReadingSchema = z.strictObject({
 export type HeatMeterReading = z.infer<typeof heatMeterReadingSchema>
 
 /**
+ * Verbrauch des vorhergehenden Abrechnungszeitraums für den Vorjahresvergleich
+ * (§ 6a Abs. 3 HeizKV), wenn keine Vorjahresabrechnung im System vorliegt
+ * (z. B. nach Eigentümerwechsel; Wert aus der Abrechnung des Voreigentümers).
+ */
+export const previousConsumptionSchema = z.strictObject({
+  year: z.int(),
+  value: z.number().finite().nonnegative(),
+  source: z.string().nullish(),
+})
+export type PreviousConsumption = z.infer<typeof previousConsumptionSchema>
+
+/**
  * OccupancyPeriod / Nutzungszeitraum innerhalb eines Abrechnungsjahres.
  * `kind: 'vacancy'` ersetzt die drei Legacy-Leerstandskriterien
  * (`leerstand`, `aktiv` enthält „Leerstand“, Mandatsref enthält
@@ -83,6 +95,8 @@ export const occupancyPeriodSchema = z.strictObject({
   consumptionUnitsEstimateReason: z.string().nullish(),
   /** Zählerstände alt/neu zur Dokumentation des Verbrauchs (optional). */
   heatMeterReading: heatMeterReadingSchema.nullish(),
+  /** Vorjahresverbrauch ohne Vorjahresabrechnung im System (optional). */
+  previousConsumption: previousConsumptionSchema.nullish(),
   /** §12 HeizKV: 15-%-Kürzung in der Berechnung anwenden. */
   applySection12Reduction: z.boolean().nullish(),
   /** Manuelle Bereichszuordnung, überschreibt Mandatsref-Ableitung. */

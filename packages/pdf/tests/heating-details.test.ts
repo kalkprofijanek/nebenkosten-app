@@ -115,6 +115,26 @@ describe('Einzelabrechnung – Ihre Verbrauchserfassung', () => {
     expect(serialized).not.toContain('Warmwasser')
   })
 
+  it('zeigt die Erläuterung auch bei gemessenem Verbrauch und hält den Abschnitt zusammen', () => {
+    const appData = buildFixtureAppData('case-06-heating-oil-fifo')
+    const occupancy = firstTenant(appData)
+    occupancy.heatMeterReading = { meterNumber: 'HZ-7', startValue: 1 }
+    occupancy.consumptionUnitsEstimated = false
+    occupancy.consumptionUnitsEstimateReason =
+      'Stand zum 31.12. abgeleitet aus der Vorjahresabrechnung.'
+    const document = buildTenantStatement(
+      buildFixtureTenantStatementContext(appData),
+    )
+    const serialized = text(document)
+    expect(serialized).toContain(
+      'Stand zum 31.12. abgeleitet aus der Vorjahresabrechnung.',
+    )
+    expect(serialized).not.toContain('Ihr Verbrauch wurde geschätzt')
+    expect(serialized).toMatch(
+      /"stack":\[\{"text":"Ihre Verbrauchserfassung"[^]*?"unbreakable":true/u,
+    )
+  })
+
   it('weist abweichende Zählerdifferenz und fehlende Stände aus', () => {
     const appData = buildFixtureAppData('case-06-heating-oil-fifo')
     firstTenant(appData).heatMeterReading = { startValue: 0, endValue: 1 }

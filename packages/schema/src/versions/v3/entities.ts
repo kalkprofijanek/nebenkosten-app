@@ -99,6 +99,9 @@ export const v3NutzerSchema = z.looseObject({
   wmz_datum_alt: v3DateishSchema.optional(),
   wmz_stand_neu: v3NumberishSchema.optional(),
   wmz_datum_neu: v3DateishSchema.optional(),
+  vorjahr_verbrauch: v3NumberishSchema.optional(),
+  vorjahr_jahr: v3NumberishSchema.optional(),
+  vorjahr_quelle: v3StringishSchema.optional(),
   _abrStatus: v3StringishSchema.optional(),
 })
 export type V3Nutzer = z.infer<typeof v3NutzerSchema>

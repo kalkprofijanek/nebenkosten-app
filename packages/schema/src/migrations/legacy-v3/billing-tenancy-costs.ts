@@ -1,6 +1,7 @@
 import type {
   HeatMeterReading,
   LegacyUnmappedEntry,
+  PreviousConsumption,
   V3Abrechnung,
   V3Nutzer,
 } from '../..'
@@ -453,6 +454,30 @@ function heatMeterReading(
   return Object.keys(defined).length > 0 ? defined : undefined
 }
 
+function previousConsumption(
+  context: MigrationContext,
+  user: V3Nutzer,
+  path: JsonPath,
+  legacy: LegacyUnmappedEntry[],
+): PreviousConsumption | undefined {
+  const value = optionalNonNegative(
+    context,
+    user.vorjahr_verbrauch,
+    [...path, 'vorjahr_verbrauch'],
+    ['vorjahr_verbrauch'],
+    legacy,
+  )
+  const year = optionalInteger(
+    context,
+    user.vorjahr_jahr,
+    [...path, 'vorjahr_jahr'],
+    ['vorjahr_jahr'],
+    legacy,
+  )
+  if (value == null || year == null) return undefined
+  return { year, value, source: stringOrNullish(user.vorjahr_quelle) }
+}
+
 function mapUser(
   state: MigrationState,
   context: MigrationContext,
@@ -506,6 +531,9 @@ function mapUser(
       'wmz_datum_alt',
       'wmz_stand_neu',
       'wmz_datum_neu',
+      'vorjahr_verbrauch',
+      'vorjahr_jahr',
+      'vorjahr_quelle',
       '_abrStatus',
     ],
     legacy,
@@ -813,6 +841,7 @@ function mapUser(
           user.einheiten_schatz_grund,
         ),
         heatMeterReading: heatMeterReading(context, user, path, legacy),
+        previousConsumption: previousConsumption(context, user, path, legacy),
         applySection12Reduction: optionalBoolean(
           context,
           user.kuerzung12_anwenden,
