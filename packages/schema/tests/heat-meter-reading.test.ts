@@ -100,6 +100,49 @@ describe('Zählerstände je Belegung (heatMeterReading)', () => {
     expect(appDataFileSchema.safeParse(result.data).success).toBe(true)
   })
 
+  it('übernimmt den Vorjahresverbrauch (vorjahr_*) ohne Unbekannt-Meldung', () => {
+    const input = createFictionalV3File() as UnknownRecord
+    const users = firstPeriod(input).nutzer as UnknownRecord[]
+    Object.assign(users[0]!, {
+      vorjahr_verbrauch: '4.245,8',
+      vorjahr_jahr: 2024,
+      vorjahr_quelle: 'Heizkostenabrechnung 2024 des Voreigentümers',
+    })
+
+    const result = expectSuccess(migrateV3ToCurrent(input, OPTIONS))
+    const withPrevious = result.data.billingData.occupancyPeriods.filter(
+      ({ previousConsumption }) => previousConsumption != null,
+    )
+    expect(withPrevious).toHaveLength(1)
+    expect(withPrevious[0]!.previousConsumption).toEqual({
+      year: 2024,
+      value: 4245.8,
+      source: 'Heizkostenabrechnung 2024 des Voreigentümers',
+    })
+    expect(
+      result.report.unmappedFields.filter((field) =>
+        field.includes('vorjahr_'),
+      ),
+    ).toEqual([])
+    expect(appDataFileSchema.safeParse(result.data).success).toBe(true)
+  })
+
+  it('konserviert unvollständige Vorjahresangaben und warnt', () => {
+    const input = createFictionalV3File() as UnknownRecord
+    const users = firstPeriod(input).nutzer as UnknownRecord[]
+    Object.assign(users[0]!, { vorjahr_verbrauch: 10, vorjahr_quelle: 'X' })
+
+    const result = expectSuccess(migrateV3ToCurrent(input, OPTIONS))
+    const occupancy = result.data.billingData.occupancyPeriods.find(
+      ({ legacyUnmapped }) =>
+        JSON.stringify(legacyUnmapped ?? []).includes('vorjahr_verbrauch'),
+    )
+    expect(occupancy?.previousConsumption ?? null).toBeNull()
+    expect(result.report.issues.map(({ code }) => code)).toContain(
+      'migration.previous_consumption_incomplete',
+    )
+  })
+
   it('übernimmt numerische Zählernummern als Text und meldet ungültige Werte', () => {
     const input = createFictionalV3File() as UnknownRecord
     const users = firstPeriod(input).nutzer as UnknownRecord[]

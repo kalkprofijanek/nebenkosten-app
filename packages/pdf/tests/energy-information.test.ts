@@ -257,4 +257,49 @@ describe('Vorjahresvergleich (§ 6a HeizKV)', () => {
     expect(serialized).toContain('"w":80')
     expect(serialized).toContain('ohne Witterungsbereinigung')
   })
+
+  it('nutzt ohne Vorjahresabrechnung den gespeicherten Vorjahreswert mit Quelle', () => {
+    const appData = buildFixtureAppData('case-06-heating-oil-fifo')
+    const period = appData.billingData.billingPeriods[0]!
+    tenantOf(appData).previousConsumption = {
+      year: period.year - 1,
+      value: 100,
+      source: 'Heizkostenabrechnung des Voreigentümers',
+    }
+    const serialized = text(
+      buildTenantStatement(buildFixtureTenantStatementContext(appData)).content,
+    )
+    expect(serialized).toContain(
+      `Ihr Verbrauch im Vorjahr (${period.year - 1})`,
+    )
+    expect(serialized).toContain(
+      'Vorjahreswert: Heizkostenabrechnung des Voreigentümers',
+    )
+    expect(serialized).not.toContain('Eigentümer- bzw. Abrechnungswechsel')
+  })
+
+  it('ignoriert gespeicherte Vorjahreswerte eines anderen Jahres', () => {
+    const appData = buildFixtureAppData('case-06-heating-oil-fifo')
+    const period = appData.billingData.billingPeriods[0]!
+    tenantOf(appData).previousConsumption = {
+      year: period.year - 2,
+      value: 100,
+    }
+    const serialized = text(
+      buildTenantStatement(buildFixtureTenantStatementContext(appData)).content,
+    )
+    expect(serialized).toContain('Eigentümer- bzw. Abrechnungswechsel')
+  })
+
+  it('nennt bei Einzug im Abrechnungsjahr ohne Vorjahresabrechnung die fehlende Nutzung', () => {
+    const appData = buildFixtureAppData('case-06-heating-oil-fifo')
+    const period = appData.billingData.billingPeriods[0]!
+    tenantOf(appData).from = `${period.year}-07-01`
+    const serialized = text(
+      buildTenantStatement(buildFixtureTenantStatementContext(appData)).content,
+    )
+    expect(serialized).toContain(
+      'weil Sie die Wohnung in diesem Zeitraum noch nicht genutzt haben.',
+    )
+  })
 })
