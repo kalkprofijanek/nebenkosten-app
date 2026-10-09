@@ -377,6 +377,8 @@ function AdjustmentRow({
     data,
     period.id,
     proposal.occupancyPeriodId,
+    // Ergänzt eine aus den Daten (Legacy-Import) übernommene Entscheidung.
+    { period, proposal, today: today() },
   )
   const stale =
     decision !== undefined && !decisionMatchesProposal(decision, proposal)

@@ -121,10 +121,9 @@ Objekte oder als Kontrollansicht:
 
 ## Was noch fehlt
 
-Geplant bzw. sinnvoll (Beiträge willkommen):
-
-- **§ 6a HeizKV vollständig umsetzen**: Lückenanalyse und Bauliste in
-  [docs/TODO-HEIZKV-6A.md](docs/TODO-HEIZKV-6A.md).
+Die vollständige, priorisierte Bauliste bis zur gesetzeskonformen Abrechnung
+steht in **[docs/TODO.md](docs/TODO.md)** (inkl. § 6a HeizKV:
+[docs/TODO-HEIZKV-6A.md](docs/TODO-HEIZKV-6A.md)). Kurzüberblick:
 
 - **Fernablesung / Messdienst-Import**: Ablesedaten funkauslesbarer Zähler
   direkt übernehmen; Fernablesbarkeit ist ab 2027 Pflicht, dazu die

@@ -5,6 +5,7 @@ import {
   PREPAYMENT_RETURN_SLIP_ID,
   appendPrepaymentAdjustment,
   buildPrepaymentAdjustmentContent,
+  buildPrepaymentAdjustmentLetter,
   monthlyCostCents,
   roundedUpMonthlyCents,
 } from '../src/prepayment-adjustment'
@@ -197,5 +198,31 @@ describe('Anpassungsschreiben § 560 Abs. 4 BGB', () => {
     )
     expect(single.content).toHaveLength(2)
     expect(single.styles).toHaveProperty('title')
+  })
+
+  it('erzeugt das Schreiben als eigenständiges Dokument', () => {
+    const context = buildFixtureTenantStatementContext(buildFixtureAppData())
+    const letter = buildPrepaymentAdjustmentLetter(context, adjustment)
+    const content = letter.content as Content[]
+    expect(content).toHaveLength(1)
+    expect(content[0]).not.toHaveProperty('pageBreak')
+    const { pageBreak, ...appendedPage } = buildPrepaymentAdjustmentContent(
+      context,
+      adjustment,
+    )[0] as { pageBreak: string }
+    expect(pageBreak).toBe('before')
+    expect(content[0]).toEqual(appendedPage)
+    expect(letter.pageSize).toBe('A4')
+    expect(letter.styles).toHaveProperty('title')
+    expect(letter.defaultStyle).toMatchObject({ font: 'Roboto' })
+    const allText = texts(content).join('\n')
+    expect(allText).toContain(PREPAYMENT_ADJUSTMENT_TITLE)
+    expect(allText).toContain('Unterschrift Mieter/in')
+    expect(() =>
+      buildPrepaymentAdjustmentLetter(context, {
+        ...adjustment,
+        validFrom: '2027-01-15',
+      }),
+    ).toThrow(/Ersten eines Monats/u)
   })
 })

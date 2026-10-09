@@ -418,6 +418,15 @@ function tenantAllocationBasis(
   }
 }
 
+/**
+ * CO2KostAufG: Die Einstufung erfolgt mit dem kaufmännisch auf eine
+ * Nachkommastelle gerundeten Ausstoß je m² Wohnfläche und Jahr; ausgewiesen
+ * wird der ungerundete Wert.
+ */
+export function co2TierIntensity(intensity: number): number {
+  return Math.round(intensity * 10) / 10
+}
+
 function co2TenantFactor(intensity: number): number {
   if (intensity < 12) return 1
   if (intensity < 17) return 0.9
@@ -527,7 +536,7 @@ function rawCircuitResults(
         : automaticIntensity
       const tenantFactor = manual
         ? 1 - (co2Config.landlordSharePercent ?? 0) / 100
-        : co2TenantFactor(intensity)
+        : co2TenantFactor(co2TierIntensity(intensity))
       const co2Tenant = co2Cost * tenantFactor
       const co2Landlord = co2Cost - co2Tenant
       const fuelConsumption = Math.max(0, fuel.fullCost - co2Cost)
@@ -615,7 +624,7 @@ function rawCircuitResults(
         periodDays,
         annualizationFactor: roundQuantity(365 / periodDays, 6),
         intensityKgPerSqmYear: roundQuantity(intensity, 3),
-        tier: manual ? 'manual' : co2Tier(intensity),
+        tier: manual ? 'manual' : co2Tier(co2TierIntensity(intensity)),
         tenantPercent: roundQuantity(tenantFactor * 100, 3),
         landlordPercent: roundQuantity((1 - tenantFactor) * 100, 3),
         totalCents: roundCentsHalfAwayFromZero(co2Cost),

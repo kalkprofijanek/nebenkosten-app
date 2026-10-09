@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   combinedStatementFileName,
+  prepaymentAdjustmentFileName,
   safeFileNamePart,
   tenantStatementFileName,
   uniqueFileName,
@@ -24,6 +25,18 @@ describe('PDF-Dateinamen', () => {
     )
     expect(combinedStatementFileName(2025, 'tenant')).toBe(
       'NK_2025_Gesamtabrechnung_Mieter.pdf',
+    )
+  })
+
+  it('benennt das VZ-Anpassungsschreiben passend zur Einzelabrechnung', () => {
+    expect(
+      prepaymentAdjustmentFileName(2025, 'WE 1 / EG', [
+        'Erika Mustermann',
+        null,
+      ]),
+    ).toBe('NK_2025_WE_1_EG_Erika_Mustermann_Vorauszahlungsanpassung.pdf')
+    expect(prepaymentAdjustmentFileName(2025, 'WE 1', [])).toBe(
+      'NK_2025_WE_1_Unbekannt_Vorauszahlungsanpassung.pdf',
     )
   })
 

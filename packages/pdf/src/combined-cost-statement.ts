@@ -3,8 +3,14 @@ import type {
   TableCell,
   TDocumentDefinitions,
 } from 'pdfmake/interfaces'
-import type { OperatingPositionTrace } from '@nebenkosten/core'
-import type { CostCategory } from '@nebenkosten/schema'
+import {
+  calculateOccupancyDays,
+  calculatePeriodDays,
+  SECTION_9A_ESTIMATED_AREA_LIMIT,
+  type HeatingCircuitTrace,
+  type OperatingPositionTrace,
+} from '@nebenkosten/core'
+import type { CostCategory, OccupancyPeriod } from '@nebenkosten/schema'
 import { buildSenderBlock } from './address'
 import type { CombinedCostStatementContext } from './contracts'
 import {
@@ -411,6 +417,188 @@ function vacancyTable(context: CombinedCostStatementContext): Content[] {
   ]
 }
 
+const ESTIMATE_REASON_MAX_LENGTH = 120
+
+function shortenReason(reason: string | null | undefined): string {
+  const text = reason?.trim().replace(/\s+/g, ' ') ?? ''
+  if (text === '') return '–'
+  return text.length > ESTIMATE_REASON_MAX_LENGTH
+    ? `${text.slice(0, ESTIMATE_REASON_MAX_LENGTH - 1).trimEnd()}…`
+    : text
+}
+
+function tenantNameFor(
+  context: CombinedCostStatementContext,
+  occupancy: OccupancyPeriod,
+): string {
+  const tenancy = context.tenancies.find(({ id }) => id === occupancy.tenancyId)
+  if (!tenancy) return '–'
+  const names = tenancy.personIds
+    .map((personId) =>
+      context.appData.masterData.persons.find(({ id }) => id === personId),
+    )
+    .map((person) => {
+      if (!person) return ''
+      if (person.displayName?.trim()) return person.displayName.trim()
+      return [person.firstName, person.lastName]
+        .filter((part): part is string => Boolean(part?.trim()))
+        .join(' ')
+    })
+    .filter((name) => name !== '')
+  return names.length > 0 ? names.join(' und ') : '–'
+}
+
+interface EstimateBasisRow {
+  readonly occupancy: OccupancyPeriod
+  readonly unitLabel: string
+  readonly heatedAreaSqm: number
+  readonly weightedAreaSqm: number
+}
+
+/**
+ * Bezugsgrößen der Mieter-Nutzungen eines Heizkreises wie im Kern
+ * (`estimatedHeatedAreaShare`): beheizte Fläche (ersatzweise Wohnfläche)
+ * × Zeitfaktor; Leerstände zählen nicht.
+ */
+function circuitTenantAreaRows(
+  context: CombinedCostStatementContext,
+  circuit: HeatingCircuitTrace,
+): EstimateBasisRow[] {
+  const { periodStart, periodEnd } = context.billingPeriod
+  const periodDays = calculatePeriodDays(periodStart, periodEnd)
+  return context.occupancyPeriods
+    .filter(
+      (occupancy) =>
+        occupancy.billingPeriodId === context.billingPeriod.id &&
+        occupancy.kind !== 'vacancy',
+    )
+    .flatMap((occupancy): EstimateBasisRow[] => {
+      const unit = context.units.find(({ id }) => id === occupancy.unitId)
+      const result = context.calculation.tenants.find(
+        ({ id }) => id === occupancy.id,
+      )
+      const buildingId =
+        result?.ownBasis?.buildingId ??
+        (occupancy.costScope?.kind === 'building'
+          ? occupancy.costScope.buildingId
+          : unit?.buildingId)
+      if (!buildingId || buildingId !== circuit.buildingId) return []
+      const heatedAreaSqm =
+        result?.ownBasis?.heatedAreaSqm ??
+        (unit?.heatedAreaSqm?.value || unit?.usableAreaSqm?.value || 0)
+      const timeFactor =
+        result?.timeFactor ??
+        (periodDays > 0
+          ? calculateOccupancyDays(
+              periodStart,
+              periodEnd,
+              occupancy.from,
+              occupancy.to,
+            ) / periodDays
+          : 0)
+      return [
+        {
+          occupancy,
+          unitLabel: unit?.label ?? '–',
+          heatedAreaSqm,
+          weightedAreaSqm: heatedAreaSqm * timeFactor,
+        },
+      ]
+    })
+}
+
+/**
+ * Interne Übersicht der geschätzten Verbräuche eines Heizkreises mit der
+ * Prüfung der 25-%-Grenze nach § 9a Abs. 2 HeizKV. Der Prozentsatz stammt
+ * aus dem Rechen-Trace, damit er mit der Verteilung übereinstimmt.
+ */
+function estimatedConsumptionSection(
+  context: CombinedCostStatementContext,
+  circuit: HeatingCircuitTrace,
+): Content[] {
+  const rows = circuitTenantAreaRows(context, circuit)
+  const estimated = rows.filter(
+    ({ occupancy }) => occupancy.consumptionUnitsEstimated === true,
+  )
+  if (estimated.length === 0) return []
+  const totalArea = rows.reduce((sum, row) => sum + row.weightedAreaSqm, 0)
+  const estimatedArea = estimated.reduce(
+    (sum, row) => sum + row.weightedAreaSqm,
+    0,
+  )
+  const metered =
+    captureModeFor(context.calculation, circuit.buildingId) === 'heat_meter'
+  const percent =
+    circuit.split.estimatedAreaSharePercent ??
+    (totalArea > 0 ? (estimatedArea / totalArea) * 100 : 0)
+  const areaOnly =
+    circuit.split.areaOnlySection9a ??
+    percent / 100 > SECTION_9A_ESTIMATED_AREA_LIMIT
+  const decision = metered
+    ? 'Verteilung nach gemessenen kWh (Wärmezähler); § 9a Abs. 2 HeizKV nicht angewendet'
+    : areaOnly
+      ? 'Verteilung nach § 9a Abs. 2 HeizKV ausschließlich nach Fläche'
+      : 'Verbrauchsabhängige Verteilung bleibt zulässig (≤ 25 %)'
+  const th = (label: string, right = false): TableCell => ({
+    text: label,
+    style: 'th',
+    fontSize: 7.5,
+    alignment: right ? 'right' : 'left',
+  })
+  const body: TableCell[][] = [
+    [
+      th('Wohnung'),
+      th('Mietpartei'),
+      th('beheizte Fläche', true),
+      th('geschätzter Verbrauch', true),
+      th('Schätzgrund'),
+    ],
+    ...estimated.map(({ occupancy, unitLabel, heatedAreaSqm }): TableCell[] => [
+      unitLabel,
+      tenantNameFor(context, occupancy),
+      {
+        text: `${formatNumber(heatedAreaSqm)} m²`,
+        alignment: 'right',
+        noWrap: true,
+      },
+      {
+        text: formatNumber(occupancy.consumptionUnits?.value ?? 0),
+        alignment: 'right',
+        noWrap: true,
+      },
+      shortenReason(occupancy.consumptionUnitsEstimateReason),
+    ]),
+  ]
+  return [
+    {
+      text: `Geschätzte Verbräuche (§ 9a HeizKV) – ${circuitTitle(context.appData, circuit)}`,
+      style: 'th',
+      margin: [0, 4, 0, 4],
+    },
+    {
+      table: {
+        headerRows: 1,
+        widths: ['auto', 'auto', 'auto', 'auto', '*'],
+        body,
+      },
+      layout: 'lightHorizontalLines',
+      fontSize: 7.5,
+      margin: [0, 0, 0, 4],
+    },
+    {
+      text: `Geschätzte Fläche: ${formatNumber(estimatedArea)} m² von ${formatNumber(totalArea)} m² = ${formatNumber(percent)} % → ${decision}`,
+      fontSize: 8,
+      margin: [0, 0, 0, 2],
+    },
+    {
+      text: 'Flächen zeitanteilig gewichtet (Nutzungstage ÷ Abrechnungstage); Leerstände zählen nicht.',
+      fontSize: 7,
+      color: MUTED,
+      margin: [0, 0, 0, 10],
+    },
+  ]
+}
+
 function heatingSections(context: CombinedCostStatementContext): Content[] {
   return context.calculation.heating.trace.circuits
     .filter(
@@ -438,6 +626,9 @@ function heatingSections(context: CombinedCostStatementContext): Content[] {
         captureModeFor(context.calculation, circuit.buildingId),
       ),
       ...co2Table(context.appData, circuit),
+      ...(context.audience === 'internal'
+        ? estimatedConsumptionSection(context, circuit)
+        : []),
     ])
 }
 

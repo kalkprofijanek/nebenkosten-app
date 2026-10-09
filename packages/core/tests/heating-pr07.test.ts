@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { buildAppDataFile } from '../../../tests/characterization/build-app-data'
 import { scenarios } from '../../../tests/characterization/cases'
 import { calculateBilling, createCalculationInput } from '../src'
+import { co2TierIntensity } from '../src/calculation/calculate-billing'
 
 function appDataFor(caseId: string): AppDataFile {
   const scenario = scenarios.find(({ id }) => id === caseId)
@@ -481,5 +482,13 @@ describe('PR 07 – Heizkosten- und CO2-Rechenweg', () => {
         0,
       ),
     )
+  })
+})
+
+describe('CO2-Einstufung (CO2KostAufG)', () => {
+  it('stuft mit dem auf eine Nachkommastelle gerundeten Ausstoß ein', () => {
+    expect(co2TierIntensity(11.94)).toBe(11.9)
+    expect(co2TierIntensity(11.95)).toBe(12)
+    expect(co2TierIntensity(26.567)).toBe(26.6)
   })
 })

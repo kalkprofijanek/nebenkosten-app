@@ -87,6 +87,15 @@ export const v3NutzerSchema = z.looseObject({
   vz_monat: v3NumberishSchema.optional(),
   vz_gesamt: v3NumberishSchema.optional(),
   keine_vz_vereinbart: v3BooleanishSchema.optional(),
+  /**
+   * Entscheidung zur VZ-Anpassung nach § 560 Abs. 4 BGB (`'ja'`/`'nein'`);
+   * die Alt-App kennt das Feld nicht, nur Import/CLI werten es aus.
+   */
+  vz_anpassung: v3BooleanishSchema.optional(),
+  /** Neue monatliche Vorauszahlung in Euro; fehlt sie, gilt der Vorschlag. */
+  vz_anpassung_neu_monat: v3NumberishSchema.optional(),
+  /** Gültig ab (ISO-Datum, Erster eines Monats); sonst Standardtermin. */
+  vz_anpassung_ab: v3DateishSchema.optional(),
   miete_monat: v3NumberishSchema.optional(),
   versand_strasse: v3StringishSchema.optional(),
   versand_plz_ort: v3StringishSchema.optional(),

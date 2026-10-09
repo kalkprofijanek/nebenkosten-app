@@ -63,6 +63,9 @@ try {
   const { buildTenantStatementWithAdjustment } = await load(
     '/apps/web/src/features/prepayments/statement-with-adjustment.ts',
   )
+  const { acceptedAdjustmentLetter } = await load(
+    '/apps/web/src/features/prepayments/adjustment.ts',
+  )
 
   const imported = await io.importLegacyV3Bytes(await readFile(input), {
     sourceFileName: basename(input),
@@ -134,6 +137,7 @@ try {
       written++
     }
     const usedFileNames = new Set()
+    let adjustmentLetters = 0
     for (const occupancy of context.tenantOccupancies(data, period.id)) {
       try {
         const statement = context.buildTenantStatementContext(
@@ -142,17 +146,37 @@ try {
           result,
           occupancy,
         )
+        const unitLabel = statement.unit.label ?? occupancy.unitId
+        const personNames = statement.persons.map(
+          (person) => person.displayName,
+        )
         await save(
           names.uniqueFileName(
-            names.tenantStatementFileName(
-              year,
-              statement.unit.label ?? occupancy.unitId,
-              statement.persons.map((person) => person.displayName),
-            ),
+            names.tenantStatementFileName(year, unitLabel, personNames),
             usedFileNames,
           ),
           buildTenantStatementWithAdjustment(statement),
         )
+        // Bei „Ja“-Entscheidung (App oder vz_anpassung) zusätzlich das
+        // Anpassungsschreiben als eigene Datei; in der Einzelabrechnung
+        // bleibt es weiterhin als letzte Seite enthalten.
+        const letter = acceptedAdjustmentLetter(
+          data,
+          statement.billingPeriod,
+          statement.calculation,
+          occupancy.id,
+          statement.generatedAt,
+        )
+        if (letter) {
+          await save(
+            names.uniqueFileName(
+              names.prepaymentAdjustmentFileName(year, unitLabel, personNames),
+              usedFileNames,
+            ),
+            pdf.buildPrepaymentAdjustmentLetter(statement, letter),
+          )
+          adjustmentLetters++
+        }
       } catch (error) {
         failures.push(
           `${occupancy.id}: ${error instanceof Error ? error.message : String(error)}`,
@@ -179,7 +203,7 @@ try {
       }
     }
     console.log(
-      `PDFs: ${written} geschrieben nach ${outDir}, ${failures.length} Fehler`,
+      `PDFs: ${written} geschrieben nach ${outDir} (davon ${adjustmentLetters} VZ-Anpassungsschreiben), ${failures.length} Fehler`,
     )
     for (const failure of failures) console.log(`  FEHLER ${failure}`)
   }

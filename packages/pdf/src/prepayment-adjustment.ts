@@ -139,16 +139,14 @@ function tenantReturnSlip(
 }
 
 /**
- * Seiteninhalt des Anpassungsschreibens nach § 560 Abs. 4 BGB. Der erste
- * Block beginnt mit `pageBreak: 'before'`, damit sich der Inhalt an eine
- * Einzelabrechnung anhängen lässt. Das Schreiben enthält bewusst keine
- * Unterschrift des Vermieters; nur der Rücksendeabschnitt hat Felder für
- * die Unterschrift des Mieters.
+ * Anpassungsschreiben nach § 560 Abs. 4 BGB als ein Block. Das Schreiben
+ * enthält bewusst keine Unterschrift des Vermieters; nur der
+ * Rücksendeabschnitt hat Felder für die Unterschrift des Mieters.
  */
-export function buildPrepaymentAdjustmentContent(
+function adjustmentLetterStack(
   context: TenantStatementContext,
   adjustment: PrepaymentAdjustmentLetter,
-): Content[] {
+): ContentStack {
   assertAdjustment(adjustment)
   const { billingPeriod, calculation, occupancyPeriod, unit } = context
   const tenant = calculation.tenants.find(({ id }) => id === occupancyPeriod.id)
@@ -296,12 +294,47 @@ export function buildPrepaymentAdjustmentContent(
     { text: sender.nameLines.join('\n') },
   ]
 
+  return { stack: [...letter, tenantReturnSlip(unitLabel, adjustment)] }
+}
+
+/**
+ * Seiteninhalt des Anpassungsschreibens. Der Block beginnt mit
+ * `pageBreak: 'before'`, damit sich der Inhalt an eine Einzelabrechnung
+ * anhängen lässt.
+ */
+export function buildPrepaymentAdjustmentContent(
+  context: TenantStatementContext,
+  adjustment: PrepaymentAdjustmentLetter,
+): Content[] {
   return [
-    {
-      pageBreak: 'before',
-      stack: [...letter, tenantReturnSlip(unitLabel, adjustment)],
-    },
+    { pageBreak: 'before', ...adjustmentLetterStack(context, adjustment) },
   ]
+}
+
+const LETTER_STYLES = {
+  title: { fontSize: 14, bold: true, color: BLUE },
+  th: { fontSize: 9, bold: true, color: BLUE },
+} as const
+
+/**
+ * Anpassungsschreiben als eigenständiges Dokument (gleicher Inhalt und
+ * gleiches Seitenlayout wie die an die Einzelabrechnung angehängte Seite,
+ * aber ohne vorangestellten Seitenumbruch).
+ */
+export function buildPrepaymentAdjustmentLetter(
+  context: TenantStatementContext,
+  adjustment: PrepaymentAdjustmentLetter,
+): TDocumentDefinitions {
+  return {
+    pageSize: 'A4',
+    pageMargins: [71, 46, 48, 58],
+    info: {
+      title: `${PREPAYMENT_ADJUSTMENT_TITLE} – ${context.unit.label ?? context.occupancyPeriod.unitId}`,
+    },
+    content: [adjustmentLetterStack(context, adjustment)],
+    styles: { ...LETTER_STYLES },
+    defaultStyle: { fontSize: 9, color: '#1f2a36', font: 'Roboto' },
+  }
 }
 
 /** Hängt das Anpassungsschreiben als eigene Seite an eine Einzelabrechnung. */
@@ -316,8 +349,7 @@ export function appendPrepaymentAdjustment(
   return {
     ...definition,
     styles: {
-      title: { fontSize: 14, bold: true, color: BLUE },
-      th: { fontSize: 9, bold: true, color: BLUE },
+      ...LETTER_STYLES,
       ...definition.styles,
     },
     content: [

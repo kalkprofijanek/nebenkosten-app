@@ -215,7 +215,7 @@ const migrateV3ToCurrentUnsafe: MigrateV3ToCurrent = (input, options) => {
       'Der Migrationszeitpunkt ist ungültig',
     )
   const migratedAt = now.toISOString()
-  const context = new MigrationContext(options)
+  const context = new MigrationContext(options, migratedAt)
   let state: ReturnType<typeof transformV3File>
   try {
     state = transformV3File(parsed.data, context)

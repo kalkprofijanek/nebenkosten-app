@@ -127,3 +127,110 @@ describe('buildCombinedCostStatement', () => {
     else expect(serialized).not.toContain('Brennstoff/Energie')
   })
 })
+
+describe('Geschätzte Verbräuche (§ 9a HeizKV) in der Gesamtabrechnung', () => {
+  function estimatedAppData(unitId = 'u1') {
+    const appData = buildFixtureAppData('case-05-multiple-circuits')
+    appData.billingData.occupancyPeriods =
+      appData.billingData.occupancyPeriods.map((occupancy) =>
+        occupancy.unitId === unitId
+          ? {
+              ...occupancy,
+              consumptionUnitsEstimated: true,
+              consumptionUnitsEstimateReason: `Heizkostenverteiler defekt, Schätzung nach Vorjahr. ${'x'.repeat(200)}`,
+            }
+          : occupancy,
+      )
+    return appData
+  }
+
+  it('listet geschätzte Nutzungen mit Flächenanteil in der internen Fassung', () => {
+    const context = buildFixtureCombinedContext(estimatedAppData(), 'internal')
+    const circuit = context.calculation.heating.trace.circuits.find(
+      ({ buildingId }) => buildingId === 'B1',
+    )!
+    expect(circuit.split.estimatedAreaSharePercent).toBe(50)
+
+    const serialized = JSON.stringify(
+      buildCombinedCostStatement(context).content,
+    )
+
+    expect(serialized).toContain('Geschätzte Verbräuche (§ 9a HeizKV)')
+    expect(serialized).toContain('Einheit u1')
+    expect(serialized).toContain('Mieter T1')
+    expect(serialized).toContain('Heizkostenverteiler defekt')
+    expect(serialized).not.toContain('x'.repeat(150))
+    expect(serialized).toContain(
+      'Geschätzte Fläche: 50,00 m² von 100,00 m² = 50,00 % → Verteilung nach § 9a Abs. 2 HeizKV ausschließlich nach Fläche',
+    )
+    // Nur der Heizkreis mit Schätzung erhält die Tabelle.
+    expect(
+      serialized.match(/Geschätzte Verbräuche \(§ 9a HeizKV\)/g),
+    ).toHaveLength(1)
+  })
+
+  it('weist bis 25 % geschätzter Fläche die verbrauchsabhängige Verteilung aus', () => {
+    const appData = estimatedAppData()
+    const context = buildFixtureCombinedContext(appData, 'internal')
+    const circuit = context.calculation.heating.trace.circuits.find(
+      ({ buildingId }) => buildingId === 'B1',
+    )!
+    const patched = {
+      ...context,
+      calculation: {
+        ...context.calculation,
+        heating: {
+          ...context.calculation.heating,
+          trace: {
+            ...context.calculation.heating.trace,
+            circuits: context.calculation.heating.trace.circuits.map((item) =>
+              item === circuit
+                ? {
+                    ...item,
+                    split: {
+                      ...item.split,
+                      estimatedAreaSharePercent: 20,
+                      areaOnlySection9a: false,
+                    },
+                  }
+                : item,
+            ),
+          },
+        },
+      },
+    }
+
+    const serialized = JSON.stringify(
+      buildCombinedCostStatement(patched).content,
+    )
+
+    expect(serialized).toContain(
+      '= 20,00 % → Verbrauchsabhängige Verteilung bleibt zulässig (≤ 25 %)',
+    )
+  })
+
+  it('fehlt in der Fassung für Mieter', () => {
+    const context = buildFixtureCombinedContext(estimatedAppData(), 'tenant')
+
+    const serialized = JSON.stringify(
+      buildCombinedCostStatement(context).content,
+    )
+
+    expect(serialized).not.toContain('Geschätzte Verbräuche')
+    expect(serialized).not.toContain('Geschätzte Fläche')
+  })
+
+  it('fehlt ohne geschätzte Verbräuche', () => {
+    const context = buildFixtureCombinedContext(
+      buildFixtureAppData('case-05-multiple-circuits'),
+      'internal',
+    )
+
+    const serialized = JSON.stringify(
+      buildCombinedCostStatement(context).content,
+    )
+
+    expect(serialized).not.toContain('Geschätzte Verbräuche')
+    expect(serialized).not.toContain('Geschätzte Fläche')
+  })
+})

@@ -19,6 +19,7 @@ export function buildTenantStatementWithAdjustment(
     context.billingPeriod,
     context.calculation,
     context.occupancyPeriod.id,
+    context.generatedAt,
   )
   return letter
     ? appendPrepaymentAdjustment(statement, context, letter)

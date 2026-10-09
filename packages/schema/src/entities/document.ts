@@ -54,3 +54,16 @@ export const auditEventSchema = z.strictObject({
   details: z.record(z.string(), z.unknown()).nullish(),
 })
 export type AuditEvent = z.infer<typeof auditEventSchema>
+
+/** Audit-Aktion einer Entscheidung zur VZ-Anpassung (§ 560 Abs. 4 BGB). */
+export const PREPAYMENT_ADJUSTMENT_DECIDED_ACTION =
+  'prepayment.adjustment_decided'
+
+/**
+ * `details.source` einer Entscheidung zur VZ-Anpassung, die aus den Daten
+ * übernommen wurde (Legacy v3: `vz_anpassung*`). Diesen Einträgen fehlen
+ * die erst aus dem Rechenstand bekannten Werte (`annualizedCostsCents`,
+ * `proposedMonthlyCents`); `newMonthlyCents` bzw. `validFrom` sind `null`,
+ * wenn der Vorschlag bzw. der Standardtermin gelten soll.
+ */
+export const PREPAYMENT_ADJUSTMENT_DATA_SOURCE = 'legacy_v3'

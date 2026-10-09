@@ -1,3 +1,7 @@
+import {
+  PREPAYMENT_ADJUSTMENT_DATA_SOURCE,
+  PREPAYMENT_ADJUSTMENT_DECIDED_ACTION,
+} from '../../entities/document'
 import type {
   HeatMeterReading,
   LegacyUnmappedEntry,
@@ -494,6 +498,129 @@ function previousConsumption(
   return undefined
 }
 
+interface PrepaymentAdjustmentInput {
+  readonly accepted: boolean
+  /** `null` = Vorschlag der App übernehmen. */
+  readonly newMonthlyCents: number | null
+  /** `null` = Standardtermin der App übernehmen. */
+  readonly validFrom: string | null
+}
+
+/**
+ * Entscheidung zur VZ-Anpassung (`vz_anpassung`, `vz_anpassung_neu_monat`,
+ * `vz_anpassung_ab`). Sie wird als derselbe Audit-Eintrag übernommen, den
+ * die Oberfläche schreibt, ergänzt um `source`; Werte aus dem Rechenstand
+ * ergänzt die App erst beim Auswerten. Ungültige oder unpassende Angaben
+ * werden gemeldet und konserviert.
+ */
+function prepaymentAdjustmentDecision(
+  context: MigrationContext,
+  user: V3Nutzer,
+  path: JsonPath,
+  legacy: LegacyUnmappedEntry[],
+  tenancyId: string | undefined,
+): PrepaymentAdjustmentInput | undefined {
+  const accepted = optionalBoolean(
+    context,
+    user.vz_anpassung,
+    [...path, 'vz_anpassung'],
+    ['vz_anpassung'],
+    legacy,
+  )
+  let newMonthlyCents = optionalCents(
+    context,
+    user.vz_anpassung_neu_monat,
+    [...path, 'vz_anpassung_neu_monat'],
+    ['vz_anpassung_neu_monat'],
+    legacy,
+  )
+  if (newMonthlyCents != null && newMonthlyCents <= 0) {
+    context.issue(
+      'warning',
+      'migration.prepayment_adjustment_amount_invalid',
+      'Die neue Vorauszahlung muss größer als 0 sein und wurde nicht übernommen',
+      [...path, 'vz_anpassung_neu_monat'],
+    )
+    addUnmapped(
+      context,
+      legacy,
+      ['vz_anpassung_neu_monat'],
+      [...path, 'vz_anpassung_neu_monat'],
+      user.vz_anpassung_neu_monat,
+    )
+    newMonthlyCents = undefined
+  }
+  let validFrom = optionalDate(
+    context,
+    user.vz_anpassung_ab,
+    [...path, 'vz_anpassung_ab'],
+    ['vz_anpassung_ab'],
+    legacy,
+  )
+  if (validFrom != null && !validFrom.endsWith('-01')) {
+    context.issue(
+      'warning',
+      'migration.prepayment_adjustment_date_invalid',
+      'Die neue Vorauszahlung muss ab dem Ersten eines Monats gelten; das Datum wurde nicht übernommen',
+      [...path, 'vz_anpassung_ab'],
+    )
+    addUnmapped(
+      context,
+      legacy,
+      ['vz_anpassung_ab'],
+      [...path, 'vz_anpassung_ab'],
+      user.vz_anpassung_ab,
+    )
+    validFrom = undefined
+  }
+  const preserveDetails = (code: string, title: string) => {
+    context.issue('warning', code, title, [...path, 'vz_anpassung'])
+    if (newMonthlyCents != null)
+      addUnmapped(
+        context,
+        legacy,
+        ['vz_anpassung_neu_monat'],
+        [...path, 'vz_anpassung_neu_monat'],
+        user.vz_anpassung_neu_monat,
+      )
+    if (validFrom != null)
+      addUnmapped(
+        context,
+        legacy,
+        ['vz_anpassung_ab'],
+        [...path, 'vz_anpassung_ab'],
+        user.vz_anpassung_ab,
+      )
+  }
+  if (accepted == null) {
+    if (newMonthlyCents != null || validFrom != null)
+      preserveDetails(
+        'migration.prepayment_adjustment_without_decision',
+        'Angaben zur VZ-Anpassung ohne Entscheidung (vz_anpassung) wurden nicht übernommen',
+      )
+    return undefined
+  }
+  if (!tenancyId) {
+    preserveDetails(
+      'migration.prepayment_adjustment_without_tenant',
+      'Eine VZ-Anpassung ist nur für Mieter möglich und wurde nicht übernommen',
+    )
+    addUnmapped(
+      context,
+      legacy,
+      ['vz_anpassung'],
+      [...path, 'vz_anpassung'],
+      user.vz_anpassung,
+    )
+    return undefined
+  }
+  return {
+    accepted,
+    newMonthlyCents: newMonthlyCents ?? null,
+    validFrom: validFrom ?? null,
+  }
+}
+
 function mapUser(
   state: MigrationState,
   context: MigrationContext,
@@ -535,6 +662,9 @@ function mapUser(
       'vz_monat',
       'vz_gesamt',
       'keine_vz_vereinbart',
+      'vz_anpassung',
+      'vz_anpassung_neu_monat',
+      'vz_anpassung_ab',
       'miete_monat',
       'versand_strasse',
       'versand_plz_ort',
@@ -798,7 +928,33 @@ function mapUser(
     ['keine_vz_vereinbart'],
     legacy,
   )
+  const adjustment = prepaymentAdjustmentDecision(
+    context,
+    user,
+    path,
+    legacy,
+    tenancyId,
+  )
   const occupancyId = context.id([...path, 'occupancy_period'])
+  if (adjustment && tenancyId)
+    state.auditEvents = [
+      ...state.auditEvents,
+      {
+        id: context.id([...path, 'prepayment_adjustment']),
+        billingPeriodId,
+        timestamp: context.migratedAt,
+        action: PREPAYMENT_ADJUSTMENT_DECIDED_ACTION,
+        details: {
+          source: PREPAYMENT_ADJUSTMENT_DATA_SOURCE,
+          occupancyPeriodId: occupancyId,
+          tenancyId,
+          accepted: adjustment.accepted,
+          previousMonthlyCents: monthlyAmount ?? null,
+          newMonthlyCents: adjustment.newMonthlyCents,
+          validFrom: adjustment.validFrom,
+        },
+      },
+    ]
   state.occupancyPeriods = [
     ...state.occupancyPeriods,
     withLegacy(

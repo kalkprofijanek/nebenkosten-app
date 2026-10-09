@@ -24,7 +24,11 @@ export class MigrationContext {
   readonly unmappedFields: string[] = []
   private readonly unmappedFieldSet = new Set<string>()
 
-  constructor(readonly options: MigrationOptions) {}
+  constructor(
+    readonly options: MigrationOptions,
+    /** Migrationszeitpunkt (ISO), z. B. für erzeugte Protokolleinträge. */
+    readonly migratedAt: string = new Date().toISOString(),
+  ) {}
 
   id(path: JsonPath): string {
     return deterministicUuid(this.options.sourceSha256, pathToString(path))

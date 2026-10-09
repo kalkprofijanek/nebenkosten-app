@@ -14,6 +14,11 @@
  * monatliche Vorauszahlung derselben Mietpartei im Zieljahr gesetzt und in
  * jedem Fall ein Audit-Event im abgerechneten Jahr protokolliert. Aus dem
  * jüngsten Audit-Event folgt, ob das Anpassungsschreiben beigefügt wird.
+ *
+ * Entscheidungen können auch aus den Daten stammen (Legacy-v3-Import,
+ * `vz_anpassung*`, `details.source`): Dann fehlen die Werte aus dem
+ * Rechenstand; sie werden beim Auswerten aus dem aktuellen Vorschlag
+ * ergänzt (neue Vorauszahlung und Termin nur, wenn nicht angegeben).
  */
 import {
   calculateOccupancyDays,
@@ -25,6 +30,8 @@ import {
 } from '@nebenkosten/pdf'
 import {
   appDataFileSchema,
+  PREPAYMENT_ADJUSTMENT_DATA_SOURCE,
+  PREPAYMENT_ADJUSTMENT_DECIDED_ACTION,
   type AppDataFile,
   type BillingPeriod,
   type OccupancyPeriod,
@@ -37,7 +44,7 @@ import {
   type EditGuardDependencies,
 } from '../release/edit-guard'
 
-export const PREPAYMENT_ADJUSTMENT_ACTION = 'prepayment.adjustment_decided'
+export const PREPAYMENT_ADJUSTMENT_ACTION = PREPAYMENT_ADJUSTMENT_DECIDED_ACTION
 export const MIN_ADJUSTMENT_INCREASE_CENTS = 500
 export const UNCERTAIN_OCCUPANCY_DAYS = 90
 const DAYS_PER_YEAR = 365
@@ -350,11 +357,55 @@ function parsePrepaymentInput(value: unknown): PrepaymentInput | null {
   return null
 }
 
-/** Jüngste gespeicherte Entscheidung für eine Belegung des Jahres. */
+/**
+ * Grundlage, um eine aus den Daten übernommene Entscheidung zu ergänzen:
+ * aktueller Vorschlag der Belegung, Abrechnungsjahr und Ersatz-Versanddatum
+ * (heute), falls kein Versanddatum erfasst ist.
+ */
+export interface AdjustmentDecisionDefaults {
+  readonly period: BillingPeriod
+  readonly proposal: AdjustmentProposal
+  readonly today: Date
+}
+
+/**
+ * Aus den Daten übernommene Entscheidung (ohne Werte aus dem Rechenstand),
+ * ergänzt um den aktuellen Vorschlag. Ohne passenden Vorschlag `undefined`.
+ */
+function dataProvidedDecisionValues(
+  details: Record<string, unknown>,
+  occupancyPeriodId: string,
+  defaults: AdjustmentDecisionDefaults | undefined,
+) {
+  if (!defaults || defaults.proposal.occupancyPeriodId !== occupancyPeriodId)
+    return undefined
+  const { period, proposal, today } = defaults
+  const validFrom =
+    details.validFrom == null
+      ? defaultValidFrom(period, proposal.dispatchDate ?? localIsoDate(today))
+      : details.validFrom
+  if (typeof validFrom !== 'string' || validFrom <= period.periodEnd)
+    return undefined
+  return {
+    newMonthlyCents:
+      details.newMonthlyCents == null
+        ? proposal.proposedMonthlyCents
+        : cents(details.newMonthlyCents),
+    proposedMonthlyCents: proposal.proposedMonthlyCents,
+    annualizedCostsCents: proposal.annualizedCostsCents,
+    validFrom,
+  }
+}
+
+/**
+ * Jüngste gespeicherte Entscheidung für eine Belegung des Jahres. Eine aus
+ * den Daten übernommene Entscheidung wird nur mit `defaults` ausgewertet.
+ */
 export function latestAdjustmentDecision(
   data: AppDataFile,
   billingPeriodId: string,
   occupancyPeriodId: string,
+  defaults?: AdjustmentDecisionDefaults,
 ): AdjustmentDecision | undefined {
   const decisions = data.billingData.auditEvents.filter(
     (event) =>
@@ -365,15 +416,22 @@ export function latestAdjustmentDecision(
   const event = decisions.at(-1)
   const details = event?.details
   if (!event || !details) return undefined
-  const previousMonthlyCents = cents(details.previousMonthlyCents)
-  const newMonthlyCents = cents(details.newMonthlyCents)
-  const proposedMonthlyCents = cents(details.proposedMonthlyCents)
-  const annualizedCostsCents = cents(details.annualizedCostsCents)
+  const fromData =
+    details.source === PREPAYMENT_ADJUSTMENT_DATA_SOURCE
+      ? dataProvidedDecisionValues(details, occupancyPeriodId, defaults)
+      : undefined
+  if (details.source === PREPAYMENT_ADJUSTMENT_DATA_SOURCE && !fromData)
+    return undefined
+  const values: Record<string, unknown> = { ...details, ...fromData }
+  const previousMonthlyCents = cents(values.previousMonthlyCents)
+  const newMonthlyCents = cents(values.newMonthlyCents)
+  const proposedMonthlyCents = cents(values.proposedMonthlyCents)
+  const annualizedCostsCents = cents(values.annualizedCostsCents)
   if (
     typeof details.tenancyId !== 'string' ||
     typeof details.accepted !== 'boolean' ||
-    typeof details.validFrom !== 'string' ||
-    !isFirstOfMonth(details.validFrom) ||
+    typeof values.validFrom !== 'string' ||
+    !isFirstOfMonth(values.validFrom) ||
     previousMonthlyCents === null ||
     newMonthlyCents === null ||
     proposedMonthlyCents === null ||
@@ -390,7 +448,7 @@ export function latestAdjustmentDecision(
     newMonthlyCents,
     proposedMonthlyCents,
     annualizedCostsCents,
-    validFrom: details.validFrom,
+    validFrom: values.validFrom,
     targetOccupancyPeriodId:
       typeof details.targetOccupancyPeriodId === 'string'
         ? details.targetOccupancyPeriodId
@@ -424,12 +482,18 @@ export function acceptedAdjustmentLetter(
   period: BillingPeriod,
   calculation: CalculationOutput,
   occupancyPeriodId: string,
+  today: Date = new Date(),
 ): PrepaymentAdjustmentLetter | undefined {
-  const decision = latestAdjustmentDecision(data, period.id, occupancyPeriodId)
-  if (!decision?.accepted) return undefined
   const proposal = proposalsFromCalculation(data, period, calculation).find(
     (item) => item.occupancyPeriodId === occupancyPeriodId,
   )
+  const decision = latestAdjustmentDecision(
+    data,
+    period.id,
+    occupancyPeriodId,
+    proposal && { period, proposal, today },
+  )
+  if (!decision?.accepted) return undefined
   if (!proposal || !decisionMatchesProposal(decision, proposal))
     return undefined
   return {

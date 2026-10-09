@@ -23,6 +23,18 @@ export function tenantStatementFileName(
   return `NK_${year}_${safeFileNamePart(unitLabel)}_${safeFileNamePart(personName)}.pdf`
 }
 
+/** `NK_<Jahr>_<Wohnung>_<Mietpartei>_Vorauszahlungsanpassung.pdf` */
+export function prepaymentAdjustmentFileName(
+  year: number,
+  unitLabel: string,
+  personNames: readonly (string | null | undefined)[],
+): string {
+  return tenantStatementFileName(year, unitLabel, personNames).replace(
+    /\.pdf$/u,
+    '_Vorauszahlungsanpassung.pdf',
+  )
+}
+
 /** `NK_<Jahr>_Gesamtabrechnung_intern.pdf` bzw. `…_Mieter.pdf` */
 export function combinedStatementFileName(
   year: number,

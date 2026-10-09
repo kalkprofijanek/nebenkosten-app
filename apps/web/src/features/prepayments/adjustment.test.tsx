@@ -531,3 +531,111 @@ describe('Anpassungsschreiben an der Einzelabrechnung', () => {
     ).toEqual({ mode: 'none_agreed' })
   })
 })
+
+describe('Entscheidung aus den Daten (Legacy-Import vz_anpassung*)', () => {
+  const today = new Date(2025, 2, 10)
+
+  function withDataDecision(
+    details: Record<string, unknown>,
+    data: AppDataFile = withFollowYear(),
+  ): AppDataFile {
+    return {
+      ...data,
+      billingData: {
+        ...data.billingData,
+        auditEvents: [
+          ...data.billingData.auditEvents,
+          {
+            id: 'legacy-decision',
+            billingPeriodId: 'bp-1',
+            timestamp: '2025-03-01T00:00:00.000Z',
+            action: PREPAYMENT_ADJUSTMENT_ACTION,
+            details: {
+              source: 'legacy_v3',
+              occupancyPeriodId: 'op-t1',
+              tenancyId: 'ten-t1',
+              accepted: true,
+              previousMonthlyCents: 5000,
+              newMonthlyCents: null,
+              validFrom: null,
+              ...details,
+            },
+          },
+        ],
+      },
+    }
+  }
+
+  function letterOf(data: AppDataFile) {
+    const period = data.billingData.billingPeriods[0]!
+    const calculation = latestCalculationSnapshot(data, 'bp-1')!.output
+    return acceptedAdjustmentLetter(data, period, calculation, 'op-t1', today)
+  }
+
+  it('ergänzt Vorschlag und Standardtermin aus dem Rechenstand', () => {
+    expect(letterOf(withDataDecision({}))).toEqual({
+      previousMonthlyCents: 5000,
+      newMonthlyCents: 6000,
+      annualizedCostsCents: 71_803,
+      validFrom: '2026-01-01',
+    })
+  })
+
+  it('übernimmt angegebenen Betrag und Termin', () => {
+    expect(
+      letterOf(
+        withDataDecision({ newMonthlyCents: 6500, validFrom: '2025-04-01' }),
+      ),
+    ).toEqual({
+      previousMonthlyCents: 5000,
+      newMonthlyCents: 6500,
+      annualizedCostsCents: 71_803,
+      validFrom: '2025-04-01',
+    })
+  })
+
+  it('hängt das Schreiben an die Einzelabrechnung an', () => {
+    const data = withDataDecision({ validFrom: '2025-04-01' })
+    const period = data.billingData.billingPeriods[0]!
+    const calculation = latestCalculationSnapshot(data, 'bp-1')!.output
+    const occupancy = data.billingData.occupancyPeriods.find(
+      ({ id }) => id === 'op-t1',
+    )!
+    const definition = buildTenantStatementWithAdjustment(
+      buildTenantStatementContext(data, period, calculation, occupancy),
+    )
+    expect(JSON.stringify(definition.content)).toContain(
+      'Anpassung der Betriebskostenvorauszahlung gemäß § 560 Abs. 4 BGB',
+    )
+  })
+
+  it('wird nur mit Vorschlag ausgewertet und verwirft unpassende Angaben', () => {
+    expect(
+      latestAdjustmentDecision(withDataDecision({}), 'bp-1', 'op-t1'),
+    ).toBeUndefined()
+    expect(letterOf(withDataDecision({ accepted: false }))).toBeUndefined()
+    expect(
+      letterOf(withDataDecision({ previousMonthlyCents: 4000 })),
+    ).toBeUndefined()
+    expect(
+      letterOf(withDataDecision({ previousMonthlyCents: null })),
+    ).toBeUndefined()
+    expect(letterOf(withDataDecision({ validFrom: '2024-12-01' }))).toBe(
+      undefined,
+    )
+    expect(letterOf(withDataDecision({ validFrom: 7 }))).toBeUndefined()
+    expect(letterOf(withDataDecision({ newMonthlyCents: -1 }))).toBeUndefined()
+  })
+
+  it('wird durch eine spätere Entscheidung in der App ersetzt', () => {
+    const declined = decidePrepaymentAdjustment(
+      withDataDecision({}),
+      { ...accept, accepted: false },
+      deps(),
+    )
+    expect(letterOf(declined)).toBeUndefined()
+    expect(prepaymentOf(declined, 'op-t1-2025')).toMatchObject({
+      monthlyAmountCents: 5000,
+    })
+  })
+})
