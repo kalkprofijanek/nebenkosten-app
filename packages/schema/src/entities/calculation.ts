@@ -1,6 +1,6 @@
 /**
- * Berechnungslauf und -ergebnis (Masterplan 5.1). Die vollständigen
- * Ergebnis-Verträge (CalculationInput/Output, Masterplan 6.1) werden mit
+ * Berechnungslauf und -ergebnis. Die vollständigen
+ * Ergebnis-Verträge (CalculationInput/Output) werden mit
  * der Core-Engine (PR 06/07) in `packages/core/src/contracts/` präzisiert;
  * hier wird nur der persistierte Snapshot-Rahmen definiert.
  */
@@ -17,8 +17,7 @@ import { validationIssueSchema } from './validation'
 /**
  * CalculationRun / Berechnungslauf. Ein Lauf ist einem Abrechnungsjahr
  * zugeordnet und referenziert den Eingabestand über einen Hash, damit
- * finalisierte Dokumente nicht rückwirkend „live“ mutieren können
- * (Masterplan 10).
+ * finalisierte Dokumente nicht rückwirkend „live“ mutieren können.
  */
 export const calculationRunSchema = z.strictObject({
   legacyUnmapped: legacyUnmappedSchema.nullish(),
@@ -31,14 +30,14 @@ export const calculationRunSchema = z.strictObject({
 })
 export type CalculationRun = z.infer<typeof calculationRunSchema>
 
-/** Kontrollsummen des Gesamtergebnisses (Cent-genau, Masterplan 6.3). */
+/** Kontrollsummen des Gesamtergebnisses (Cent-genau). */
 export const calculationTotalsSchema = z.strictObject({
   recordedCostsCents: moneyCentsSchema,
   tenantTotalCents: moneyCentsSchema,
   landlordTotalCents: moneyCentsSchema,
   unallocatedCents: moneyCentsSchema,
   prepaymentsCents: moneyCentsSchema,
-  /** Soll 0; Abweichung > 1 Cent ist ein Fehler (Masterplan 6.3). */
+  /** Soll 0; Abweichung > 1 Cent ist ein Fehler. */
   controlDifferenceCents: moneyCentsSchema,
 })
 export type CalculationTotals = z.infer<typeof calculationTotalsSchema>

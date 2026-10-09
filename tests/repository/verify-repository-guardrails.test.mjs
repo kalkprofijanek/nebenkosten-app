@@ -46,7 +46,6 @@ function createRepositoryFixture() {
   const repositoryRoot = mkdtempSync(join(tmpdir(), 'nk-guardrails-'))
   const gitEnvironment = createIsolatedGitEnvironment()
   mkdirSync(join(repositoryRoot, '.github', 'workflows'), { recursive: true })
-  mkdirSync(join(repositoryRoot, 'legacy'), { recursive: true })
 
   for (const file of ['AGENTS.md', 'CLAUDE.md', 'README.md', 'SECURITY.md']) {
     writeFileSync(join(repositoryRoot, file), `${file}\n`)
@@ -55,19 +54,12 @@ function createRepositoryFixture() {
     join(repositoryRoot, '.github', 'workflows', 'guardrails.yml'),
     'name: guardrails\n',
   )
-  const legacyContent = Buffer.from('unchanged legacy fixture\n')
-  writeFileSync(join(repositoryRoot, 'legacy', 'index.html'), legacyContent)
-  writeFileSync(
-    join(repositoryRoot, 'legacy', 'SHA256SUMS'),
-    `${calculateSha256(legacyContent)}  index.html\n`,
-  )
   writeFileSync(join(repositoryRoot, '.gitignore'), completeGitignore)
 
   runFixtureGit(['init'], repositoryRoot, gitEnvironment)
   runFixtureGit(['add', '.'], repositoryRoot, gitEnvironment)
   return Object.freeze({
     gitEnvironment,
-    legacyReferenceHash: calculateSha256(legacyContent),
     repositoryRoot,
   })
 }
@@ -117,7 +109,6 @@ test('findForbiddenTrackedFiles permits the anonymized application files', () =>
   assert.deepEqual(
     findForbiddenTrackedFiles([
       '.env.example',
-      'legacy/index.html',
       'tests/fixtures/anonymized-v3.json',
     ]),
     [],
@@ -132,28 +123,18 @@ test('calculateSha256 returns the expected lowercase digest', () => {
 })
 
 test('verifyRepository accepts a complete and unchanged repository', (context) => {
-  const { gitEnvironment, legacyReferenceHash, repositoryRoot } =
-    createRepositoryFixture()
+  const { gitEnvironment, repositoryRoot } = createRepositoryFixture()
   context.after(() => rmSync(repositoryRoot, { recursive: true, force: true }))
 
-  const result = verifyRepository(repositoryRoot, {
-    gitEnvironment,
-    legacyReferenceHash,
-  })
+  const result = verifyRepository(repositoryRoot, { gitEnvironment })
 
   assert.deepEqual(result.failures, [])
-  assert.equal(result.actualHash.length, 64)
 })
 
-test('verifyRepository reports checksum, ignore, and tracked-file violations', (context) => {
-  const { gitEnvironment, legacyReferenceHash, repositoryRoot } =
-    createRepositoryFixture()
+test('verifyRepository reports ignore and tracked-file violations', (context) => {
+  const { gitEnvironment, repositoryRoot } = createRepositoryFixture()
   context.after(() => rmSync(repositoryRoot, { recursive: true, force: true }))
   writeFileSync(join(repositoryRoot, '.gitignore'), 'private-data/\n')
-  writeFileSync(
-    join(repositoryRoot, 'legacy', 'SHA256SUMS'),
-    `${'0'.repeat(64)}  index.html\n`,
-  )
   writeFileSync(
     join(repositoryRoot, '.env.production'),
     'SECRET=fixture-only\n',
@@ -164,10 +145,7 @@ test('verifyRepository reports checksum, ignore, and tracked-file violations', (
     gitEnvironment,
   )
 
-  const result = verifyRepository(repositoryRoot, {
-    gitEnvironment,
-    legacyReferenceHash,
-  })
+  const result = verifyRepository(repositoryRoot, { gitEnvironment })
 
   assert.ok(
     result.failures.some((failure) =>
@@ -175,54 +153,19 @@ test('verifyRepository reports checksum, ignore, and tracked-file violations', (
     ),
   )
   assert.ok(
-    result.failures.some((failure) =>
-      /checksum baseline mismatch/u.test(failure),
-    ),
-  )
-  assert.ok(
     result.failures.some((failure) => /Forbidden tracked files/u.test(failure)),
   )
 })
 
-test('verifyRepository rejects a jointly changed legacy file and checksum', (context) => {
-  const { gitEnvironment, legacyReferenceHash, repositoryRoot } =
-    createRepositoryFixture()
-  context.after(() => rmSync(repositoryRoot, { recursive: true, force: true }))
-  const changedLegacy = Buffer.from('jointly changed legacy and checksum\n')
-  writeFileSync(join(repositoryRoot, 'legacy', 'index.html'), changedLegacy)
-  writeFileSync(
-    join(repositoryRoot, 'legacy', 'SHA256SUMS'),
-    `${calculateSha256(changedLegacy)}  index.html\n`,
-  )
-
-  const result = verifyRepository(repositoryRoot, {
-    gitEnvironment,
-    legacyReferenceHash,
-  })
-
-  assert.ok(
-    result.failures.some((failure) =>
-      /checksum baseline mismatch/u.test(failure),
-    ),
-  )
-  assert.ok(
-    result.failures.some((failure) => /Legacy file mismatch/u.test(failure)),
-  )
-})
-
 test('verifyRepository rejects ignore negations that expose protected paths', (context) => {
-  const { gitEnvironment, legacyReferenceHash, repositoryRoot } =
-    createRepositoryFixture()
+  const { gitEnvironment, repositoryRoot } = createRepositoryFixture()
   context.after(() => rmSync(repositoryRoot, { recursive: true, force: true }))
   writeFileSync(
     join(repositoryRoot, '.gitignore'),
     `${completeGitignore}\n!private-data/\n!private-data/probe.json\n`,
   )
 
-  const result = verifyRepository(repositoryRoot, {
-    gitEnvironment,
-    legacyReferenceHash,
-  })
+  const result = verifyRepository(repositoryRoot, { gitEnvironment })
 
   assert.ok(
     result.failures.some((failure) =>
@@ -232,25 +175,15 @@ test('verifyRepository rejects ignore negations that expose protected paths', (c
 })
 
 test('verifyRepository reports missing inputs without throwing a stack trace', (context) => {
-  const { gitEnvironment, legacyReferenceHash, repositoryRoot } =
-    createRepositoryFixture()
+  const { gitEnvironment, repositoryRoot } = createRepositoryFixture()
   context.after(() => rmSync(repositoryRoot, { recursive: true, force: true }))
   rmSync(join(repositoryRoot, '.gitignore'))
-  rmSync(join(repositoryRoot, 'legacy', 'SHA256SUMS'))
-  rmSync(join(repositoryRoot, 'legacy', 'index.html'))
+  rmSync(join(repositoryRoot, 'SECURITY.md'))
 
-  const result = verifyRepository(repositoryRoot, {
-    gitEnvironment,
-    legacyReferenceHash,
-  })
+  const result = verifyRepository(repositoryRoot, { gitEnvironment })
 
   assert.ok(result.failures.includes('Required file is missing: .gitignore'))
-  assert.ok(
-    result.failures.includes('Required file is missing: legacy/SHA256SUMS'),
-  )
-  assert.ok(
-    result.failures.includes('Required file is missing: legacy/index.html'),
-  )
+  assert.ok(result.failures.includes('Required file is missing: SECURITY.md'))
 })
 
 test('fixture git commands do not reuse a hook-provided index', (context) => {
@@ -269,8 +202,7 @@ test('fixture git commands do not reuse a hook-provided index', (context) => {
   process.env.GIT_INDEX_FILE = sentinelIndex
   process.env.GIT_COMMON_DIR = sentinelCommonDirectory
 
-  const { gitEnvironment, legacyReferenceHash, repositoryRoot } =
-    createRepositoryFixture()
+  const { gitEnvironment, repositoryRoot } = createRepositoryFixture()
   context.after(() => rmSync(repositoryRoot, { recursive: true, force: true }))
   writeFileSync(
     join(repositoryRoot, '.env.production'),
@@ -282,10 +214,7 @@ test('fixture git commands do not reuse a hook-provided index', (context) => {
     gitEnvironment,
   )
 
-  const result = verifyRepository(repositoryRoot, {
-    gitEnvironment,
-    legacyReferenceHash,
-  })
+  const result = verifyRepository(repositoryRoot, { gitEnvironment })
 
   assert.equal(existsSync(sentinelIndex), false)
   assert.ok(

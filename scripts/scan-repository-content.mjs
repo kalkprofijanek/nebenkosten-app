@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, extname, posix, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const EXCLUDED_PATHS = new Set(['legacy/index.html', 'pnpm-lock.yaml'])
+const EXCLUDED_PATHS = new Set(['pnpm-lock.yaml'])
 const BINARY_EXTENSIONS = new Set([
   '.7z',
   '.gif',

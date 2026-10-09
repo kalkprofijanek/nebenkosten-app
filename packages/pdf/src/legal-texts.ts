@@ -1,6 +1,6 @@
 /**
- * Pflicht- und Erläuterungstexte der Abrechnungen. Ursprünglich aus dem
- * Legacy übernommen (`legacy/index.html`), nach mietrechtlicher Prüfung
+ * Pflicht- und Erläuterungstexte der Abrechnungen. Ursprünglich aus der
+ * Alt-App übernommen, nach mietrechtlicher Prüfung
  * (§§ 556, 556a, 259 BGB, BetrKV, HeizKV §§ 6–9b/12, CO2KostAufG §§ 5–7)
  * korrigiert und ergänzt.
  */

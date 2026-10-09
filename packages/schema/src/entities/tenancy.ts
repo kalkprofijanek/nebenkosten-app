@@ -1,7 +1,7 @@
 /**
- * Mietverhältnis, Nutzungszeitraum und Vorauszahlung (Masterplan 5.1).
+ * Mietverhältnis, Nutzungszeitraum und Vorauszahlung.
  * Tenancy ist Stammdaten-nah, OccupancyPeriod und Prepayment sind
- * abrechnungsjahresbezogen (Masterplan 5.2).
+ * abrechnungsjahresbezogen.
  */
 import { z } from 'zod'
 import {

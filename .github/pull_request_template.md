@@ -8,7 +8,6 @@ Keine echten Namen, Adressen, IBANs, Belege, Zählernummern oder Screenshots mit
 - [ ] Zugehöriges Issue: #
 - [ ] `pnpm run ci` lokal erfolgreich
 - [ ] Keine echten personenbezogenen, Bank-, Verbrauchs- oder Belegdaten
-- [ ] `legacy/index.html` unverändert
 - [ ] Schema-/Berechnungsänderungen vorab im Issue abgestimmt (sonst „entfällt“)
 - [ ] Ich bin berechtigt, diesen Beitrag unter der AGPL-3.0 einzureichen
 

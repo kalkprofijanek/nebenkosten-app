@@ -24,8 +24,8 @@ import { goldenById, goldens, scenarios } from './cases'
 // damit die CI scheitern.
 
 /**
- * Kontrolldifferenz-Toleranz. Masterplan 6.3 fordert <= 0,01 EUR (1 Cent);
- * die Legacy-App verwendet fachlich 0,50 EUR (behavior-map Abschnitt 6). Fuer
+ * Kontrolldifferenz-Toleranz. Zielvorgabe ist <= 0,01 EUR (1 Cent);
+ * die Legacy-App verwendet fachlich 0,50 EUR. Fuer
  * die Golden-Fixtures gilt die strengere Zielvorgabe — offene Entscheidung,
  * siehe docs/ROUNDING.md.
  */
@@ -34,7 +34,7 @@ const CONTROL_TOLERANCE_CENTS = 1
 /** Restcent aus Zeilenrundung: bis zu 1 Cent je Nutzer/Position (docs/ROUNDING.md). */
 const roundingSlack = (count: number): number => Math.max(1, count)
 
-/** Mindest-Testfaelle laut Masterplan 20 (PR 05) — jede muss abgedeckt sein. */
+/** Mindest-Testfaelle — jede muss abgedeckt sein. */
 const REQUIRED_COVERAGE: string[] = [
   'daily-periods',
   'tenant-change',
@@ -54,7 +54,7 @@ const REQUIRED_COVERAGE: string[] = [
 ]
 
 describe('Characterization-Fixtures: Struktur', () => {
-  it('deckt alle Mindest-Testfaelle aus Masterplan 20 ab', () => {
+  it('deckt alle Mindest-Testfaelle ab', () => {
     const covered = new Set(scenarios.flatMap((scenario) => scenario.coverage))
     for (const tag of REQUIRED_COVERAGE) {
       expect(covered.has(tag), `Rechenbereich fehlt: ${tag}`).toBe(true)
@@ -204,7 +204,7 @@ describe.each(scenarios.map((scenario) => [scenario.id, scenario] as const))(
         (sum, circuit) => sum + circuit.heatingTotalCents,
         0,
       )
-      // Masterplan 6.2 „unverteilter Heizkostenanteil": nicht einem Kreis
+      // „unverteilter Heizkostenanteil": nicht einem Kreis
       // zugeordnete Heizkosten gehen als Vermieteranteil in die Summe ein.
       expect(perCircuitTotal + golden.heating.unallocatedLandlordCents).toBe(
         golden.heating.totalCents,

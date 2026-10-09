@@ -7,36 +7,14 @@ const workspacePackages = [
   '@nebenkosten/persistence',
   '@nebenkosten/import-export',
   '@nebenkosten/pdf',
-  '@nebenkosten/ui',
-  '@nebenkosten/test-fixtures',
 ] as const
-
-/**
- * Packages mit echter Implementierung (kein leerer Platzhalter mehr).
- * Muss synchron zu `implementedPackages` in
- * `tests/architecture/workspace-scaffold.test.mjs` gepflegt werden
- * (PR 03: schema; PR 04: import-export; PR 06: core; PR 08: persistence;
- * PR 10: validators; PR 11: pdf).
- */
-const implementedPackages = new Set<string>([
-  '@nebenkosten/core',
-  '@nebenkosten/schema',
-  '@nebenkosten/validators',
-  '@nebenkosten/import-export',
-  '@nebenkosten/persistence',
-  '@nebenkosten/pdf',
-])
 
 describe('workspace package resolution', () => {
   it.each(workspacePackages)(
     'resolves the workspace package %s',
     async (packageName) => {
       const packageModule = await import(packageName)
-      if (implementedPackages.has(packageName)) {
-        expect(Object.keys(packageModule).length).toBeGreaterThan(0)
-      } else {
-        expect(Object.keys(packageModule)).toEqual([])
-      }
+      expect(Object.keys(packageModule).length).toBeGreaterThan(0)
     },
   )
 })

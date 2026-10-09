@@ -1,6 +1,6 @@
 /**
- * Kostenarten, Kostenbuchungen/Belege und Umlageregeln (Masterplan 5.1).
- * Alle Entitäten hier sind abrechnungsjahresbezogen (Masterplan 5.2);
+ * Kostenarten, Kostenbuchungen/Belege und Umlageregeln.
+ * Alle Entitäten hier sind abrechnungsjahresbezogen;
  * dauerhafte Umlageschlüssel werden über `AllocationRule` als Stammdaten
  * geführt.
  */

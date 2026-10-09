@@ -15,7 +15,7 @@ import { v3FirmaSchema } from './entities'
  * höherer Version dürfen nicht als v3 interpretiert (und niemals
  * überschrieben) werden; Dateien ohne/mit niedrigerer Version sind kein
  * dokumentierter Bestandszustand und werden abgelehnt (die Alt-App
- * kennt keine v1/v2-Migrationen, behavior-map 4.11).
+ * kennt keine v1/v2-Migrationen).
  */
 export const v3FileSchema = z.looseObject({
   version: z.literal(LEGACY_V3_SCHEMA_VERSION),
@@ -28,7 +28,7 @@ export type V3File = z.infer<typeof v3FileSchema>
 /**
  * Erkennung der Schema-Version einer unbekannten Eingabe, ohne die
  * Datei vollständig zu validieren (Pipeline-Schritt „Schema-Version
- * erkennen“, Masterplan 9.2).
+ * erkennen“).
  */
 export const schemaVersionProbeSchema = z.looseObject({
   version: z.number().optional(),

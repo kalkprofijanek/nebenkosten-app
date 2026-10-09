@@ -1,5 +1,5 @@
-# Fable-Arbeitsregeln
+# Hinweise für Claude Code
 
-Es gelten vollständig die Regeln aus `AGENTS.md` und `MASTERPLAN_MIGRATION_FABLE_CODEX.md`.
+Es gelten vollständig die Regeln aus [`AGENTS.md`](AGENTS.md).
 
-Fable ist für Architektur, fachliche Konsistenz, Migrationsstrategie und Integrationsprüfung verantwortlich. Vor einer Schnittstellenänderung sind Änderungsgrund, Vertrag, Tests und Migrationsauswirkungen zu dokumentieren. Die sanitisierte, noch nicht abschließend anonymitätsgeprüfte GitHub-Referenz `legacy/index.html` bleibt ab dem bereinigten Root-Commit unverändert; der produktive Originalstand liegt ausschließlich lokal. Fachliche Annahmen werden als offene Entscheidung markiert und nicht in Code festgeschrieben.
+Fachliche Annahmen werden als offene Entscheidung markiert und nicht in Code festgeschrieben. Vor einer Schnittstellen- oder Schemaänderung sind Änderungsgrund, Vertrag, Tests und Migrationsauswirkungen zu dokumentieren. Für die Arbeit an einer echten Abrechnung gilt [`docs/KI-ANLEITUNG.md`](docs/KI-ANLEITUNG.md); produktive Daten bleiben in `private-data/`.

@@ -1,6 +1,6 @@
 /**
- * Heizsystem, Heizkreis, Energiequelle, Brennstoffbestand und Lieferung
- * (Masterplan 5.1). HeatingSystem/HeatingCircuit/EnergySource sind
+ * Heizsystem, Heizkreis, Energiequelle, Brennstoffbestand und Lieferung.
+ * HeatingSystem/HeatingCircuit/EnergySource sind
  * Stammdaten-nah, FuelStock und FuelDelivery abrechnungsjahresbezogen.
  */
 import { z } from 'zod'

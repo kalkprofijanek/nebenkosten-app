@@ -48,8 +48,7 @@ test('allows the GitHub OIDC permission but still rejects a generic token assign
   ])
 })
 
-test('excludes independently guarded and generated files', () => {
-  assert.equal(isScannablePath('legacy/index.html'), false)
+test('excludes generated and binary files', () => {
   assert.equal(isScannablePath('pnpm-lock.yaml'), false)
   assert.equal(isScannablePath('assets/example.png'), false)
   assert.equal(isScannablePath('apps/web/src/App.tsx'), true)

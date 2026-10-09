@@ -59,7 +59,7 @@ function createFictionalReport(): MigrationReport {
   }
 }
 
-describe('migrationReportSchema (Masterplan 9.3)', () => {
+describe('migrationReportSchema', () => {
   it('akzeptiert einen vollständigen Bericht', () => {
     expect(
       migrationReportSchema.safeParse(createFictionalReport()).success,
@@ -87,7 +87,7 @@ describe('migrationReportSchema (Masterplan 9.3)', () => {
   })
 })
 
-describe('validationIssueSchema (Masterplan 7.1)', () => {
+describe('validationIssueSchema', () => {
   it('akzeptiert genau die Kategorien error/warning/info', () => {
     for (const severity of ['error', 'warning', 'info'] as const) {
       expect(

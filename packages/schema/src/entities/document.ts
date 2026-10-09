@@ -1,5 +1,5 @@
 /**
- * Erzeugte Dokumente und Änderungsprotokoll (Masterplan 5.1).
+ * Erzeugte Dokumente und Änderungsprotokoll.
  */
 import { z } from 'zod'
 import { legacyUnmappedSchema } from './shared'
@@ -9,7 +9,7 @@ import {
   sha256HexSchema,
 } from '../primitives'
 
-/** Dokumentarten der Legacy-PDF-Ausgabe (Masterplan 10). */
+/** Dokumentarten der Legacy-PDF-Ausgabe. */
 export const documentKindSchema = z.enum([
   'tenant_statement',
   'combined_statement',

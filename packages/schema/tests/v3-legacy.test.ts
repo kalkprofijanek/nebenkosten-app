@@ -59,7 +59,7 @@ describe('v3FileSchema (Legacy-Format)', () => {
   })
 
   it('toleriert Legacy-Typabweichungen (String/null statt Zahl)', () => {
-    // behavior-map 8.2: keine Laufzeitvalidierung im Bestand — Beträge
+    // Keine Laufzeitvalidierung im Bestand — Beträge
     // können als String, null oder leerer String vorliegen.
     expect(
       v3KostenartSchema.safeParse({
@@ -84,7 +84,7 @@ describe('v3FileSchema (Legacy-Format)', () => {
   })
 })
 
-describe('probeSchemaVersion (Versions-Erkennung, Masterplan 9.2)', () => {
+describe('probeSchemaVersion (Versions-Erkennung)', () => {
   it('erkennt Legacy v3', () => {
     expect(probeSchemaVersion(createFictionalV3File())).toEqual({
       kind: 'legacy-v3',

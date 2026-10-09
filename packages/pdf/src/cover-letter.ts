@@ -1,6 +1,6 @@
 /**
  * Platzhalter-Interpolation für `BillingPeriod.coverLetter.text` (Legacy
- * "Anschreiben (Begleittext im Mieter-PDF)", `legacy/index.html:3239`).
+ * "Anschreiben (Begleittext im Mieter-PDF)").
  * Unbekannte `{{...}}`-Platzhalter bleiben unverändert stehen, statt still
  * zu verschwinden — Tippfehler in der Vorlage fallen so sofort auf.
  */

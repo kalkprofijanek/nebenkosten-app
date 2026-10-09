@@ -1,5 +1,5 @@
 /**
- * Technische Grundbausteine des Ziel-Datenmodells (Masterplan 5.3).
+ * Technische Grundbausteine des Ziel-Datenmodells.
  *
  * Verbindliche Konventionen:
  * - IDs sind stabile, nicht-leere Strings. Neu erzeugte IDs sind UUIDs (v4);
@@ -81,7 +81,7 @@ export const quantityUnitSchema = z.enum([
 ])
 export type QuantityUnit = z.infer<typeof quantityUnitSchema>
 
-/** Menge mit expliziter Einheit und Dezimalwert (Masterplan 5.3). */
+/** Menge mit expliziter Einheit und Dezimalwert. */
 export const quantitySchema = z.strictObject({
   value: z.number().finite(),
   unit: quantityUnitSchema,

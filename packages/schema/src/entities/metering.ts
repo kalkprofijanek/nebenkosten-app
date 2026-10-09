@@ -1,5 +1,5 @@
 /**
- * Zähler und Ablesungen (Masterplan 5.1). Meter ist Stammdaten-Ebene,
+ * Zähler und Ablesungen. Meter ist Stammdaten-Ebene,
  * MeterReading und MeterBillingStatus sind abrechnungsjahresbezogen.
  */
 import { z } from 'zod'

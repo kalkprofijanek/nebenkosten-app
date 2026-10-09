@@ -2,8 +2,7 @@
 
 Golden-Fixtures und erwartete Ergebnisse, gegen die die künftige
 Core-Berechnungsengine validiert wird (Characterization-/Approval-Test-Ansatz).
-Bezug: Masterplan Abschnitt 6, 9.5, 20 (PR 05/06); `docs/ROUNDING.md`;
-`legacy/behavior-map.md` Abschnitt 5–6.
+Bezug: `docs/ROUNDING.md`.
 
 > PR 06 hat alle 15 vollständigen Engine-Vergleiche aktiviert. Derselbe
 > Testrunner läuft außerdem im Coverage-Gate des Core-Pakets. Seit der
@@ -21,7 +20,7 @@ Bezug: Masterplan Abschnitt 6, 9.5, 20 (PR 05/06); `docs/ROUNDING.md`;
 | `cases.ts`                 | **Neutrale Ladeschicht** (registriert keine Tests): lädt `scenarios.json`/`goldens.json`, **validiert sie zur Laufzeit** und exportiert `scenarios`, `goldens`, `goldenById`, `characterizationCases()`. Import-Ziel für PR 06. |
 | `build-app-data.ts`        | Baut aus einem Szenario die **v4-Eingabe-Fixture** (`AppDataFile`). Exportiert für PR 06.                                                                                                                                       |
 | `characterization.test.ts` | Testrunner (Schema-Validierung, Golden-Konsistenz und vollständiger Engine-/Golden-Vergleich). Importiert Fälle aus `cases.ts`.                                                                                                 |
-| `test-matrix.md`           | Zuordnung der Fälle zu den Rechenbereichen aus Masterplan 6.2.                                                                                                                                                                  |
+| `test-matrix.md`           | Zuordnung der Fälle zu den Rechenbereichen.                                                                                                                                                                  |
 
 ## Was der Test prüft
 
@@ -42,7 +41,7 @@ Bezug: Masterplan Abschnitt 6, 9.5, 20 (PR 05/06); `docs/ROUNDING.md`;
    `Σ Heizkreise + unverteilt = Heizkosten`, `Σ Brennstoff (FIFO) = Heiz-
 Brennstoffsumme`, Warmwasseranteil im Heiztopf, sowie Plausibilität von
    CO₂-Menge/Energiemenge.
-4. **Vollständigkeit:** Alle Mindest-Testfälle aus Masterplan 20 sind abgedeckt.
+4. **Vollständigkeit:** Alle Mindest-Testfälle sind abgedeckt.
 5. **Vollständiger Engine-Vergleich:** `periodDays`, `totals`, `heating`, `co2`
    und der Leerstandsanteil werden je Fall exakt verglichen. Nutzeranteil und
    Saldo bleiben ebenfalls exakt, außer bei der ausdrücklich dokumentierten
@@ -55,13 +54,13 @@ Alle Engine-Vergleiche sind aktiv; es gibt keine `todo`-Fälle mehr.
 
 Die Golden-Werte wurden **nicht** von Hand geschätzt, sondern mit der
 **faktentreu extrahierten Legacy-Rechenlogik** (`Engine.rechne` und alle reinen
-Hilfsfunktionen aus `legacy/index.html`) headless in Node aus denselben
+Hilfsfunktionen der Alt-App) headless in Node aus denselben
 Szenarien berechnet und anschließend über `euroToCents`
 (`packages/schema/src/migrations/euro-to-cents.ts`) in ganze Cent gewandelt.
 
 Der Ableitungs-Harness lief **außerhalb des Repositorys** (Scratchpad) und
-wurde **nicht** eingecheckt: Er enthielt Quelltext-Auszüge aus `legacy/`, die
-laut Datenschutzregel nicht ins Repository gehören. In das Repository gelangen
+wurde **nicht** eingecheckt: Er enthielt Quelltext-Auszüge der Alt-App, die
+nicht ins Repository gehören. In das Repository gelangen
 ausschließlich die frei erfundenen Eingaben (`scenarios.json`) und die daraus
 berechneten Ergebnisse (`goldens.json`). Herleitungslogik pro Fall:
 `test-matrix.md` und die Kommentare in `scenarios.json`.
@@ -105,7 +104,6 @@ Läuft in der CI als eigener Job (`characterization-tests`) und im
 ## Datenschutz
 
 Alle Fixture-Daten sind frei erfunden (Mustermann/Musterstraße-Stil). Es werden
-**keine** Werte aus `legacy/index.html` (auch keine sanitisierten Platzhalter)
-in Fixtures, Golden-Werten oder Docs zitiert. Vor jedem Push laufen
+**keine** Werte aus echten Datenbeständen in Fixtures, Golden-Werten oder Docs zitiert. Vor jedem Push laufen
 `node scripts/scan-repository-content.mjs` und
 `node scripts/verify-repository-guardrails.mjs` (beide müssen grün sein).

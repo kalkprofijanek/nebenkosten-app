@@ -2,9 +2,9 @@
  * Aktuelles Dateiformat (Schema-Version 5).
  *
  * Die Datei trennt Stammdaten und abrechnungsjahresbezogene Daten
- * (Masterplan 5.2) in zwei getrennte Container. Jede Datei trägt eine
+ * in zwei getrennte Container. Jede Datei trägt eine
  * explizite `schemaVersion`; unbekannte neuere Versionen dürfen von der
- * Anwendung nicht überschrieben werden (Masterplan 5.3).
+ * Anwendung nicht überschrieben werden.
  *
  * Alle Objekte sind `strict`: unbekannte Felder führen zu einem
  * Validierungsfehler statt zu stillem Verlust. Vorwärtskompatibilität
@@ -47,7 +47,7 @@ import {
 } from '../../entities'
 import { v4AppDataFileSchema } from '../v4/app-data-file'
 
-/** Stammdaten-Container (jahresunabhängig, Masterplan 5.2). */
+/** Stammdaten-Container (jahresunabhängig). */
 export const masterDataSchema = z.strictObject({
   organizations: z.array(organizationSchema),
   ownerCompanies: z.array(ownerCompanySchema),
@@ -62,7 +62,7 @@ export const masterDataSchema = z.strictObject({
 })
 export type MasterData = z.infer<typeof masterDataSchema>
 
-/** Abrechnungsjahresbezogener Container (Masterplan 5.2). */
+/** Abrechnungsjahresbezogener Container. */
 export const billingDataSchema = z.strictObject({
   billingPeriods: z.array(billingPeriodSchema),
   occupancyPeriods: z.array(occupancyPeriodSchema),

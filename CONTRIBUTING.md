@@ -66,13 +66,11 @@ pnpm --filter @nebenkosten/web dev   # lokale Entwicklungsversion
 
 ### Fachliche und technische Regeln
 
-Verbindlich sind [`AGENTS.md`](AGENTS.md) und die Architektur im
-[Masterplan](MASTERPLAN_MIGRATION_FABLE_CODEX.md). Kurzfassung:
+Verbindlich ist [`AGENTS.md`](AGENTS.md). Kurzfassung:
 
 - Fachlogik nur in `packages/*`, nie in der UI (`apps/web`).
 - Geldbeträge intern ausschließlich in **ganzen Cent**.
 - Schemaänderungen nur mit vorwärtsgerichteter Migration und Tests.
-- `legacy/index.html` wird **nie** verändert, formatiert oder normalisiert.
 - Desktop-only: keine Mobilanpassungen
   ([ADR-0002](docs/DECISIONS/ADR-0002-DESKTOP-ONLY.md)).
 - Fachliche Annahmen werden als offene Frage im Pull Request benannt, nicht

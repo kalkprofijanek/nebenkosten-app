@@ -12,32 +12,11 @@ const packageNames = Object.freeze([
   'persistence',
   'import-export',
   'pdf',
-  'ui',
-  'test-fixtures',
 ])
 
 /**
- * Packages, die bereits echte Implementierung tragen (kein
- * `export {}`-Platzhalter mehr). Wächst mit jedem Fach-PR;
- * Änderungen an dieser Liste sind Vertragsänderungen und gehören
- * sichtbar in den jeweiligen PR (PR 03: schema; PR 04: import-export;
- * PR 10: validators; PR 11: pdf).
- */
-const implementedPackages = Object.freeze(
-  new Set([
-    'core',
-    'schema',
-    'validators',
-    'persistence',
-    'import-export',
-    'pdf',
-  ]),
-)
-
-/**
  * Erlaubte Laufzeit-Dependencies der domänenneutralen Packages.
- * Zod ist die vom Masterplan (4.1) vorgeschriebene
- * Laufzeitvalidierung; Browser-/React-/Build-Bibliotheken bleiben
+ * Zod ist die vorgeschriebene Laufzeitvalidierung; Browser-/React-/Build-Bibliotheken bleiben
  * verboten.
  */
 const allowedNeutralDependencies = Object.freeze(
@@ -50,7 +29,7 @@ function readJson(relativePath) {
   return JSON.parse(readFileSync(resolve(repositoryRoot, relativePath), 'utf8'))
 }
 
-test('workspace contains every planned API-neutral package', () => {
+test('workspace contains every API-neutral package', () => {
   for (const packageName of packageNames) {
     const packageRoot = `packages/${packageName}`
     assert.equal(
@@ -71,12 +50,8 @@ test('workspace contains every planned API-neutral package', () => {
       resolve(repositoryRoot, packageRoot, 'src/index.ts'),
       'utf8',
     ).trim()
-    if (implementedPackages.has(packageName)) {
-      assert.notEqual(indexSource, 'export {}')
-      assert.notEqual(indexSource, '')
-    } else {
-      assert.equal(indexSource, 'export {}')
-    }
+    assert.notEqual(indexSource, 'export {}')
+    assert.notEqual(indexSource, '')
   }
 })
 

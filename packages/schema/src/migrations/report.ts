@@ -1,14 +1,14 @@
 /**
- * Migrationsbericht (Masterplan 9.3). Der Bericht wird von jeder
+ * Migrationsbericht. Der Bericht wird von jeder
  * Migration erzeugt und ist Teil des Import-Workflows (Vorschau vor
- * bewusster Übernahme, Masterplan 9.2).
+ * bewusster Übernahme).
  */
 import { z } from 'zod'
 import { isoTimestampSchema, sha256HexSchema } from '../primitives'
 import { validationIssueSchema } from '../entities/validation'
 import { safeFileNameSchema } from '../entities/shared'
 
-/** Zählungen des migrierten Bestands (Masterplan 9.3). */
+/** Zählungen des migrierten Bestands. */
 export const migrationCountsSchema = z.strictObject({
   ownerCompanies: z.int().nonnegative(),
   properties: z.int().nonnegative(),
@@ -39,7 +39,7 @@ export type MigrationFieldChange = z.infer<typeof migrationFieldChangeSchema>
 
 /**
  * Ein verworfenes oder nicht zuordenbares Feld. Verwerfen ist nur mit
- * dokumentierter Begründung zulässig (Masterplan 9.3/25); unbekannte
+ * dokumentierter Begründung zulässig; unbekannte
  * Felder werden stattdessen unter `unmappedFields` ausgewiesen und im
  * Zielbestand aufbewahrt oder die Migration schlägt fehl.
  */
@@ -51,7 +51,7 @@ export const migrationDroppedFieldSchema = z.strictObject({
 })
 export type MigrationDroppedField = z.infer<typeof migrationDroppedFieldSchema>
 
-/** Migrationsbericht (Masterplan 9.3). */
+/** Migrationsbericht. */
 export const migrationReportSchema = z.strictObject({
   /** Quelldateiname, falls bekannt (Import aus Dateiauswahl). */
   sourceFileName: safeFileNameSchema.nullish(),

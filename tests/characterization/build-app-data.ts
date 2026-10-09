@@ -2,7 +2,7 @@
  * Scenario -> v4-Eingabe-Fixture (`AppDataFile`).
  *
  * Erzeugt aus der kompakten Szenariobeschreibung (`scenarios.json`) das
- * normalisierte Ziel-Datenmodell (Masterplan 5). Der Testrunner validiert
+ * normalisierte Ziel-Datenmodell. Der Testrunner validiert
  * das Ergebnis gegen `appDataFileSchema`. Geldbetraege werden ausschliesslich
  * ueber `euroToCents` konvertiert (docs/MIGRATION.md, docs/ROUNDING.md).
  *

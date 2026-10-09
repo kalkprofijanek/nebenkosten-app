@@ -3,9 +3,7 @@
  *
  * DATENSCHUTZ: Diese Werte sind vollständig ausgedacht und dürfen keine
  * Ähnlichkeit mit produktiven Daten haben. Keine echten Namen, Adressen,
- * IBANs, E-Mail-Adressen, Zählernummern oder Beträge verwenden — auch
- * keine Werte aus legacy/index.html (inkl. der sanitisierten Platzhalter
- * dort, siehe ADR-0001).
+ * IBANs, E-Mail-Adressen, Zählernummern oder Beträge verwenden.
  */
 import type { AppDataFile } from '../src'
 import { CURRENT_SCHEMA_VERSION } from '../src'

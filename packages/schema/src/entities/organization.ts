@@ -1,5 +1,5 @@
 /**
- * Mandant, Eigentümergesellschaft und Vertragspartner (Masterplan 5.1).
+ * Mandant, Eigentümergesellschaft und Vertragspartner.
  */
 import { z } from 'zod'
 import { entityIdSchema, isoTimestampSchema } from '../primitives'

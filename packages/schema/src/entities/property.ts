@@ -1,5 +1,5 @@
 /**
- * Liegenschaft, Gebäudeblock und Nutzungseinheit (Masterplan 5.1, 5.2).
+ * Liegenschaft, Gebäudeblock und Nutzungseinheit.
  * Alles hier ist Stammdaten-Ebene (jahresunabhängig).
  */
 import { z } from 'zod'
@@ -46,7 +46,7 @@ export type Building = z.infer<typeof buildingSchema>
 /**
  * Unit / Nutzungseinheit. Im Legacy-Format sind Einheitendaten Teil des
  * `Nutzer`-Objekts; die Migration extrahiert daraus je Nutzerzeile eine
- * Einheit. Flächen sind Mengen mit Einheit `m2` (Masterplan 5.3);
+ * Einheit. Flächen sind Mengen mit Einheit `m2`;
  * `null` = bewusst „nicht vorhanden“, fehlend = nicht erfasst.
  */
 export const unitSchema = z.strictObject({

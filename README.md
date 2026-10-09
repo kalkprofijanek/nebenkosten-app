@@ -153,13 +153,6 @@ steht in **[docs/TODO.md](docs/TODO.md)** (inkl. § 6a HeizKV:
 - **Sicherheitslücken:** nicht öffentlich, sondern über
   [`SECURITY.md`](SECURITY.md).
 
-## Projektablauf
-
-Der verbindliche Arbeits-, Migrations- und Review-Ablauf steht in
-[`MASTERPLAN_MIGRATION_FABLE_CODEX.md`](MASTERPLAN_MIGRATION_FABLE_CODEX.md).
-Kurzregeln für Beitragende: [`CONTRIBUTING.md`](CONTRIBUTING.md),
-[`AGENTS.md`](AGENTS.md), [`CLAUDE.md`](CLAUDE.md).
-
 ## Grundsätze
 
 - **Migration vor Erweiterung.** Bestehendes, funktionierendes Verhalten darf
@@ -184,14 +177,9 @@ Alle Testdaten und Fixtures sind frei erfunden (Mustermann/Musterstraße-Stil).
 Zwei Guards laufen lokal und in der CI und blockieren versehentliche Lecks:
 
 ```bash
-node scripts/verify-repository-guardrails.mjs   # Pflichtdateien, .gitignore, Legacy-SHA-256
+node scripts/verify-repository-guardrails.mjs   # Pflichtdateien, .gitignore, verbotene Dateien
 node scripts/scan-repository-content.mjs        # E-Mail/IBAN/Token/Adress-Heuristik
 ```
-
-`legacy/index.html` ist die **sanitisierte** Migrations-Referenz (verbindlicher
-SHA-256 in `legacy/SHA256SUMS`) und darf nicht verändert werden. Sie ist nicht
-bytegleich mit dem produktiven Original, das ausschließlich lokal verbleibt —
-siehe [`docs/DECISIONS/ADR-0001-SANITIZED-LEGACY-BASELINE.md`](docs/DECISIONS/ADR-0001-SANITIZED-LEGACY-BASELINE.md).
 
 ## Projektstruktur
 
@@ -205,10 +193,8 @@ packages/
   persistence/         Storage-Adapter (Memory, IndexedDB, Datei), Snapshots, Backup
   validators/          Formelle & fachliche Prüfungen, Freigabelogik
   pdf/                 Dokument-/PDF-Erzeugung aus Snapshots
-  test-fixtures/       Gemeinsame, anonymisierte Fixtures
-legacy/                Sanitisierte Referenz-App + Behavior-Map
 tests/                 characterization, integration, migration, e2e, privacy, repository
-docs/                  Architektur-, Daten-, Rundungs- und Prozessdokumentation
+docs/                  Benutzer-, Architektur-, Daten- und Rundungsdokumentation
 ```
 
 ## Entwicklung
@@ -235,30 +221,9 @@ Schritte als separate Checks (`lint`, `typecheck`, diverse `*-tests`,
 
 ## Entwicklungsstand
 
-Umgesetzt und auf `main` gemergt (Aufgabenbeschreibungen unter
-[`docs/TASKS/`](docs/TASKS)):
-
-| PR       | Inhalt                                  | Ergebnis                                                |
-| -------- | --------------------------------------- | ------------------------------------------------------- |
-| PR 00–02 | Grundschutz, Bestandsaufnahme, Scaffold | Guards, CI, pnpm-Monorepo                               |
-| PR 03–05 | Schema, Legacy-Importer, Golden-Fälle   | Zod-Schema, v3-Import, Characterization Tests           |
-| PR 06–07 | Berechnung, Heizkosten & CO₂            | Umlage, FIFO, 70/30, Warmwasser, CO2KostAufG            |
-| PR 08–11 | Persistenz, UI, Freigabe, PDF           | lokaler Arbeitsablauf bis Einzelabrechnung              |
-| PR 12–13 | Produktionsabnahme, Release-Build       | Vergleich, Rollback, GitHub Pages, `v1.0.0`             |
-| PR 14–19 | Datensichten, Workflows, Bank, Tabellen | Kosten-, Buchungs- und Stammdaten-Arbeitsplätze         |
-| PR 20    | Belegungen je Wohnung, Heizungsaudit    | Nutzerwechsel und Leerstände je Einheit                 |
-| PR 21    | Geführte Jahresabrechnung               | acht Schritte mit Prüfhinweisen                         |
-| PR 22    | Schema v5, Wohnungswärme aus Ablesungen | Messverbrauch, v4→v5-Migration, `v1.1.0`                |
-| PR 47–50 | Praxisabgleich mit Echtbestand          | Versandanschrift, Flüssiggas, Importprüfung, `v1.1.1`   |
-| PR 52–53 | Prüfhinweise, Verbrauchsschätzung       | „Betrifft“-Angaben, Schätzung § 9a HeizKV, `v1.1.2`     |
-| PR 55    | Salden-Übersicht                        | Summen Nachzahlung/Guthaben, `v1.1.3`                   |
-| PR 56    | PDF-Download, Briefkopf                 | Speichern-Link, Absender, Nutzungszeitraum, `v1.1.4`    |
-| PR 57–58 | Rechtssichere PDFs, Vorauszahlungen     | § 7 HeizKV, CO2KostAufG, § 560 BGB, `v1.2.0`            |
-| PR 59    | Zählerstände, Rechtstexte, Freigabe     | Verbrauchserfassung, § 6a HeizKV, `v1.2.1`              |
-| PR 60    | Anschriftfeld Versand                   | Fensterkuvert/Versandbox, Zeilen ohne Umbruch, `v1.2.2` |
-| PR 63    | Arbeitsbereich Verbrauch                | Zählerstände, Wasser, Schätzung § 9a HeizKV, `v1.3.0`   |
-| PR 66–68 | Praxisabrechnung 2025                   | § 9a Abs. 2, Leerstand im Heizkosten-Nenner, Texte      |
-| PR 70    | Vorjahresvergleich, KI-Ablauf           | Vorjahreswerte, Verbrauchserfassung, `pnpm abrechnung`  |
+Die App ist vollständig aus der früheren Einzeldatei-Version migriert und wird
+seitdem in kleinen, geprüften Pull Requests weiterentwickelt. Welche Funktionen
+in welcher Version hinzugekommen sind, steht in [`CHANGELOG.md`](CHANGELOG.md).
 
 Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsystem
 (der Legacy-Wert 0,50 € bleibt nur dokumentierter Warnwert, siehe
@@ -269,16 +234,13 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 - [`docs/BENUTZERHANDBUCH.md`](docs/BENUTZERHANDBUCH.md) – Bedienung für Anwender
 - [`docs/KI-ANLEITUNG.md`](docs/KI-ANLEITUNG.md) – Arbeiten mit Claude/ChatGPT
 - [`docs/BANK-CSV-FORMAT.md`](docs/BANK-CSV-FORMAT.md) – CSV-Import von Bankbuchungen
-- [`docs/PROJECT.md`](docs/PROJECT.md) – Projektauftrag und Invarianten
 - [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md) – Ziel-Datenmodell
 - [`docs/MIGRATION.md`](docs/MIGRATION.md) – v3→v4-Feldmapping und Pipeline
 - [`docs/ROUNDING.md`](docs/ROUNDING.md) – Rundungsregeln je Rechenschritt
 - [`docs/HEATING-CO2.md`](docs/HEATING-CO2.md) – Heizkosten- und CO₂-Logik
 - [`docs/PERSISTENCE.md`](docs/PERSISTENCE.md) – Speicher- und Backup-Konzept
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) – Build, Pages und Rollback
-- [`docs/RELEASE-STATUS.md`](docs/RELEASE-STATUS.md) – offene Abschlussgates
-- [`docs/REVIEW-PROCESS.md`](docs/REVIEW-PROCESS.md) – Review- und Freigabeprozess
-- [`docs/DECISIONS/`](docs/DECISIONS) – Architecture Decision Records (u. a. ADR-0003 Mietkonto)
+- [`docs/DECISIONS/`](docs/DECISIONS) – Architecture Decision Records (u. a. ADR-0002 nur Desktop, ADR-0003 Mietkonto)
 
 ## Status
 

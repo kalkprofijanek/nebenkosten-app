@@ -1,7 +1,6 @@
 # Migration Legacy v3 → Schema 4
 
 Stand: 2026-07-14
-Verantwortlich: Claude (PR 03 – Vertrag und Mapping), Codex (PR 04 – Implementierung)
 Verbindliche Typen: `packages/schema/src/migrations/`, `packages/schema/src/versions/`
 
 Dieses Dokument legt das Feldmapping und die Transformationsregeln der
@@ -15,20 +14,20 @@ Dokument ergänzt Pipeline, Regeln, Strukturzerlegung und Sonderfälle.
 ## 1. Geltungsbereich und Grundsätze
 
 - Eingabe: eine v3-Exportdatei (`version === 3`), wie sie die Alt-App
-  (`legacy/index.html`) erzeugt — einschließlich des historischen
+  erzeugt — einschließlich des historischen
   Objekt-Root-Layouts vor `abrechnungen[]` (siehe `v3ObjektSchema`).
-- Ausgabe: `AppDataFile` (Schema-Version 4) + `MigrationReport`
-  (Masterplan 9.3), verpackt als `MigrationResult`.
-- Kein Feld geht still verloren (Masterplan 9.2/25): jedes bekannte
+- Ausgabe: `AppDataFile` (Schema-Version 4) + `MigrationReport`,
+  verpackt als `MigrationResult`.
+- Kein Feld geht still verloren: jedes bekannte
   v3-Feld ist gemappt (DATA-MODEL Abschnitt 3), jedes bewusst
   verworfene Feld steht mit Begründung in Abschnitt 5, jedes unbekannte
   Feld wird konserviert und in `report.unmappedFields` ausgewiesen.
-- Fehlende Werte werden niemals durch `0` ersetzt (Masterplan 25);
+- Fehlende Werte werden niemals durch `0` ersetzt;
   `undefined`/`null`/`0` bleiben unterscheidbar (DATA-MODEL Abschnitt 1).
 - Die Eingabe wird nicht mutiert; der Lauf ist deterministisch bei
   gleicher Eingabe und gleicher Zeitquelle (`MigrationOptions.now`).
 
-## 2. Pipeline und Versionserkennung (Masterplan 9.2)
+## 2. Pipeline und Versionserkennung
 
 ```text
 Datei auswählen
@@ -161,7 +160,7 @@ Migrations-Issues enthalten keine rohen Legacy-Werte. Personen-, Bank-,
 Beleg- oder sonstige Quelldaten bleiben im lokalen Zielbestand; der Bericht
 enthält dafür nur Code, Pfad und redigierte Erläuterungen.
 
-## 7. Migrationsbericht (Masterplan 9.3)
+## 7. Migrationsbericht
 
 Sicherheitspräzisierung für PR 04: Dynamische Originalschlüssel erscheinen
 ausschließlich in `legacyUnmapped`; Berichtspfade verwenden dafür den
@@ -175,7 +174,7 @@ Zählungen (`migrationCountsSchema`), Issues (Kategorienmodell 7.1),
 `changedFields` (Regelkatalog Abschnitt 3), `droppedFields`
 (Abschnitt 5), `unmappedFields` (Abschnitt 6), Zeitstempel, App-Version.
 
-## 8. Round-Trip und Akzeptanz (Masterplan 9.4)
+## 8. Round-Trip und Akzeptanz
 
 Pflichttest (PR 04):
 
@@ -187,9 +186,7 @@ v3-Fixture → Import/Migration → Export (Schema 4)
 „Fachlich identisch" heißt: gleiche Entitätszahlen, gleiche IDs,
 gleiche Beträge (Cent), gleiche Zeiträume, gleiche unbekannt-Felder.
 Fixtures ausschließlich frei erfunden (`packages/schema/tests/fixtures.ts`
-zeigt das Muster); niemals Werte aus `legacy/index.html` übernehmen —
-auch die dortigen sanitisierten Platzhalter sind Beispieldaten, keine
-Fixtures (ADR-0001).
+zeigt das Muster); niemals Werte aus echten Datenbeständen übernehmen.
 
 ## 9. In PR 04 geschlossene Punkte
 
@@ -242,7 +239,7 @@ PR 04 hat die offenen Vertragslücken wie folgt geschlossen:
 Die in Abschnitt 9 geforderte Fixture-Suite ist in
 `packages/schema/tests/pr04-*.test.ts` und
 `tests/migration/legacy-v3-import.test.ts` umgesetzt. Alle Fixtures sind frei
-erfunden und verwenden keine Werte aus `legacy/index.html`.
+erfunden und verwenden keine Werte aus echten Datenbeständen.
 
 ### Ressourcenlimits
 

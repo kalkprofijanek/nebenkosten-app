@@ -1,12 +1,12 @@
 /**
- * Fehler- und Warnungsmodell (Masterplan 7.1). Dieser Vertrag wird von
+ * Fehler- und Warnungsmodell. Dieser Vertrag wird von
  * `packages/validators` (PR 10) und vom Migrationsbericht (PR 04)
  * gemeinsam verwendet.
  */
 import { z } from 'zod'
 
 /**
- * Kategorien nach Masterplan 7.1:
+ * Kategorien:
  * - `error`: Abrechnung darf nicht freigegeben werden.
  * - `warning`: Freigabe nur mit bewusster Bestätigung.
  * - `info`: Hinweis ohne Sperrwirkung.

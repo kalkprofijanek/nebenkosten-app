@@ -9,7 +9,6 @@ export default tseslint.config(
     ignores: [
       '**/dist/**',
       '**/coverage/**',
-      'legacy/**',
       'playwright-report/**',
       'test-results/**',
     ],
@@ -48,8 +47,6 @@ export default tseslint.config(
                 '@nebenkosten/persistence',
                 '@nebenkosten/import-export',
                 '@nebenkosten/pdf',
-                '@nebenkosten/ui',
-                '@nebenkosten/test-fixtures',
               ],
               message:
                 'Domain-neutral packages must not depend on outer layers.',

@@ -1,7 +1,7 @@
-# Testmatrix: Rechenbereiche (Masterplan 6.2) je Characterization-Fall
+# Testmatrix: Rechenbereiche je Characterization-Fall
 
 Stand: PR 07. Zuordnung der 15 Golden-Fixtures zu den zu erhaltenden
-Berechnungsbereichen aus Masterplan Abschnitt 6.2. `X` = Bereich wird durch
+Berechnungsbereichen. `X` = Bereich wird durch
 diesen Fall gezielt geprüft; `(x)` = Bereich ist im Fall vorhanden, aber nicht
 sein Schwerpunkt.
 
@@ -51,7 +51,7 @@ Fälle: 01 Volljahr · 02 Nutzerwechsel · 03 Leerstand · 04 Mehrere Häuser ·
   für die Stufenermittlung mit `365/Periodentage` hochgerechnet — enthalten in
   den CO₂-Fällen). Es gibt daher keinen eigenen Fall.
 - **Betriebsstrom-Reallokation** (Heizungs-Betriebsstrom aus Allgemeinstrom,
-  `bsFactor`; `legacy/behavior-map.md` Risiko 8.7) ist mit PR 07 in der
+  `bsFactor`) ist mit PR 07 in der
   Core-Engine umgesetzt. Die gezielten Nachweise für vollständige und
   budgetbegrenzte Umbuchung sowie gebäudespezifische Quellen stehen in
   `packages/core/tests/heating-pr07.test.ts`. In dieser Matrix bleibt die Zeile

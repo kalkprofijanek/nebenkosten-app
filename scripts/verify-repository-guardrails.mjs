@@ -16,9 +16,6 @@ export const REQUIRED_IGNORE_RULES = Object.freeze([
   'dist/',
 ])
 
-export const LEGACY_REFERENCE_SHA256 =
-  '30995a442892f66bb8dcdaa55cb684c17ee59836e5b9a3ef16fc271f83f42095'
-
 const IGNORE_PROBES = Object.freeze([
   ['private-data/', 'private-data/probe.json'],
   ['*.bak', 'probe.bak'],
@@ -56,8 +53,6 @@ const REQUIRED_FILES = Object.freeze([
   'README.md',
   'SECURITY.md',
   '.github/workflows/guardrails.yml',
-  'legacy/index.html',
-  'legacy/SHA256SUMS',
 ])
 
 export function calculateSha256(content) {
@@ -114,18 +109,9 @@ function findIneffectiveIgnoreRules(repositoryRoot, gitEnvironment) {
   }).map(([rule]) => rule)
 }
 
-function parseExpectedLegacyHash(checksumFile) {
-  const match = checksumFile.trim().match(/^([a-f0-9]{64})\s+\*?index\.html$/iu)
-  if (!match) throw new Error('legacy/SHA256SUMS has an invalid format')
-  return match[1].toLowerCase()
-}
-
 export function verifyRepository(
   repositoryRoot,
-  {
-    gitEnvironment = process.env,
-    legacyReferenceHash = LEGACY_REFERENCE_SHA256,
-  } = {},
+  { gitEnvironment = process.env } = {},
 ) {
   const failures = []
 
@@ -147,32 +133,8 @@ export function verifyRepository(
       gitEnvironment,
     )
     if (ineffectiveRules.length > 0) {
-      failures.push(`Ineffective .gitignore rules: ${ineffectiveRules.join(', ')}`)
-    }
-  }
-
-  const checksumPath = resolve(repositoryRoot, 'legacy/SHA256SUMS')
-  const legacyPath = resolve(repositoryRoot, 'legacy/index.html')
-  let actualHash = null
-  if (existsSync(checksumPath)) {
-    try {
-      const expectedHash = parseExpectedLegacyHash(
-        readFileSync(checksumPath, 'utf8'),
-      )
-      if (expectedHash !== legacyReferenceHash) {
-        failures.push(
-          `Legacy checksum baseline mismatch: expected ${legacyReferenceHash}, received ${expectedHash}`,
-        )
-      }
-    } catch (error) {
-      failures.push(error instanceof Error ? error.message : 'Invalid legacy checksum')
-    }
-  }
-  if (existsSync(legacyPath)) {
-    actualHash = calculateSha256(readFileSync(legacyPath))
-    if (actualHash !== legacyReferenceHash) {
       failures.push(
-        `Legacy file mismatch: expected ${legacyReferenceHash}, received ${actualHash}`,
+        `Ineffective .gitignore rules: ${ineffectiveRules.join(', ')}`,
       )
     }
   }
@@ -190,7 +152,6 @@ export function verifyRepository(
   }
 
   return Object.freeze({
-    actualHash,
     failures: Object.freeze([...failures]),
   })
 }
@@ -205,7 +166,7 @@ function runCli() {
     return
   }
 
-  console.log(`Repository guardrails passed. Legacy SHA-256: ${result.actualHash}`)
+  console.log('Repository guardrails passed.')
 }
 
 const isCli = process.argv[1]

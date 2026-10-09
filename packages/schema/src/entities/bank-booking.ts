@@ -1,10 +1,10 @@
 /**
  * Importierte Kontobuchungen (Legacy: `Objekt.buchungen[]`).
  *
- * Diese Entität ist eine bewusste Erweiterung der Masterplan-5.1-Liste:
+ * Diese Entität ist eine bewusste Erweiterung des Ziel-Datenmodells:
  * Der Buchungsabgleich (CSV-Import, Klassifizierung, Splits,
  * Heizkreis-Zuordnung) ist Bestandsfunktionalität und darf nicht
- * verloren gehen (Masterplan 3). Bankdaten sind grundsätzlich
+ * verloren gehen. Bankdaten sind grundsätzlich
  * Local-only-Daten und gehören niemals in Fixtures oder GitHub.
  */
 import { z } from 'zod'

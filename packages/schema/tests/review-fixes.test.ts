@@ -1,6 +1,5 @@
 /**
- * Tests zu den Codex-Review-Befunden aus PR 03 (Draft-Review, erste
- * Schleife): Verlustfreiheit über `legacyUnmapped`, Zählerstatus ohne
+ * Tests zu Review-Befunden am Schema: Verlustfreiheit über `legacyUnmapped`, Zählerstatus ohne
  * BillingPeriod, SHA-256-Hex-Prüfung.
  */
 import { describe, expect, it } from 'vitest'

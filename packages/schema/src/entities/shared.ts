@@ -7,7 +7,7 @@ import { entityIdSchema } from '../primitives'
 /**
  * Verlustfrei konservierte, unbekannte Legacy-Felder (docs/MIGRATION.md
  * Abschnitt 6). Jede persistierte Entität führt dieses Feld, damit der
- * Migrationsvertrag „kein stilles Verwerfen“ (Masterplan 9.2/25) im
+ * Migrationsvertrag „kein stilles Verwerfen“ im
  * Zielformat tatsächlich erfüllbar ist; die Migration listet die Pfade
  * zusätzlich in `report.unmappedFields`.
  */

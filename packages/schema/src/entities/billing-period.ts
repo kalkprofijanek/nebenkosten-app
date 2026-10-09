@@ -1,5 +1,5 @@
 /**
- * Abrechnungsjahr (Masterplan 5.1/5.2, Legacy: `Abrechnung`).
+ * Abrechnungsjahr (Legacy: `Abrechnung`).
  */
 import { z } from 'zod'
 import { legacyUnmappedSchema } from './shared'
@@ -12,7 +12,7 @@ import {
 } from '../primitives'
 
 /**
- * Freigabestatus (Masterplan 7.3). Mapping der Legacy-Statuswerte:
+ * Freigabestatus. Mapping der Legacy-Statuswerte:
  * `Entwurf` → DRAFT, `Prüfung offen` → IN_REVIEW,
  * `PDF bereit` → READY_FOR_PDF, `abgeschlossen` → FINALIZED,
  * `veraltet` → SUPERSEDED.

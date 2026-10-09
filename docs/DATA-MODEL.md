@@ -1,15 +1,14 @@
 # Datenmodell (Schema-Version 4)
 
 Stand: 2026-07-14
-Verantwortlich: Claude (PR 03 – Schema und Legacy-v3-Mapping)
 Quelle der Wahrheit für Laufzeit-Typen: `packages/schema/src/`
 
-Dieses Dokument beschreibt das neue Datenmodell der Nebenkosten-App
-(Masterplan Abschnitt 5). Das Legacy-Modell (Schema-Version 3) ist in
-`legacy/behavior-map.md` Abschnitt 3 dokumentiert; das Feldmapping
+Dieses Dokument beschreibt das neue Datenmodell der Nebenkosten-App.
+Das Legacy-Modell (Schema-Version 3) ist in Abschnitt 4 und in
+`packages/schema/src/versions/v3/` beschrieben; das Feldmapping
 v3 → v4 in `docs/MIGRATION.md`.
 
-## 1. Technische Grundregeln (Masterplan 5.3)
+## 1. Technische Grundregeln
 
 | Regel                                           | Umsetzung in `packages/schema`                                                                                                                                                                                        |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -35,7 +34,7 @@ AppDataFile
 │   ├── savedAt           // letzter Speicherzeitpunkt
 │   ├── appVersion
 │   └── migratedFrom      // { schemaVersion, sourceSha256, migratedAt }
-├── masterData            // Stammdaten (jahresunabhängig, Masterplan 5.2)
+├── masterData            // Stammdaten (jahresunabhängig)
 │   ├── organizations[]
 │   ├── ownerCompanies[]
 │   ├── properties[]
@@ -46,7 +45,7 @@ AppDataFile
 │   ├── allocationRules[]
 │   ├── heatingSystems[]
 │   └── meters[]
-└── billingData           // abrechnungsjahresbezogen (Masterplan 5.2)
+└── billingData           // abrechnungsjahresbezogen
     ├── billingPeriods[]
     ├── occupancyPeriods[]
     ├── prepayments[]
@@ -382,8 +381,8 @@ Discriminated Union über `mode`:
 
 ### 3.22 BankBooking / Kontobuchung (`bankBookingSchema`)
 
-Bewusste Erweiterung der Masterplan-5.1-Liste (Bestandsfunktion
-Buchungsabgleich, Masterplan 3 — darf nicht verloren gehen). Felder:
+Bewusste Erweiterung des Ziel-Datenmodells (Bestandsfunktion
+Buchungsabgleich — darf nicht verloren gehen). Felder:
 siehe `packages/schema/src/entities/bank-booking.ts`; Mapping in
 MIGRATION.md 4.12. Kategorien-Enum identisch zu Legacy
 `BUCH_KATEGORIEN`. Bankdaten sind Local-only-Daten (niemals in
@@ -397,7 +396,7 @@ Beides hat keinen Einfluss auf die Nebenkostenberechnung.
 ### 3.23 CalculationRun / CalculationResult
 
 `calculationRunSchema`: `id`, `billingPeriodId`, `startedAt`,
-`appVersion?`, `inputSha256?` (Snapshot-Bindung, Masterplan 10).
+`appVersion?`, `inputSha256?` (Snapshot-Bindung).
 `calculationResultSchema`: `id`, `calculationRunId`,
 `totals` (Cent-genaue Kontrollsummen inkl.
 `controlDifferenceCents`), `warnings: ValidationIssue[]`,
@@ -411,7 +410,7 @@ Berechnungsergebnis nicht persistiert.
 
 ### 3.24 ValidationIssue / Prüfhinweis (`validationIssueSchema`)
 
-Kategorienmodell nach Masterplan 7.1 — Vertrag für
+Kategorienmodell — Vertrag für
 `packages/validators` (PR 10) und den Migrationsbericht (PR 04):
 
 | Feld       | Typ                                                                                   | Bemerkung                                           |
@@ -429,14 +428,14 @@ Kategorienmodell nach Masterplan 7.1 — Vertrag für
 `documentSchema`: erzeugte Dokumente (`tenant_statement`,
 `combined_statement`, `owner_report`, `total_cost_report`,
 `co2_report`, `approval_protocol`, `zip_bundle`) mit
-`calculationRunId`-Bindung (snapshotbasiert, Masterplan 10).
+`calculationRunId`-Bindung (snapshotbasiert).
 `auditEventSchema`: Änderungsprotokoll (Legacy `_protokoll[]`,
 append-only); variable Legacy-Felder landen verlustfrei in `details`.
 
 ## 4. Legacy-v3-Schema (`packages/schema/src/versions/v3/`)
 
-Das v3-Schema bildet den Bestand ab, wie er tatsächlich ist
-(behavior-map Abschnitt 3): keine Laufzeitvalidierung, Zahlen teils
+Das v3-Schema bildet den Bestand ab, wie er tatsächlich ist:
+keine Laufzeitvalidierung, Zahlen teils
 als Strings/`null`, Euro-Fließkomma. Deshalb gilt dort:
 
 - alle Objekte `looseObject` — unbekannte Felder bleiben beim Parsen
@@ -470,5 +469,4 @@ als Strings/`null`, Euro-Fließkomma. Deshalb gilt dort:
   `docs/PERSISTENCE.md` beschrieben.
 - Standardkostenarten-Katalog (`STANDARD_KOSTENARTEN`) und
   BetrKV-Kategorienkatalog werden mit der Engine/Validatoren als
-  konfigurierbare Kataloge modelliert, nicht als Code-Konstanten
-  (behavior-map Risiko 8.1).
+  konfigurierbare Kataloge modelliert, nicht als Code-Konstanten.

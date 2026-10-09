@@ -1,7 +1,6 @@
 /**
  * Legacy-Schema Version 3 — Entitäten, wie sie tatsächlich im Code der
- * Alt-App verwendet werden (Quelle: legacy/behavior-map.md Abschnitt 3,
- * verifiziert gegen legacy/index.html).
+ * Alt-App verwendet wurden.
  *
  * Alle Objekte sind `loose`: unbekannte Felder bleiben erhalten.
  * Feldnamen sind die Legacy-Originalnamen (deutsch, snake_case).
@@ -15,7 +14,7 @@ import {
   v3StringishSchema,
 } from './common'
 
-/** Beleg/Rechnung einer Kostenart (behavior-map 3.6). */
+/** Beleg/Rechnung einer Kostenart. */
 export const v3BelegSchema = z.looseObject({
   datum: v3DateishSchema.optional(),
   bezeichnung: v3StringishSchema.optional(),
@@ -35,7 +34,7 @@ export const v3BelegSchema = z.looseObject({
 })
 export type V3Beleg = z.infer<typeof v3BelegSchema>
 
-/** Kostenart/Kostenposition (behavior-map 3.5). */
+/** Kostenart/Kostenposition. */
 export const v3KostenartSchema = z.looseObject({
   id: v3IdSchema,
   standard_key: v3StringishSchema.optional(),
@@ -57,7 +56,7 @@ export const v3KostenartSchema = z.looseObject({
 })
 export type V3Kostenart = z.infer<typeof v3KostenartSchema>
 
-/** Nutzer/Nutzungseinheit (behavior-map 3.4). */
+/** Nutzer/Nutzungseinheit. */
 export const v3NutzerSchema = z.looseObject({
   id: v3IdSchema,
   nr: v3NumberishSchema.optional(),
@@ -115,7 +114,7 @@ export const v3NutzerSchema = z.looseObject({
 })
 export type V3Nutzer = z.infer<typeof v3NutzerSchema>
 
-/** Brennstofflieferung (behavior-map 3.10). */
+/** Brennstofflieferung. */
 export const v3LieferungSchema = z.looseObject({
   datum: v3DateishSchema.optional(),
   menge: v3NumberishSchema.optional(),
@@ -135,7 +134,7 @@ export const v3LieferungSchema = z.looseObject({
 })
 export type V3Lieferung = z.infer<typeof v3LieferungSchema>
 
-/** Brennstoff-Block einer Energiequelle (behavior-map 3.8/3.9). */
+/** Brennstoff-Block einer Energiequelle. */
 export const v3BrennstoffSchema = z.looseObject({
   art: v3StringishSchema.optional(),
   heizwert_kwh: v3NumberishSchema.optional(),
@@ -147,7 +146,7 @@ export const v3BrennstoffSchema = z.looseObject({
 })
 export type V3Brennstoff = z.infer<typeof v3BrennstoffSchema>
 
-/** Energiequelle eines Heizkreises (behavior-map 3.9). */
+/** Energiequelle eines Heizkreises. */
 export const v3EnergiequelleSchema = z.looseObject({
   id: v3IdSchema,
   name: v3StringishSchema.optional(),
@@ -162,7 +161,7 @@ export const v3EnergiequelleSchema = z.looseObject({
 })
 export type V3Energiequelle = z.infer<typeof v3EnergiequelleSchema>
 
-/** CO₂-Parameter eines Heizkreises (behavior-map 3.8). */
+/** CO₂-Parameter eines Heizkreises. */
 export const v3Co2Schema = z.looseObject({
   modus: v3StringishSchema.optional(),
   co2_faktor_kg_kwh: v3NumberishSchema.optional(),
@@ -173,7 +172,7 @@ export const v3Co2Schema = z.looseObject({
 })
 export type V3Co2 = z.infer<typeof v3Co2Schema>
 
-/** Heizkreis-Vorgaben (behavior-map 3.8, objektweit oder je Heizkreis). */
+/** Heizkreis-Vorgaben (objektweit oder je Heizkreis). */
 export const v3VorgabenSchema = z.looseObject({
   verbrauch_proz: v3NumberishSchema.optional(),
   grund_proz: v3NumberishSchema.optional(),
@@ -185,7 +184,7 @@ export const v3VorgabenSchema = z.looseObject({
 })
 export type V3Vorgaben = z.infer<typeof v3VorgabenSchema>
 
-/** Heizkreis eines Abrechnungsjahres (behavior-map 3.8). */
+/** Heizkreis eines Abrechnungsjahres. */
 export const v3HeizkreisSchema = z.looseObject({
   id: v3IdSchema,
   brennstoff: v3BrennstoffSchema.optional(),
@@ -197,7 +196,7 @@ export const v3HeizkreisSchema = z.looseObject({
 })
 export type V3Heizkreis = z.infer<typeof v3HeizkreisSchema>
 
-/** Heizkreis-Block-Definition, jahresunabhängig (behavior-map 3.7). */
+/** Heizkreis-Block-Definition, jahresunabhängig. */
 export const v3BlockSchema = z.looseObject({
   id: v3IdSchema,
   name: v3StringishSchema.optional(),
@@ -208,7 +207,7 @@ export const v3BlockSchema = z.looseObject({
 })
 export type V3Block = z.infer<typeof v3BlockSchema>
 
-/** Stromzähler-Stammdaten (behavior-map 3.11). */
+/** Stromzähler-Stammdaten. */
 export const v3StromzaehlerSchema = z.looseObject({
   id: v3IdSchema,
   adresse: v3StringishSchema.optional(),
@@ -238,7 +237,7 @@ export const v3StromzaehlerSchema = z.looseObject({
 })
 export type V3Stromzaehler = z.infer<typeof v3StromzaehlerSchema>
 
-/** Split einer Kontobuchung (behavior-map 3.12). */
+/** Split einer Kontobuchung. */
 export const v3BuchungSplitSchema = z.looseObject({
   id: v3IdSchema,
   betrag: v3NumberishSchema.optional(),
@@ -266,7 +265,7 @@ const v3HauswartvertragInfoSchema = z
   })
   .refine((value) => Object.keys(value).length > 0)
 
-/** Importierte Kontobuchung (behavior-map 3.12). */
+/** Importierte Kontobuchung. */
 export const v3BuchungSchema = z.looseObject({
   id: v3IdSchema,
   hash: v3StringishSchema.optional(),
@@ -291,7 +290,7 @@ export const v3BuchungSchema = z.looseObject({
 })
 export type V3Buchung = z.infer<typeof v3BuchungSchema>
 
-/** Freigabeprotokoll-Eintrag (behavior-map 3.13, append-only). */
+/** Freigabeprotokoll-Eintrag (append-only). */
 export const v3ProtokollEintragSchema = z.looseObject({
   ts: z.union([z.number(), z.string(), z.null()]).optional(),
   aktion: v3StringishSchema.optional(),
@@ -302,7 +301,7 @@ export const v3ProtokollEintragSchema = z.looseObject({
 })
 export type V3ProtokollEintrag = z.infer<typeof v3ProtokollEintragSchema>
 
-/** Abrechnungsjahr (behavior-map 3.3). */
+/** Abrechnungsjahr. */
 export const v3AbrechnungSchema = z.looseObject({
   id: v3IdSchema,
   jahr: v3NumberishSchema.optional(),
@@ -358,7 +357,7 @@ export const v3AbrechnungSchema = z.looseObject({
 export type V3Abrechnung = z.infer<typeof v3AbrechnungSchema>
 
 /**
- * Objekt/Liegenschaft (behavior-map 3.2). Enthält zusätzlich die
+ * Objekt/Liegenschaft. Enthält zusätzlich die
  * historischen Root-Felder des Vor-`abrechnungen[]`-Layouts (`jahr`,
  * `zeitraum`, `nutzer`, …), die `migrateObjekt()` der Alt-App beim
  * ersten Öffnen nach `abrechnungen[0]` verschiebt — alte Exporte können
@@ -394,7 +393,7 @@ export const v3ObjektSchema = z.looseObject({
 })
 export type V3Objekt = z.infer<typeof v3ObjektSchema>
 
-/** Firma/Eigentümer (behavior-map 3.1). */
+/** Firma/Eigentümer. */
 export const v3FirmaSchema = z.looseObject({
   id: v3IdSchema,
   name1: v3StringishSchema.optional(),
