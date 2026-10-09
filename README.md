@@ -123,6 +123,9 @@ Objekte oder als Kontrollansicht:
 
 Geplant bzw. sinnvoll (Beiträge willkommen):
 
+- **§ 6a HeizKV vollständig umsetzen**: Lückenanalyse und Bauliste in
+  [docs/TODO-HEIZKV-6A.md](docs/TODO-HEIZKV-6A.md).
+
 - **Fernablesung / Messdienst-Import**: Ablesedaten funkauslesbarer Zähler
   direkt übernehmen; Fernablesbarkeit ist ab 2027 Pflicht, dazu die
   monatliche Verbrauchsinformation nach § 6a HeizKV.
