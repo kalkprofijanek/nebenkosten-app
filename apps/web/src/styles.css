@@ -2152,3 +2152,47 @@ h1 {
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+/* Optionale Formularabschnitte: Vergleichswerte (Heizspiegel), Klimafaktor (DWD) */
+.benchmark-fields,
+.climate-factor-fields {
+  align-content: start;
+}
+
+.form-section__field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.form-section__empty,
+.form-section__hint,
+.climate-factor-fields__notice,
+.form-section__actions,
+.climate-factor-fields__file {
+  grid-column: 1 / -1;
+}
+
+.form-section__empty,
+.form-section__hint,
+.climate-factor-fields__notice {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.form-section__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.field-error,
+.climate-factor-fields__notice.field-error {
+  color: #7a2e21;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.form-section__field input[aria-invalid='true'] {
+  border-color: #dfb4a9;
+}

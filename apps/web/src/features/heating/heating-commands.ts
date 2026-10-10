@@ -614,6 +614,13 @@ export function updateHeatingSystem(
   })
 }
 
+/**
+ * Ersetzt die Eingabefelder eines Heizkreises. Zählerzuordnung,
+ * Verbrauchsmodus und Legacy-Reste bleiben erhalten. Für die Vergleichswerte
+ * (§ 6a Abs. 3 Nr. 4 HeizKV) gilt: fehlt `consumptionBenchmark` in der
+ * Eingabe (oder ist `undefined`), bleiben die gespeicherten Werte erhalten;
+ * `null` entfernt sie ausdrücklich, ein Objekt setzt sie neu.
+ */
 export function updateHeatingCircuit(
   currentFile: AppDataFile,
   heatingCircuitId: string,
@@ -651,7 +658,10 @@ export function updateHeatingCircuit(
     ...validated.billingData.heatingCircuits.at(-1)!,
     consumptionMode: current.consumptionMode,
     meterAssignments: current.meterAssignments,
-    consumptionBenchmark: current.consumptionBenchmark,
+    consumptionBenchmark:
+      input.consumptionBenchmark === undefined
+        ? current.consumptionBenchmark
+        : (input.consumptionBenchmark ?? undefined),
     legacyUnmapped: current.legacyUnmapped,
   }
   return validateResult({
