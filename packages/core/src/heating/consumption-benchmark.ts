@@ -88,6 +88,113 @@ export function classifyConsumptionBenchmark(
   return 'high'
 }
 
+/** Anteil eines Nutzers am Energieeinsatz seines Heizkreises in kWh. */
+export interface TenantEnergyKwh {
+  /** Heizwärme: Energieeinsatz × (1 − Warmwasseranteil) × Verbrauchsanteil. */
+  heatingKwh: number
+  /** Warmwasser: Energieeinsatz × Warmwasseranteil × Anteil an der Personenzeit. */
+  hotWaterKwh: number
+  /** Warmwasser wird zentral über den Heizkreis bereitet. */
+  centralHotWater: boolean
+}
+
+type TenantEnergyShare =
+  | {
+      status: 'ok'
+      tenant: CalculationOutput['tenants'][number]
+      basis: NonNullable<CalculationOutput['tenants'][number]['ownBasis']>
+      trace: CalculationOutput['heating']['trace']['circuits'][number]
+      energy: TenantEnergyKwh
+    }
+  | {
+      status: 'unavailable'
+      reason: Extract<
+        ConsumptionBenchmarkUnavailableReason,
+        | 'vacancy'
+        | 'not_in_calculation'
+        | 'energy_input_unknown'
+        | 'consumption_unknown'
+      >
+    }
+
+/**
+ * Ermittelt Heizwärme und Warmwasser eines Nutzers nach den Schlüsseln der
+ * Kostenverteilung (ungerundet). Ohne `heatingCircuitId` gilt der Heizkreis
+ * des Gebäudes, dem die Nutzung zugeordnet ist.
+ */
+function tenantEnergyShare(
+  output: CalculationOutput,
+  occupancyPeriodId: string,
+  heatingCircuitId?: string,
+): TenantEnergyShare {
+  const tenant = output.tenants.find(({ id }) => id === occupancyPeriodId)
+  if (tenant?.isVacancy) return { status: 'unavailable', reason: 'vacancy' }
+  const basis = tenant?.ownBasis
+  const trace = output.heating.trace.circuits.find((candidate) =>
+    heatingCircuitId === undefined
+      ? candidate.buildingId === basis?.buildingId
+      : candidate.heatingCircuitId === heatingCircuitId,
+  )
+  const result = output.heating.perCircuit.find(
+    ({ buildingId }) => buildingId === trace?.buildingId,
+  )
+  if (
+    !tenant ||
+    !basis ||
+    !trace ||
+    !result ||
+    basis.buildingId !== trace.buildingId
+  )
+    return { status: 'unavailable', reason: 'not_in_calculation' }
+  if (!(result.energyKwh > 0))
+    return { status: 'unavailable', reason: 'energy_input_unknown' }
+  if (!(basis.consumption > 0) || !(trace.split.consumptionDenominator > 0))
+    return { status: 'unavailable', reason: 'consumption_unknown' }
+
+  const centralHotWater = trace.warmWater.method !== 'none'
+  const hotWaterShare = centralHotWater ? trace.warmWater.sharePercent / 100 : 0
+  const heatingKwh =
+    (result.energyKwh * (1 - hotWaterShare) * basis.consumption) /
+    trace.split.consumptionDenominator
+  // Personenzeit wie in der Warmwasserverteilung: ohne Personenangabe zählt
+  // eine Person; Leerstand zählt nicht. Ungerundet nachgerechnet, weil der
+  // Trace den Nenner nur auf drei Stellen ausweist.
+  const personTimeOf = (candidate: (typeof output.tenants)[number]) =>
+    candidate.isVacancy || candidate.ownBasis?.buildingId !== trace.buildingId
+      ? 0
+      : (candidate.ownBasis.persons > 0 ? candidate.ownBasis.persons : 1) *
+        (candidate.timeFactor ?? 1)
+  const personTimeTotal = output.tenants.reduce(
+    (sum, candidate) => sum + personTimeOf(candidate),
+    0,
+  )
+  const hotWaterKwh =
+    centralHotWater && personTimeTotal > 0
+      ? (result.energyKwh * hotWaterShare * personTimeOf(tenant)) /
+        personTimeTotal
+      : 0
+  return {
+    status: 'ok',
+    tenant,
+    basis,
+    trace,
+    energy: { heatingKwh, hotWaterKwh, centralHotWater },
+  }
+}
+
+/**
+ * Heizwärme und Warmwasser eines Nutzers in kWh als Anteil am Energieeinsatz
+ * seines Heizkreises (ungerundet, § 6a Abs. 3 Satz 2 HeizKV). `null` bei
+ * Leerstand, unbekanntem Energieeinsatz oder fehlendem Verbrauch.
+ */
+export function tenantEnergyKwh(
+  output: CalculationOutput,
+  occupancyPeriodId: string,
+): TenantEnergyKwh | null {
+  const share = tenantEnergyShare(output, occupancyPeriodId)
+  return share.status === 'ok' ? share.energy : null
+}
+
 export function compareTenantWithConsumptionBenchmark(
   output: CalculationOutput,
   occupancyPeriodId: string,
@@ -112,57 +219,20 @@ export function compareTenantWithConsumptionBenchmark(
   })
   const benchmark = circuit?.consumptionBenchmark
   if (!circuit || !benchmark) return unavailable('no_benchmark')
-  const tenant = output.tenants.find(({ id }) => id === occupancyPeriodId)
-  if (tenant?.isVacancy) return unavailable('vacancy')
-  const basis = tenant?.ownBasis
-  const trace = output.heating.trace.circuits.find(
-    ({ heatingCircuitId }) => heatingCircuitId === circuit.id,
-  )
-  const result = output.heating.perCircuit.find(
-    ({ buildingId }) => buildingId === trace?.buildingId,
-  )
-  if (
-    !tenant ||
-    !basis ||
-    !trace ||
-    !result ||
-    basis.buildingId !== trace.buildingId
-  )
-    return unavailable('not_in_calculation')
-  if (!(result.energyKwh > 0)) return unavailable('energy_input_unknown')
-  if (!(basis.consumption > 0) || !(trace.split.consumptionDenominator > 0))
-    return unavailable('consumption_unknown')
+  const share = tenantEnergyShare(output, occupancyPeriodId, circuit.id)
+  if (share.status === 'unavailable') return unavailable(share.reason)
+  const { tenant, basis, trace } = share
   const areaSqm =
     trace.split.baseAreaBasis === 'usable_area'
       ? basis.usableAreaSqm
       : basis.heatedAreaSqm
   if (!(areaSqm > 0)) return unavailable('area_unknown')
-  const centralHotWater = trace.warmWater.method !== 'none'
-  if (benchmark.includesHotWater && !centralHotWater)
+  if (benchmark.includesHotWater && !share.energy.centralHotWater)
     return unavailable('hot_water_energy_unknown')
 
-  const hotWaterShare = centralHotWater ? trace.warmWater.sharePercent / 100 : 0
-  const heatingKwh =
-    (result.energyKwh * (1 - hotWaterShare) * basis.consumption) /
-    trace.split.consumptionDenominator
+  const { heatingKwh } = share.energy
+  const hotWaterKwh = benchmark.includesHotWater ? share.energy.hotWaterKwh : 0
   const timeFactor = tenant.timeFactor ?? 1
-  // Personenzeit wie in der Warmwasserverteilung: ohne Personenangabe zählt
-  // eine Person; Leerstand zählt nicht. Ungerundet nachgerechnet, weil der
-  // Trace den Nenner nur auf drei Stellen ausweist.
-  const personTimeOf = (candidate: (typeof output.tenants)[number]) =>
-    candidate.isVacancy || candidate.ownBasis?.buildingId !== trace.buildingId
-      ? 0
-      : (candidate.ownBasis.persons > 0 ? candidate.ownBasis.persons : 1) *
-        (candidate.timeFactor ?? 1)
-  const personTimeTotal = output.tenants.reduce(
-    (sum, candidate) => sum + personTimeOf(candidate),
-    0,
-  )
-  const hotWaterKwh =
-    benchmark.includesHotWater && personTimeTotal > 0
-      ? (result.energyKwh * hotWaterShare * personTimeOf(tenant)) /
-        personTimeTotal
-      : 0
   const energyKwh = heatingKwh + hotWaterKwh
   const annualized = timeFactor > 0 && timeFactor < 1
   const annualization = !annualized ? 'none' : usage ? 'degree_days' : 'linear'

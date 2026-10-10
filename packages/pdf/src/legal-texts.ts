@@ -211,3 +211,82 @@ export function circuitAverageExplanation(
  */
 export const SECTION_35A_NOTICE =
   'Die Beträge sind Ihr Anteil an den in den Rechnungen enthaltenen Arbeits-, Maschinen- und Fahrtkosten (ohne Material), soweit sie in Ihren Betriebskosten enthalten sind; der Lohnanteil ist je Kostenart angegeben und kann auf Rechnungsangaben oder einer Schätzung beruhen. Ob es sich um haushaltsnahe Dienstleistungen (§ 35a Abs. 2 EStG) oder Handwerkerleistungen (§ 35a Abs. 3 EStG) handelt, richtet sich nach der Art der Leistung. Diese Angaben sind keine Steuerberatung.'
+
+/** § 6a Abs. 3 Nr. 4 HeizKV: Vergleich mit dem normierten Durchschnittsnutzer. */
+export const CONSUMPTION_BENCHMARK_LABEL =
+  'Vergleich mit dem Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizKV)'
+
+/** Klassen der Vergleichswerte (z. B. Heizspiegel) auf Deutsch. */
+export const CONSUMPTION_BENCHMARK_CLASS_LABELS = {
+  low: 'niedrig',
+  medium: 'mittel',
+  elevated: 'erhöht',
+  high: 'zu hoch',
+} as const
+
+/** Ermittlung des Nutzerverbrauchs für den Vergleich (ADR-0004). */
+export const CONSUMPTION_BENCHMARK_ENERGY_SHARE_NOTICE =
+  'Heizwärme und Warmwasser sind als Ihr Anteil am Energieeinsatz des Gebäudes nach den Verteilschlüsseln dieser Abrechnung ermittelt (Heizwärme nach Ihrem Verbrauchsanteil, Warmwasser nach Personen und Nutzungszeit).'
+
+/** Fußnote zum Vergleich mit dem Durchschnittsnutzer. */
+export function consumptionBenchmarkFootnote(
+  benchmark: {
+    readonly source: string
+    readonly category: string
+    readonly referenceYear: number
+    readonly includesHotWater: boolean
+  },
+  annualization: 'none' | 'degree_days' | 'linear',
+): string {
+  const scope = benchmark.includesHotWater
+    ? 'Heizung und Warmwasser'
+    : 'nur Heizung'
+  const annual =
+    annualization === 'degree_days'
+      ? ' Ihr Verbrauch ist auf ein Jahr hochgerechnet: Heizwärme nach Gradtagszahlen (VDI 2067), Warmwasser nach Tagen.'
+      : annualization === 'linear'
+        ? ' Ihr Verbrauch ist nach Tagen auf ein Jahr hochgerechnet.'
+        : ''
+  return `Vergleichswerte: ${benchmark.source}, Kategorie „${benchmark.category}“, Bezugsjahr ${benchmark.referenceYear} (${scope}). ${CONSUMPTION_BENCHMARK_ENERGY_SHARE_NOTICE}${annual} Die Klassengrenzen sind auf Ihre Fläche und Nutzungszeit umgerechnet.`
+}
+
+/** Vorjahresvergleich: witterungsbereinigt mit DWD-Klimafaktoren (ADR-0005). */
+export function previousPeriodWeatherAdjustedText(
+  postalCode: string,
+  previousFactor: string,
+  currentFactor: string,
+): string {
+  return `Witterungsbereinigt mit Klimafaktoren des Deutschen Wetterdienstes (Postleitzahl ${postalCode}, Faktor Vorjahr ${previousFactor}, Abrechnungsjahr ${currentFactor}).`
+}
+
+/** Vorjahresvergleich in kWh: Methode (§ 6a Abs. 3 Satz 2 HeizKV). */
+export const PREVIOUS_PERIOD_ENERGY_METHOD =
+  'Energieverbrauch = Heizwärme (dunkler Balken) + Warmwasser (heller Balken), jeweils als Ihr Anteil am Energieeinsatz des Gebäudes nach den Verteilschlüsseln der jeweiligen Abrechnung.'
+
+/** Vorjahresvergleich in kWh: nur die Heizwärme wird bereinigt. */
+export const PREVIOUS_PERIOD_HOT_WATER_NOT_ADJUSTED =
+  'Bereinigt ist nur die Heizwärme; das Warmwasser hängt nicht von der Witterung ab und ist unbereinigt enthalten.'
+
+/** Vorjahresvergleich in kWh ohne zentrales Warmwasser. */
+export const PREVIOUS_PERIOD_NO_CENTRAL_HOT_WATER =
+  'Das Warmwasser wird nicht über die Heizungsanlage bereitet und ist nicht enthalten.'
+
+/** Vorjahresvergleich in kWh ohne Witterungsbereinigung. */
+export const PREVIOUS_PERIOD_ENERGY_NOT_WEATHER_ADJUSTED =
+  'Darstellung ohne Witterungsbereinigung, weil nicht für beide Jahre ein passender Klimafaktor des Deutschen Wetterdienstes vorliegt.'
+
+/** Vorjahresvergleich nur in Verbrauchseinheiten: Warmwasser fehlt. */
+export function previousPeriodHotWaterMissingText(
+  reason:
+    | 'stored_previous_consumption'
+    | 'previous_calculation_failed'
+    | 'energy_not_determinable',
+): string {
+  const why =
+    reason === 'stored_previous_consumption'
+      ? 'für das Vorjahr nur der übernommene Heizverbrauch vorliegt'
+      : reason === 'previous_calculation_failed'
+        ? 'die Vorjahresabrechnung nicht nachgerechnet werden kann'
+        : 'der Energieeinsatz in kWh oder Ihr Verbrauch für eines der Jahre nicht ermittelbar ist'
+  return `Der Vergleich umfasst nur den erfassten Heizverbrauch; das Warmwasser ist nicht enthalten, weil ${why}.`
+}

@@ -10,6 +10,8 @@ import {
   isGridEnergySource,
   meteringFeeCents,
   previousPeriodClimateFactor,
+  previousPeriodConsumption,
+  previousPeriodWeatherFactors,
 } from '@nebenkosten/core'
 import type {
   CalculationOutput,
@@ -164,21 +166,23 @@ export function heatingInformation(
   )
   if (circuits.length === 0) return
   climateFactorInformation(data, period, add)
-  add(
-    issue(
-      'warning',
-      'heating.consumption_benchmark_missing',
-      'heating',
-      '§ 6a HeizKV: Vergleich mit normiertem Durchschnittsnutzer fehlt',
-      {
-        entity: { type: 'BillingPeriod', id: period.id },
-        detail:
-          'Die Einzelabrechnungen enthalten keinen Vergleich mit einem normierten oder durch Vergleichstests ermittelten Durchschnittsnutzer derselben Nutzerkategorie (§ 6a Abs. 3 HeizKV). Der mittlere Verbrauch des eigenen Heizkreises ersetzt diesen Vergleich nicht. Bei unvollständigen Angaben nach § 6a HeizKV kann der Mieter seinen Heizkostenanteil um 3 % kürzen (§ 12 Abs. 1 HeizKV).',
-      },
-    ),
-  )
+  previousPeriodWeatherAdjustment(data, period, add)
   for (const circuit of circuits) {
     const benchmark = circuit.consumptionBenchmark
+    if (!benchmark)
+      add(
+        issue(
+          'warning',
+          'heating.consumption_benchmark_missing',
+          'heating',
+          '§ 6a HeizKV: Vergleich mit normiertem Durchschnittsnutzer fehlt',
+          {
+            entity: { type: 'HeatingCircuit', id: circuit.id },
+            detail:
+              'Für diesen Heizkreis sind keine Vergleichswerte (z. B. Heizspiegel) erfasst. Die Einzelabrechnungen enthalten dann keinen Vergleich mit einem normierten oder durch Vergleichstests ermittelten Durchschnittsnutzer derselben Nutzerkategorie (§ 6a Abs. 3 Nr. 4 HeizKV). Der mittlere Verbrauch des eigenen Heizkreises ersetzt diesen Vergleich nicht. Bei unvollständigen Angaben nach § 6a HeizKV kann der Mieter seinen Heizkostenanteil um 3 % kürzen (§ 12 Abs. 1 HeizKV).',
+          },
+        ),
+      )
     if (benchmark && benchmark.referenceYear !== period.year)
       add(
         issue(
@@ -316,6 +320,60 @@ function climateFactorInformation(
         },
       ),
     )
+}
+
+/**
+ * § 6a Abs. 3 Satz 3/4 HeizKV: Die Einzelabrechnung gibt einen
+ * Vorjahresvergleich aus, kann ihn aber nicht witterungsbereinigen (eine
+ * Warnung je Abrechnungsjahr mit Zahl der betroffenen Nutzungen).
+ */
+function previousPeriodWeatherAdjustment(
+  data: AppDataFile,
+  period: BillingPeriod,
+  add: Add,
+): void {
+  const heatedBuildings = new Set(
+    data.billingData.heatingCircuits
+      .filter(({ billingPeriodId }) => billingPeriodId === period.id)
+      .map(({ buildingId }) => buildingId),
+  )
+  const unitBuilding = new Map(
+    data.masterData.units.map(({ id, buildingId }) => [id, buildingId]),
+  )
+  const affected = data.billingData.occupancyPeriods.filter((occupancy) => {
+    if (occupancy.billingPeriodId !== period.id || occupancy.kind !== 'tenant')
+      return false
+    const buildingId =
+      occupancy.costScope?.kind === 'building'
+        ? occupancy.costScope.buildingId
+        : unitBuilding.get(occupancy.unitId)
+    return (
+      buildingId != null &&
+      heatedBuildings.has(buildingId) &&
+      previousPeriodConsumption(data, period, occupancy).kind === 'available' &&
+      previousPeriodWeatherFactors(data, period, occupancy) === null
+    )
+  })
+  if (affected.length === 0) return
+  const property = data.masterData.properties.find(
+    ({ id }) => id === period.propertyId,
+  )
+  const reason =
+    checkClimateFactor(period, property).status === 'matching'
+      ? `Für das Vorjahr ${period.year - 1} fehlt der Klimafaktor.`
+      : `Für ${period.year} ist kein passender Klimafaktor des Deutschen Wetterdienstes erfasst (Zeitraum und Postleitzahl des Objekts).`
+  add(
+    issue(
+      'warning',
+      'heating.previous_period_not_weather_adjusted',
+      'heating',
+      'Vorjahresvergleich ohne Witterungsbereinigung',
+      {
+        entity: { type: 'BillingPeriod', id: period.id },
+        detail: `${affected.length === 1 ? 'Eine Einzelabrechnung enthält' : `${affected.length} Einzelabrechnungen enthalten`} einen Vergleich mit dem Vorjahr, der nicht witterungsbereinigt werden kann: ${reason} § 6a Abs. 3 Satz 3 HeizKV verlangt einen witterungsbereinigten Vergleich; bei unvollständigen Angaben kann der Mieter seinen Heizkostenanteil um 3 % kürzen (§ 12 Abs. 1 HeizKV).`,
+      },
+    ),
+  )
 }
 
 const BENCHMARK_REASON_TEXT: Record<
