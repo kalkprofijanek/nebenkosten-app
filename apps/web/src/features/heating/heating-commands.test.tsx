@@ -581,3 +581,38 @@ describe('heating commands', () => {
     expect(result.masterData.heatingSystems).toEqual([])
   })
 })
+
+describe('Vergleichswerte am Heizkreis (§ 6a Abs. 3 Nr. 4 HeizKV)', () => {
+  it('bleiben beim Bearbeiten des Heizkreises erhalten', () => {
+    const context = createHeatingContext()
+    const benchmark = {
+      source: 'Heizspiegel für Deutschland (co2online)',
+      referenceYear: 2024,
+      category: 'Heizöl, fiktive Kategorie',
+      includesHotWater: true,
+      lowMaxKwhPerSqmYear: 70,
+      mediumMaxKwhPerSqmYear: 130,
+      elevatedMaxKwhPerSqmYear: 200,
+    }
+    const withBenchmark = {
+      ...context,
+      billingData: {
+        ...context.billingData,
+        heatingCircuits: context.billingData.heatingCircuits.map((circuit) =>
+          circuit.id === IDS.circuit
+            ? { ...circuit, consumptionBenchmark: benchmark }
+            : circuit,
+        ),
+      },
+    }
+    const result = updateHeatingCircuit(withBenchmark, IDS.circuit, {
+      billingPeriodId: IDS.period,
+      heatingSystemId: IDS.system,
+      buildingId: IDS.building,
+      hasCentralHotWater: false,
+    })
+    expect(result.billingData.heatingCircuits[0]?.consumptionBenchmark).toEqual(
+      benchmark,
+    )
+  })
+})

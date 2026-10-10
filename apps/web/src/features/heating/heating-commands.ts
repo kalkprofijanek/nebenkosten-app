@@ -651,6 +651,7 @@ export function updateHeatingCircuit(
     ...validated.billingData.heatingCircuits.at(-1)!,
     consumptionMode: current.consumptionMode,
     meterAssignments: current.meterAssignments,
+    consumptionBenchmark: current.consumptionBenchmark,
     legacyUnmapped: current.legacyUnmapped,
   }
   return validateResult({

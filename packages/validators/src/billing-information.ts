@@ -4,7 +4,14 @@
  * Energieträger), Energierechnungen leitungsgebundener Energie und eindeutig
  * bezeichnete Belege.
  */
-import { isGridEnergySource } from '@nebenkosten/core'
+import {
+  compareTenantWithConsumptionBenchmark,
+  isGridEnergySource,
+} from '@nebenkosten/core'
+import type {
+  CalculationOutput,
+  ConsumptionBenchmarkUnavailableReason,
+} from '@nebenkosten/core'
 import type {
   AppDataFile,
   BillingPeriod,
@@ -167,6 +174,20 @@ export function heatingInformation(
     ),
   )
   for (const circuit of circuits) {
+    const benchmark = circuit.consumptionBenchmark
+    if (benchmark && benchmark.referenceYear !== period.year)
+      add(
+        issue(
+          'info',
+          'heating.consumption_benchmark_year_mismatch',
+          'heating',
+          'Vergleichswerte aus einem anderen Abrechnungsjahr',
+          {
+            entity: { type: 'HeatingCircuit', id: circuit.id },
+            detail: `Die Vergleichswerte (${benchmark.source}) beziehen sich auf ${benchmark.referenceYear}, abgerechnet wird ${period.year}. Sind Werte für ${period.year} noch nicht veröffentlicht, ist die jüngste Ausgabe zu verwenden und das Bezugsjahr anzugeben.`,
+          },
+        ),
+      )
     const sources = data.billingData.energySources.filter(
       ({ heatingCircuitId }) => heatingCircuitId === circuit.id,
     )
@@ -190,6 +211,75 @@ export function heatingInformation(
           {
             entity: { type: 'HeatingCircuit', id: circuit.id },
             detail: `Für ${unknownShare.join(', ')} fehlt die Menge oder der Heizwert. Die Einzelabrechnung nennt dann nur die Energieträger ohne ihre Anteile am Energieeinsatz (§ 6a Abs. 3 HeizKV).`,
+          },
+        ),
+      )
+  }
+}
+
+const BENCHMARK_REASON_TEXT: Record<
+  Exclude<
+    ConsumptionBenchmarkUnavailableReason,
+    'no_benchmark' | 'vacancy' | 'not_in_calculation'
+  >,
+  string
+> = {
+  energy_input_unknown:
+    'Der Energieeinsatz des Heizkreises in kWh ist nicht bekannt (Menge oder Heizwert der Energieträger fehlt).',
+  consumption_unknown: 'Es ist kein Verbrauch erfasst.',
+  area_unknown: 'Es ist keine Fläche erfasst.',
+  hot_water_energy_unknown:
+    'Die Vergleichswerte enthalten Warmwasser, das Warmwasser wird aber nicht zentral über den Heizkreis bereitet. Vergleichswerte ohne Warmwasser erfassen.',
+}
+
+/**
+ * § 6a Abs. 3 Nr. 4 HeizKV: Vergleichswerte sind erfasst, für einzelne
+ * Nutzer ist der Vergleich aber nicht möglich (eine Warnung je Heizkreis
+ * und Grund).
+ */
+export function consumptionBenchmarkIssues(
+  data: AppDataFile,
+  period: BillingPeriod,
+  output: CalculationOutput,
+  add: Add,
+): void {
+  const circuits = data.billingData.heatingCircuits.filter(
+    ({ billingPeriodId, consumptionBenchmark }) =>
+      billingPeriodId === period.id && consumptionBenchmark,
+  )
+  for (const circuit of circuits) {
+    const byReason = new Map<keyof typeof BENCHMARK_REASON_TEXT, number>()
+    for (const tenant of output.tenants) {
+      if (
+        tenant.isVacancy ||
+        tenant.ownBasis?.buildingId !== circuit.buildingId
+      )
+        continue
+      const result = compareTenantWithConsumptionBenchmark(
+        output,
+        tenant.id,
+        circuit,
+      )
+      if (result.status !== 'unavailable') continue
+      const { reason } = result
+      if (
+        reason === 'no_benchmark' ||
+        reason === 'vacancy' ||
+        reason === 'not_in_calculation'
+      )
+        continue
+      byReason.set(reason, (byReason.get(reason) ?? 0) + 1)
+    }
+    for (const [reason, count] of byReason)
+      add(
+        issue(
+          'warning',
+          'heating.consumption_benchmark_not_comparable',
+          'heating',
+          'Vergleich mit dem Durchschnittsnutzer nicht möglich',
+          {
+            entity: { type: 'HeatingCircuit', id: circuit.id },
+            detail: `${count === 1 ? 'Für eine Nutzung' : `Für ${count} Nutzungen`} kann der Verbrauch nicht mit den Vergleichswerten (§ 6a Abs. 3 Nr. 4 HeizKV) verglichen werden: ${BENCHMARK_REASON_TEXT[reason]}`,
           },
         ),
       )

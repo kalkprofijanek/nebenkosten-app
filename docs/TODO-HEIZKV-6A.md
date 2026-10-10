@@ -21,7 +21,7 @@ Heizkostenanteils um 3 % (§ 12 Abs. 1 HeizKV).
 | Abs. 3 Nr. 1c: Entgelte Geräte, Eichung, Ablesung, Abrechnung                        | teilweise        | `packages/pdf/src/heating-summary.ts:529-541` (Erkennung per Regex), Text `legal-texts.ts:157`                                        | Kostenart explizit als Messdienstentgelt markieren statt Schlagwortsuche; Validator, wenn nichts erkannt                                             |
 | Abs. 3 Nr. 2: Kontaktinformationen Verbraucherorganisationen/Energieagenturen        | erfüllt          | `packages/pdf/src/legal-texts.ts:146`, ausgegeben `tenant-statement.ts:1061`                                                          | –                                                                                                                                                    |
 | Abs. 3 Nr. 3: Verbraucherstreitbeilegung (VSBG)                                      | erfüllt (prüfen) | `packages/pdf/src/legal-texts.ts:164`                                                                                                 | Bezeichnung der Stelle aktuell halten („Universalschlichtungsstelle des Bundes“ seit 2024)                                                           |
-| Abs. 3 Nr. 4: Vergleich mit normiertem Durchschnittsnutzer derselben Nutzerkategorie | fehlt            | nur Heizkreis-Mittelwert `tenant-statement.ts:1022-1029`, `legal-texts.ts:196`; Warnung `billing-information.ts:155-168`              | Referenzwerte je Nutzerkategorie hinterlegen und ausgeben                                                                                            |
+| Abs. 3 Nr. 4: Vergleich mit normiertem Durchschnittsnutzer derselben Nutzerkategorie | teilweise        | nur Heizkreis-Mittelwert `tenant-statement.ts:1022-1029`, `legal-texts.ts:196`; Warnung `billing-information.ts:155-168`              | Referenzwerte je Nutzerkategorie hinterlegen und ausgeben                                                                                            |
 | Abs. 3 Nr. 5: grafischer Vergleich mit Vorperiode                                    | teilweise        | Balkengrafik `tenant-statement.ts:912-990`, Vorjahreswert `tenant-statement.ts:851-910`, `packages/schema/src/entities/tenancy.ts:58` | Witterungsbereinigung fehlt (Text `legal-texts.ts:176` „ohne Witterungsbereinigung“), Warmwasser nicht enthalten, bei HKV keine kWh                  |
 | Abs. 3 S. 2: Energieverbrauch = Wärme + Warmwasser                                   | fehlt            | Warmwasser nur als Kosten nach Personen (`tenant-statement.ts:535-538`)                                                               | Warmwasserenergie je Nutzer ermitteln (§ 9 HeizKV) und addieren                                                                                      |
 | Abs. 3 S. 3/4: Bereinigung nach anerkannten Regeln / Bundesanzeiger-Vereinfachung    | fehlt            | – (Gradtage nur für Nutzerwechsel, `packages/core/src/calculation/calculate-billing.ts:504`)                                          | Gradtagszahlen-Verfahren, siehe unten                                                                                                                |
@@ -31,6 +31,12 @@ Heizkostenanteils um 3 % (§ 12 Abs. 1 HeizKV).
 ## Bauliste (priorisiert)
 
 ### 1. Vergleich mit normiertem Durchschnittsnutzer (Abs. 3 Nr. 4)
+
+Stand 10. Oktober 2026: Schema, Rechenvertrag und Prüfung umgesetzt
+(ADR-0004, Quelle Heizspiegel co2online, Werte am Heizkreis statt eigener
+Sammlung). Offen sind PDF-Ausgabe und Erfassung in der Oberfläche
+(`docs/TASKS/PR-24-VERGLEICH-DURCHSCHNITTSNUTZER.md`, Teil B). Die
+ursprüngliche Skizze:
 
 - Datenmodell: `consumptionBenchmarkSchema` in `packages/schema` mit
   `category` (z. B. „Mehrfamilienhaus, Baujahr/Energieträger“), `year`,

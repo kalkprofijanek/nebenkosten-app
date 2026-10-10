@@ -4,6 +4,15 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Vergleich mit dem normierten Durchschnittsnutzer** (§ 6a Abs. 3 Nr. 4
+  HeizKV), Grundlage: Vergleichswerte (z. B. Heizspiegel für Deutschland,
+  co2online) je Heizkreis mit Quelle, Kategorie, Bezugsjahr und
+  Klassengrenzen; Berechnung des eigenen Verbrauchs in kWh je m² und Jahr als
+  Anteil am Energieeinsatz und Einstufung („niedrig“ bis „zu hoch“); neue
+  Prüfhinweise `heating.consumption_benchmark_not_comparable` und
+  `heating.consumption_benchmark_year_mismatch` (ADR-0004, Schema v5 additiv
+  um `HeatingCircuit.consumptionBenchmark` ergänzt). Ausgabe in der
+  Einzelabrechnung und Erfassung in der Oberfläche folgen,
 - **Vorjahresvergleich nach Eigentümerwechsel** (§ 6a HeizKV): Vorjahresverbrauch je Nutzungsperiode (`vorjahr_verbrauch`/`vorjahr_jahr`/`vorjahr_quelle`) wird als Grafik mit Quellenangabe dargestellt, wenn keine Vorjahresabrechnung im System liegt; bei Einzug im Abrechnungsjahr Hinweis „noch nicht genutzt“,
 - Einzelabrechnung: **„Ihre Verbrauchserfassung“** zeigt die Herleitung auch bei gemessenem Verbrauch (z. B. abgeleiteter Anfangsstand, Gradtag-Aufteilung) und wird nicht mehr über einen Seitenumbruch getrennt,
 - **`pnpm abrechnung`**: Import, Berechnung, Prüfung und PDF-Erzeugung ohne Browser – Grundlage für die Arbeit mit einem KI-Coding-Agenten (README, docs/KI-ANLEITUNG.md),

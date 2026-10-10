@@ -174,6 +174,12 @@ Darstellung und Prüfhinweise.
   ausgewiesen. Die Prüfung meldet je Abrechnungsjahr mit Heizkreis
   `heating.consumption_benchmark_missing` (3-%-Kürzungsrecht nach § 12 Abs. 1
   HeizKV).
+- **Durchschnittsnutzer (ADR-0004):** Mit Vergleichswerten am Heizkreis
+  (`consumptionBenchmark`, z. B. Heizspiegel) ermittelt
+  `compareTenantWithConsumptionBenchmark` den eigenen Verbrauch als Anteil am
+  Energieeinsatz in kWh je m² und Jahr (Heizwärme nach Verbrauchseinheiten,
+  Warmwasser nach Personenzeit) und stuft ihn ein. Die Einzelabrechnung gibt
+  das noch nicht aus.
 - **Vorjahresvergleich:** Ohne Vorjahresabrechnung des Objekts (z. B.
   Eigentümerwechsel) bzw. ohne Nutzung oder Verbrauchswerte im Vorjahr steht
   ein eigener, begründeter Satz. Liegen Vorjahreswerte derselben Mietpartei
