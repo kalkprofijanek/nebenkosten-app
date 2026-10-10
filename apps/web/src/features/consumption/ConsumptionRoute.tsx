@@ -652,8 +652,9 @@ function ConsumptionTable({
       )}
       <p className="consumption-note">
         Der gespeicherte Vorjahreswert gilt nur für {period.year - 1} und wird
-        nur herangezogen, wenn im System kein Vorjahreszeitraum mit
-        Verbrauchsdaten vorliegt.
+        nur herangezogen, wenn der Vorjahreszeitraum fehlt oder dort keine
+        Nutzungen erfasst sind. Sobald dort eine Nutzung besteht, verwendet das
+        PDF den Vergleich aus diesem Zeitraum.
       </p>
       {hint ? (
         <p className="calculation-warnings" role="note" aria-live="polite">

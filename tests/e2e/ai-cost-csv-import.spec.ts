@@ -14,13 +14,11 @@ test('prüft eine KI-Erfassungsliste vor atomarer Übernahme und verhindert Dupl
   })
   await page.setViewportSize({ width: 1440, height: 950 })
   await page.goto('/')
-  await page
-    .getByLabel('Daten importieren')
-    .setInputFiles({
-      name: 'fiktiver-kostenbestand.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from(JSON.stringify(data)),
-    })
+  await page.getByLabel('Daten importieren').setInputFiles({
+    name: 'fiktiver-kostenbestand.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(data)),
+  })
   await page.getByRole('button', { name: 'Import übernehmen' }).click()
   await page.getByRole('link', { name: 'Kosten', exact: true }).click()
   await page

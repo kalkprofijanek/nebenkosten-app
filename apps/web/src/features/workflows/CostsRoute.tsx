@@ -1,3 +1,4 @@
+import { AiCostCsvImport } from '../costs/AiCostCsvImport'
 import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import type { BankBooking, CostCategory } from '@nebenkosten/schema'
 import { parseEuroCents, parseOptionalNumber } from '../../app/form-parsers'
@@ -435,6 +436,13 @@ export function CostsRoute({
 
       {activeTab === 'entries' ? (
         <CostEntryWorkspace
+          additionalTools={
+            <AiCostCsvImport
+              data={data}
+              billingPeriodId={period.id}
+              onApply={apply}
+            />
+          }
           categories={categories}
           entries={entries}
           visibleEntries={visibleEntries}

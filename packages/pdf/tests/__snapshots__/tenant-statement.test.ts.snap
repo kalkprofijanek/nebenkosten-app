@@ -20,7 +20,7 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
       "fontSize": 10,
       "stack": [
         "Mieter T1",
-        "Musterweg 1",
+        "Fiktive Anschrift",
         "00000 Musterstadt",
       ],
     },

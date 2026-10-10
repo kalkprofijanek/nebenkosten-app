@@ -6,11 +6,15 @@ export function occupancyUsesMeteredKwh(
   occupancy: OccupancyPeriod,
 ): boolean {
   const unit = data.masterData.units.find(({ id }) => id === occupancy.unitId)
-  if (!unit?.buildingId) return false
+  const buildingId =
+    occupancy.costScope?.kind === 'building'
+      ? occupancy.costScope.buildingId
+      : unit?.buildingId
+  if (!buildingId) return false
   return data.billingData.heatingCircuits.some(
     (circuit) =>
       circuit.billingPeriodId === occupancy.billingPeriodId &&
-      circuit.buildingId === unit.buildingId &&
+      circuit.buildingId === buildingId &&
       circuit.consumptionMode === 'metered_kwh',
   )
 }

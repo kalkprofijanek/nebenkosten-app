@@ -81,6 +81,8 @@ describe('buildTenantStatement', () => {
 
   it('bewahrt die vollständige PDF-Dokumentdefinition', () => {
     const context = buildFixtureTenantStatementContext(buildFixtureAppData())
+    // Der veröffentlichte Snapshot verwendet keine adressähnlichen Muster.
+    context.tenancy.shippingAddressStreet = 'Fiktive Anschrift'
     const document = buildTenantStatement(context)
     const footer = document.footer as (
       currentPage: number,

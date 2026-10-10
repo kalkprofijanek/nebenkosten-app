@@ -123,7 +123,10 @@ export function buildConsumptionOverview(
       const unit = data.masterData.units.find(
         ({ id }) => id === occupancy.unitId,
       )
-      const buildingId = unit?.buildingId ?? null
+      const buildingId =
+        occupancy.costScope?.kind === 'building'
+          ? occupancy.costScope.buildingId
+          : (unit?.buildingId ?? null)
       const reading = occupancy.heatMeterReading ?? undefined
       const units = occupancy.consumptionUnits?.value ?? null
       const estimated = occupancy.consumptionUnitsEstimated === true
