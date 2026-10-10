@@ -92,6 +92,44 @@ describe('Kosten-Commands', () => {
     expect(appDataFileSchema.safeParse(result).success).toBe(true)
   })
 
+  it('speichert explizite Messdienstentgelt-Auswahl und automatische Erkennung', () => {
+    const input = {
+      billingPeriodId: IDS.billingPeriod,
+      kind: 'heating' as const,
+      label: 'Heizkosten',
+    }
+    const yes = addCostCategory(
+      validFile(),
+      { ...input, meteringFee: true },
+      () => IDS.category,
+    )
+    expect(yes.billingData.costCategories[0]?.meteringFee).toBe(true)
+    const no = updateCostCategory(yes, IDS.category, {
+      kind: 'heating',
+      label: 'Heizkosten',
+      meteringFee: false,
+    })
+    expect(no.billingData.costCategories[0]?.meteringFee).toBe(false)
+    const automatic = updateCostCategory(no, IDS.category, {
+      kind: 'heating',
+      label: 'Heizkosten',
+      meteringFee: null,
+    })
+    expect(automatic.billingData.costCategories[0]?.meteringFee).toBeNull()
+    expect(() =>
+      addCostCategory(
+        validFile(),
+        {
+          billingPeriodId: IDS.billingPeriod,
+          kind: 'operating',
+          label: 'Gebäudeversicherung',
+          meteringFee: true,
+        },
+        () => IDS.category,
+      ),
+    ).toThrow(/nur für Heizkosten/u)
+  })
+
   it('legt eine Kostenbuchung mit ganzzahligem Centbetrag an', () => {
     const withCategory = addCostCategory(
       validFile(),

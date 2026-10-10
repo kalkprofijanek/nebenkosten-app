@@ -58,6 +58,11 @@ function categoryInput(form: FormData, billingPeriodId?: string) {
         : ({ kind: 'property' } as const),
     allocablePercent: optionalPercent(form, 'allocablePercent'),
     laborSharePercent: optionalPercent(form, 'laborSharePercent'),
+    meteringFee: form.has('meteringFee')
+      ? formText(form, 'meteringFee') === ''
+        ? null
+        : formText(form, 'meteringFee') === 'true'
+      : null,
   }
 }
 

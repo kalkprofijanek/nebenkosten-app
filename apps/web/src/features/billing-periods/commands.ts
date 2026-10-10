@@ -3,6 +3,7 @@ import type {
   BillingNotes,
   CoverLetter,
   HeatingDefaults,
+  ClimateFactor,
 } from '@nebenkosten/schema'
 import {
   assertValidResult,
@@ -29,6 +30,8 @@ export interface UpdateBillingPeriodInput {
   readonly notes?: BillingNotes
   readonly coverLetter?: CoverLetter
   readonly heatingDefaults?: HeatingDefaults
+  /** Omitted preserves the current value; null explicitly removes it. */
+  readonly climateFactor?: ClimateFactor | null
 }
 
 function normalizePropertyId(value: unknown): string {
@@ -170,6 +173,11 @@ export function updateBillingPeriod(
               notes: input.notes,
               coverLetter: input.coverLetter,
               heatingDefaults: input.heatingDefaults,
+              ...(input.climateFactor === undefined
+                ? {}
+                : input.climateFactor === null
+                  ? { climateFactor: undefined }
+                  : { climateFactor: input.climateFactor }),
             }
           : item,
       ),
