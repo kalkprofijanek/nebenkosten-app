@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -31,6 +32,50 @@ afterEach(() => {
 })
 
 describe('Klimafaktor am Abrechnungsjahr', () => {
+  it.each(['größere Folgedatei', 'geänderte Postleitzahl'])(
+    'verwirft eine alte Dateianfrage nach %s',
+    async (change) => {
+      render(
+        <BillingPeriodsRoute
+          data={fixture()}
+          selection={selection}
+          onSelectionChange={vi.fn()}
+          onApply={() => true}
+        />,
+      )
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Abrechnungsjahr bearbeiten' }),
+      )
+      fireEvent.click(screen.getByLabelText('Klimafaktor erfassen'))
+      let resolve!: (text: string) => void
+      const delayed = new File([], 'fiktive-dwd.csv')
+      Object.defineProperty(delayed, 'text', {
+        value: () =>
+          new Promise<string>((done) => {
+            resolve = done
+          }),
+      })
+      const input = screen.getByLabelText('DWD-Klimafaktor-CSV importieren')
+      fireEvent.change(input, { target: { files: [delayed] } })
+      if (change === 'größere Folgedatei') {
+        const oversized = new File([], 'zu-gross.csv')
+        Object.defineProperty(oversized, 'size', { value: 5 * 1024 * 1024 + 1 })
+        fireEvent.change(input, { target: { files: [oversized] } })
+        expect(screen.getByRole('status')).toHaveTextContent('größer als 5 MB')
+      } else {
+        fireEvent.change(screen.getByLabelText('Postleitzahl Klimafaktor'), {
+          target: { value: '01234' },
+        })
+      }
+      await act(async () =>
+        resolve('DatAnf;DatEnd;PLZ;KF_k\n20260101;20261231;4109;1,08'),
+      )
+      expect(screen.getByLabelText('DWD-Klimafaktor')).toHaveValue('')
+      if (change === 'größere Folgedatei')
+        expect(screen.getByRole('status')).toHaveTextContent('größer als 5 MB')
+    },
+  )
+
   it('speichert manuell erfasste Faktoren und schlägt die Objekt-PLZ vor', () => {
     let current = fixture()
     render(

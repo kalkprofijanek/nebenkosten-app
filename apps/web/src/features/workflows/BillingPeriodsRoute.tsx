@@ -204,12 +204,12 @@ export function BillingPeriodsRoute({
     form: HTMLFormElement | null,
   ) {
     if (!file) return
+    const request = ++climateImportRequest.current
     if (file.size > 5 * 1024 * 1024) {
       setClimateImportMessage('Die CSV-Datei ist größer als 5 MB.')
       return
     }
     if (!form || !period) return
-    const request = ++climateImportRequest.current
     const context = climateImportContext.current
     const postalCode = climatePostalCode
     try {
@@ -447,7 +447,10 @@ export function BillingPeriodsRoute({
                   type="checkbox"
                   name="climateFactorEnabled"
                   checked={climateEnabled}
-                  onChange={(event) => setClimateEnabled(event.target.checked)}
+                  onChange={(event) => {
+                    climateImportRequest.current += 1
+                    setClimateEnabled(event.target.checked)
+                  }}
                 />
                 <span>Klimafaktor erfassen</span>
               </label>
@@ -462,9 +465,10 @@ export function BillingPeriodsRoute({
                     <input
                       aria-label="Postleitzahl Klimafaktor"
                       value={climatePostalCode}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        climateImportRequest.current += 1
                         setClimatePostalCode(event.target.value)
-                      }
+                      }}
                     />
                   </label>
                   <label>
