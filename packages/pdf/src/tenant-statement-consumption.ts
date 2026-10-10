@@ -1,4 +1,5 @@
 import type { Content, TableCell } from 'pdfmake/interfaces'
+import { compareTenantWithConsumptionBenchmark } from '@nebenkosten/core'
 import type { TenantStatementContext } from './contracts'
 import {
   captureModeFor,
@@ -7,6 +8,7 @@ import {
 } from './heating-summary'
 import {
   CIRCUIT_AVERAGE_LABEL,
+  CONSUMPTION_BENCHMARK_LABEL,
   CONSUMPTION_INFORMATION_HEADING,
   DISPUTE_RESOLUTION_NOTICE,
   ENERGY_ADVICE_NOTICE,
@@ -98,6 +100,70 @@ function previousPeriodComparison(
 }
 
 const BAR_WIDTH = 200
+
+const benchmarkClassLabel = {
+  low: 'niedrig',
+  medium: 'mittel',
+  elevated: 'erhöht',
+  high: 'zu hoch',
+} as const
+
+function consumptionBenchmarkInformation(
+  context: TenantStatementContext,
+  circuit: NonNullable<ReturnType<typeof circuitTraceFor>>,
+): { readonly row: TableCell[]; readonly note: string } | null {
+  const heatingCircuit = context.appData.billingData.heatingCircuits.find(
+    (item) =>
+      item.billingPeriodId === context.billingPeriod.id &&
+      item.buildingId === circuit.buildingId,
+  )
+  const comparison = compareTenantWithConsumptionBenchmark(
+    context.calculation,
+    context.occupancyPeriod.id,
+    heatingCircuit,
+  )
+  if (comparison.status !== 'compared') return null
+
+  const { benchmark, rangeKwh } = comparison
+  const classLimits = [
+    `niedrig bis ${formatNumber(benchmark.lowMaxKwhPerSqmYear)}`,
+    `mittel bis ${formatNumber(benchmark.mediumMaxKwhPerSqmYear)}`,
+    `erhöht bis ${formatNumber(benchmark.elevatedMaxKwhPerSqmYear)}`,
+    'darüber zu hoch',
+  ].join('; ')
+  const ownPeriodLimits = [
+    `niedrig bis ${formatNumber(rangeKwh.lowMax)} kWh`,
+    `mittel bis ${formatNumber(rangeKwh.mediumMax)} kWh`,
+    `erhöht bis ${formatNumber(rangeKwh.elevatedMax)} kWh`,
+    'darüber zu hoch',
+  ].join('; ')
+  const hotWaterNote = benchmark.includesHotWater
+    ? 'Die Vergleichswerte enthalten Warmwasser.'
+    : 'Die Vergleichswerte enthalten kein Warmwasser.'
+  const sourceReference = benchmark.sourceUrl
+    ? `${benchmark.source} (${benchmark.sourceUrl})`
+    : benchmark.source
+  const annualization = comparison.annualized
+    ? ' Ihr Wert wurde auf ein Jahr hochgerechnet.'
+    : ''
+
+  return {
+    row: [
+      CONSUMPTION_BENCHMARK_LABEL,
+      `${formatNumber(comparison.kwhPerSqmYear)} kWh je m² und Jahr (${benchmarkClassLabel[comparison.benchmarkClass]})`,
+    ],
+    note: [
+      `${sourceReference}; Kategorie: ${benchmark.category}; Bezugsjahr: ${benchmark.referenceYear}.`,
+      `Klassengrenzen: ${classLimits} kWh je m² und Jahr. Für Ihre Fläche und Nutzungsdauer: ${ownPeriodLimits}.`,
+      `Eingesetzte Energieträger: ${energyCarrierMixLabel(context.appData, circuit)}.`,
+      hotWaterNote,
+      'Heizwärme und gegebenenfalls Warmwasser wurden anteilig am Energieeinsatz des Heizkreises nach den jeweiligen Verteilungsschlüsseln ermittelt.',
+      annualization.trim(),
+    ]
+      .filter(Boolean)
+      .join(' '),
+  }
+}
 
 /** Balkengrafik Vorjahr / Abrechnungsjahr (§ 6a Abs. 3 HeizKV). */
 function previousPeriodChart(
@@ -216,6 +282,8 @@ export function consumptionInformation(
       `${formatNumber(averagePerSqm * ownArea * (facts.days / facts.periodDays))} ${unit} (${formatNumber(averagePerSqm)} ${unit} je m²)`,
     ])
   }
+  const benchmarkInfo = consumptionBenchmarkInformation(context, circuit)
+  if (benchmarkInfo) rows.push(benchmarkInfo.row)
   const fees = meteringFeeCents(
     context.appData,
     context.billingPeriod.id,
@@ -245,6 +313,16 @@ export function consumptionInformation(
       layout: 'lightHorizontalLines',
       margin: [0, 0, 0, 2],
     },
+    ...(benchmarkInfo
+      ? [
+          {
+            text: benchmarkInfo.note,
+            fontSize: 8,
+            color: MUTED,
+            margin: [0, 0, 0, 4],
+          } satisfies Content,
+        ]
+      : []),
     ...previousPeriodSection(context, facts, unit),
     {
       text: `${averageText}${ENERGY_TAXES_NOTICE} ${ENERGY_ADVICE_NOTICE} ${DISPUTE_RESOLUTION_NOTICE}`,
