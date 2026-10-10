@@ -3,6 +3,7 @@ import {
   createCalculationInput,
   meterReadingConsumption,
   resolveMeteredConsumption,
+  tenantChanges,
   resolveShippingAddress,
   type MeteredConsumptionIssue,
 } from '@nebenkosten/core'
@@ -1098,6 +1099,41 @@ function meterReadings(
   }
 }
 
+/**
+ * § 9b Abs. 1 HeizKV: Zwischenablesung bei jedem Nutzerwechsel (ADR-0009).
+ * Nur ein Hinweis, weil Messdienste die Ablesung oft durchführen, ohne dass
+ * die Stände in der App erfasst sind.
+ */
+function interimReadings(
+  data: AppDataFile,
+  period: BillingPeriod,
+  add: Add,
+): void {
+  if (
+    !data.billingData.heatingCircuits.some(
+      ({ billingPeriodId }) => billingPeriodId === period.id,
+    )
+  )
+    return
+  for (const change of tenantChanges(data, period)) {
+    if (change.hasInterimReading) continue
+    const unit = data.masterData.units.find(({ id }) => id === change.unitId)
+    const [year, month, day] = change.date.split('-')
+    add(
+      issue(
+        'info',
+        'heating.interim_reading_missing',
+        'occupancy',
+        'Zwischenablesung bei Nutzerwechsel nicht erfasst',
+        {
+          entity: { type: 'OccupancyPeriod', id: change.nextOccupancyId },
+          detail: `Wohnung ${unit?.label ?? unit?.location ?? 'ohne Bezeichnung'}: Nutzerwechsel zum ${day}.${month}.${year}. Nach § 9b Abs. 1 HeizKV ist bei jedem Nutzerwechsel eine Zwischenablesung vorzunehmen; eine Aufteilung nach Gradtagszahlen oder Tagen ist nur zulässig, wenn sie nicht möglich war (Abs. 3). Ablesestand zum Wechsel (Stand neu der vorigen oder Stand alt der neuen Nutzung) erfassen oder den Grund in der Erläuterung festhalten.`,
+        },
+      ),
+    )
+  }
+}
+
 function normalizedDescription(value: string | null | undefined): string {
   return (value ?? '').trim().replace(/\s+/gu, ' ').toLocaleLowerCase('de-DE')
 }
@@ -1268,6 +1304,7 @@ export function collectStaticIssues(
   heating(data, period, add)
   heatingInformation(data, period, add)
   meterReadings(data, period, add)
+  interimReadings(data, period, add)
   meters(data, period, add)
   return result
 }

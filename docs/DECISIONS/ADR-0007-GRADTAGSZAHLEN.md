@@ -45,6 +45,13 @@
    (`'linear'`). Die Klassengrenzen werden mit demselben Verhältnis auf den
    Nutzungszeitraum umgerechnet.
 
+## Nachtrag (ADR-0009, 10. Oktober 2026)
+
+Nach dem Wortlaut von § 9b HeizKV ist die **Zwischenablesung bei jedem
+Nutzerwechsel Pflicht** (Abs. 1). Die Aufteilung nach Gradtagszahlen ist der
+Ausweg nach Abs. 3, wenn die Ablesung nicht möglich war oder keine
+hinreichend genaue Ermittlung zulässt; der Grund ist festzuhalten.
+
 ## Offene Entscheidungen
 
 - **Gradtage oder zeitanteilig?** § 9b Abs. 2 lässt beides zu. Die App bietet

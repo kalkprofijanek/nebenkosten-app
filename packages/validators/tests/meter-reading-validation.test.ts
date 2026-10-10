@@ -231,3 +231,51 @@ describe('Zählertausch (ADR-0008)', () => {
     expect(order!.detail).toContain('nicht zeitlich geordnet')
   })
 })
+
+describe('Zwischenablesung bei Nutzerwechsel (§ 9b Abs. 1 HeizKV)', () => {
+  function withChange(endDate?: string): AppDataFile {
+    const data = validData()
+    data.masterData.heatingSystems.push({
+      id: 'system-1',
+      propertyId: data.masterData.properties[0]!.id,
+    })
+    data.billingData.heatingCircuits.push({
+      id: 'circuit-1',
+      billingPeriodId: 'period-1',
+      heatingSystemId: 'system-1',
+      buildingId: 'building-1',
+      hasCentralHotWater: false,
+    })
+    const first = data.billingData.occupancyPeriods[0]!
+    first.from = null
+    first.to = '2025-06-30'
+    if (endDate) first.heatMeterReading = { endValue: 100, endDate }
+    data.billingData.occupancyPeriods.push({
+      ...first,
+      id: 'occupancy-next',
+      from: '2025-07-01',
+      to: null,
+      heatMeterReading: null,
+    })
+    return data
+  }
+
+  it('weist auf die fehlende Zwischenablesung hin (nur Hinweis)', () => {
+    const [info] = find(withChange(), 'heating.interim_reading_missing')
+    expect(info).toMatchObject({
+      severity: 'info',
+      entity: { type: 'OccupancyPeriod', id: 'occupancy-next' },
+    })
+    expect(info!.detail).toContain('01.07.2025')
+    expect(info!.detail).toContain('§ 9b Abs. 1 HeizKV')
+  })
+
+  it('schweigt bei erfasster Ablesung und ohne Heizkreis', () => {
+    expect(
+      find(withChange('2025-06-30'), 'heating.interim_reading_missing'),
+    ).toEqual([])
+    const withoutCircuit = withChange()
+    withoutCircuit.billingData.heatingCircuits = []
+    expect(find(withoutCircuit, 'heating.interim_reading_missing')).toEqual([])
+  })
+})
