@@ -59,6 +59,26 @@ Recherche (10. Oktober 2026):
    „Witterungsbereinigung fehlt“ kommt erst mit der PDF-Ausgabe, damit die
    Prüfung keinen Vergleich bestätigt, den der Mieter nicht erhält.
 
+## Dateiformat der DWD-Liste (geprüft am 10. Oktober 2026)
+
+Geprüft an `KF_20250101_20251231.csv`, `…_k.csv` und `….xml` aus
+`opendata.dwd.de/climate_environment/CDC/derived_germany/techn/monthly/climate_correction_factor/recent/`
+(Datensatzbeschreibung Version v22.3):
+
+- Dateiname `KF_JJJJMMTT_JJJJMMTT.csv`, je Monatsbeginn eine Datei; dazu
+  `…_k.csv` (Dezimalkomma) und `….xml`.
+- CSV: ASCII, Trennzeichen `;`, Zeilenende LF, Kopfzeile
+  `DatAnf;DatEnd;PLZ;KF` (in `_k.csv`: `KF_k`), danach eine Zeile je
+  Postleitzahl, z. B. `20250101;20251231;<PLZ>;1.14`.
+- Zeitraum steht in jeder Zeile (`DatAnf`, `DatEnd`, `JJJJMMTT`).
+- **Postleitzahlen ohne führende Null** (vierstellig für 0xxxx, in dieser
+  Datei 652 von 8.234 Zeilen); beim Import auf fünf Stellen auffüllen.
+- Faktor mit zwei Nachkommastellen, in dieser Datei 0,49 bis 1,33; keine
+  doppelten Postleitzahlen.
+- XML: Elemente `KF_die_letzten_12` mit `KLFK_POLZ`, `VON_DATUM`,
+  `BIS_DATUM`, `KLIMAFAKTOR`.
+- Nutzungsbedingungen: GeoNutzV, Quellenvermerk „Deutscher Wetterdienst“.
+
 ## Offene Entscheidungen
 
 - **Teilzeiträume:** Bei Ein- oder Auszug im Jahr wird mit dem Faktor des
@@ -68,12 +88,6 @@ Recherche (10. Oktober 2026):
 - **Abweichender Abrechnungszeitraum:** Der DWD veröffentlicht Faktoren für
   jeden Monatsbeginn; Zeiträume, die nicht am Monatsersten beginnen, haben
   keinen exakt passenden Faktor (Prüfung meldet den Zeitraum).
-- **Dateiformat der DWD-Liste:** Spaltennamen und Trennzeichen der CSV
-  konnten in dieser Sitzung nicht an einer Originaldatei geprüft werden
-  (Server aus der Arbeitsumgebung nicht erreichbar). Der Importer muss an
-  einer echten Datei getestet werden; Anhaltspunkte: Zeitraum im Dateinamen
-  `KF_JJJJMMTT_JJJJMMTT.csv`, Variante `_k.csv` mit Dezimalkomma seit April
-  2023, XML mit `KLFK_POLZ` und `KLIMAFAKTOR`.
 - **Neues DWD-Verfahren:** Das BBSR beschreibt 2025 ein Verfahren auf
   1-km-Raster (HOSTRADA) ohne Postleitzahl-Zuordnung. Ob und wann der DWD
   umstellt, ist offen; das Schema speichert nur Faktor, Zeitraum und Quelle

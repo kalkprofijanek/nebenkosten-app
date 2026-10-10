@@ -27,13 +27,15 @@ Erst nach dem Merge von Teil A beginnen; PDF-Teil nach Teil B von PR-24, weil
 beide `consumptionInformation`/`previousPeriodSection` betreffen.
 
 1. **Import der DWD-Liste** (`packages/import-export`): Parser für die
-   Klimafaktor-CSV (Dezimalpunkt und `_k.csv` mit Dezimalkomma) und
-   möglichst XML; Zeitraum aus dem Dateinamen `KF_JJJJMMTT_JJJJMMTT`;
-   Ergebnis `{ periodStart, periodEnd, factors: Map<PLZ, number> }`.
-   Spaltenerkennung an einer **echten DWD-Datei** prüfen (siehe ADR-0005,
-   offene Entscheidungen); Fixture nur mit fiktiven Postleitzahlen und
-   Werten. Fehler: Zeitraum nicht erkennbar, Postleitzahl fehlt, Faktor
-   nicht positiv.
+   Klimafaktor-CSV; Format ist in ADR-0005 („Dateiformat der DWD-Liste“) an
+   Originaldateien geprüft. Kopfzeile `DatAnf;DatEnd;PLZ;KF` bzw. `KF_k`
+   (Dezimalkomma), Zeitraum aus den Spalten `DatAnf`/`DatEnd`
+   (`JJJJMMTT` → ISO), **Postleitzahl links mit Nullen auf fünf Stellen
+   auffüllen**. Ergebnis `{ periodStart, periodEnd, factors: Map<PLZ,
+number> }`. Fehler: unbekannte Kopfzeile, mehrere Zeiträume in einer
+   Datei, doppelte Postleitzahl, Faktor nicht positiv. Fixture nur mit
+   wenigen erfundenen Zeilen, keine Kopie der DWD-Datei. Quellenvermerk
+   „Deutscher Wetterdienst“ (GeoNutzV) in `source` übernehmen.
 2. **Oberfläche** (Abrechnungsjahr bearbeiten): Abschnitt „Klimafaktor
    (DWD)“ – Datei wählen, Postleitzahl aus der Objektanschrift vorbelegen
    (`postalCodeFromAddress`), Faktor und Zeitraum übernehmen; Quelle
