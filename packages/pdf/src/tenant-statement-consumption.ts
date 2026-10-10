@@ -1,5 +1,10 @@
 import type { Content, TableCell } from 'pdfmake/interfaces'
-import { compareTenantWithConsumptionBenchmark } from '@nebenkosten/core'
+import {
+  checkClimateFactor,
+  compareTenantWithConsumptionBenchmark,
+  previousPeriodClimateFactor,
+  weatherAdjustPreviousPeriod,
+} from '@nebenkosten/core'
 import type { TenantStatementContext } from './contracts'
 import {
   captureModeFor,
@@ -220,25 +225,74 @@ function previousPeriodSection(
           : NO_PREVIOUS_PERIOD_CONSUMPTION
     return [heading, { text, margin: [0, 0, 0, 4] }]
   }
+  const currentClimateCheck = checkClimateFactor(
+    context.billingPeriod,
+    context.property,
+  )
+  const previousClimateFactor = previousPeriodClimateFactor(
+    context.appData,
+    context.billingPeriod,
+    context.occupancyPeriod,
+  )
+  const previousBillingPeriod = context.appData.billingData.billingPeriods.find(
+    (period) =>
+      period.propertyId === context.billingPeriod.propertyId &&
+      period.year === context.billingPeriod.year - 1,
+  )
+  const previousHasOccupancies =
+    previousBillingPeriod !== undefined &&
+    context.appData.billingData.occupancyPeriods.some(
+      ({ billingPeriodId }) => billingPeriodId === previousBillingPeriod.id,
+    )
+  const previousClimateMatches =
+    previousBillingPeriod === undefined ||
+    !previousHasOccupancies ||
+    checkClimateFactor(previousBillingPeriod, context.property).status ===
+      'matching'
+  const weatherAdjusted =
+    comparison.year === context.billingPeriod.year - 1 &&
+    currentClimateCheck.status === 'matching' &&
+    previousClimateFactor !== null &&
+    previousClimateMatches
+      ? weatherAdjustPreviousPeriod(
+          {
+            value: facts.basis.consumption,
+            climateFactor: currentClimateCheck.factor,
+          },
+          {
+            value: comparison.value,
+            climateFactor: previousClimateFactor,
+          },
+        )
+      : null
+  const previousValue = weatherAdjusted?.previous.adjusted ?? comparison.value
+  const currentValue =
+    weatherAdjusted?.current.adjusted ?? facts.basis.consumption
+  const climatePostalCode =
+    context.billingPeriod.climateFactor?.postalCode ??
+    currentClimateCheck.expectedPostalCode
+  const comparisonNote = weatherAdjusted
+    ? `Witterungsbereinigt mit Klimafaktoren des DWD (Postleitzahl ${climatePostalCode ?? 'nicht angegeben'}, Faktor Vorjahr ${formatNumber(weatherAdjusted.previous.climateFactor)}, Abrechnungsjahr ${formatNumber(weatherAdjusted.current.climateFactor)}). Die verglichenen Heizverbrauchswerte enthalten kein Warmwasser.`
+    : PREVIOUS_PERIOD_NOT_WEATHER_ADJUSTED
   return [
     heading,
     previousPeriodChart(
       [
         {
           label: `Ihr Verbrauch im Vorjahr (${comparison.year})`,
-          value: comparison.value,
+          value: previousValue,
         },
         {
           label: `Ihr Verbrauch (${context.billingPeriod.year})`,
-          value: facts.basis.consumption,
+          value: currentValue,
         },
       ],
       unit,
     ),
     {
       text: comparison.source
-        ? `${PREVIOUS_PERIOD_NOT_WEATHER_ADJUSTED} Vorjahreswert: ${comparison.source}`
-        : PREVIOUS_PERIOD_NOT_WEATHER_ADJUSTED,
+        ? `${comparisonNote} Vorjahreswert: ${comparison.source}`
+        : comparisonNote,
       fontSize: 8,
       color: MUTED,
       margin: [0, 0, 0, 4],
