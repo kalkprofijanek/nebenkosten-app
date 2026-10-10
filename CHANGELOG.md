@@ -4,6 +4,11 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Zwischenablesung bei Nutzerwechsel** (§ 9b Abs. 1 HeizKV): Erkennung der
+  Nutzerwechsel je Wohnung im Core; Prüfhinweis
+  `heating.interim_reading_missing`, wenn zum Wechsel kein Ablesestand
+  erfasst ist (ADR-0009). Hinweis bei der Erfassung des Auszugs folgt,
+- `docs/RELEASE-STATUS.md`: Produktionsmigration als abgeschlossen vermerkt,
 - **Zählertausch** im Datenmodell: `heatMeterReading.replacements` mit
   Tauschtag, Endstand alt und Anfangsstand neu; Verbrauch = Summe der
   Abschnitte, eine Regel im Core für Prüfung, PDF und Verbrauchsseite; neue
