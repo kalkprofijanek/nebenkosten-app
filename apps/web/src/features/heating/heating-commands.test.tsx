@@ -615,4 +615,53 @@ describe('Vergleichswerte am Heizkreis (§ 6a Abs. 3 Nr. 4 HeizKV)', () => {
       benchmark,
     )
   })
+
+  it('ersetzt und entfernt Vergleichswerte nur bei expliziter Übergabe', () => {
+    const context = createHeatingContext()
+    const currentBenchmark = {
+      source: 'Fiktive Quelle',
+      referenceYear: 2024,
+      category: 'Fiktive Kategorie',
+      includesHotWater: true,
+      lowMaxKwhPerSqmYear: 70,
+      mediumMaxKwhPerSqmYear: 130,
+      elevatedMaxKwhPerSqmYear: 200,
+    }
+    const nextBenchmark = {
+      ...currentBenchmark,
+      category: 'Andere fiktive Kategorie',
+    }
+    const withBenchmark = {
+      ...context,
+      billingData: {
+        ...context.billingData,
+        heatingCircuits: context.billingData.heatingCircuits.map((circuit) =>
+          circuit.id === IDS.circuit
+            ? { ...circuit, consumptionBenchmark: currentBenchmark }
+            : circuit,
+        ),
+      },
+    }
+    const updated = updateHeatingCircuit(withBenchmark, IDS.circuit, {
+      billingPeriodId: IDS.period,
+      heatingSystemId: IDS.system,
+      buildingId: IDS.building,
+      hasCentralHotWater: false,
+      consumptionBenchmark: nextBenchmark,
+    })
+    expect(
+      updated.billingData.heatingCircuits[0]?.consumptionBenchmark,
+    ).toEqual(nextBenchmark)
+
+    const removed = updateHeatingCircuit(updated, IDS.circuit, {
+      billingPeriodId: IDS.period,
+      heatingSystemId: IDS.system,
+      buildingId: IDS.building,
+      hasCentralHotWater: false,
+      consumptionBenchmark: null,
+    })
+    expect(
+      removed.billingData.heatingCircuits[0]?.consumptionBenchmark,
+    ).toBeUndefined()
+  })
 })

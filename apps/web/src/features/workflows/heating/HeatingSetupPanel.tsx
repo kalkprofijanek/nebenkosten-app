@@ -1,4 +1,8 @@
 import { useState, type FormEvent } from 'react'
+import {
+  consumptionBenchmarkSchema,
+  type ConsumptionBenchmark,
+} from '@nebenkosten/schema'
 import { parseOptionalNumber } from '../../../app/form-parsers'
 import {
   addEnergySource,
@@ -16,6 +20,77 @@ import { formOptionalText, formText } from '../form-values'
 import type { WorkflowSubRouteProps } from '../route-types'
 import type { WorkflowApply } from '../HeatingRoute'
 
+const DEFAULT_BENCHMARK_SOURCE = 'Heizspiegel für Deutschland (co2online)'
+
+const benchmarkFieldLabels: Record<string, string> = {
+  source: 'Quelle',
+  sourceUrl: 'Fundstelle',
+  referenceYear: 'Bezugsjahr',
+  category: 'Nutzerkategorie',
+  lowMaxKwhPerSqmYear: 'Niedrig bis',
+  mediumMaxKwhPerSqmYear: 'Mittel bis',
+  elevatedMaxKwhPerSqmYear: 'Erhöht bis',
+}
+
+function parseBenchmark(
+  form: FormData,
+):
+  | { readonly success: true; readonly data: ConsumptionBenchmark }
+  | { readonly success: false; readonly error: string } {
+  const numberFields = [
+    ['benchmarkReferenceYear', 'referenceYear'],
+    ['benchmarkLowMax', 'lowMaxKwhPerSqmYear'],
+    ['benchmarkMediumMax', 'mediumMaxKwhPerSqmYear'],
+    ['benchmarkElevatedMax', 'elevatedMaxKwhPerSqmYear'],
+  ] as const
+  const numbers: Record<string, number | null> = {}
+  try {
+    for (const [formName, key] of numberFields) {
+      numbers[key] = parseOptionalNumber(formText(form, formName))
+    }
+  } catch {
+    return { success: false, error: 'Bitte gültige Zahlenwerte eingeben.' }
+  }
+  const result = consumptionBenchmarkSchema.safeParse({
+    source: formText(form, 'benchmarkSource'),
+    sourceUrl: formText(form, 'benchmarkSourceUrl') || undefined,
+    referenceYear: numbers.referenceYear,
+    category: formText(form, 'benchmarkCategory'),
+    includesHotWater: form.has('benchmarkIncludesHotWater'),
+    lowMaxKwhPerSqmYear: numbers.lowMaxKwhPerSqmYear,
+    mediumMaxKwhPerSqmYear: numbers.mediumMaxKwhPerSqmYear,
+    elevatedMaxKwhPerSqmYear: numbers.elevatedMaxKwhPerSqmYear,
+  })
+  if (result.success) return result
+  const issue = result.error.issues[0]
+  if (!issue)
+    return { success: false, error: 'Die Vergleichswerte sind ungültig.' }
+  if (issue.path.length === 1 && issue.path[0] === 'mediumMaxKwhPerSqmYear') {
+    return { success: false, error: issue.message }
+  }
+  const field = benchmarkFieldLabels[String(issue.path[0])] ?? 'Vergleichswerte'
+  if (field === 'Fundstelle') {
+    return {
+      success: false,
+      error: 'Die Fundstelle muss eine gültige HTTP- oder HTTPS-URL sein.',
+    }
+  }
+  if (field === 'Quelle' || field === 'Nutzerkategorie') {
+    return { success: false, error: `Bitte ${field.toLowerCase()} angeben.` }
+  }
+  if (field === 'Bezugsjahr') {
+    return {
+      success: false,
+      error:
+        'Bitte ein ganzzahliges Bezugsjahr zwischen 1990 und 2100 eingeben.',
+    }
+  }
+  return {
+    success: false,
+    error: `Bitte für „${field}“ einen positiven Wert eingeben.`,
+  }
+}
+
 function optionalNumber(form: FormData, name: string) {
   return parseOptionalNumber(formText(form, name)) ?? null
 }
@@ -26,6 +101,10 @@ export function HeatingSetupPanel({
   apply,
 }: WorkflowSubRouteProps & { readonly apply: WorkflowApply }) {
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [benchmarkEnabled, setBenchmarkEnabled] = useState(false)
+  const [benchmarkErrors, setBenchmarkErrors] = useState<
+    Record<string, string>
+  >({})
   const period = data.billingData.billingPeriods.find(
     ({ id }) => id === selection.billingPeriodId,
   )!
@@ -99,6 +178,21 @@ export function HeatingSetupPanel({
     const circuit = circuits.find(({ id }) => id === circuitId)!
     const system = systems.find(({ id }) => id === circuit.heatingSystemId)!
     const hasCentralHotWater = form.has('hasCentralHotWater')
+    const parsedBenchmark = form.has('benchmarkEnabled')
+      ? parseBenchmark(form)
+      : null
+    if (parsedBenchmark && !parsedBenchmark.success) {
+      setBenchmarkErrors((current) => ({
+        ...current,
+        [circuitId]: parsedBenchmark.error,
+      }))
+      return
+    }
+    setBenchmarkErrors((current) => {
+      const next = { ...current }
+      delete next[circuitId]
+      return next
+    })
     if (
       apply((current) => {
         let next = updateHeatingSystem(current, system.id, {
@@ -124,6 +218,7 @@ export function HeatingSetupPanel({
               'operatingElectricitySharePercent',
             ),
           },
+          consumptionBenchmark: parsedBenchmark?.data ?? null,
         })
         return updateEnergySource(next, sourceId, {
           heatingCircuitId: circuit.id,
@@ -139,6 +234,30 @@ export function HeatingSetupPanel({
       })
     )
       setEditingId(null)
+  }
+
+  function removeBenchmark(circuitId: string) {
+    const circuit = circuits.find(({ id }) => id === circuitId)!
+    if (
+      apply((current) =>
+        updateHeatingCircuit(current, circuit.id, {
+          billingPeriodId: circuit.billingPeriodId,
+          heatingSystemId: circuit.heatingSystemId,
+          buildingId: circuit.buildingId,
+          hasCentralHotWater: circuit.hasCentralHotWater,
+          hotWaterSharePercent: circuit.hotWaterSharePercent ?? null,
+          overrides: circuit.overrides ?? null,
+          consumptionBenchmark: null,
+        }),
+      )
+    ) {
+      setEditingId(null)
+      setBenchmarkErrors((current) => {
+        const next = { ...current }
+        delete next[circuitId]
+        return next
+      })
+    }
   }
 
   if (buildings.length === 0)
@@ -213,16 +332,34 @@ export function HeatingSetupPanel({
                     <button
                       type="button"
                       aria-label={`${title} bearbeiten`}
-                      onClick={() =>
-                        setEditingId(
-                          editingId === circuit.id ? null : circuit.id,
-                        )
-                      }
+                      onClick={() => {
+                        const opening = editingId !== circuit.id
+                        setEditingId(opening ? circuit.id : null)
+                        if (opening) {
+                          setBenchmarkEnabled(
+                            circuit.consumptionBenchmark != null,
+                          )
+                          setBenchmarkErrors((current) => {
+                            const next = { ...current }
+                            delete next[circuit.id]
+                            return next
+                          })
+                        }
+                      }}
                     >
                       Bearbeiten
                     </button>
                   ) : null}
                 </div>
+                {circuit.consumptionBenchmark ? (
+                  <p>
+                    Vergleichswerte: {circuit.consumptionBenchmark.category} ·{' '}
+                    {circuit.consumptionBenchmark.source} · Bezugsjahr{' '}
+                    {circuit.consumptionBenchmark.referenceYear}
+                  </p>
+                ) : (
+                  <p>Kein Vergleich mit dem Durchschnittsnutzer hinterlegt.</p>
+                )}
                 {editingId === circuit.id && source && system ? (
                   <form
                     className="embedded-form"
@@ -307,6 +444,122 @@ export function HeatingSetupPanel({
                         ''
                       }
                     />
+                    <fieldset className="form-section">
+                      <legend>Vergleichswerte (Heizspiegel)</legend>
+                      <p>
+                        Quelle, Bezugsjahr, Energieträger, Baualtersklasse und
+                        Gebäudefläche müssen passen. Bitte prüfen Sie die
+                        Eignung anhand der Quelle selbst; die App kann sie nicht
+                        fachlich bestätigen.
+                      </p>
+                      <label className="checkbox-field">
+                        <input
+                          type="checkbox"
+                          name="benchmarkEnabled"
+                          checked={benchmarkEnabled}
+                          onChange={(event) =>
+                            setBenchmarkEnabled(event.currentTarget.checked)
+                          }
+                        />
+                        <span>
+                          Vergleichswerte für diesen Heizkreis hinterlegen
+                        </span>
+                      </label>
+                      <WorkflowField
+                        label="Quelle Vergleichswerte"
+                        name="benchmarkSource"
+                        required
+                        disabled={!benchmarkEnabled}
+                        defaultValue={
+                          circuit.consumptionBenchmark?.source ??
+                          DEFAULT_BENCHMARK_SOURCE
+                        }
+                      />
+                      <WorkflowField
+                        label="Fundstelle Vergleichswerte"
+                        name="benchmarkSourceUrl"
+                        type="url"
+                        disabled={!benchmarkEnabled}
+                        defaultValue={
+                          circuit.consumptionBenchmark?.sourceUrl ?? ''
+                        }
+                      />
+                      <WorkflowField
+                        label="Bezugsjahr Vergleichswerte"
+                        name="benchmarkReferenceYear"
+                        type="number"
+                        required
+                        disabled={!benchmarkEnabled}
+                        defaultValue={
+                          circuit.consumptionBenchmark?.referenceYear ?? ''
+                        }
+                      />
+                      <WorkflowField
+                        label="Nutzerkategorie Vergleichswerte"
+                        name="benchmarkCategory"
+                        required
+                        disabled={!benchmarkEnabled}
+                        defaultValue={
+                          circuit.consumptionBenchmark?.category ?? ''
+                        }
+                      />
+                      <label className="checkbox-field">
+                        <input
+                          type="checkbox"
+                          name="benchmarkIncludesHotWater"
+                          defaultChecked={
+                            circuit.consumptionBenchmark?.includesHotWater ??
+                            true
+                          }
+                          disabled={!benchmarkEnabled}
+                        />
+                        <span>Werte enthalten Warmwasser</span>
+                      </label>
+                      <WorkflowField
+                        label="Niedrig bis (kWh/m²·a)"
+                        name="benchmarkLowMax"
+                        type="number"
+                        required
+                        disabled={!benchmarkEnabled}
+                        defaultValue={
+                          circuit.consumptionBenchmark?.lowMaxKwhPerSqmYear ??
+                          ''
+                        }
+                      />
+                      <WorkflowField
+                        label="Mittel bis (kWh/m²·a)"
+                        name="benchmarkMediumMax"
+                        type="number"
+                        required
+                        disabled={!benchmarkEnabled}
+                        defaultValue={
+                          circuit.consumptionBenchmark
+                            ?.mediumMaxKwhPerSqmYear ?? ''
+                        }
+                      />
+                      <WorkflowField
+                        label="Erhöht bis (kWh/m²·a)"
+                        name="benchmarkElevatedMax"
+                        type="number"
+                        required
+                        disabled={!benchmarkEnabled}
+                        defaultValue={
+                          circuit.consumptionBenchmark
+                            ?.elevatedMaxKwhPerSqmYear ?? ''
+                        }
+                      />
+                      {benchmarkErrors[circuit.id] ? (
+                        <p role="alert">{benchmarkErrors[circuit.id]}</p>
+                      ) : null}
+                      {circuit.consumptionBenchmark && benchmarkEnabled ? (
+                        <button
+                          type="button"
+                          onClick={() => removeBenchmark(circuit.id)}
+                        >
+                          Vergleichswerte entfernen
+                        </button>
+                      ) : null}
+                    </fieldset>
                     <button type="submit">Heizkreis speichern</button>
                   </form>
                 ) : null}

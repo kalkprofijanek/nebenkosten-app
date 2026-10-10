@@ -651,8 +651,16 @@ export function updateHeatingCircuit(
     ...validated.billingData.heatingCircuits.at(-1)!,
     consumptionMode: current.consumptionMode,
     meterAssignments: current.meterAssignments,
-    consumptionBenchmark: current.consumptionBenchmark,
+    consumptionBenchmark: Object.hasOwn(input, 'consumptionBenchmark')
+      ? validated.billingData.heatingCircuits.at(-1)!.consumptionBenchmark
+      : current.consumptionBenchmark,
     legacyUnmapped: current.legacyUnmapped,
+  }
+  if (
+    Object.hasOwn(input, 'consumptionBenchmark') &&
+    input.consumptionBenchmark == null
+  ) {
+    delete replacement.consumptionBenchmark
   }
   return validateResult({
     ...validated,
