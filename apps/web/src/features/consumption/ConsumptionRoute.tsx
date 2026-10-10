@@ -614,8 +614,8 @@ function ConsumptionTable({
         previousConsumption: {
           year,
           value,
-          source: draft.source.trim() || undefined,
-          climateFactor,
+          ...(draft.source.trim() ? { source: draft.source.trim() } : {}),
+          ...(climateFactor === undefined ? {} : { climateFactor }),
         },
       })
     }, `Vorjahresverbrauch für ${row.unitLabel} (${row.tenantName}) gespeichert.`)
