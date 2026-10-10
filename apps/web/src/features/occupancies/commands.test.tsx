@@ -663,6 +663,31 @@ describe('Nutzer-Commands', () => {
       source.billingData.occupancyPeriods[0]?.consumptionUnits,
     )
 
+    const withFactor = structuredClone(saved)
+    withFactor.billingData.occupancyPeriods[0]!.previousConsumption!.climateFactor = 0.97
+    const edited = updateOccupancyPreviousConsumption(withFactor, {
+      occupancyPeriodId: IDS.occupancy,
+      previousConsumption: { year: 2025, value: 5, source: 'Korrigiert' },
+    })
+    expect(edited.billingData.occupancyPeriods[0]?.previousConsumption).toEqual(
+      { year: 2025, value: 5, source: 'Korrigiert', climateFactor: 0.97 },
+    )
+    const otherYear = updateOccupancyPreviousConsumption(withFactor, {
+      occupancyPeriodId: IDS.occupancy,
+      previousConsumption: { year: 2024, value: 5 },
+    })
+    expect(
+      otherYear.billingData.occupancyPeriods[0]?.previousConsumption,
+    ).toEqual({ year: 2024, value: 5 })
+    const explicit = updateOccupancyPreviousConsumption(withFactor, {
+      occupancyPeriodId: IDS.occupancy,
+      previousConsumption: { year: 2025, value: 5, climateFactor: 1.05 },
+    })
+    expect(
+      explicit.billingData.occupancyPeriods[0]?.previousConsumption
+        ?.climateFactor,
+    ).toBe(1.05)
+
     const cleared = updateOccupancyPreviousConsumption(saved, {
       occupancyPeriodId: IDS.occupancy,
     })

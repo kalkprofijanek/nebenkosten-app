@@ -768,7 +768,7 @@ export function updateOccupancyPreviousConsumption(
   )
   if (occupancy?.kind !== 'tenant')
     throw new OccupancyCommandError('Mieterzeitraum wurde nicht gefunden.')
-  const previousConsumption =
+  const parsed =
     input.previousConsumption === undefined
       ? undefined
       : parseEntity(
@@ -776,6 +776,16 @@ export function updateOccupancyPreviousConsumption(
           input.previousConsumption,
           'Vorjahresverbrauch',
         )
+  // Der Klimafaktor des Vorjahres (ADR-0005) bleibt erhalten, solange die
+  // Eingabe ihn nicht selbst setzt und das Jahr gleich bleibt.
+  const stored = occupancy.previousConsumption
+  const previousConsumption =
+    parsed &&
+    parsed.climateFactor === undefined &&
+    stored?.climateFactor != null &&
+    stored.year === parsed.year
+      ? { ...parsed, climateFactor: stored.climateFactor }
+      : parsed
   return validatedFile({
     ...file,
     billingData: {
