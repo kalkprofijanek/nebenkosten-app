@@ -61,7 +61,9 @@ describe('Klimafaktor am Abrechnungsjahr', () => {
         const oversized = new File([], 'zu-gross.csv')
         Object.defineProperty(oversized, 'size', { value: 5 * 1024 * 1024 + 1 })
         fireEvent.change(input, { target: { files: [oversized] } })
-        expect(screen.getByRole('status')).toHaveTextContent('größer als 5 MB')
+        expect(
+          screen.getByText('Die CSV-Datei ist größer als 5 MB.'),
+        ).toBeVisible()
       } else {
         fireEvent.change(screen.getByLabelText('Postleitzahl Klimafaktor'), {
           target: { value: '01234' },
@@ -72,7 +74,9 @@ describe('Klimafaktor am Abrechnungsjahr', () => {
       )
       expect(screen.getByLabelText('DWD-Klimafaktor')).toHaveValue('')
       if (change === 'größere Folgedatei')
-        expect(screen.getByRole('status')).toHaveTextContent('größer als 5 MB')
+        expect(
+          screen.getByText('Die CSV-Datei ist größer als 5 MB.'),
+        ).toBeVisible()
     },
   )
 
