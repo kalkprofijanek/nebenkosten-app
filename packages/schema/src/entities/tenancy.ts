@@ -121,6 +121,14 @@ export const occupancyPeriodSchema = z.strictObject({
   consumptionUnits: quantitySchema.nullish(),
   consumptionUnitsEstimated: z.boolean().nullish(),
   consumptionUnitsEstimateReason: z.string().nullish(),
+  /**
+   * Nutzerwechsel ohne Zwischenablesung (§ 9b Abs. 3 HeizKV, ADR-0010):
+   * Die gesamten Heizkosten dieser Nutzung (Grund- und Verbrauchskosten)
+   * werden nach Gradtagszahlen (`degree_days`) oder zeitanteilig (`time`)
+   * aufgeteilt; Warmwasser stets zeitanteilig. Leer = Zwischenablesung bzw.
+   * kein Wechsel.
+   */
+  section9bAllocation: z.enum(['degree_days', 'time']).nullish(),
   /** Zählerstände alt/neu zur Dokumentation des Verbrauchs (optional). */
   heatMeterReading: heatMeterReadingSchema.nullish(),
   /** Vorjahresverbrauch ohne Vorjahresabrechnung im System (optional). */
