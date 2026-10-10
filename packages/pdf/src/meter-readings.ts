@@ -4,7 +4,7 @@
  * Gesamtabrechnung (Tabelle aller Zählerstände je Heizkreis).
  */
 import type { Content, TableCell } from 'pdfmake/interfaces'
-import type { CalculationOutput } from '@nebenkosten/core'
+import { meterReadingTotal, type CalculationOutput } from '@nebenkosten/core'
 import type {
   AppDataFile,
   HeatMeterReading,
@@ -35,16 +35,12 @@ export function readingWithDate(
     : formatMeterValue(value)
 }
 
-/** Stand neu − Stand alt, falls beide Stände vorliegen. */
+/** Verbrauch laut Zählerständen, falls ableitbar (sonst `null`). */
 export function readingDifference(
   reading: HeatMeterReading | null | undefined,
 ): number | null {
-  if (
-    typeof reading?.startValue !== 'number' ||
-    typeof reading.endValue !== 'number'
-  )
-    return null
-  return Math.round((reading.endValue - reading.startValue) * 1000) / 1000
+  // Einschließlich Zählertausch (ADR-0008); Regel im Core.
+  return meterReadingTotal(reading)
 }
 
 /** Liegt irgendeine Angabe zur Ablesung vor? */

@@ -41,12 +41,35 @@ export type Tenancy = z.infer<typeof tenancySchema>
  * `consumptionUnits`. Abweichungen meldet die Validierung
  * (`heating.meter_reading_mismatch`).
  */
+/**
+ * Geräte- bzw. Zählertausch innerhalb des Nutzungszeitraums (ADR-0008):
+ * Endstand des ausgebauten und Anfangsstand des eingebauten Geräts am
+ * Tauschtag. Der Verbrauch ergibt sich als Summe der Abschnitte.
+ */
+export const meterReplacementSchema = z.strictObject({
+  date: isoDateSchema,
+  /** Endstand des ausgebauten Geräts. */
+  removedEndValue: z.number().finite(),
+  /** Nummer des eingebauten Geräts. */
+  installedMeterNumber: z.string().nullish(),
+  /** Anfangsstand des eingebauten Geräts (bei neuen HKV meist 0). */
+  installedStartValue: z.number().finite(),
+  note: z.string().nullish(),
+})
+export type MeterReplacement = z.infer<typeof meterReplacementSchema>
+
 export const heatMeterReadingSchema = z.strictObject({
   meterNumber: z.string().nullish(),
   startValue: z.number().finite().nullish(),
   startDate: isoDateSchema.nullish(),
   endValue: z.number().finite().nullish(),
   endDate: isoDateSchema.nullish(),
+  /**
+   * Tauschvorgänge in zeitlicher Reihenfolge (additiv, Schema v5).
+   * `meterNumber`/`startValue` gehören zum ersten, `endValue` zum zuletzt
+   * eingebauten Gerät.
+   */
+  replacements: z.array(meterReplacementSchema).nullish(),
 })
 export type HeatMeterReading = z.infer<typeof heatMeterReadingSchema>
 

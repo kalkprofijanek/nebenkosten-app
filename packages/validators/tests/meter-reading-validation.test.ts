@@ -162,3 +162,72 @@ describe('Zwischengespeicherte Freigabeprüfung', () => {
     expect(validateBillingPeriodCached(null, 'period-1').errorCount).toBe(1)
   })
 })
+
+describe('Zählertausch (ADR-0008)', () => {
+  const replaced = {
+    meterNumber: 'HZ-1',
+    startValue: 1000,
+    startDate: '2025-01-01',
+    endValue: 30,
+    endDate: '2025-12-31',
+    replacements: [
+      {
+        date: '2025-06-15',
+        removedEndValue: 1090,
+        installedMeterNumber: 'HZ-2',
+        installedStartValue: 0,
+      },
+    ],
+  }
+
+  it('rechnet den Verbrauch über den Tausch hinweg (90 + 30 = 120)', () => {
+    const data = withReading({
+      consumptionUnits: { value: 120, unit: 'einheiten' },
+      heatMeterReading: replaced,
+    })
+    expect(find(data, 'heating.meter_reading_mismatch')).toEqual([])
+    expect(find(data, 'heating.meter_replacement_invalid')).toEqual([])
+  })
+
+  it('nennt den Tausch bei Abweichung', () => {
+    const [warning] = find(
+      withReading({
+        consumptionUnits: { value: 100, unit: 'einheiten' },
+        heatMeterReading: replaced,
+      }),
+      'heating.meter_reading_mismatch',
+    )
+    expect(warning!.detail).toContain(
+      'Verbrauch laut Zählerständen einschließlich Zählertausch = 120',
+    )
+  })
+
+  it('warnt bei Tauschtag außerhalb der Ablesedaten oder falscher Reihenfolge', () => {
+    const [outside] = find(
+      withReading({
+        consumptionUnits: { value: 120, unit: 'einheiten' },
+        heatMeterReading: {
+          ...replaced,
+          replacements: [{ ...replaced.replacements[0]!, date: '2026-02-01' }],
+        },
+      }),
+      'heating.meter_replacement_invalid',
+    )
+    expect(outside).toMatchObject({ severity: 'warning', area: 'occupancy' })
+    expect(outside!.detail).toContain('außerhalb')
+    const [order] = find(
+      withReading({
+        consumptionUnits: { value: 120, unit: 'einheiten' },
+        heatMeterReading: {
+          ...replaced,
+          replacements: [
+            { ...replaced.replacements[0]!, date: '2025-09-01' },
+            { ...replaced.replacements[0]!, date: '2025-03-01' },
+          ],
+        },
+      }),
+      'heating.meter_replacement_invalid',
+    )
+    expect(order!.detail).toContain('nicht zeitlich geordnet')
+  })
+})
