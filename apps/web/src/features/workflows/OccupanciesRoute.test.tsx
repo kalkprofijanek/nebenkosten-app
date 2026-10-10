@@ -150,6 +150,36 @@ describe('Wohnungsbezogene Belegungsübersicht', () => {
       screen.getByText('Für diese Suche wurden keine Wohnungen gefunden.'),
     ).toBeVisible()
   })
+  it('weist beim Anlegen eines Einzugs oder Leerstands auf die Zwischenablesung hin', () => {
+    const data = fixture()
+    data.billingData.heatingCircuits = [
+      {
+        id: 'c',
+        billingPeriodId: 'y',
+        heatingSystemId: 'hs',
+        buildingId: 'b',
+        hasCentralHotWater: false,
+      },
+    ]
+    show(data)
+    expect(screen.queryByRole('note')).toBeNull()
+    fireEvent.change(screen.getByLabelText('Einzug'), {
+      target: { value: '2026-05-01' },
+    })
+    expect(screen.getByRole('note')).toHaveTextContent(
+      'Zwischenablesung zum 01.05.2026 veranlassen (§ 9b Abs. 1 HeizKV)',
+    )
+    fireEvent.change(screen.getByLabelText('Einzug'), {
+      target: { value: '2026-01-01' },
+    })
+    expect(screen.queryByRole('note')).toBeNull()
+    fireEvent.change(screen.getByLabelText('Leerstand bis'), {
+      target: { value: '2026-02-28' },
+    })
+    expect(screen.getByRole('note')).toHaveTextContent(
+      'Zwischenablesung zum 28.02.2026',
+    )
+  })
   it('filtert nach erfasster Belegung und zählt Wohnungen statt Zeiträume', () => {
     show()
     fireEvent.change(screen.getByLabelText('Belegungsstatus'), {
