@@ -65,6 +65,43 @@ export type HeatingCircuitOverrides = z.infer<
 >
 
 /**
+ * Vergleichswerte für den normierten Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4
+ * HeizKV), z. B. aus dem Heizspiegel für Deutschland (co2online). Erfasst
+ * werden die Klassengrenzen in kWh je m² Wohnfläche und Jahr, wie sie die
+ * Quelle für Energieträger und Gebäudekategorie ausweist („niedrig“ bis
+ * `lowMax`, „mittel“ bis `mediumMax`, „erhöht“ bis `elevatedMax`, darüber
+ * „zu hoch“). Die Werte werden nicht von der App vorgegeben, sondern aus der
+ * Quelle übernommen (ADR-0004).
+ */
+export const consumptionBenchmarkSchema = z
+  .strictObject({
+    /** Bezeichnung der Quelle, z. B. „Heizspiegel für Deutschland (co2online)“. */
+    source: z.string().trim().min(1),
+    /** Fundstelle der Werte (Flyer, Webseite). */
+    sourceUrl: z.url({ protocol: /^https?$/u }).nullish(),
+    /** Abrechnungsjahr, auf das sich die Vergleichswerte beziehen. */
+    referenceYear: z.int().min(1990).max(2100),
+    /** Nutzerkategorie laut Quelle, z. B. „Erdgas, Baujahr 1978–1983“. */
+    category: z.string().trim().min(1),
+    /** Die Werte enthalten die Energie für die Warmwasserbereitung. */
+    includesHotWater: z.boolean(),
+    lowMaxKwhPerSqmYear: z.number().finite().positive(),
+    mediumMaxKwhPerSqmYear: z.number().finite().positive(),
+    elevatedMaxKwhPerSqmYear: z.number().finite().positive(),
+  })
+  .refine(
+    (value) =>
+      value.lowMaxKwhPerSqmYear < value.mediumMaxKwhPerSqmYear &&
+      value.mediumMaxKwhPerSqmYear < value.elevatedMaxKwhPerSqmYear,
+    {
+      message:
+        'Die Klassengrenzen müssen aufsteigend sein (niedrig < mittel < erhöht).',
+      path: ['mediumMaxKwhPerSqmYear'],
+    },
+  )
+export type ConsumptionBenchmark = z.infer<typeof consumptionBenchmarkSchema>
+
+/**
  * HeatingCircuit / Heizkreis eines Abrechnungsjahres (Legacy:
  * `Abrechnung.heizkreise[]`, 1:1 zum Gebäudeblock).
  */
@@ -90,6 +127,8 @@ export const heatingCircuitSchema = z.strictObject({
   hasCentralHotWater: z.boolean(),
   /** Warmwasser-Anteil an den Brennstoffkosten (18–70 %). */
   hotWaterSharePercent: percentSchema.nullish(),
+  /** Vergleichswerte nach § 6a Abs. 3 Nr. 4 HeizKV (additiv, Schema v5). */
+  consumptionBenchmark: consumptionBenchmarkSchema.nullish(),
 })
 export type HeatingCircuit = z.infer<typeof heatingCircuitSchema>
 

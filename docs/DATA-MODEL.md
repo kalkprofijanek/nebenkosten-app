@@ -293,6 +293,15 @@ Neu (v3 implizit: ein Objekt = eine Anlage): `id`, `propertyId`,
 | `overrides`                          | {consumptionSharePercent, baseSharePercent, operatingElectricitySharePercent} | opt   | `vorgaben`                                                           |
 | `hasCentralHotWater`                 | boolean                                                                       | P     | `hat_warmwasser`                                                     |
 | `hotWaterSharePercent`               | Percent                                                                       | opt   | `ww_anteil_proz` (18–70, § 9 HeizKV; Bereichsprüfung in Validatoren) |
+| `consumptionBenchmark`               | ConsumptionBenchmark                                                          | opt   | — (neu, additiv in Schema v5; ADR-0004)                              |
+
+`ConsumptionBenchmark` (`consumptionBenchmarkSchema`, strikt): Vergleichswerte
+für den normierten Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizKV), z. B. aus
+dem Heizspiegel für Deutschland (co2online). Pflicht: `source`, `category`,
+`referenceYear` (Abrechnungsjahr der Werte), `includesHotWater` sowie die
+aufsteigenden Klassengrenzen `lowMaxKwhPerSqmYear` < `mediumMaxKwhPerSqmYear`
+< `elevatedMaxKwhPerSqmYear` (kWh je m² und Jahr, > 0); optional `sourceUrl`
+(nur http/https). Die App gibt keine Werte vor.
 
 ### 3.15 EnergySource / Energiequelle (`energySourceSchema`)
 
