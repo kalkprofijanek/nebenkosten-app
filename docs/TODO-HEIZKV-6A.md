@@ -94,6 +94,9 @@ Skizze:
 
 ### 4. Fernwärme: THG-Emissionen und Primärenergiefaktor (Abs. 3 Nr. 1a)
 
+Zurückgestellt (Nutzerentscheidung 10. Oktober 2026): derzeit kein Objekt mit
+Fernwärme; umsetzen, sobald eines hinzukommt.
+
 - `energySourceSchema` um `kind` (Enum statt Freitext), `districtHeatingGhgKg`
   (jährliche THG-Emissionen, t CO2-Äq.) und `primaryEnergyFactor` ergänzen
   (Angaben des Fernwärmeversorgers, § 1 Abs. 3 FFVAV).
@@ -104,8 +107,8 @@ Skizze:
 Stand 10. Oktober 2026: Messentgelte (Nr. 1c) umgesetzt mit Kennzeichen
 `CostCategory.meteringFee` und Schlagworten als Ersatz, ohne Datenmigration
 (ADR-0006); Erfassung in der Oberfläche folgt
-(`docs/TASKS/PR-26-MESSDIENSTENTGELTE.md`). Steuern/Abgaben (Nr. 1b): offen,
-Entscheidung des Nutzers nötig. Die ursprüngliche Skizze:
+(`docs/TASKS/PR-26-MESSDIENSTENTGELTE.md`). Steuern/Abgaben (Nr. 1b): bleibt beim
+Pauschaltext (Nutzerentscheidung 10. Oktober 2026, ADR-0006). Die ursprüngliche Skizze:
 
 - Rechnungen: Felder `vatCents`, `energyTaxCents`, `co2LevyCents` je
   Energielieferung/-rechnung; Summe je Heizkreis im PDF statt Pauschaltext.
