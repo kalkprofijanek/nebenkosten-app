@@ -3,7 +3,7 @@
 Folgeauftrag nach Merge von #73, entsprechend PR-24 Teil B und der
 Zuständigkeitsteilung des Nutzers vom 10. Oktober 2026.
 
-Freigegebene Pfade: apps/web, packages/pdf, zugehörige Tests und
+Freigegebene Pfade: apps/web, packages/pdf, tests/e2e, zugehörige Tests und
 Benutzerdokumentation. Keine Schema-, Core-, Validator- oder
 Abhängigkeitsänderungen. Dieser PR baut auf #74 auf.
 
