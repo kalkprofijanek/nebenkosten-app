@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { AppDataFile } from '@nebenkosten/schema'
-import { compareTenantWithConsumptionBenchmark } from '@nebenkosten/core'
+import {
+  compareTenantWithConsumptionBenchmark,
+  weatherAdjustPreviousPeriod,
+} from '@nebenkosten/core'
 import { buildTenantStatement } from '../src/tenant-statement'
 import {
   energyCarrierMixLabel,
@@ -397,6 +400,151 @@ describe('Vorjahresvergleich (§ 6a HeizKV)', () => {
     )
     expect(serialized).toContain(
       'weil Sie die Wohnung in diesem Zeitraum noch nicht genutzt haben.',
+    )
+  })
+})
+
+describe('Witterungsbereinigter Vorjahresvergleich (§ 6a HeizKV)', () => {
+  function withStoredClimateComparison() {
+    const appData = buildFixtureAppData('case-06-heating-oil-fifo')
+    const period = appData.billingData.billingPeriods[0]!
+    const property = appData.masterData.properties[0]!
+    property.address!.postalCodeAndCity = '12345 Fiktivstadt'
+    period.climateFactor = {
+      postalCode: '12345',
+      factor: 0.9,
+      periodStart: period.periodStart,
+      periodEnd: period.periodEnd,
+      source: 'Deutscher Wetterdienst',
+    }
+    const occupancy = appData.billingData.occupancyPeriods.find(
+      ({ kind }) => kind === 'tenant',
+    )!
+    occupancy.previousConsumption = {
+      year: period.year - 1,
+      value: 100,
+      source: 'Fiktive Vorjahresabrechnung',
+      climateFactor: 1.2,
+    }
+    return appData
+  }
+
+  it('adjusts stored prior and current heating consumption with their respective core factors', () => {
+    const appData = withStoredClimateComparison()
+    const context = buildFixtureTenantStatementContext(appData)
+    const expected = weatherAdjustPreviousPeriod(
+      {
+        value: context.occupancyPeriod.consumptionUnits!.value,
+        climateFactor: 0.9,
+      },
+      { value: 100, climateFactor: 1.2 },
+    )
+    const output = text(buildTenantStatement(context).content)
+
+    expect(expected.previous.adjusted).toBe(120)
+    expect(expected.current.adjusted).toBe(36)
+    expect(output).toContain('120,00 Einheiten')
+    expect(output).toContain('36,00 Einheiten')
+    expect(output).toContain(
+      'Witterungsbereinigt mit Klimafaktoren des DWD (Postleitzahl 12345, Faktor Vorjahr 1,20, Abrechnungsjahr 0,90)',
+    )
+    expect(output).not.toContain('ohne Witterungsbereinigung')
+  })
+
+  it.each([
+    ['postal-code mismatch', { postalCode: '54321' }],
+    ['period mismatch', { periodStart: '2023-12-31' }],
+  ])(
+    'preserves the old unadjusted chart when current climate data has a %s',
+    (_, patch) => {
+      const appData = withStoredClimateComparison()
+      Object.assign(
+        appData.billingData.billingPeriods[0]!.climateFactor!,
+        patch,
+      )
+      const output = text(
+        buildTenantStatement(buildFixtureTenantStatementContext(appData))
+          .content,
+      )
+
+      expect(output).toContain('100,00 Einheiten')
+      expect(output).toContain('ohne Witterungsbereinigung')
+      expect(output).not.toContain(
+        'Witterungsbereinigt mit Klimafaktoren des DWD',
+      )
+    },
+  )
+
+  it('uses the previous billing period factor when that year is in the file', () => {
+    const appData = withStoredClimateComparison()
+    const period = appData.billingData.billingPeriods[0]!
+    const previousPeriod = {
+      ...period,
+      id: 'previous-period',
+      year: period.year - 1,
+      periodStart: `${period.year - 1}-01-01`,
+      periodEnd: `${period.year - 1}-12-31`,
+      climateFactor: {
+        postalCode: '12345',
+        factor: 1.1,
+        periodStart: `${period.year - 1}-01-01`,
+        periodEnd: `${period.year - 1}-12-31`,
+        source: 'Deutscher Wetterdienst',
+      },
+    }
+    appData.billingData.billingPeriods.push(previousPeriod)
+    const occupancy = appData.billingData.occupancyPeriods.find(
+      ({ kind }) => kind === 'tenant',
+    )!
+    appData.billingData.occupancyPeriods.push({
+      ...occupancy,
+      id: 'previous-occupancy',
+      billingPeriodId: previousPeriod.id,
+      consumptionUnits: { value: 100, unit: 'einheiten' },
+    })
+    const output = text(
+      buildTenantStatement(buildFixtureTenantStatementContext(appData)).content,
+    )
+
+    expect(output).toContain('110,00 Einheiten')
+    expect(output).toContain('Faktor Vorjahr 1,10, Abrechnungsjahr 0,90')
+  })
+
+  it('keeps the old unadjusted chart when the prior billing period factor does not match the object', () => {
+    const appData = withStoredClimateComparison()
+    const period = appData.billingData.billingPeriods[0]!
+    const previousPeriod = {
+      ...period,
+      id: 'previous-period',
+      year: period.year - 1,
+      periodStart: `${period.year - 1}-01-01`,
+      periodEnd: `${period.year - 1}-12-31`,
+      climateFactor: {
+        postalCode: '54321',
+        factor: 1.1,
+        periodStart: `${period.year - 1}-01-01`,
+        periodEnd: `${period.year - 1}-12-31`,
+        source: 'Deutscher Wetterdienst',
+      },
+    }
+    appData.billingData.billingPeriods.push(previousPeriod)
+    const occupancy = appData.billingData.occupancyPeriods.find(
+      ({ kind }) => kind === 'tenant',
+    )!
+    appData.billingData.occupancyPeriods.push({
+      ...occupancy,
+      id: 'previous-occupancy',
+      billingPeriodId: previousPeriod.id,
+      consumptionUnits: { value: 100, unit: 'einheiten' },
+    })
+    const output = text(
+      buildTenantStatement(buildFixtureTenantStatementContext(appData)).content,
+    )
+
+    expect(output).toContain('100,00 Einheiten')
+    expect(output).toContain('ohne Witterungsbereinigung')
+    expect(output).not.toContain(
+      'Witterungsbereinigt mit Klimafaktoren des DWD',
     )
   })
 })

@@ -13,6 +13,10 @@ export function CostCategoryFields({
     readonly name: string
   }>
 }) {
+  const [kind, setKind] = useState(category?.kind ?? 'operating')
+  const [meteringFee, setMeteringFee] = useState(
+    category?.meteringFee == null ? '' : String(category.meteringFee),
+  )
   const currentBuildingId =
     category?.scope?.kind === 'building' ? category.scope.buildingId : ''
   return (
@@ -25,12 +29,33 @@ export function CostCategoryFields({
       />
       <label>
         <span>Typ</span>
-        <select name="kind" defaultValue={category?.kind ?? 'operating'}>
+        <select
+          name="kind"
+          value={kind}
+          onChange={(event) =>
+            setKind(event.currentTarget.value as typeof kind)
+          }
+        >
           <option value="operating">Betriebskosten</option>
           <option value="water">Wasser</option>
           <option value="heating">Heizung</option>
         </select>
       </label>
+      {kind === 'heating' ? (
+        <label>
+          <span>Messdienstentgelt (§ 6a HeizKV)</span>
+          <select
+            name="meteringFee"
+            aria-label="Messdienstentgelt (§ 6a HeizKV)"
+            value={meteringFee}
+            onChange={(event) => setMeteringFee(event.currentTarget.value)}
+          >
+            <option value="">Automatisch erkennen</option>
+            <option value="true">Ja</option>
+            <option value="false">Nein</option>
+          </select>
+        </label>
+      ) : null}
       <label>
         <span>Umlageschlüssel</span>
         <select

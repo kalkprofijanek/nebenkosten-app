@@ -4,17 +4,31 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- Vorjahreswerte lassen sich in der Verbrauchsoberfläche einschließlich
+  Quelle, Vorjahr und Klimafaktor pflegen; ein echter Nullverbrauch bleibt
+  von fehlenden Werten unterscheidbar,
+- KI-Erfassungslisten lassen sich als CSV mit Vorschau und atomarer
+  Übernahme in Kostenpositionen importieren; Messdienst-CSV wird technisch
+  mit ausdrücklicher Spaltenzuordnung gelesen, ohne Nutzerzuordnung oder
+  Speicherung,
+- Wärmemengenzähler werden in kWh angezeigt; die Kostenoberfläche und die
+  PDF-Abrechnung sind in kleinere Module aufgeteilt. Der Hinweis zur
+  Verbraucherstreitbeilegung nennt die Universalschlichtungsstelle des Bundes,
+
 - **Entgelte für Verbrauchserfassung** (§ 6a Abs. 3 Nr. 1c HeizKV): neues
   Kennzeichen `CostCategory.meteringFee` hat Vorrang vor der
   Schlagworterkennung; Erkennung im Core statt im PDF; Prüfhinweis
   `heating.metering_fee_not_identified`, wenn kein Entgelt erkennbar ist;
-  Übernahme ins Folgejahr (ADR-0006, Schema v5 additiv),
+  Übernahme ins Folgejahr (ADR-0006, Schema v5 additiv); die Oberfläche
+  bietet automatisch/ja/nein und zeigt erkannte Entgelte,
 - **Witterungsbereinigung des Vorjahresvergleichs** (§ 6a Abs. 3 Satz 3/4
   HeizKV), Grundlage: DWD-Klimafaktor je Postleitzahl am Abrechnungsjahr
   (`BillingPeriod.climateFactor`) und am übernommenen Vorjahresverbrauch;
   Bereinigung Verbrauch × Klimafaktor für beide Perioden; Prüfhinweise zu
   Zeitraum, Postleitzahl und fehlendem Vorjahresfaktor (ADR-0005, Schema v5
-  additiv). Import der DWD-Liste, Erfassung und PDF-Ausgabe folgen,
+  additiv). DWD-CSV-Import, optionale Erfassung und bereinigte PDF-Balken
+  ergänzen diese Grundlage; bei unpassenden Faktoren bleibt der Vergleich
+  ausdrücklich unbereinigt,
 - **Vergleich mit dem normierten Durchschnittsnutzer** (§ 6a Abs. 3 Nr. 4
   HeizKV), Grundlage: Vergleichswerte (z. B. Heizspiegel für Deutschland,
   co2online) je Heizkreis mit Quelle, Kategorie, Bezugsjahr und
@@ -22,8 +36,9 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
   Anteil am Energieeinsatz und Einstufung („niedrig“ bis „zu hoch“); neue
   Prüfhinweise `heating.consumption_benchmark_not_comparable` und
   `heating.consumption_benchmark_year_mismatch` (ADR-0004, Schema v5 additiv
-  um `HeatingCircuit.consumptionBenchmark` ergänzt). Ausgabe in der
-  Einzelabrechnung und Erfassung in der Oberfläche folgen,
+  um `HeatingCircuit.consumptionBenchmark` ergänzt). Optionale Erfassung
+  und Ausgabe mit Quelle, Klasse und umgerechneten Klassengrenzen sind
+  ergänzt; eine fehlende Berechnungsgrundlage erzeugt keine Vergleichszeile,
 - **Vorjahresvergleich nach Eigentümerwechsel** (§ 6a HeizKV): Vorjahresverbrauch je Nutzungsperiode (`vorjahr_verbrauch`/`vorjahr_jahr`/`vorjahr_quelle`) wird als Grafik mit Quellenangabe dargestellt, wenn keine Vorjahresabrechnung im System liegt; bei Einzug im Abrechnungsjahr Hinweis „noch nicht genutzt“,
 - Einzelabrechnung: **„Ihre Verbrauchserfassung“** zeigt die Herleitung auch bei gemessenem Verbrauch (z. B. abgeleiteter Anfangsstand, Gradtag-Aufteilung) und wird nicht mehr über einen Seitenumbruch getrennt,
 - **`pnpm abrechnung`**: Import, Berechnung, Prüfung und PDF-Erzeugung ohne Browser – Grundlage für die Arbeit mit einem KI-Coding-Agenten (README, docs/KI-ANLEITUNG.md),

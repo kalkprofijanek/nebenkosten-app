@@ -35,6 +35,35 @@ describe('CostDataOverview', () => {
     expect(screen.getByText(/Keine Bankbuchungen/u)).toBeVisible()
   })
 
+  it('kennzeichnet Heizungskosten, die als Messdienstentgelt zählen', () => {
+    render(
+      <CostDataOverview
+        categories={[
+          {
+            id: '30000000-0000-4000-8000-000000000101',
+            billingPeriodId: '30000000-0000-4000-8000-000000000111',
+            kind: 'heating',
+            label: 'Ablesedienst',
+            meteringFee: true,
+          },
+          {
+            id: '30000000-0000-4000-8000-000000000102',
+            billingPeriodId: '30000000-0000-4000-8000-000000000111',
+            kind: 'heating',
+            label: 'Brennstoff',
+            meteringFee: false,
+          },
+        ]}
+        entries={[]}
+        bankBookings={[]}
+        propertyId={PROPERTY_ID}
+        billingYear={2026}
+      />,
+    )
+    expect(screen.getByText('Messdienstentgelt: Ja')).toBeVisible()
+    expect(screen.getByText('Messdienstentgelt: Nein')).toBeVisible()
+  })
+
   it('blättert lange Buchungslisten in überschaubaren Seiten', () => {
     render(
       <CostDataOverview

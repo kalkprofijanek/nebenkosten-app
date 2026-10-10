@@ -48,6 +48,7 @@ interface PreviousConsumptionDraft {
   readonly year: string
   readonly value: string
   readonly source: string
+  readonly climateFactor: string
 }
 
 const STATUS_LABELS: Readonly<Record<ConsumptionStatus, string>> = {
@@ -90,6 +91,7 @@ function previousConsumptionDraft(
     year: previous ? String(previous.year) : '',
     value: input(previous?.value),
     source: previous?.source ?? '',
+    climateFactor: input(previous?.climateFactor),
   }
 }
 
@@ -429,6 +431,18 @@ function ConsumptionTableRow({
                   }
                 />
               </label>
+              <label>
+                <span>Klimafaktor Vorjahr</span>
+                <input
+                  aria-label={`Klimafaktor Vorjahr ${label}`}
+                  className="consumption-number"
+                  inputMode="decimal"
+                  value={previousDraft.climateFactor}
+                  onChange={(event) =>
+                    setPrevious({ climateFactor: event.target.value })
+                  }
+                />
+              </label>
             </>
           )}
           {!locked && !editingPrevious ? (
@@ -590,12 +604,18 @@ function ConsumptionTable({
         throw new OccupancyCommandError(
           `Der Vorjahresverbrauch muss zum Vorjahr ${period.year - 1} gehören.`,
         )
+      const climateFactor = parse(draft.climateFactor, 'Klimafaktor Vorjahr')
+      if (climateFactor != null && climateFactor <= 0)
+        throw new OccupancyCommandError(
+          'Klimafaktor Vorjahr: Bitte einen Wert größer 0 eingeben.',
+        )
       return updateOccupancyPreviousConsumption(current, {
         occupancyPeriodId: row.occupancy.id,
         previousConsumption: {
           year,
           value,
-          source: draft.source.trim() || undefined,
+          ...(draft.source.trim() ? { source: draft.source.trim() } : {}),
+          ...(climateFactor === undefined ? {} : { climateFactor }),
         },
       })
     }, `Vorjahresverbrauch für ${row.unitLabel} (${row.tenantName}) gespeichert.`)

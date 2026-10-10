@@ -1,4 +1,5 @@
 import type { BankBooking, CostCategory, CostEntry } from '@nebenkosten/schema'
+import { isMeteringFeeCategory } from '@nebenkosten/core'
 import { useState } from 'react'
 
 const PAGE_SIZE = 50
@@ -195,6 +196,12 @@ export function CostDataOverview({
                         <strong>{category.label}</strong>
                         {category.statementText ? (
                           <small>{category.statementText}</small>
+                        ) : null}
+                        {category.kind === 'heating' ? (
+                          <small>
+                            Messdienstentgelt:{' '}
+                            {isMeteringFeeCategory(category) ? 'Ja' : 'Nein'}
+                          </small>
                         ) : null}
                       </td>
                       <td>

@@ -189,6 +189,7 @@ describe('ConsumptionRoute', () => {
           year: 2024,
           value: 1234.5,
           source: 'Fiktive Vorjahresabrechnung',
+          climateFactor: 1.08,
         },
       },
     })
@@ -203,6 +204,9 @@ describe('ConsumptionRoute', () => {
 
     expect(target.getByLabelText(`Vorjahresverbrauch ${label}`)).toHaveValue(
       '1234,5',
+    )
+    expect(target.getByLabelText(`Klimafaktor Vorjahr ${label}`)).toHaveValue(
+      '1,08',
     )
     expect(
       target.getByLabelText(`Jahr Vorjahresverbrauch ${label}`),
@@ -231,6 +235,9 @@ describe('ConsumptionRoute', () => {
       target.getByLabelText(`Quelle Vorjahresverbrauch ${label}`),
       { target: { value: 'Fiktive Bestätigung' } },
     )
+    fireEvent.change(target.getByLabelText(`Klimafaktor Vorjahr ${label}`), {
+      target: { value: '1,12' },
+    })
     fireEvent.change(target.getByLabelText(`Vorjahresverbrauch ${label}`), {
       target: { value: '0' },
     })
@@ -243,6 +250,7 @@ describe('ConsumptionRoute', () => {
       year: 2024,
       value: 0,
       source: 'Fiktive Bestätigung',
+      climateFactor: 1.12,
     })
 
     const editedTarget = within(row('Wohnung 1'))

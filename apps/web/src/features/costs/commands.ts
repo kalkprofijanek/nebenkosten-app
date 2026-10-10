@@ -32,6 +32,7 @@ export interface AddCostCategoryInput {
   readonly date?: string
   readonly allocablePercent?: number
   readonly laborSharePercent?: number
+  readonly meteringFee?: boolean | null
 }
 
 export interface AddCostEntryInput {
@@ -56,6 +57,7 @@ const CATEGORY_KEYS = [
   'date',
   'allocablePercent',
   'laborSharePercent',
+  'meteringFee',
 ] as const
 const ENTRY_KEYS = [
   'costCategoryId',
@@ -179,6 +181,17 @@ function parseCategoryInput(value: unknown): AddCostCategoryInput {
   const totalAmountCents = optionalInteger(input, 'totalAmountCents')
   const allocablePercent = optionalFiniteNumber(input, 'allocablePercent')
   const laborSharePercent = optionalFiniteNumber(input, 'laborSharePercent')
+  const meteringFee = input.meteringFee
+  if (
+    meteringFee !== undefined &&
+    meteringFee !== null &&
+    typeof meteringFee !== 'boolean'
+  )
+    throw new CostCommandError('Ungültige Eingabe für Messdienstentgelt.')
+  if (kind !== 'heating' && meteringFee != null)
+    throw new CostCommandError(
+      'Messdienstentgelt kann nur für Heizkosten festgelegt werden.',
+    )
   return {
     billingPeriodId: requiredString(input, 'billingPeriodId'),
     kind: kind as AddCostCategoryInput['kind'],
@@ -196,6 +209,7 @@ function parseCategoryInput(value: unknown): AddCostCategoryInput {
     ...defined('date', optionalString(input, 'date', 10)),
     ...defined('allocablePercent', allocablePercent),
     ...defined('laborSharePercent', laborSharePercent),
+    ...defined('meteringFee', meteringFee),
   }
 }
 
