@@ -5,6 +5,7 @@ import {
   occupancyPeriodSchema,
   personSchema,
   prepaymentSchema,
+  previousConsumptionSchema,
   tenancySchema,
   uuidSchema,
   type AppDataFile,
@@ -748,6 +749,43 @@ export function updateTenantOccupancy(
   return setOccupancyPrepayment(updated, {
     occupancyPeriodId,
     ...prepayment,
+  })
+}
+
+/** Aktualisiert ausschließlich den vorhandenen Vorjahresverbrauch einer Belegung. */
+export function updateOccupancyPreviousConsumption(
+  file: AppDataFile,
+  rawInput: unknown,
+): AppDataFile {
+  const input = recordWithExactKeys(
+    rawInput,
+    ['occupancyPeriodId', 'previousConsumption'],
+    'Vorjahresverbrauch',
+  )
+  const occupancyPeriodId = requiredString(input, 'occupancyPeriodId')
+  const occupancy = file.billingData.occupancyPeriods.find(
+    ({ id }) => id === occupancyPeriodId,
+  )
+  if (occupancy?.kind !== 'tenant')
+    throw new OccupancyCommandError('Mieterzeitraum wurde nicht gefunden.')
+  const previousConsumption =
+    input.previousConsumption === undefined
+      ? undefined
+      : parseEntity(
+          previousConsumptionSchema,
+          input.previousConsumption,
+          'Vorjahresverbrauch',
+        )
+  return validatedFile({
+    ...file,
+    billingData: {
+      ...file.billingData,
+      occupancyPeriods: file.billingData.occupancyPeriods.map((item) =>
+        item.id === occupancyPeriodId
+          ? withoutUndefined({ ...item, previousConsumption })
+          : item,
+      ),
+    },
   })
 }
 

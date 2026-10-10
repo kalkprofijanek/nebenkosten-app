@@ -73,11 +73,24 @@ verarbeitet sie im Sinne der DSGVO **als Verantwortlicher**.
 3. Die KI liefert eine **Erfassungsliste** im festen Format (siehe unten),
    inklusive Rückfragen zu unklaren Positionen.
 4. Prüfen Sie die Liste, klären Sie die Rückfragen.
-5. Erfassen Sie jede Zeile in der App unter **Kosten → Kostenpositionen**
+5. Importieren Sie die Erfassungsliste unter **Kosten → Kostenpositionen →
+   KI-Erfassungsliste importieren**, prüfen Sie die Vorschau und übernehmen
+   Sie die Positionen. Alternativ erfassen Sie jede Zeile manuell unter
+   **Kosten → Kostenpositionen**
    (Kostenart, Belegdatum, Beschreibung, Belegnummer, Betrag, umlagefähiger
    Anteil). Die übrigen Spalten dienen Ihrer Prüfung: Der Leistungszeitraum
    entscheidet über das Abrechnungsjahr, der Lohnanteil in Euro hilft, den
    Lohnanteil in Prozent an der Kostenart (§ 35a EStG) zu pflegen.
+
+   Für den Import müssen Kostenarten eindeutig über ihren Namen zugeordnet
+   werden können und Rückfragen geklärt sein. Leistungszeiträume außerhalb des
+   gewählten Jahres müssen vorher aufgeteilt werden. Der Lohnanteil wird gegen
+   den Prozentsatz der Kostenart geprüft; bei abweichenden Belegen verwenden
+   Sie getrennte Kostenarten oder erfassen sie nach fachlicher Prüfung manuell.
+   Lieferant, Leistungszeitraum, Begründung und Lohnbetrag bleiben zusätzlich
+   in der Belegbeschreibung erhalten. Die Vorschau speichert noch nichts.
+   Mögliche Duplikate blockieren die Übernahme; alle Zeilen werden gemeinsam
+   übernommen. Ein Zahlungsnachweis wird dadurch nicht erzeugt.
 
 ## Ablauf B: Bankbuchungen
 

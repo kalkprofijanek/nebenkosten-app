@@ -63,7 +63,7 @@ describe('ConsumptionRoute', () => {
       }),
     )
     expect(
-      target.getByLabelText('Verbrauchseinheiten Wohnung 3 Fiktiv 3'),
+      target.getByLabelText('HKV-Verbrauchseinheiten Wohnung 3 Fiktiv 3'),
     ).toHaveValue('500')
     expect(target.getByLabelText('geschätzt Wohnung 3 Fiktiv 3')).toBeChecked()
     // 50 von 150 m² geschätzt → über 25 %: Hinweis beim Klick
@@ -122,9 +122,9 @@ describe('ConsumptionRoute', () => {
         name: `Verbrauch aus Zählerständen übernehmen ${label}`,
       }),
     )
-    expect(target.getByLabelText(`Verbrauchseinheiten ${label}`)).toHaveValue(
-      '419,5',
-    )
+    expect(
+      target.getByLabelText(`HKV-Verbrauchseinheiten ${label}`),
+    ).toHaveValue('419,5')
     fireEvent.click(
       target.getByRole('button', { name: `Verbrauch speichern ${label}` }),
     )
@@ -141,6 +141,144 @@ describe('ConsumptionRoute', () => {
     expect(result.occupancy('o1')).not.toHaveProperty(
       'consumptionUnitsEstimated',
     )
+  })
+
+  it('kennzeichnet verknüpfte Wohnungswärmezählerstände mit kWh', () => {
+    const source = consumptionFixture({
+      o1: {
+        heatMeterReading: {
+          meterNumber: 'WMZ-TEST-1',
+          startValue: 1000,
+          endValue: 1400,
+        },
+      },
+    })
+    const data: AppDataFile = {
+      ...source,
+      masterData: {
+        ...source.masterData,
+        meters: [
+          {
+            id: 'meter-1',
+            propertyId: 'p',
+            kind: 'unit_heat',
+            meterNumber: 'WMZ-TEST-1',
+          },
+        ],
+      },
+    }
+    renderHarness(data)
+    const target = within(row('Wohnung 1'))
+    const label = 'Wohnung 1 Fiktiv 1'
+    expect(target.getByLabelText(`Stand alt (kWh) ${label}`)).toHaveValue(
+      '1000',
+    )
+    expect(target.getByLabelText(`Stand neu (kWh) ${label}`)).toHaveValue(
+      '1400',
+    )
+    expect(target.getByText('= 400 kWh')).toBeVisible()
+    expect(
+      screen.getByRole('columnheader', { name: 'HKV-Verbrauchseinheiten' }),
+    ).toBeVisible()
+  })
+
+  it('bearbeitet den Vorjahresverbrauch und unterscheidet fehlend von 0', () => {
+    const initial = consumptionFixture({
+      o1: {
+        previousConsumption: {
+          year: 2024,
+          value: 1234.5,
+          source: 'Fiktive Vorjahresabrechnung',
+        },
+      },
+    })
+    const result = renderHarness(initial)
+    const target = within(row('Wohnung 1'))
+    const label = 'Wohnung 1 Fiktiv 1'
+    fireEvent.click(
+      target.getByRole('button', {
+        name: `Vorjahresverbrauch bearbeiten ${label}`,
+      }),
+    )
+
+    expect(target.getByLabelText(`Vorjahresverbrauch ${label}`)).toHaveValue(
+      '1234,5',
+    )
+    expect(
+      target.getByLabelText(`Jahr Vorjahresverbrauch ${label}`),
+    ).toHaveValue('2024')
+    fireEvent.change(
+      target.getByLabelText(`Jahr Vorjahresverbrauch ${label}`),
+      {
+        target: { value: '2023' },
+      },
+    )
+    fireEvent.click(
+      target.getByRole('button', {
+        name: `Vorjahresverbrauch speichern ${label}`,
+      }),
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Der Vorjahresverbrauch muss zum Vorjahr 2024 gehören.',
+    )
+    fireEvent.change(
+      target.getByLabelText(`Jahr Vorjahresverbrauch ${label}`),
+      {
+        target: { value: '2024' },
+      },
+    )
+    fireEvent.change(
+      target.getByLabelText(`Quelle Vorjahresverbrauch ${label}`),
+      { target: { value: 'Fiktive Bestätigung' } },
+    )
+    fireEvent.change(target.getByLabelText(`Vorjahresverbrauch ${label}`), {
+      target: { value: '0' },
+    })
+    fireEvent.click(
+      target.getByRole('button', {
+        name: `Vorjahresverbrauch speichern ${label}`,
+      }),
+    )
+    expect(result.occupancy('o1').previousConsumption).toEqual({
+      year: 2024,
+      value: 0,
+      source: 'Fiktive Bestätigung',
+    })
+
+    const editedTarget = within(row('Wohnung 1'))
+    fireEvent.click(
+      editedTarget.getByRole('button', {
+        name: `Vorjahresverbrauch bearbeiten ${label}`,
+      }),
+    )
+    const openedTarget = within(row('Wohnung 1'))
+    fireEvent.change(
+      openedTarget.getByLabelText(`Vorjahresverbrauch ${label}`),
+      {
+        target: { value: '' },
+      },
+    )
+    fireEvent.click(
+      openedTarget.getByRole('button', {
+        name: `Vorjahresverbrauch speichern ${label}`,
+      }),
+    )
+    expect(result.occupancy('o1').previousConsumption).toBeUndefined()
+  })
+
+  it('sperrt Vorjahresverbrauch in freigegebenen Jahren', () => {
+    const fixture = consumptionFixture({}, 'READY_FOR_PDF')
+    renderHarness(fixture)
+    const target = within(row('Wohnung 1'))
+    const label = 'Wohnung 1 Fiktiv 1'
+    expect(
+      target.queryByLabelText(`Vorjahresverbrauch ${label}`),
+    ).not.toBeInTheDocument()
+    expect(
+      target.queryByRole('button', {
+        name: `Vorjahresverbrauch bearbeiten ${label}`,
+      }),
+    ).not.toBeInTheDocument()
   })
 
   it('pflegt Kalt- und Warmwasser und behält es bei der Sammelschätzung', () => {

@@ -7,6 +7,30 @@ import {
 } from './overview'
 
 describe('buildConsumptionOverview', () => {
+  it('verwendet für Messmodus und Gebäude den Gebäudeoverride der Nutzung', () => {
+    const data = consumptionFixture({
+      o1: { costScope: { kind: 'building', buildingId: 'b2' } },
+    })
+    data.masterData.buildings.push({
+      id: 'b2',
+      propertyId: 'p',
+      name: 'Haus B',
+      mandateRefPrefixes: [],
+    })
+    data.billingData.heatingCircuits.push({
+      id: 'override-circuit',
+      billingPeriodId: 'y',
+      buildingId: 'b2',
+      consumptionMode: 'metered_kwh',
+    } as never)
+    const row = buildConsumptionOverview(data, 'y')!.rows.find(
+      ({ occupancy }) => occupancy.id === 'o1',
+    )!
+    expect(row.buildingId).toBe('b2')
+    expect(row.meteredCircuit).toBe(true)
+    expect(needsEstimate(row)).toBe(false)
+  })
+
   it('ordnet Status, Zählerdifferenz und Schätzung je Mieter zu', () => {
     const overview = buildConsumptionOverview(
       consumptionFixture({

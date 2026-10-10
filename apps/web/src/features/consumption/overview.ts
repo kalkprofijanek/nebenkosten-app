@@ -15,6 +15,10 @@ import {
   type ConsumptionEstimateResult,
 } from '../occupancies/estimate-consumption'
 import { tenantDisplayName } from '../prepayments/overview'
+import {
+  occupancyReadingUsesKwh,
+  occupancyUsesMeteredKwh,
+} from './capture-mode'
 
 /**
  * `measured`: Wert > 0 aus Ablesung/Messdienst; `estimated`: als geschätzt
@@ -35,6 +39,8 @@ export interface ConsumptionRow {
   /** Fläche wie im Rechenkern (beheizt, sonst Wohnfläche) für § 9a Abs. 2. */
   readonly allocationAreaSqm: number
   readonly reading: HeatMeterReading | undefined
+  /** True only when the entered meter number identifies a unit-heat meter. */
+  readonly readingUsesKwh: boolean
   readonly units: number | null
   readonly estimated: boolean
   readonly estimateReason: string | null
@@ -93,15 +99,6 @@ export function buildConsumptionOverview(
     ({ id }) => id === billingPeriodId,
   )
   if (!period) return null
-  const meteredBuildings = new Set(
-    data.billingData.heatingCircuits
-      .filter(
-        (circuit) =>
-          circuit.billingPeriodId === period.id &&
-          circuit.consumptionMode === 'metered_kwh',
-      )
-      .map(({ buildingId }) => buildingId),
-  )
   const days = (from?: string | null, to?: string | null) => {
     try {
       return calculateOccupancyDays(
@@ -123,7 +120,10 @@ export function buildConsumptionOverview(
       const unit = data.masterData.units.find(
         ({ id }) => id === occupancy.unitId,
       )
-      const buildingId = unit?.buildingId ?? null
+      const buildingId =
+        occupancy.costScope?.kind === 'building'
+          ? occupancy.costScope.buildingId
+          : (unit?.buildingId ?? null)
       const reading = occupancy.heatMeterReading ?? undefined
       const units = occupancy.consumptionUnits?.value ?? null
       const estimated = occupancy.consumptionUnitsEstimated === true
@@ -149,6 +149,7 @@ export function buildConsumptionOverview(
         estimateReason: occupancy.consumptionUnitsEstimateReason ?? null,
         coldWater: occupancy.coldWater?.value ?? null,
         warmWater: occupancy.warmWater?.value ?? null,
+        readingUsesKwh: occupancyReadingUsesKwh(data, occupancy),
         readingDifference,
         readingMismatch:
           readingDifference !== null &&
@@ -156,7 +157,7 @@ export function buildConsumptionOverview(
           (units === null ||
             Math.abs(readingDifference - units) > METER_READING_TOLERANCE),
         status: statusOf(units, estimated),
-        meteredCircuit: buildingId !== null && meteredBuildings.has(buildingId),
+        meteredCircuit: occupancyUsesMeteredKwh(data, occupancy),
         estimate: explainConsumptionEstimate(data, occupancy.id),
       }
     })
