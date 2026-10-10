@@ -6,6 +6,7 @@ import type {
 } from '@nebenkosten/schema'
 import { WorkflowField } from './form-support'
 import { formatEuroInput } from '../../app/form-parsers'
+import { occupancyUsesMeteredKwh } from '../consumption/capture-mode'
 const m3 = (value: number | undefined) =>
   value === undefined ? '–' : String(value).replace('.', ',')
 
@@ -39,6 +40,11 @@ export function OccupancyEditor({
         ? currentPrepayment.annualAmountCents
         : undefined
   const consumption = occupancy.consumptionUnits?.value
+  const meteredKwh = occupancyUsesMeteredKwh(data, occupancy)
+  const consumptionLabel =
+    consumption == null
+      ? 'nicht erfasst'
+      : `${String(consumption).replace('.', ',')} Einheiten (HKV${occupancy.consumptionUnitsEstimated ? ', geschätzt' : ''})${meteredKwh ? ' — im kWh-Messmodus nicht verwendet' : ''}`
   return (
     <>
       {' '}
@@ -119,11 +125,10 @@ export function OccupancyEditor({
           </small>
           <p className="consumption-hint">
             Heizverbrauch:{' '}
-            {consumption == null
-              ? 'nicht erfasst'
-              : `${String(consumption).replace('.', ',')} Einheiten${
-                  occupancy.consumptionUnitsEstimated ? ' (geschätzt)' : ''
-                }`}
+            {meteredKwh
+              ? 'Wohnungswärme in kWh wird am Heizkreis gemessen; '
+              : ''}
+            {consumptionLabel}
             {occupancy.heatMeterReading?.meterNumber
               ? ` · Zähler ${occupancy.heatMeterReading.meterNumber}`
               : ''}

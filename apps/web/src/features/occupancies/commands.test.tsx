@@ -11,6 +11,7 @@ import {
   deleteOccupancy,
   setOccupancyPrepayment,
   updateOccupancyConsumption,
+  updateOccupancyPreviousConsumption,
   updateTenantOccupancy,
   updateVacancyOccupancy,
 } from './commands'
@@ -627,6 +628,58 @@ describe('Nutzer-Commands', () => {
     expect(result.masterData.tenancies[0]).not.toHaveProperty(
       'shippingAddressPostalCodeAndCity',
     )
+  })
+
+  it('ändert nur den gespeicherten Vorjahresverbrauch und prüft den Vertrag', () => {
+    const created = addTenantOccupancy(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Fiktiver Nutzer' },
+        occupancy: {},
+        prepayment: { mode: 'none_agreed' },
+      },
+      sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+    )
+    const source = updateOccupancyConsumption(created, {
+      occupancyPeriodId: IDS.occupancy,
+      consumptionUnits: 12,
+    })
+    const saved = updateOccupancyPreviousConsumption(source, {
+      occupancyPeriodId: IDS.occupancy,
+      previousConsumption: {
+        year: 2025,
+        value: 0,
+        source: 'Fiktive Abrechnung',
+      },
+    })
+    expect(saved.billingData.occupancyPeriods[0]?.previousConsumption).toEqual({
+      year: 2025,
+      value: 0,
+      source: 'Fiktive Abrechnung',
+    })
+    expect(saved.billingData.occupancyPeriods[0]?.consumptionUnits).toEqual(
+      source.billingData.occupancyPeriods[0]?.consumptionUnits,
+    )
+
+    const cleared = updateOccupancyPreviousConsumption(saved, {
+      occupancyPeriodId: IDS.occupancy,
+    })
+    expect(cleared.billingData.occupancyPeriods[0]).not.toHaveProperty(
+      'previousConsumption',
+    )
+    expect(() =>
+      updateOccupancyPreviousConsumption(source, {
+        occupancyPeriodId: IDS.occupancy,
+        previousConsumption: { year: 2025, value: -1 },
+      }),
+    ).toThrow('Ungültige Eingabe für Vorjahresverbrauch.')
+    expect(() =>
+      updateOccupancyPreviousConsumption(source, {
+        occupancyPeriodId: 'missing',
+      }),
+    ).toThrow('Mieterzeitraum wurde nicht gefunden.')
   })
 
   it('bearbeitet Leerstand und prüft den Zeitraum erneut', () => {

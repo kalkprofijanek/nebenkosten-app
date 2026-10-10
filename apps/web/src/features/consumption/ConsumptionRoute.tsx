@@ -4,6 +4,7 @@ import { parseOptionalNumber } from '../../app/form-parsers'
 import {
   OccupancyCommandError,
   updateOccupancyConsumption,
+  updateOccupancyPreviousConsumption,
 } from '../occupancies/commands'
 import { explainConsumptionEstimate } from '../occupancies/estimate-consumption'
 import { applyEditableBillingPeriodChange } from '../release/edit-guard'
@@ -43,6 +44,12 @@ interface Draft {
   readonly warmWater: string
 }
 
+interface PreviousConsumptionDraft {
+  readonly year: string
+  readonly value: string
+  readonly source: string
+}
+
 const STATUS_LABELS: Readonly<Record<ConsumptionStatus, string>> = {
   measured: 'erfasst',
   estimated: 'geschätzt',
@@ -72,6 +79,17 @@ function initialDraft(row: ConsumptionRow): Draft {
     reason: row.estimateReason ?? '',
     coldWater: input(row.coldWater),
     warmWater: input(row.warmWater),
+  }
+}
+
+function previousConsumptionDraft(
+  row: ConsumptionRow,
+): PreviousConsumptionDraft {
+  const previous = row.occupancy.previousConsumption
+  return {
+    year: previous ? String(previous.year) : '',
+    value: input(previous?.value),
+    source: previous?.source ?? '',
   }
 }
 
@@ -172,20 +190,30 @@ function ConsumptionTableRow({
   locked,
   highlighted,
   onSave,
+  onSavePrevious,
   onEstimate,
 }: {
   readonly row: ConsumptionRow
   readonly locked: boolean
   readonly highlighted: boolean
   readonly onSave: (row: ConsumptionRow, draft: Draft) => void
+  readonly onSavePrevious: (
+    row: ConsumptionRow,
+    draft: PreviousConsumptionDraft,
+  ) => boolean
   readonly onEstimate: (row: ConsumptionRow) => void
 }) {
   const initial = initialDraft(row)
   const [draft, setDraft] = useState(initial)
+  const initialPrevious = previousConsumptionDraft(row)
+  const [previousDraft, setPreviousDraft] = useState(initialPrevious)
+  const [editingPrevious, setEditingPrevious] = useState(false)
   const dirty = !sameDraft(draft, initial)
   const label = `${row.unitLabel} ${row.tenantName}`
   const set = (patch: Partial<Draft>) =>
     setDraft((current) => ({ ...current, ...patch }))
+  const setPrevious = (patch: Partial<PreviousConsumptionDraft>) =>
+    setPreviousDraft((current) => ({ ...current, ...patch }))
   const difference = draftDifference(draft)
   const draftUnits = (() => {
     try {
@@ -261,17 +289,24 @@ function ConsumptionTableRow({
       <td>{textField('meterNumber', 'Zählernummer', 'consumption-meter')}</td>
       <td>
         <div className="consumption-reading">
-          {textField('startValue', 'Stand alt')}
+          {textField(
+            'startValue',
+            `Stand alt${row.readingUsesKwh ? ' (kWh)' : ''}`,
+          )}
           {dateField('startDate', 'Datum alt')}
         </div>
       </td>
       <td>
         <div className="consumption-reading">
-          {textField('endValue', 'Stand neu')}
+          {textField(
+            'endValue',
+            `Stand neu${row.readingUsesKwh ? ' (kWh)' : ''}`,
+          )}
           {dateField('endDate', 'Datum neu')}
           {difference === null ? null : (
             <span className="consumption-difference">
               = {decimal(difference)}
+              {row.readingUsesKwh ? ' kWh' : ''}
             </span>
           )}
           {difference !== null && difference < 0 ? (
@@ -297,7 +332,7 @@ function ConsumptionTableRow({
         </div>
       </td>
       <td className="consumption-units-cell">
-        {textField('units', 'Verbrauchseinheiten')}
+        {textField('units', 'HKV-Verbrauchseinheiten')}
         {!locked ? (
           <label className="consumption-estimated">
             <input
@@ -345,13 +380,104 @@ function ConsumptionTableRow({
           {textField('warmWater', 'Warmwasser', 'consumption-water')}
         </div>
       </td>
+      <td>
+        <div className="consumption-reading">
+          {!editingPrevious ? (
+            <>
+              <span>
+                {row.occupancy.previousConsumption
+                  ? `${decimal(row.occupancy.previousConsumption.value)} (${row.occupancy.previousConsumption.year})`
+                  : '—'}
+              </span>
+              {row.occupancy.previousConsumption?.source ? (
+                <small>{row.occupancy.previousConsumption.source}</small>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <label>
+                <span>Wert</span>
+                <input
+                  aria-label={`Vorjahresverbrauch ${label}`}
+                  className="consumption-number"
+                  inputMode="decimal"
+                  value={previousDraft.value}
+                  onChange={(event) =>
+                    setPrevious({ value: event.target.value })
+                  }
+                />
+              </label>
+              <label>
+                <span>Jahr</span>
+                <input
+                  aria-label={`Jahr Vorjahresverbrauch ${label}`}
+                  className="consumption-number"
+                  inputMode="numeric"
+                  value={previousDraft.year}
+                  onChange={(event) =>
+                    setPrevious({ year: event.target.value })
+                  }
+                />
+              </label>
+              <label>
+                <span>Quelle</span>
+                <input
+                  aria-label={`Quelle Vorjahresverbrauch ${label}`}
+                  value={previousDraft.source}
+                  onChange={(event) =>
+                    setPrevious({ source: event.target.value })
+                  }
+                />
+              </label>
+            </>
+          )}
+          {!locked && !editingPrevious ? (
+            <button
+              className="button button--quiet"
+              type="button"
+              aria-label={`Vorjahresverbrauch bearbeiten ${label}`}
+              onClick={() => setEditingPrevious(true)}
+            >
+              Bearbeiten
+            </button>
+          ) : null}
+          {!locked && editingPrevious ? (
+            <>
+              <button
+                className="button button--quiet"
+                type="button"
+                aria-label={`Vorjahresverbrauch speichern ${label}`}
+                onClick={() => {
+                  if (onSavePrevious(row, previousDraft))
+                    setEditingPrevious(false)
+                }}
+              >
+                Speichern
+              </button>
+              <button
+                className="button button--quiet"
+                type="button"
+                aria-label={`Änderung Vorjahresverbrauch verwerfen ${label}`}
+                onClick={() => {
+                  setPreviousDraft(initialPrevious)
+                  setEditingPrevious(false)
+                }}
+              >
+                Verwerfen
+              </button>
+            </>
+          ) : null}
+        </div>
+      </td>
       <td className="consumption-status-cell">
         <span className={`consumption-status consumption-status--${status}`}>
           {STATUS_LABELS[status]}
         </span>
         {row.meteredCircuit ? (
           <small>
-            kWh-Messverbrauch am Heizkreis aktiv; Wert wird nicht verwendet.
+            Der Heizkreis verwendet Wohnungswärme in kWh. Gespeicherte
+            HKV-Verbrauchseinheiten bleiben als Altwerte erhalten und werden
+            hier nicht verwendet.
           </small>
         ) : null}
         {!dirty && row.readingMismatch ? (
@@ -445,6 +571,36 @@ function ConsumptionTable({
     )
   }
 
+  function savePrevious(
+    row: ConsumptionRow,
+    draft: PreviousConsumptionDraft,
+  ): boolean {
+    return run((current) => {
+      const value = parse(draft.value, 'Vorjahresverbrauch')
+      if (value === undefined)
+        return updateOccupancyPreviousConsumption(current, {
+          occupancyPeriodId: row.occupancy.id,
+        })
+      const year = parse(draft.year, 'Jahr des Vorjahresverbrauchs')
+      if (year === undefined || !Number.isInteger(year))
+        throw new OccupancyCommandError(
+          'Jahr des Vorjahresverbrauchs: Bitte eine gültige Jahreszahl eingeben.',
+        )
+      if (year !== period.year - 1)
+        throw new OccupancyCommandError(
+          `Der Vorjahresverbrauch muss zum Vorjahr ${period.year - 1} gehören.`,
+        )
+      return updateOccupancyPreviousConsumption(current, {
+        occupancyPeriodId: row.occupancy.id,
+        previousConsumption: {
+          year,
+          value,
+          source: draft.source.trim() || undefined,
+        },
+      })
+    }, `Vorjahresverbrauch für ${row.unitLabel} (${row.tenantName}) gespeichert.`)
+  }
+
   function estimateAll() {
     const ids = estimable.map(({ occupancy }) => occupancy.id)
     setHint(section9aHint(overview.rows, new Set(ids)))
@@ -494,6 +650,11 @@ function ConsumptionTable({
           gespeicherten Rechenstand dieses Jahres.
         </p>
       )}
+      <p className="consumption-note">
+        Der gespeicherte Vorjahreswert gilt nur für {period.year - 1} und wird
+        nur herangezogen, wenn im System kein Vorjahreszeitraum mit
+        Verbrauchsdaten vorliegt.
+      </p>
       {hint ? (
         <p className="calculation-warnings" role="note" aria-live="polite">
           {hint}
@@ -550,8 +711,9 @@ function ConsumptionTable({
                 <th scope="col">Zähler</th>
                 <th scope="col">Stand alt</th>
                 <th scope="col">Stand neu / Differenz</th>
-                <th scope="col">Verbrauchseinheiten</th>
+                <th scope="col">HKV-Verbrauchseinheiten</th>
                 <th scope="col">Wasser m³ kalt / warm</th>
+                <th scope="col">Vorjahresverbrauch</th>
                 <th scope="col">Status</th>
               </tr>
             </thead>
@@ -565,11 +727,13 @@ function ConsumptionTable({
                     row.reading,
                     row.coldWater,
                     row.warmWater,
+                    row.occupancy.previousConsumption,
                   ])}`}
                   row={row}
                   locked={locked}
                   highlighted={row.occupancy.id === highlightId}
                   onSave={save}
+                  onSavePrevious={savePrevious}
                   onEstimate={(row) =>
                     setHint(
                       section9aHint(overview.rows, new Set([row.occupancy.id])),
