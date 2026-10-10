@@ -89,6 +89,12 @@ export const costCategorySchema = z.strictObject({
   allocablePercent: percentSchema.nullish(),
   /** § 35a EStG Lohnanteil (Legacy `lohn_anteil_proz`). */
   laborSharePercent: percentSchema.nullish(),
+  /**
+   * Entgelt für Verbrauchserfassung und Abrechnung (§ 6a Abs. 3 Nr. 1c
+   * HeizKV). Leer = Erkennung über Schlagworte (additiv, Schema v5;
+   * ADR-0006).
+   */
+  meteringFee: z.boolean().nullish(),
   /** Herkunftsmarker Grundsteuer-Import (Legacy-Felder). */
   fromPropertyTaxImport: z.boolean().nullish(),
   propertyTaxAssessmentCents: moneyCentsSchema.nullish(),

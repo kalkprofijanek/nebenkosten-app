@@ -260,6 +260,11 @@ Umlageschlüssel (`allocationKeySchema`): `usable_area` (`m2_nf`),
 `heated_area` (`m2_nf_hzg`), `consumption_units` (`einheiten`),
 `residential_units` (`we_anzahl`), `direct` (`direkt`).
 
+`CostCategory.meteringFee` (optional, boolesch, additiv in Schema v5;
+ADR-0006): Entgelt für Verbrauchserfassung und Abrechnung (§ 6a Abs. 3 Nr. 1c
+HeizKV). `true` zählt die Kostenart, `false` schließt sie aus, leer =
+Erkennung über Schlagworte.
+
 ### 3.11 CostEntry / Kostenbuchung oder Rechnung (`costEntrySchema`)
 
 Legacy: `Beleg` (`Kostenart.rechnungen[]`).

@@ -8,6 +8,7 @@ import {
   checkClimateFactor,
   compareTenantWithConsumptionBenchmark,
   isGridEnergySource,
+  meteringFeeCents,
   previousPeriodClimateFactor,
 } from '@nebenkosten/core'
 import type {
@@ -188,6 +189,20 @@ export function heatingInformation(
           {
             entity: { type: 'HeatingCircuit', id: circuit.id },
             detail: `Die Vergleichswerte (${benchmark.source}) beziehen sich auf ${benchmark.referenceYear}, abgerechnet wird ${period.year}. Sind Werte für ${period.year} noch nicht veröffentlicht, ist die jüngste Ausgabe zu verwenden und das Bezugsjahr anzugeben.`,
+          },
+        ),
+      )
+    if (meteringFeeCents(data, period.id, circuit.buildingId) === null)
+      add(
+        issue(
+          'warning',
+          'heating.metering_fee_not_identified',
+          'heating',
+          'Entgelte für Verbrauchserfassung nicht erkennbar',
+          {
+            entity: { type: 'HeatingCircuit', id: circuit.id },
+            detail:
+              'Unter den Heizungs-Betriebskosten des Gebäudes ist keine Kostenart als Entgelt für Verbrauchserfassung und Abrechnung (Gerätemiete, Ablesung, Abrechnung, Eichung) gekennzeichnet oder erkennbar. Die Einzelabrechnung nennt dann keinen Betrag (§ 6a Abs. 3 Nr. 1c HeizKV). Kostenart als Messdienstentgelt kennzeichnen; fallen keine Entgelte an, diesen Hinweis bestätigen.',
           },
         ),
       )

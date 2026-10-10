@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { AppDataFile, FuelDelivery } from '@nebenkosten/schema'
+import type {
+  AppDataFile,
+  CostCategory,
+  FuelDelivery,
+} from '@nebenkosten/schema'
 import { validateBillingPeriod } from '../src/index'
 import { validData } from './fixture'
 
@@ -219,6 +223,52 @@ describe('Gleich bezeichnete Belege', () => {
       find(
         withChimneySweep(['Emissionsmessung', 'Kehrarbeiten']),
         'costs.entry_ambiguous',
+      ),
+    ).toEqual([])
+  })
+})
+
+describe('§ 6a Abs. 3 Nr. 1c HeizKV – Entgelte der Verbrauchserfassung', () => {
+  const circuitData = (category?: Partial<CostCategory>) => {
+    const data = mixedCircuit([heatPumpInvoice()])
+    if (category)
+      data.billingData.costCategories.push({
+        id: 'fee',
+        billingPeriodId: 'period-1',
+        kind: 'heating',
+        label: 'Dienstleister',
+        scope: { kind: 'building', buildingId: 'building-1' },
+        totalAmountCents: 12_000,
+        ...category,
+      })
+    return data
+  }
+
+  it('meldet fehlende Entgelte je Heizkreis', () => {
+    const [warning] = find(circuitData(), 'heating.metering_fee_not_identified')
+    expect(warning).toMatchObject({
+      severity: 'warning',
+      entity: { type: 'HeatingCircuit', id: 'circuit-1' },
+    })
+    expect(
+      find(
+        circuitData({ meteringFee: false, label: 'Messdienst' }),
+        'heating.metering_fee_not_identified',
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('schweigt bei gekennzeichneter oder erkannter Kostenart', () => {
+    expect(
+      find(
+        circuitData({ meteringFee: true }),
+        'heating.metering_fee_not_identified',
+      ),
+    ).toEqual([])
+    expect(
+      find(
+        circuitData({ label: 'Heizkostenabrechnung' }),
+        'heating.metering_fee_not_identified',
       ),
     ).toEqual([])
   })

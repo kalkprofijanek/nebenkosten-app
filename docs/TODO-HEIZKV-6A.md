@@ -101,6 +101,12 @@ Skizze:
 
 ### 5. Steuern/Abgaben und Messentgelte beziffern (Abs. 3 Nr. 1b, 1c)
 
+Stand 10. Oktober 2026: Messentgelte (Nr. 1c) umgesetzt mit Kennzeichen
+`CostCategory.meteringFee` und Schlagworten als Ersatz, ohne Datenmigration
+(ADR-0006); Erfassung in der Oberfläche folgt
+(`docs/TASKS/PR-26-MESSDIENSTENTGELTE.md`). Steuern/Abgaben (Nr. 1b): offen,
+Entscheidung des Nutzers nötig. Die ursprüngliche Skizze:
+
 - Rechnungen: Felder `vatCents`, `energyTaxCents`, `co2LevyCents` je
   Energielieferung/-rechnung; Summe je Heizkreis im PDF statt Pauschaltext.
 - Kostenart-Flag `isMeteringFee` statt `METERING_FEE_PATTERN`; Migration setzt
