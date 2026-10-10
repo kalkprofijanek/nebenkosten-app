@@ -226,6 +226,14 @@ bleiben gültig, daher bleibt `schemaVersion` 5 (keine Migration nötig).
 | `coverLetter`                | {active, text}                                                    | opt   | `anschreiben`                                |
 | `lastModifiedAt`             | IsoTimestamp                                                      | opt   | `_ts` (ms-Epoch → ISO)                       |
 
+
+`BillingPeriod.climateFactor` (`climateFactorSchema`, strikt, optional,
+additiv in Schema v5; ADR-0005): DWD-Klimafaktor für die Witterungsbereinigung
+des Vorperiodenvergleichs – `postalCode` (fünfstellig), `factor` (> 0),
+`periodStart` < `periodEnd` (Zwölfmonatszeitraum laut DWD-Datei), `source`.
+`PreviousConsumption.climateFactor` (optional, > 0) trägt den Faktor des
+Vorjahres, wenn das Vorjahr nicht im System liegt.
+
 ### 3.10 CostCategory / Kostenart (`costCategorySchema`)
 
 | Feld                           | Typ                           | P/opt | Legacy                                  |

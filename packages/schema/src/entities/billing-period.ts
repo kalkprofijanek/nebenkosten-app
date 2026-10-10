@@ -88,6 +88,31 @@ export type StandardCostCategoryStatus = z.infer<
   typeof standardCostCategoryStatusSchema
 >
 
+/**
+ * Klimafaktor des Deutschen Wetterdienstes für die Witterungsbereinigung des
+ * Vorperiodenvergleichs (§ 6a Abs. 3 Satz 3 und 4 HeizKV, ADR-0005). Der DWD
+ * veröffentlicht je Postleitzahl einen Faktor für einen gleitenden
+ * Zwölfmonatszeitraum (Gradtage am Referenzstandort ÷ Gradtage am Standort);
+ * der Heizenergieverbrauch des Zeitraums wird damit multipliziert. Die
+ * Zuordnung der Wetterstation zur Postleitzahl übernimmt der DWD.
+ */
+export const climateFactorSchema = z
+  .strictObject({
+    /** Postleitzahl, für die der Faktor gilt (in der Regel die des Objekts). */
+    postalCode: z.string().regex(/^\d{5}$/u),
+    factor: z.number().finite().positive(),
+    /** Zwölfmonatszeitraum des Faktors (aus dem Dateinamen der DWD-Liste). */
+    periodStart: isoDateSchema,
+    periodEnd: isoDateSchema,
+    /** Bezeichnung der Quelle, z. B. „DWD, Klimafaktoren (Referenz Potsdam)“. */
+    source: z.string().trim().min(1),
+  })
+  .refine((value) => value.periodStart < value.periodEnd, {
+    message: 'Der Zeitraum des Klimafaktors muss vor seinem Ende beginnen.',
+    path: ['periodEnd'],
+  })
+export type ClimateFactor = z.infer<typeof climateFactorSchema>
+
 /** BillingPeriod / Abrechnungsjahr (Legacy: `Abrechnung`). */
 export const billingPeriodSchema = z.strictObject({
   legacyUnmapped: legacyUnmappedSchema.nullish(),
@@ -105,5 +130,7 @@ export const billingPeriodSchema = z.strictObject({
   notes: billingNotesSchema.nullish(),
   coverLetter: coverLetterSchema.nullish(),
   lastModifiedAt: isoTimestampSchema.nullish(),
+  /** Klimafaktor für die Witterungsbereinigung (additiv, Schema v5). */
+  climateFactor: climateFactorSchema.nullish(),
 })
 export type BillingPeriod = z.infer<typeof billingPeriodSchema>

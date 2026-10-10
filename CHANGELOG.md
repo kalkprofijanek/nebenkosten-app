@@ -4,6 +4,12 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Witterungsbereinigung des Vorjahresvergleichs** (§ 6a Abs. 3 Satz 3/4
+  HeizKV), Grundlage: DWD-Klimafaktor je Postleitzahl am Abrechnungsjahr
+  (`BillingPeriod.climateFactor`) und am übernommenen Vorjahresverbrauch;
+  Bereinigung Verbrauch × Klimafaktor für beide Perioden; Prüfhinweise zu
+  Zeitraum, Postleitzahl und fehlendem Vorjahresfaktor (ADR-0005, Schema v5
+  additiv). Import der DWD-Liste, Erfassung und PDF-Ausgabe folgen,
 - **Vergleich mit dem normierten Durchschnittsnutzer** (§ 6a Abs. 3 Nr. 4
   HeizKV), Grundlage: Vergleichswerte (z. B. Heizspiegel für Deutschland,
   co2online) je Heizkreis mit Quelle, Kategorie, Bezugsjahr und
