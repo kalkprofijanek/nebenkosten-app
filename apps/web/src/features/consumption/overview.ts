@@ -1,5 +1,6 @@
 import {
   calculateOccupancyDays,
+  meterReadingTotal,
   SECTION_9A_ESTIMATED_AREA_LIMIT,
 } from '@nebenkosten/core'
 import type {
@@ -71,10 +72,6 @@ export const ESTIMATED_SHARE_LIMIT = SECTION_9A_ESTIMATED_AREA_LIMIT
 
 const collator = new Intl.Collator('de-DE', { numeric: true })
 
-function round3(value: number) {
-  return Math.round(value * 1000) / 1000
-}
-
 function statusOf(units: number | null, estimated: boolean): ConsumptionStatus {
   if (units === null) return 'missing'
   if (estimated) return 'estimated'
@@ -130,11 +127,8 @@ export function buildConsumptionOverview(
       const reading = occupancy.heatMeterReading ?? undefined
       const units = occupancy.consumptionUnits?.value ?? null
       const estimated = occupancy.consumptionUnitsEstimated === true
-      const readingDifference =
-        typeof reading?.startValue === 'number' &&
-        typeof reading.endValue === 'number'
-          ? round3(reading.endValue - reading.startValue)
-          : null
+      // Einschließlich Zählertausch (ADR-0008).
+      const readingDifference = meterReadingTotal(reading)
       return {
         occupancy,
         unitLabel: unit?.label || unit?.location || occupancy.unitId,

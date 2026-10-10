@@ -1,6 +1,7 @@
 import {
   calculateRentLedger,
   createCalculationInput,
+  meterReadingConsumption,
   resolveMeteredConsumption,
   resolveShippingAddress,
   type MeteredConsumptionIssue,
@@ -1047,7 +1048,23 @@ function meterReadings(
       !blank(occupancy.consumptionUnitsEstimateReason)
     if (hasStart && hasEnd) {
       if (justifiedEstimate) continue
-      const difference = reading.endValue! - reading.startValue!
+      const derived = meterReadingConsumption(reading)
+      if (derived.status === 'invalid') {
+        add(
+          issue(
+            'warning',
+            'heating.meter_replacement_invalid',
+            'occupancy',
+            'Angaben zum Zählertausch sind unstimmig',
+            {
+              detail: `${unitLabel}: ${derived.reason === 'replacement_order' ? 'Die Tauschtage sind nicht zeitlich geordnet.' : 'Ein Tauschtag liegt außerhalb der Ablesedaten alt/neu.'} Ohne stimmige Angaben lässt sich der Verbrauch nicht aus den Zählerständen ableiten.`,
+              entity,
+            },
+          ),
+        )
+        continue
+      }
+      const difference = derived.status === 'complete' ? derived.total : 0
       const units = occupancy.consumptionUnits?.value
       if (
         units == null ||
@@ -1060,7 +1077,7 @@ function meterReadings(
             'occupancy',
             'Zählerstände passen nicht zu den Verbrauchseinheiten',
             {
-              detail: `${unitLabel}: Stand neu − Stand alt = ${formatReadingNumber(difference)}, erfasst sind ${units == null ? 'keine' : formatReadingNumber(units)} Verbrauchseinheiten. Bitte Zählerstände oder Verbrauch prüfen (Übernahme per „Verbrauch aus Zählerständen übernehmen“).`,
+              detail: `${unitLabel}: ${reading.replacements?.length ? 'Verbrauch laut Zählerständen einschließlich Zählertausch' : 'Stand neu − Stand alt'} = ${formatReadingNumber(difference)}, erfasst sind ${units == null ? 'keine' : formatReadingNumber(units)} Verbrauchseinheiten. Bitte Zählerstände oder Verbrauch prüfen (Übernahme per „Verbrauch aus Zählerständen übernehmen“).`,
               entity,
             },
           ),
