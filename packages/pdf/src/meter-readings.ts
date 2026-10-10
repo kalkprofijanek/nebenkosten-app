@@ -4,7 +4,12 @@
  * Gesamtabrechnung (Tabelle aller Zählerstände je Heizkreis).
  */
 import type { Content, TableCell } from 'pdfmake/interfaces'
-import { meterReadingTotal, type CalculationOutput } from '@nebenkosten/core'
+import {
+  meterReadingConsumption,
+  meterReadingTotal,
+  type CalculationOutput,
+  type MeterReadingSegment,
+} from '@nebenkosten/core'
 import type {
   AppDataFile,
   HeatMeterReading,
@@ -74,6 +79,69 @@ export function readingCells(
   ]
 }
 
+/** Hinweis statt Verbrauch, wenn die Tauschangaben widersprüchlich sind. */
+export const REPLACEMENT_INVALID_HINT = 'Zählertausch prüfen'
+
+/** Liegt mindestens ein Geräte- bzw. Zählertausch vor (ADR-0008)? */
+export function hasReplacement(
+  reading: HeatMeterReading | null | undefined,
+): boolean {
+  return (reading?.replacements?.length ?? 0) > 0
+}
+
+/** Zellen je Abschnitt: Nummer, Stand alt/neu mit Datum, Verbrauch. */
+function segmentCells(
+  segment: MeterReadingSegment,
+  consumptionText: string,
+): TableCell[] {
+  return [
+    segment.meterNumber ?? '–',
+    { text: readingWithDate(segment.startValue, segment.from) },
+    { text: readingWithDate(segment.endValue, segment.to) },
+    { text: consumptionText, alignment: 'right', noWrap: true },
+  ]
+}
+
+/**
+ * Zeilen „Zähler-Nr. | Stand alt | Stand neu | Verbrauch“ der
+ * Einzelabrechnung. Ohne Tausch genau eine Zeile (`readingCells`), bei
+ * Tausch eine Zeile je Abschnitt und die Summenzeile „Verbrauch gesamt“;
+ * bei widersprüchlichen Tauschangaben ein Hinweis statt des Verbrauchs.
+ */
+export function readingRows(
+  reading: HeatMeterReading,
+  unit: string,
+): TableCell[][] {
+  if (!hasReplacement(reading)) return [readingCells(reading, unit)]
+  const result = meterReadingConsumption(reading)
+  if (result.status !== 'complete') {
+    const cells = readingCells(reading, unit)
+    if (result.status === 'invalid')
+      cells[3] = {
+        text: REPLACEMENT_INVALID_HINT,
+        alignment: 'right',
+        noWrap: true,
+      }
+    return [cells]
+  }
+  return [
+    ...result.segments.map((segment) =>
+      segmentCells(segment, `${formatMeterValue(segment.consumption)} ${unit}`),
+    ),
+    [
+      { text: 'Verbrauch gesamt', colSpan: 3, bold: true },
+      {},
+      {},
+      {
+        text: `${formatMeterValue(result.total)} ${unit}`,
+        alignment: 'right',
+        noWrap: true,
+        bold: true,
+      },
+    ],
+  ]
+}
+
 function occupancyBuildingId(
   appData: AppDataFile,
   calculation: CalculationOutput,
@@ -118,31 +186,57 @@ export function circuitMeterReadingTables(
           occupancyBuildingId(appData, calculation, occupancy) ===
           circuit.buildingId,
       )
-      .map((occupancy): TableCell[] => {
+      .flatMap((occupancy): TableCell[][] => {
         const unit = units.find(({ id }) => id === occupancy.unitId)
         const reading = occupancy.heatMeterReading ?? {}
-        const difference = readingDifference(reading)
+        const result = meterReadingConsumption(reading)
+        const difference = result.status === 'complete' ? result.total : null
         const consumption = occupancy.consumptionUnits?.value
         const deviates =
           difference !== null &&
           (consumption == null || Math.abs(difference - consumption) > 0.5)
+        const consumptionCell: TableCell = {
+          text: `${consumption == null ? '–' : formatNumber(consumption)}${
+            occupancy.consumptionUnitsEstimated ? ' (geschätzt)' : ''
+          }${deviates ? ' !' : ''}`,
+          alignment: 'right',
+          noWrap: true,
+        }
+        const differenceCell: TableCell = {
+          text:
+            difference === null
+              ? hasReplacement(reading) && result.status === 'invalid'
+                ? REPLACEMENT_INVALID_HINT
+                : '–'
+              : formatMeterValue(difference),
+          alignment: 'right',
+          noWrap: true,
+        }
+        if (!hasReplacement(reading) || result.status !== 'complete')
+          return [
+            [
+              unit?.label ?? '–',
+              reading.meterNumber?.trim() || '–',
+              readingWithDate(reading.startValue, reading.startDate),
+              readingWithDate(reading.endValue, reading.endDate),
+              differenceCell,
+              consumptionCell,
+            ],
+          ]
         return [
-          unit?.label ?? '–',
-          reading.meterNumber?.trim() || '–',
-          readingWithDate(reading.startValue, reading.startDate),
-          readingWithDate(reading.endValue, reading.endDate),
-          {
-            text: difference === null ? '–' : formatMeterValue(difference),
-            alignment: 'right',
-            noWrap: true,
-          },
-          {
-            text: `${consumption == null ? '–' : formatNumber(consumption)}${
-              occupancy.consumptionUnitsEstimated ? ' (geschätzt)' : ''
-            }${deviates ? ' !' : ''}`,
-            alignment: 'right',
-            noWrap: true,
-          },
+          ...result.segments.map((segment, index): TableCell[] => [
+            index === 0 ? (unit?.label ?? '–') : '',
+            ...segmentCells(segment, formatMeterValue(segment.consumption)),
+            '',
+          ]),
+          [
+            '',
+            { text: 'Verbrauch gesamt', colSpan: 3, bold: true },
+            {},
+            {},
+            { ...differenceCell, bold: true },
+            consumptionCell,
+          ],
         ]
       })
     if (rows.length === 0) continue

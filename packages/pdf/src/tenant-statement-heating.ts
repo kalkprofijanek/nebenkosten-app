@@ -1,5 +1,8 @@
 import type { Content, TableCell } from 'pdfmake/interfaces'
-import type { HeatingCircuitTrace } from '@nebenkosten/core'
+import {
+  meterReadingConsumption,
+  type HeatingCircuitTrace,
+} from '@nebenkosten/core'
 import type { TenantStatementContext } from './contracts'
 import {
   captureModeFor,
@@ -24,8 +27,9 @@ import {
 import {
   formatMeterValue,
   hasReading,
-  readingCells,
+  hasReplacement,
   readingDifference,
+  readingRows,
 } from './meter-readings'
 import {
   circuitTraceFor,
@@ -51,6 +55,18 @@ function isMeteredOccupancy(context: TenantStatementContext): boolean {
       ),
     ),
   )
+}
+
+/** Summe der Abschnitte bei Zählertausch, z. B. „120 + 35,5“. */
+function replacementSum(
+  reading: Parameters<typeof meterReadingConsumption>[0],
+): string {
+  const result = meterReadingConsumption(reading)
+  return result.status === 'complete'
+    ? result.segments
+        .map(({ consumption }) => formatMeterValue(consumption))
+        .join(' + ')
+    : '–'
 }
 
 /**
@@ -117,7 +133,7 @@ function consumptionCapture(
             { text: 'Stand neu (Datum)', style: 'th' },
             { text: 'Verbrauch', style: 'th', alignment: 'right' },
           ],
-          readingCells(reading, unit),
+          ...readingRows(reading, unit),
         ],
       },
       layout: 'lightHorizontalLines',
@@ -130,7 +146,9 @@ function consumptionCapture(
       )
     } else {
       lines.push(
-        `Verbrauch = Stand neu − Stand alt = ${formatMeterValue(reading.endValue!)} − ${formatMeterValue(reading.startValue!)} = ${formatMeterValue(difference)} ${unit}`,
+        hasReplacement(reading)
+          ? `Verbrauch gesamt (Zählertausch) = ${replacementSum(reading)} = ${formatMeterValue(difference)} ${unit}`
+          : `Verbrauch = Stand neu − Stand alt = ${formatMeterValue(reading.endValue!)} − ${formatMeterValue(reading.startValue!)} = ${formatMeterValue(difference)} ${unit}`,
       )
       if (Math.abs(difference - consumption) > 0.5)
         lines.push(
