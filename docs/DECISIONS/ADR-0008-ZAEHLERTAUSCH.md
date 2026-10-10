@@ -70,3 +70,10 @@ Liegenschaft in die reine Flächenverteilung zwingen.
 Keine Migration; additives optionales Feld. Ältere App-Versionen lehnen
 Dateien mit Tauschangaben ab (strikte Schemaprüfung). Legacy-v3 kennt keinen
 Tausch; der Import setzt das Feld nicht.
+
+## Umsetzung Teil B (10. Oktober 2026) – offene Annahmen
+
+- Unstimmige Tauschtage blockieren das Speichern nicht (Meldung + Prüfung);
+  unvollständige Tauschangaben schon.
+- PDF: eine Zeile je Abschnitt und Summenzeile; bei `incomplete` weiterhin „–“
+  ohne eigenen Hinweis.

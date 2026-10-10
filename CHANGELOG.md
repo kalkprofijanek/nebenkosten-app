@@ -4,6 +4,25 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **§ 6a HeizKV in der Einzelabrechnung**: Vergleich mit dem
+  Durchschnittsnutzer (Heizspiegel-Klassen, eigener Wert in kWh je m² und
+  Jahr, Grenzen auf eigene Fläche und Nutzungszeit); Vorjahresvergleich
+  witterungsbereinigt mit DWD-Klimafaktoren und – wenn das Vorjahr im System
+  liegt – als Energieverbrauch in kWh aus Heizwärme und Warmwasser (nur die
+  Heizwärme bereinigt); neue Prüfung `heating.previous_period_not_weather_adjusted`;
+  `heating.consumption_benchmark_missing` je Heizkreis ohne Vergleichswerte,
+- **Eingaben**: Vergleichswerte (Heizspiegel) am Heizkreis, Klimafaktor am
+  Abrechnungsjahr mit Import der DWD-Liste (Postleitzahl aus der
+  Objektanschrift), Klimafaktor Vorjahr beim übernommenen Vorjahresverbrauch,
+  Auswahl „Entgelt für Verbrauchserfassung“ an Heizungs-Kostenarten,
+- **Verbrauchsseite**: Zählertausch erfassen; Aufteilung nach Gradtagszahlen
+  bei Nutzerwechsel ohne Zwischenablesung (mit Pflichtbegründung, § 9b Abs. 3
+  HeizKV); Hinweis „Zwischenablesung veranlassen“ bei Ein- und Auszug;
+  Markierung von Wechseln ohne Zwischenablesung,
+- Einzel- und Gesamtabrechnung: Zählerstände bei Zählertausch je Abschnitt
+  mit Summenzeile,
+- Korrektur: Speichern des Vorjahresverbrauchs verwirft den Klimafaktor des
+  Vorjahres nicht mehr,
 - **Zwischenablesung bei Nutzerwechsel** (§ 9b Abs. 1 HeizKV): Erkennung der
   Nutzerwechsel je Wohnung im Core; Prüfhinweis
   `heating.interim_reading_missing`, wenn zum Wechsel kein Ablesestand

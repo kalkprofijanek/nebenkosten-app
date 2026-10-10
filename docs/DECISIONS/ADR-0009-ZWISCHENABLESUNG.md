@@ -55,3 +55,11 @@ Vereinbarungen bleiben unberührt.
 ## Migrationsauswirkungen
 
 Keine; keine Schemaänderung.
+
+## Umsetzung Teil B (10. Oktober 2026) – offene Annahmen
+
+- Hinweis erscheint, sobald das Jahr irgendeinen Heizkreis hat (nicht
+  geprüft, ob er die Wohnung versorgt), auch in Leerstandsformularen.
+- Aufteilung nach Gradtagen (Verbrauchsseite) verlangt eine Begründung
+  (höchstens 300 Zeichen) und zitiert § 9b Abs. 3 HeizKV; Zeiträume müssen
+  das Jahr lückenlos abdecken.
