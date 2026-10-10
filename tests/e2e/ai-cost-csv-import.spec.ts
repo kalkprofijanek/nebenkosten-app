@@ -62,7 +62,9 @@ test('prüft eine KI-Erfassungsliste vor atomarer Übernahme und verhindert Dupl
   await expect(
     page.getByRole('table', { name: 'Vorschau der Erfassungsliste' }),
   ).toHaveCount(0)
+  await expect(page.getByText('Lokal gespeichert')).toBeVisible()
   await page.reload()
+  await page.getByRole('link', { name: 'Kosten', exact: true }).click()
   await page
     .getByRole('button', { name: 'Kostenpositionen', exact: true })
     .click()

@@ -30,7 +30,9 @@ test('pflegt Vorjahreswerte einschließlich null Verbrauch und behält sie nach 
   await expect(
     page.getByText('Vorjahresverbrauch für Wohnung 1 (Fiktiv 1) gespeichert.'),
   ).toBeVisible()
+  await expect(page.getByText('Lokal gespeichert')).toBeVisible()
   await page.reload()
+  await page.getByRole('link', { name: 'Verbrauch', exact: true }).click()
   await page
     .getByRole('button', { name: `Vorjahresverbrauch bearbeiten ${label}` })
     .click()
