@@ -38,8 +38,7 @@ keinen fehlenden Faktor stillschweigend auf 1.
 
 ## Messdienstentgelte
 
-Bei einer Heizungs-Kostenart lässt sich „Entgelt für Verbrauchserfassung
-und Abrechnung (§ 6a HeizKV)“ auf automatisch, ja oder nein setzen. Ja und
+Bei einer Heizungs-Kostenart lässt sich „Messdienstentgelt (§ 6a HeizKV)“ auf automatisch, ja oder nein setzen. Ja und
 nein haben Vorrang vor der bisherigen Erkennung anhand der Bezeichnung.
 Automatisch verwendet diese Erkennung als Rückfall für bestehende Daten.
 Die Kennzeichnung wird beim Übernehmen der Kostenarten ins Folgejahr
