@@ -615,4 +615,64 @@ describe('Vergleichswerte am Heizkreis (§ 6a Abs. 3 Nr. 4 HeizKV)', () => {
       benchmark,
     )
   })
+
+  const benchmark = {
+    source: 'Heizspiegel für Deutschland (co2online)',
+    sourceUrl: 'https://example.org/heizspiegel',
+    referenceYear: 2024,
+    category: 'Erdgas, fiktive Kategorie',
+    includesHotWater: true,
+    lowMaxKwhPerSqmYear: 70,
+    mediumMaxKwhPerSqmYear: 130,
+    elevatedMaxKwhPerSqmYear: 200,
+  }
+  const circuitInput = {
+    billingPeriodId: IDS.period,
+    heatingSystemId: IDS.system,
+    buildingId: IDS.building,
+    hasCentralHotWater: false,
+  }
+
+  it('werden gesetzt, geändert und ausdrücklich entfernt', () => {
+    const context = createHeatingContext()
+    const set = updateHeatingCircuit(context, IDS.circuit, {
+      ...circuitInput,
+      consumptionBenchmark: benchmark,
+    })
+    expect(set.billingData.heatingCircuits[0]?.consumptionBenchmark).toEqual(
+      benchmark,
+    )
+    const changed = updateHeatingCircuit(set, IDS.circuit, {
+      ...circuitInput,
+      consumptionBenchmark: { ...benchmark, elevatedMaxKwhPerSqmYear: 210 },
+    })
+    expect(
+      changed.billingData.heatingCircuits[0]?.consumptionBenchmark
+        ?.elevatedMaxKwhPerSqmYear,
+    ).toBe(210)
+    const kept = updateHeatingCircuit(changed, IDS.circuit, {
+      ...circuitInput,
+      consumptionBenchmark: undefined,
+    })
+    expect(
+      kept.billingData.heatingCircuits[0]?.consumptionBenchmark,
+    ).toBeDefined()
+    const removed = updateHeatingCircuit(kept, IDS.circuit, {
+      ...circuitInput,
+      consumptionBenchmark: null,
+    })
+    expect(removed.billingData.heatingCircuits[0]).not.toHaveProperty(
+      'consumptionBenchmark',
+    )
+  })
+
+  it('werden über das Schema geprüft', () => {
+    const context = createHeatingContext()
+    expect(() =>
+      updateHeatingCircuit(context, IDS.circuit, {
+        ...circuitInput,
+        consumptionBenchmark: { ...benchmark, mediumMaxKwhPerSqmYear: 60 },
+      }),
+    ).toThrowError(HeatingCommandError)
+  })
 })

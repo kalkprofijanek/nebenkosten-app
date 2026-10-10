@@ -2,6 +2,7 @@ import {
   calculateOccupancyDays,
   meterReadingTotal,
   SECTION_9A_ESTIMATED_AREA_LIMIT,
+  tenantChanges,
 } from '@nebenkosten/core'
 import type {
   AppDataFile,
@@ -57,6 +58,12 @@ export interface ConsumptionRow {
   /** Heizkreis rechnet mit Wohnungswärmezählern (kWh); Werte hier unwirksam. */
   readonly meteredCircuit: boolean
   readonly estimate: ConsumptionEstimateResult
+  /**
+   * Nutzerwechsel dieser Nutzung ohne erfasste Zwischenablesung
+   * (`tenantChanges(...).hasInterimReading === false`, § 9b Abs. 1 HeizKV);
+   * erster Tag der neuen Nutzung, nur wenn das Jahr einen Heizkreis hat.
+   */
+  readonly missingInterimReadings: readonly string[]
 }
 
 export interface BuildingEstimateShare {
@@ -91,6 +98,35 @@ export function needsEstimate(row: ConsumptionRow): boolean {
   )
 }
 
+/** Zeile für den Filter „Nur offene und abweichende Zeilen“. */
+export function isOpenOrDeviating(row: ConsumptionRow): boolean {
+  return (
+    needsEstimate(row) ||
+    row.readingMismatch ||
+    row.missingInterimReadings.length > 0
+  )
+}
+
+/** Wechseltage ohne Zwischenablesung je Nutzung (ADR-0009). */
+function missingInterimReadingsByOccupancy(
+  data: AppDataFile,
+  period: BillingPeriod,
+): Map<string, string[]> {
+  const result = new Map<string, string[]>()
+  if (
+    !data.billingData.heatingCircuits.some(
+      ({ billingPeriodId }) => billingPeriodId === period.id,
+    )
+  )
+    return result
+  for (const change of tenantChanges(data, period)) {
+    if (change.hasInterimReading) continue
+    for (const id of [change.previousOccupancyId, change.nextOccupancyId])
+      result.set(id, [...(result.get(id) ?? []), change.date])
+  }
+  return result
+}
+
 export function buildConsumptionOverview(
   data: AppDataFile,
   billingPeriodId: string,
@@ -111,6 +147,7 @@ export function buildConsumptionOverview(
       return 0
     }
   }
+  const interim = missingInterimReadingsByOccupancy(data, period)
   const rows = data.billingData.occupancyPeriods
     .filter(
       (occupancy) =>
@@ -159,6 +196,7 @@ export function buildConsumptionOverview(
         status: statusOf(units, estimated),
         meteredCircuit: occupancyUsesMeteredKwh(data, occupancy),
         estimate: explainConsumptionEstimate(data, occupancy.id),
+        missingInterimReadings: interim.get(occupancy.id) ?? [],
       }
     })
     .sort(

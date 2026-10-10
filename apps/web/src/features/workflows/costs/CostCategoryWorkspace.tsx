@@ -1,4 +1,5 @@
 import { Fragment, type FormEvent } from 'react'
+import { isMeteringFeeCategory } from '@nebenkosten/core'
 import type { CostCategory, CostEntry } from '@nebenkosten/schema'
 import { TableToolbar } from '../../../components/TableToolbar'
 import { CostCategoryFields } from './CostFields'
@@ -16,6 +17,20 @@ const allocationKeyLabels: Readonly<Record<string, string>> = {
   consumption_units: 'Verbrauchseinheiten',
   residential_units: 'Wohneinheiten',
   direct: 'Direkte Zuordnung',
+}
+
+/** Hinweis, ob eine Heizungs-Kostenart als Entgelt nach § 6a HeizKV zählt. */
+function meteringFeeHint(category: CostCategory): string | null {
+  if (category.kind !== 'heating') return null
+  const status =
+    category.meteringFee === true
+      ? 'ja'
+      : category.meteringFee === false
+        ? 'nein'
+        : isMeteringFeeCategory(category)
+          ? 'automatisch erkannt'
+          : 'nicht erkannt'
+  return `Entgelt für Verbrauchserfassung (§ 6a HeizKV): ${status}`
 }
 
 type CarryOver = ReturnType<typeof previousYearCostCategories>
@@ -149,7 +164,12 @@ export function CostCategoryWorkspace({
                                 'Kein abweichender Abrechnungstext'}
                             </small>
                           </td>
-                          <td>{costKindLabels[category.kind]}</td>
+                          <td>
+                            {costKindLabels[category.kind]}
+                            {meteringFeeHint(category) ? (
+                              <small>{meteringFeeHint(category)}</small>
+                            ) : null}
+                          </td>
                           <td>
                             {category.allocationKey
                               ? (allocationKeyLabels[category.allocationKey] ??

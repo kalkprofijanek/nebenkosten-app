@@ -563,6 +563,43 @@ describe('Nutzer-Commands', () => {
       expect(occupancy).not.toHaveProperty(key)
     expect(occupancy.persons).toEqual({ value: 2, unit: 'personen' })
 
+    // Zählertausch (ADR-0008) über `heatMeterReading.replacements`; leere
+    // Felder werden auch in den Tauschvorgängen entfernt.
+    const replaced = updateOccupancyConsumption(source, {
+      occupancyPeriodId: IDS.occupancy,
+      consumptionUnits: 70,
+      heatMeterReading: {
+        meterNumber: 'HKV-ALT',
+        startValue: 100,
+        startDate: '2026-01-01',
+        endValue: 30,
+        endDate: '2026-12-31',
+        replacements: [
+          {
+            date: '2026-06-30',
+            removedEndValue: 140,
+            installedMeterNumber: undefined,
+            installedStartValue: 0,
+          },
+        ],
+      },
+    })
+    expect(
+      replaced.billingData.occupancyPeriods[0]?.heatMeterReading?.replacements,
+    ).toEqual([
+      { date: '2026-06-30', removedEndValue: 140, installedStartValue: 0 },
+    ])
+    expect(
+      replaced.billingData.occupancyPeriods[0]?.heatMeterReading
+        ?.replacements?.[0],
+    ).not.toHaveProperty('installedMeterNumber')
+    expect(() =>
+      updateOccupancyConsumption(source, {
+        occupancyPeriodId: IDS.occupancy,
+        heatMeterReading: { replacements: [{ date: '2026-06-30' }] },
+      }),
+    ).toThrow('Ungültige Eingabe für Zählerstände.')
+
     const base = { occupancyPeriodId: IDS.occupancy }
     expect(() =>
       updateOccupancyConsumption(source, { ...base, consumptionUnits: -1 }),
@@ -662,6 +699,45 @@ describe('Nutzer-Commands', () => {
     expect(saved.billingData.occupancyPeriods[0]?.consumptionUnits).toEqual(
       source.billingData.occupancyPeriods[0]?.consumptionUnits,
     )
+
+    const withFactor = structuredClone(saved)
+    withFactor.billingData.occupancyPeriods[0]!.previousConsumption!.climateFactor = 0.97
+    const edited = updateOccupancyPreviousConsumption(withFactor, {
+      occupancyPeriodId: IDS.occupancy,
+      previousConsumption: { year: 2025, value: 5, source: 'Korrigiert' },
+    })
+    expect(edited.billingData.occupancyPeriods[0]?.previousConsumption).toEqual(
+      { year: 2025, value: 5, source: 'Korrigiert', climateFactor: 0.97 },
+    )
+    const otherYear = updateOccupancyPreviousConsumption(withFactor, {
+      occupancyPeriodId: IDS.occupancy,
+      previousConsumption: { year: 2024, value: 5 },
+    })
+    expect(
+      otherYear.billingData.occupancyPeriods[0]?.previousConsumption,
+    ).toEqual({ year: 2024, value: 5 })
+    const explicit = updateOccupancyPreviousConsumption(withFactor, {
+      occupancyPeriodId: IDS.occupancy,
+      previousConsumption: { year: 2025, value: 5, climateFactor: 1.05 },
+    })
+    expect(
+      explicit.billingData.occupancyPeriods[0]?.previousConsumption
+        ?.climateFactor,
+    ).toBe(1.05)
+    // `null` löscht den Faktor ausdrücklich (Feld „Klimafaktor Vorjahr“ leer).
+    const removed = updateOccupancyPreviousConsumption(withFactor, {
+      occupancyPeriodId: IDS.occupancy,
+      previousConsumption: { year: 2025, value: 5, climateFactor: null },
+    })
+    expect(
+      removed.billingData.occupancyPeriods[0]?.previousConsumption,
+    ).toEqual({ year: 2025, value: 5 })
+    expect(() =>
+      updateOccupancyPreviousConsumption(withFactor, {
+        occupancyPeriodId: IDS.occupancy,
+        previousConsumption: { year: 2025, value: 5, climateFactor: 0 },
+      }),
+    ).toThrow('Ungültige Eingabe für Vorjahresverbrauch.')
 
     const cleared = updateOccupancyPreviousConsumption(saved, {
       occupancyPeriodId: IDS.occupancy,

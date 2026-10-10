@@ -2152,3 +2152,128 @@ h1 {
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+/* Optionale Formularabschnitte: Vergleichswerte (Heizspiegel), Klimafaktor (DWD) */
+.benchmark-fields,
+.climate-factor-fields {
+  align-content: start;
+}
+
+.form-section__field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.form-section__empty,
+.form-section__hint,
+.climate-factor-fields__notice,
+.form-section__actions,
+.climate-factor-fields__file {
+  grid-column: 1 / -1;
+}
+
+.form-section__empty,
+.form-section__hint,
+.climate-factor-fields__notice {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.form-section__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.field-error,
+.climate-factor-fields__notice.field-error {
+  color: #7a2e21;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.form-section__field input[aria-invalid='true'] {
+  border-color: #dfb4a9;
+}
+
+/* Zwischenablesung bei Nutzerwechsel (§ 9b HeizKV, ADR-0009) */
+.interim-reading-hint {
+  margin: 0.25rem 0 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid #c99a1a;
+  border-radius: 0.35rem;
+  background: #fff3ce;
+  color: #5c4007;
+  font-size: 0.85rem;
+}
+
+.interim-reading-hint p {
+  margin: 0;
+}
+
+.consumption-status-cell small.consumption-interim {
+  display: block;
+  margin-top: 0.35rem;
+  color: #755109;
+  white-space: normal;
+}
+
+/* Zählertausch (ADR-0008) */
+.consumption-replacement {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.4rem 0 0;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+}
+
+.consumption-replacement legend {
+  padding: 0 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+small.consumption-replacement {
+  display: block;
+  white-space: normal;
+}
+
+/* Aufteilung nach Gradtagszahlen (ADR-0007) */
+.degree-day-split__list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.5rem 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.degree-day-split {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+}
+
+.degree-day-split__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.degree-day-split__head span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.degree-day-split__form {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 44rem;
+  margin-top: 0.6rem;
+}
+
+.degree-day-split__preview {
+  font-variant-numeric: tabular-nums;
+}

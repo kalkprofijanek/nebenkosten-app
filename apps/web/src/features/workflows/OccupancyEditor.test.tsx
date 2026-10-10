@@ -1,5 +1,5 @@
 import { createEmptyAppDataFile, type AppDataFile } from '@nebenkosten/schema'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { OccupancyEditor } from './OccupancyEditor'
 
@@ -91,6 +91,79 @@ describe('OccupancyEditor', () => {
     expect(
       screen.queryByLabelText('Kaltwasser in m³ bearbeiten'),
     ).not.toBeInTheDocument()
+  })
+
+  it('weist beim Auszug im Jahr auf die Zwischenablesung hin (§ 9b HeizKV)', () => {
+    const data = fixture()
+    data.billingData.heatingCircuits = [
+      {
+        id: 'c1',
+        billingPeriodId: 'y',
+        heatingSystemId: 'hs1',
+        buildingId: 'b1',
+        hasCentralHotWater: false,
+      },
+    ]
+    const view = (source: AppDataFile, occupancyIndex = 1) =>
+      render(
+        <OccupancyEditor
+          data={source}
+          occupancy={source.billingData.occupancyPeriods[occupancyIndex]!}
+          period={source.billingData.billingPeriods[0]!}
+          saveTenant={vi.fn()}
+          saveVacancy={vi.fn()}
+        />,
+      )
+    view(data)
+    expect(screen.queryByRole('note')).toBeNull()
+    fireEvent.change(screen.getByLabelText('Auszug bearbeiten'), {
+      target: { value: '2025-06-30' },
+    })
+    expect(screen.getByRole('note')).toHaveTextContent(
+      'Zwischenablesung zum 30.06.2025 veranlassen (§ 9b Abs. 1 HeizKV): Messdienst beauftragen bzw. Stände selbst ablesen und unter ‚Verbrauch‘ erfassen. Eine Aufteilung nach Gradtagen ist nur zulässig, wenn die Ablesung nicht möglich war.',
+    )
+    // Nicht blockierend: Speichern bleibt möglich.
+    expect(
+      screen.getByRole('button', { name: 'Nutzerdaten speichern' }),
+    ).toBeEnabled()
+    cleanup()
+
+    // Ohne Heizkreis kein Hinweis.
+    view(fixture())
+    fireEvent.change(screen.getByLabelText('Auszug bearbeiten'), {
+      target: { value: '2025-06-30' },
+    })
+    expect(screen.queryByRole('note')).toBeNull()
+    cleanup()
+
+    // Mit erfasstem Endstand zum Auszug kein Hinweis.
+    const read = structuredClone(data)
+    read.billingData.occupancyPeriods[1]!.heatMeterReading = {
+      endValue: 321,
+      endDate: '2025-06-30',
+    }
+    view(read)
+    fireEvent.change(screen.getByLabelText('Auszug bearbeiten'), {
+      target: { value: '2025-06-30' },
+    })
+    expect(screen.queryByRole('note')).toBeNull()
+    cleanup()
+
+    // Leerstand: Beginn nach Periodenbeginn.
+    const vacant = structuredClone(data)
+    vacant.billingData.occupancyPeriods.push({
+      id: 'o3',
+      billingPeriodId: 'y',
+      unitId: 'u1',
+      kind: 'vacancy',
+    })
+    view(vacant, 2)
+    fireEvent.change(screen.getByLabelText('Leerstand von bearbeiten'), {
+      target: { value: '2025-10-01' },
+    })
+    expect(screen.getByRole('note')).toHaveTextContent(
+      'Zwischenablesung zum 01.10.2025',
+    )
   })
 
   it('meldet einen fehlenden Heizverbrauch', () => {

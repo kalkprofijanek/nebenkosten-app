@@ -41,12 +41,25 @@ function optionalPercent(form: FormData, name: string): number | undefined {
   return parseOptionalNumber(formText(form, name)) ?? undefined
 }
 
+/**
+ * Entgelt-Kennzeichen (§ 6a HeizKV, ADR-0006) nur bei Art „Heizung“;
+ * `null` entfernt das Kennzeichen (automatische Erkennung).
+ */
+function meteringFeeInput(form: FormData, kind: string): boolean | null {
+  if (kind !== 'heating') return null
+  const choice = formText(form, 'meteringFee')
+  if (choice === 'yes') return true
+  if (choice === 'no') return false
+  return null
+}
+
 function categoryInput(form: FormData, billingPeriodId?: string) {
   const scopeKind = formText(form, 'scopeKind')
   const buildingId = formOptionalText(form, 'buildingId')
+  const kind = formText(form, 'kind')
   return {
     ...(billingPeriodId ? { billingPeriodId } : {}),
-    kind: formText(form, 'kind') as CostCategory['kind'],
+    kind: kind as CostCategory['kind'],
     label: formText(form, 'label'),
     statementText: formOptionalText(form, 'statementText'),
     allocationKey: formText(form, 'allocationKey') as NonNullable<
@@ -58,6 +71,7 @@ function categoryInput(form: FormData, billingPeriodId?: string) {
         : ({ kind: 'property' } as const),
     allocablePercent: optionalPercent(form, 'allocablePercent'),
     laborSharePercent: optionalPercent(form, 'laborSharePercent'),
+    meteringFee: meteringFeeInput(form, kind),
   }
 }
 
@@ -103,7 +117,12 @@ export function CostsRoute({
   const [search, setSearch] = useState('')
   const [bookingFilter, setBookingFilter] = useState('all')
   const [categorySearch, setCategorySearch] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState(() => {
+    const kind = correctionParameters().get('kind')
+    return kind === 'operating' || kind === 'water' || kind === 'heating'
+      ? kind
+      : 'all'
+  })
   const [entrySearch, setEntrySearch] = useState('')
   const [entryFilter, setEntryFilter] = useState('all')
   const [importNotice, setImportNotice] = useState<string | null>(null)

@@ -450,3 +450,339 @@ describe('ConsumptionRoute', () => {
     )
   })
 })
+
+const CIRCUIT = {
+  id: 'hc',
+  billingPeriodId: 'y',
+  heatingSystemId: 'hs',
+  buildingId: 'b1',
+  hasCentralHotWater: false,
+}
+
+/** Wohnung 1: Mieter bis 31.03., danach Leerstand; Jahr mit Heizkreis. */
+function changeData(
+  vacancy: Partial<AppDataFile['billingData']['occupancyPeriods'][number]> = {},
+  status: 'DRAFT' | 'READY_FOR_PDF' = 'DRAFT',
+): AppDataFile {
+  const data = consumptionFixture({ o1: { to: '2025-03-31' } }, status)
+  data.billingData.occupancyPeriods.push({
+    id: 'o4',
+    billingPeriodId: 'y',
+    unitId: 'u1',
+    kind: 'vacancy',
+    from: '2025-04-01',
+    ...vacancy,
+  })
+  data.billingData.heatingCircuits.push(CIRCUIT)
+  return data
+}
+
+describe('ConsumptionRoute – Zählertausch, Nutzerwechsel und Klimafaktor', () => {
+  it('erfasst einen Zählertausch und übernimmt den Verbrauch über alle Abschnitte', () => {
+    const result = renderHarness()
+    const target = within(row('Wohnung 1'))
+    const label = 'Wohnung 1 Fiktiv 1'
+    const change = (name: string, value: string) =>
+      fireEvent.change(target.getByLabelText(`${name} ${label}`), {
+        target: { value },
+      })
+    change('Zählernummer', 'HKV-ALT')
+    change('Stand alt', '100')
+    change('Datum alt', '2025-01-01')
+    change('Stand neu', '30')
+    change('Datum neu', '2025-12-31')
+    expect(target.getByText('Stand neu kleiner als Stand alt')).toBeVisible()
+    fireEvent.click(
+      target.getByRole('button', { name: `Zähler getauscht ${label}` }),
+    )
+    fireEvent.click(
+      target.getByRole('button', { name: `Verbrauch speichern ${label}` }),
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Zählertausch 1: Bitte Tauschdatum, Endstand alt und Anfangsstand neu angeben.',
+    )
+    change('Tauschdatum 1', '2025-06-30')
+    change('Endstand alt 1', '140')
+    change('Neue Zählernummer 1', 'HKV-NEU')
+    change('Anfangsstand neu 1', '0')
+    // (140 − 100) + (30 − 0) = 70
+    expect(target.getByText('= 70')).toBeVisible()
+    expect(target.queryByText('Stand neu kleiner als Stand alt')).toBeNull()
+    fireEvent.click(
+      target.getByRole('button', {
+        name: `Verbrauch aus Zählerständen übernehmen ${label}`,
+      }),
+    )
+    expect(
+      target.getByLabelText(`HKV-Verbrauchseinheiten ${label}`),
+    ).toHaveValue('70')
+    fireEvent.click(
+      target.getByRole('button', { name: `Verbrauch speichern ${label}` }),
+    )
+    expect(result.occupancy('o1')).toMatchObject({
+      consumptionUnits: { value: 70 },
+      heatMeterReading: {
+        meterNumber: 'HKV-ALT',
+        startValue: 100,
+        endValue: 30,
+        replacements: [
+          {
+            date: '2025-06-30',
+            removedEndValue: 140,
+            installedMeterNumber: 'HKV-NEU',
+            installedStartValue: 0,
+          },
+        ],
+      },
+    })
+
+    const saved = within(row('Wohnung 1'))
+    expect(saved.getByLabelText(`Tauschdatum 1 ${label}`)).toHaveValue(
+      '2025-06-30',
+    )
+    fireEvent.change(saved.getByLabelText(`Tauschdatum 1 ${label}`), {
+      target: { value: '2026-01-15' },
+    })
+    expect(
+      saved.getByText(
+        'Zählertausch: Ein Tauschdatum liegt außerhalb von Datum alt bis Datum neu.',
+      ),
+    ).toBeVisible()
+    fireEvent.change(saved.getByLabelText(`Tauschdatum 1 ${label}`), {
+      target: { value: '2025-06-30' },
+    })
+    fireEvent.click(
+      saved.getByRole('button', { name: `Zähler getauscht ${label}` }),
+    )
+    fireEvent.change(saved.getByLabelText(`Tauschdatum 2 ${label}`), {
+      target: { value: '2025-03-01' },
+    })
+    fireEvent.change(saved.getByLabelText(`Endstand alt 2 ${label}`), {
+      target: { value: '5' },
+    })
+    fireEvent.change(saved.getByLabelText(`Anfangsstand neu 2 ${label}`), {
+      target: { value: '0' },
+    })
+    expect(
+      saved.getByText(
+        'Zählertausch: Die Tauschtage müssen zeitlich aufsteigend erfasst sein.',
+      ),
+    ).toBeVisible()
+    fireEvent.click(
+      saved.getByRole('button', {
+        name: `Zählertausch 2 entfernen ${label}`,
+      }),
+    )
+    expect(saved.queryByLabelText(`Tauschdatum 2 ${label}`)).toBeNull()
+  })
+
+  it('zeigt einen Zählertausch in gesperrten Jahren nur lesend', () => {
+    render(
+      <ConsumptionRoute
+        data={consumptionFixture(
+          {
+            o1: {
+              heatMeterReading: {
+                startValue: 100,
+                endValue: 30,
+                replacements: [
+                  {
+                    date: '2025-06-30',
+                    removedEndValue: 140,
+                    installedMeterNumber: 'HKV-NEU',
+                    installedStartValue: 0,
+                  },
+                ],
+              },
+            },
+          },
+          'READY_FOR_PDF',
+        )}
+        billingPeriodId="y"
+        onApply={() => true}
+      />,
+    )
+    expect(
+      within(row('Wohnung 1')).getByText(
+        /Zählertausch 1 am 30\.06\.2025: Endstand alt 140, neuer Zähler HKV-NEU ab 0/,
+      ),
+    ).toBeVisible()
+  })
+
+  it('markiert Wechsel ohne Zwischenablesung und filtert sie als offen', () => {
+    renderHarness(changeData())
+    expect(
+      within(row('Wohnung 1')).getByText(
+        /Nutzerwechsel zum 01\.04\.2025 ohne Zwischenablesung/,
+      ),
+    ).toBeVisible()
+    expect(within(row('Wohnung 2')).queryByText(/Nutzerwechsel/)).toBeNull()
+    const filter = screen.getByLabelText(/Nur offene/)
+    expect(filter.closest('label')).toHaveTextContent(
+      'Nur offene und abweichende Zeilen (1 offen, 1 ohne Zwischenablesung)',
+    )
+    fireEvent.click(filter)
+    expect(screen.getByRole('rowheader', { name: /Wohnung 1/ })).toBeVisible()
+    expect(screen.getByRole('rowheader', { name: /Wohnung 3/ })).toBeVisible()
+    expect(screen.queryByRole('rowheader', { name: /Wohnung 2/ })).toBeNull()
+  })
+
+  it('teilt den Verbrauch einer Wohnung nach Gradtagszahlen auf', () => {
+    const result = renderHarness(changeData())
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Nach Gradtagszahlen aufteilen Wohnung 1',
+      }),
+    )
+    fireEvent.change(screen.getByLabelText('Gesamtverbrauch Wohnung 1'), {
+      target: { value: '1000' },
+    })
+    const preview = within(
+      screen.getByRole('table', { name: 'Vorschau Gradtagszahlen Wohnung 1' }),
+    )
+    const tenant = within(
+      preview.getByRole('rowheader', { name: 'Fiktiv 1' }).closest('tr')!,
+    )
+    expect(tenant.getByText('01.01.2025 – 31.03.2025')).toBeVisible()
+    expect(tenant.getByText('450 ‰')).toBeVisible()
+    expect(tenant.getByText('450')).toBeVisible()
+    const vacancy = within(
+      preview.getByRole('rowheader', { name: 'Leerstand' }).closest('tr')!,
+    )
+    expect(vacancy.getByText('550 ‰')).toBeVisible()
+    expect(vacancy.getByText('550')).toBeVisible()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Aufteilung übernehmen' }),
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Bitte angeben, warum keine Zwischenablesung möglich war.',
+    )
+    expect(result.occupancy('o1').consumptionUnits?.value).toBe(400)
+    fireEvent.change(
+      screen.getByLabelText(
+        'Warum war keine Zwischenablesung möglich? Wohnung 1',
+      ),
+      { target: { value: 'Wohnung zum Auszug nicht zugänglich' } },
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Aufteilung übernehmen' }),
+    )
+    expect(result.occupancy('o1')).toMatchObject({
+      consumptionUnits: { value: 450 },
+      consumptionUnitsEstimateReason: expect.stringContaining(
+        'Keine Zwischenablesung möglich: Wohnung zum Auszug nicht zugänglich. Aufteilung nach Gradtagszahlen',
+      ),
+    })
+    expect(result.occupancy('o1')).not.toHaveProperty(
+      'consumptionUnitsEstimated',
+    )
+    expect(result.occupancy('o4').consumptionUnits?.value).toBe(550)
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Verbrauch von Wohnung 1 nach Gradtagszahlen aufgeteilt und gespeichert.',
+    )
+  })
+
+  it('meldet Lücken und ungültige Gesamtverbrauchswerte bei der Aufteilung', () => {
+    const { unmount } = render(
+      <ConsumptionRoute
+        data={changeData({ from: '2025-04-03' })}
+        billingPeriodId="y"
+        onApply={() => true}
+      />,
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Nach Gradtagszahlen aufteilen Wohnung 1',
+      }),
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Lücke vom 01.04.2025 bis 02.04.2025',
+    )
+    expect(
+      screen.getByRole('button', { name: 'Aufteilung übernehmen' }),
+    ).toBeDisabled()
+    unmount()
+
+    renderHarness(changeData())
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Nach Gradtagszahlen aufteilen Wohnung 1',
+      }),
+    )
+    fireEvent.change(screen.getByLabelText('Gesamtverbrauch Wohnung 1'), {
+      target: { value: 'abc' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Aufteilung übernehmen' }),
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Gesamtverbrauch: Bitte eine Zahl ab 0 eingeben.',
+    )
+  })
+
+  it('bietet die Aufteilung in gesperrten Jahren nicht an', () => {
+    render(
+      <ConsumptionRoute
+        data={changeData({}, 'READY_FOR_PDF')}
+        billingPeriodId="y"
+        onApply={() => true}
+      />,
+    )
+    expect(
+      screen.queryByRole('button', { name: /Nach Gradtagszahlen/ }),
+    ).toBeNull()
+  })
+
+  it('setzt, ändert und löscht den Klimafaktor des Vorjahres', () => {
+    const result = renderHarness(
+      consumptionFixture({
+        o1: {
+          previousConsumption: { year: 2024, value: 900, climateFactor: 0.97 },
+        },
+      }),
+    )
+    const label = 'Wohnung 1 Fiktiv 1'
+    expect(
+      within(row('Wohnung 1')).getByText('Klimafaktor Vorjahr 0,97'),
+    ).toBeVisible()
+    const edit = () => {
+      fireEvent.click(
+        within(row('Wohnung 1')).getByRole('button', {
+          name: `Vorjahresverbrauch bearbeiten ${label}`,
+        }),
+      )
+      return within(row('Wohnung 1'))
+    }
+    const save = (target: ReturnType<typeof edit>) =>
+      fireEvent.click(
+        target.getByRole('button', {
+          name: `Vorjahresverbrauch speichern ${label}`,
+        }),
+      )
+    let target = edit()
+    const field = `Klimafaktor Vorjahr (DWD) ${label}`
+    expect(target.getByLabelText(field)).toHaveValue('0,97')
+    fireEvent.change(target.getByLabelText(field), { target: { value: '0' } })
+    save(target)
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Klimafaktor Vorjahr: Bitte eine Zahl größer 0 eingeben',
+    )
+    fireEvent.change(target.getByLabelText(field), {
+      target: { value: '1,05' },
+    })
+    save(target)
+    expect(result.occupancy('o1').previousConsumption).toEqual({
+      year: 2024,
+      value: 900,
+      climateFactor: 1.05,
+    })
+    target = edit()
+    fireEvent.change(target.getByLabelText(field), { target: { value: '' } })
+    save(target)
+    expect(result.occupancy('o1').previousConsumption).toEqual({
+      year: 2024,
+      value: 900,
+    })
+  })
+})

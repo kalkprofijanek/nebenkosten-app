@@ -11,6 +11,11 @@ import {
   updateHeatingCircuit,
   updateHeatingSystem,
 } from '../../heating/heating-commands'
+import {
+  readConsumptionBenchmarkForm,
+  type ConsumptionBenchmarkErrors,
+} from '../../heating/consumption-benchmark-form'
+import { ConsumptionBenchmarkFields } from './ConsumptionBenchmarkFields'
 import { WorkflowField } from '../form-support'
 import { formOptionalText, formText } from '../form-values'
 import type { WorkflowSubRouteProps } from '../route-types'
@@ -26,6 +31,11 @@ export function HeatingSetupPanel({
   apply,
 }: WorkflowSubRouteProps & { readonly apply: WorkflowApply }) {
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [createFormKey, setCreateFormKey] = useState(0)
+  const [createBenchmarkErrors, setCreateBenchmarkErrors] =
+    useState<ConsumptionBenchmarkErrors>({})
+  const [editBenchmarkErrors, setEditBenchmarkErrors] =
+    useState<ConsumptionBenchmarkErrors>({})
   const period = data.billingData.billingPeriods.find(
     ({ id }) => id === selection.billingPeriodId,
   )!
@@ -38,10 +48,34 @@ export function HeatingSetupPanel({
   const circuits = data.billingData.heatingCircuits.filter(
     ({ billingPeriodId }) => billingPeriodId === period.id,
   )
+  const previousPeriod = data.billingData.billingPeriods.find(
+    ({ propertyId, year }) =>
+      propertyId === period.propertyId && year === period.year - 1,
+  )
+
+  /** Vergleichswerte des Vorjahres-Heizkreises desselben Gebäudes. */
+  function previousBenchmark(buildingId: string) {
+    if (!previousPeriod) return null
+    return (
+      data.billingData.heatingCircuits.find(
+        (candidate) =>
+          candidate.billingPeriodId === previousPeriod.id &&
+          candidate.buildingId === buildingId,
+      )?.consumptionBenchmark ?? null
+    )
+  }
+
+  function toggleEditing(circuitId: string) {
+    setEditBenchmarkErrors({})
+    setEditingId(editingId === circuitId ? null : circuitId)
+  }
 
   function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
+    const benchmark = readConsumptionBenchmarkForm(form)
+    setCreateBenchmarkErrors(benchmark.ok ? {} : benchmark.errors)
+    if (!benchmark.ok) return
     if (
       apply((current) => {
         const dependencies = { createId: () => crypto.randomUUID() }
@@ -65,6 +99,7 @@ export function HeatingSetupPanel({
             hotWaterSharePercent: hasCentralHotWater
               ? optionalNumber(form, 'hotWaterSharePercent')
               : null,
+            consumptionBenchmark: benchmark.value ?? undefined,
           },
           dependencies,
         )
@@ -85,8 +120,10 @@ export function HeatingSetupPanel({
           dependencies,
         )
       })
-    )
+    ) {
       event.currentTarget.reset()
+      setCreateFormKey((key) => key + 1)
+    }
   }
 
   function save(
@@ -99,6 +136,9 @@ export function HeatingSetupPanel({
     const circuit = circuits.find(({ id }) => id === circuitId)!
     const system = systems.find(({ id }) => id === circuit.heatingSystemId)!
     const hasCentralHotWater = form.has('hasCentralHotWater')
+    const benchmark = readConsumptionBenchmarkForm(form)
+    setEditBenchmarkErrors(benchmark.ok ? {} : benchmark.errors)
+    if (!benchmark.ok) return
     if (
       apply((current) => {
         let next = updateHeatingSystem(current, system.id, {
@@ -124,6 +164,7 @@ export function HeatingSetupPanel({
               'operatingElectricitySharePercent',
             ),
           },
+          consumptionBenchmark: benchmark.value,
         })
         return updateEnergySource(next, sourceId, {
           heatingCircuitId: circuit.id,
@@ -176,6 +217,10 @@ export function HeatingSetupPanel({
           label="Warmwasseranteil in Prozent"
           name="hotWaterSharePercent"
         />
+        <ConsumptionBenchmarkFields
+          key={createFormKey}
+          errors={createBenchmarkErrors}
+        />
         <button type="submit">Heizkreis anlegen</button>
       </form>
 
@@ -213,11 +258,7 @@ export function HeatingSetupPanel({
                     <button
                       type="button"
                       aria-label={`${title} bearbeiten`}
-                      onClick={() =>
-                        setEditingId(
-                          editingId === circuit.id ? null : circuit.id,
-                        )
-                      }
+                      onClick={() => toggleEditing(circuit.id)}
                     >
                       Bearbeiten
                     </button>
@@ -306,6 +347,11 @@ export function HeatingSetupPanel({
                         circuit.overrides?.operatingElectricitySharePercent ??
                         ''
                       }
+                    />
+                    <ConsumptionBenchmarkFields
+                      initial={circuit.consumptionBenchmark}
+                      previous={previousBenchmark(circuit.buildingId)}
+                      errors={editBenchmarkErrors}
                     />
                     <button type="submit">Heizkreis speichern</button>
                   </form>

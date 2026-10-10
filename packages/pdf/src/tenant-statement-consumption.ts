@@ -1,4 +1,12 @@
 import type { Content, TableCell } from 'pdfmake/interfaces'
+import {
+  compareTenantEnergyWithPreviousPeriod,
+  compareTenantWithConsumptionBenchmark,
+  previousPeriodConsumption,
+  previousPeriodWeatherFactors,
+  weatherAdjustPreviousPeriod,
+  type TenantEnergyYear,
+} from '@nebenkosten/core'
 import type { TenantStatementContext } from './contracts'
 import {
   captureModeFor,
@@ -7,6 +15,8 @@ import {
 } from './heating-summary'
 import {
   CIRCUIT_AVERAGE_LABEL,
+  CONSUMPTION_BENCHMARK_CLASS_LABELS,
+  CONSUMPTION_BENCHMARK_LABEL,
   CONSUMPTION_INFORMATION_HEADING,
   DISPUTE_RESOLUTION_NOTICE,
   ENERGY_ADVICE_NOTICE,
@@ -16,117 +26,84 @@ import {
   NO_PREVIOUS_PERIOD_DATA,
   NOT_RESIDENT_IN_PREVIOUS_PERIOD,
   PREVIOUS_PERIOD_COMPARISON_HEADING,
+  PREVIOUS_PERIOD_ENERGY_METHOD,
+  PREVIOUS_PERIOD_ENERGY_NOT_WEATHER_ADJUSTED,
+  PREVIOUS_PERIOD_HOT_WATER_NOT_ADJUSTED,
+  PREVIOUS_PERIOD_NO_CENTRAL_HOT_WATER,
   PREVIOUS_PERIOD_NOT_WEATHER_ADJUSTED,
   baseAreaLabel,
   circuitAverageExplanation,
+  consumptionBenchmarkFootnote,
   meteringFeesText,
+  previousPeriodHotWaterMissingText,
+  previousPeriodWeatherAdjustedText,
 } from './legal-texts'
 import { formatEuroCents, formatNumber } from './format'
 import {
   circuitTraceFor,
   consumptionUnitFor,
+  occupancyRange,
   type TenantFacts,
 } from './tenant-statement-data'
 import { MUTED } from './tenant-statement-tables'
 
-type PreviousPeriodComparison =
-  | { readonly kind: 'no_period' }
-  | { readonly kind: 'not_resident' }
-  | { readonly kind: 'no_consumption' }
-  | {
-      readonly kind: 'available'
-      readonly year: number
-      readonly value: number
-      readonly source?: string | null
-    }
-
-/**
- * Vorjahresvergleich derselben Mietpartei (gleiches Objekt und gleiche
- * Wohnung). Unterscheidet fehlende Vorjahresabrechnung (z. B.
- * Eigentümerwechsel), fehlende Nutzung im Vorjahr und fehlende Verbrauchswerte.
- */
-function previousPeriodComparison(
-  context: TenantStatementContext,
-): PreviousPeriodComparison {
-  const { appData, billingPeriod, occupancyPeriod } = context
-  const previousPeriod = appData.billingData.billingPeriods.find(
-    (period) =>
-      period.propertyId === billingPeriod.propertyId &&
-      period.year === billingPeriod.year - 1,
-  )
-  // Ohne Vorjahresabrechnung im System: Vorjahreswert der Nutzungsperiode
-  // (z. B. aus der Abrechnung des Voreigentümers), sonst Einzug im Jahr.
-  const stored = occupancyPeriod.previousConsumption
-  if (
-    stored &&
-    stored.year === billingPeriod.year - 1 &&
-    (!previousPeriod ||
-      !appData.billingData.occupancyPeriods.some(
-        (occupancy) => occupancy.billingPeriodId === previousPeriod.id,
-      ))
-  )
-    return {
-      kind: 'available',
-      year: stored.year,
-      value: stored.value,
-      source: stored.source ?? null,
-    }
-  if (!previousPeriod)
-    return occupancyPeriod.kind === 'tenant' &&
-      occupancyPeriod.from != null &&
-      occupancyPeriod.from > billingPeriod.periodStart
-      ? { kind: 'not_resident' }
-      : { kind: 'no_period' }
-  const previous = appData.billingData.occupancyPeriods.filter(
-    (occupancy) =>
-      occupancy.billingPeriodId === previousPeriod.id &&
-      occupancy.unitId === occupancyPeriod.unitId &&
-      occupancy.tenancyId != null &&
-      occupancy.tenancyId === occupancyPeriod.tenancyId,
-  )
-  if (previous.length === 0) return { kind: 'not_resident' }
-  const withConsumption = previous.find(
-    (occupancy) => occupancy.consumptionUnits != null,
-  )
-  return withConsumption?.consumptionUnits
-    ? {
-        kind: 'available',
-        year: previousPeriod.year,
-        value: withConsumption.consumptionUnits.value,
-      }
-    : { kind: 'no_consumption' }
-}
-
+/** Heller Balkenanteil (Warmwasser) neben `MUTED` (Heizwärme). */
+const LIGHT = '#b8c4ce'
 const BAR_WIDTH = 200
 
+interface ChartBar {
+  readonly label: string
+  readonly segments: readonly {
+    readonly value: number
+    readonly color: string
+  }[]
+  readonly text: string
+}
+
 /** Balkengrafik Vorjahr / Abrechnungsjahr (§ 6a Abs. 3 HeizKV). */
-function previousPeriodChart(
-  bars: readonly { readonly label: string; readonly value: number }[],
-  unit: string,
-): Content {
-  const max = Math.max(...bars.map(({ value }) => value), 0)
+function previousPeriodChart(bars: readonly ChartBar[]): Content {
+  const max = Math.max(
+    ...bars.flatMap(({ segments }) => [
+      segments.reduce((sum, { value }) => sum + value, 0),
+    ]),
+    0,
+  )
+  const rectsOf = (segments: ChartBar['segments']) => {
+    let x = 0
+    const rects = segments
+      .filter(({ value }) => value > 0 && max > 0)
+      .map(({ value, color }) => {
+        const rect = {
+          type: 'rect' as const,
+          x,
+          y: 1,
+          w: (value / max) * BAR_WIDTH,
+          h: 8,
+          color,
+        }
+        x += rect.w
+        return rect
+      })
+    // Mindestens 1 pt, damit auch ein sehr kleiner Wert oder 0 sichtbar bleibt.
+    if (x >= 1) return rects
+    return [
+      {
+        type: 'rect' as const,
+        x: 0,
+        y: 1,
+        w: 1,
+        h: 8,
+        color: segments[0]?.color ?? MUTED,
+      },
+    ]
+  }
   return {
     table: {
       widths: [150, BAR_WIDTH + 4, '*'],
-      body: bars.map(({ label, value }): TableCell[] => [
+      body: bars.map(({ label, segments, text }): TableCell[] => [
         label,
-        {
-          canvas: [
-            {
-              type: 'rect',
-              x: 0,
-              y: 1,
-              w: max > 0 ? Math.max(1, (value / max) * BAR_WIDTH) : 1,
-              h: 8,
-              color: MUTED,
-            },
-          ],
-        },
-        {
-          text: `${formatNumber(value)} ${unit}`,
-          alignment: 'right',
-          noWrap: true,
-        },
+        { canvas: rectsOf(segments) },
+        { text, alignment: 'right', noWrap: true },
       ]),
     },
     layout: 'noBorders',
@@ -134,12 +111,29 @@ function previousPeriodChart(
   }
 }
 
+const formatFactor = (value: number) => formatNumber(value, 2)
+
+function changeText(changePercent: number | null): string {
+  if (changePercent === null) return ''
+  const sign = changePercent > 0 ? '+' : ''
+  return ` Veränderung gegenüber dem Vorjahr: ${sign}${formatNumber(changePercent, 1)} %.`
+}
+
+function smallPrint(text: string): Content {
+  return { text, fontSize: 8, color: MUTED, margin: [0, 0, 0, 4] }
+}
+
 function previousPeriodSection(
   context: TenantStatementContext,
   facts: TenantFacts,
   unit: string,
 ): Content[] {
-  const comparison = previousPeriodComparison(context)
+  const { appData, billingPeriod, occupancyPeriod } = context
+  const comparison = previousPeriodConsumption(
+    appData,
+    billingPeriod,
+    occupancyPeriod,
+  )
   const heading: Content = {
     text: PREVIOUS_PERIOD_COMPARISON_HEADING,
     bold: true,
@@ -154,30 +148,141 @@ function previousPeriodSection(
           : NO_PREVIOUS_PERIOD_CONSUMPTION
     return [heading, { text, margin: [0, 0, 0, 4] }]
   }
+  const energy = compareTenantEnergyWithPreviousPeriod(
+    appData,
+    billingPeriod,
+    occupancyPeriod,
+    { currentOutput: context.calculation },
+  )
+  if (energy.status === 'energy') {
+    const bar = (label: string, year: TenantEnergyYear): ChartBar => ({
+      label: `${label} (${year.year})`,
+      segments: [
+        { value: year.heatingAdjustedKwh, color: MUTED },
+        { value: year.hotWaterKwh, color: LIGHT },
+      ],
+      text: `${formatNumber(year.totalKwh, 0)} kWh`,
+    })
+    const detail = (year: TenantEnergyYear) =>
+      `${year.year}: Heizwärme ${formatNumber(year.heatingKwh, 0)} kWh${
+        energy.weatherAdjusted
+          ? ` × Klimafaktor ${formatFactor(year.climateFactor ?? 1)} = ${formatNumber(year.heatingAdjustedKwh, 0)} kWh`
+          : ''
+      }${energy.centralHotWater ? `, Warmwasser ${formatNumber(year.hotWaterKwh, 0)} kWh` : ''}`
+    const weather = energy.climate
+      ? `${previousPeriodWeatherAdjustedText(
+          energy.climate.postalCode,
+          formatFactor(energy.climate.previous),
+          formatFactor(energy.climate.current),
+        )}${energy.centralHotWater ? ` ${PREVIOUS_PERIOD_HOT_WATER_NOT_ADJUSTED}` : ''}`
+      : PREVIOUS_PERIOD_ENERGY_NOT_WEATHER_ADJUSTED
+    return [
+      heading,
+      previousPeriodChart([
+        bar('Ihr Energieverbrauch im Vorjahr', energy.previous),
+        bar('Ihr Energieverbrauch', energy.current),
+      ]),
+      smallPrint(
+        `${PREVIOUS_PERIOD_ENERGY_METHOD}${
+          energy.centralHotWater
+            ? ''
+            : ` ${PREVIOUS_PERIOD_NO_CENTRAL_HOT_WATER}`
+        } ${detail(energy.previous)}; ${detail(energy.current)}. ${weather}${changeText(energy.changePercent)}`,
+      ),
+    ]
+  }
+  const factors = previousPeriodWeatherFactors(
+    appData,
+    billingPeriod,
+    occupancyPeriod,
+  )
+  const adjusted = factors
+    ? weatherAdjustPreviousPeriod(
+        { value: facts.basis.consumption, climateFactor: factors.current },
+        { value: comparison.value, climateFactor: factors.previous },
+      )
+    : null
+  const unitsBar = (label: string, value: number): ChartBar => ({
+    label,
+    segments: [{ value, color: MUTED }],
+    text: `${formatNumber(value)} ${unit}`,
+  })
+  const weather =
+    factors && adjusted
+      ? `${previousPeriodWeatherAdjustedText(
+          factors.postalCode,
+          formatFactor(factors.previous),
+          formatFactor(factors.current),
+        )}${changeText(adjusted.changePercent)}`
+      : PREVIOUS_PERIOD_NOT_WEATHER_ADJUSTED
+  const hotWater =
+    energy.status === 'units_only'
+      ? ` ${previousPeriodHotWaterMissingText(energy.reason)}`
+      : ''
   return [
     heading,
-    previousPeriodChart(
-      [
-        {
-          label: `Ihr Verbrauch im Vorjahr (${comparison.year})`,
-          value: comparison.value,
-        },
-        {
-          label: `Ihr Verbrauch (${context.billingPeriod.year})`,
-          value: facts.basis.consumption,
-        },
-      ],
-      unit,
+    previousPeriodChart([
+      unitsBar(
+        `Ihr Verbrauch im Vorjahr (${comparison.year})`,
+        adjusted?.previous.adjusted ?? comparison.value,
+      ),
+      unitsBar(
+        `Ihr Verbrauch (${billingPeriod.year})`,
+        adjusted?.current.adjusted ?? facts.basis.consumption,
+      ),
+    ]),
+    smallPrint(
+      `${weather}${hotWater}${comparison.source ? ` Vorjahreswert: ${comparison.source}` : ''}`,
     ),
-    {
-      text: comparison.source
-        ? `${PREVIOUS_PERIOD_NOT_WEATHER_ADJUSTED} Vorjahreswert: ${comparison.source}`
-        : PREVIOUS_PERIOD_NOT_WEATHER_ADJUSTED,
-      fontSize: 8,
-      color: MUTED,
-      margin: [0, 0, 0, 4],
-    },
   ]
+}
+
+/**
+ * Vergleich mit dem normierten Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4
+ * HeizKV): Tabellenzeile und Fußnote; ohne Vergleich `null`.
+ */
+function consumptionBenchmark(
+  context: TenantStatementContext,
+  heatingCircuitId: string | null,
+): { readonly row: TableCell[]; readonly footnote: string } | null {
+  const circuit = context.appData.billingData.heatingCircuits.find(
+    ({ id }) => id === heatingCircuitId,
+  )
+  const range = occupancyRange(context)
+  const result = compareTenantWithConsumptionBenchmark(
+    context.calculation,
+    context.occupancyPeriod.id,
+    circuit,
+    {
+      from: range.from,
+      to: range.to,
+      periodStart: context.billingPeriod.periodStart,
+      periodEnd: context.billingPeriod.periodEnd,
+    },
+  )
+  if (result.status !== 'compared') return null
+  const kwh = (value: number) => `${formatNumber(value, 0)} kWh`
+  const label = CONSUMPTION_BENCHMARK_CLASS_LABELS[result.benchmarkClass]
+  const energy = result.benchmark.includesHotWater
+    ? `Ihr Energieverbrauch: ${kwh(result.energyKwh)} (Heizwärme ${kwh(result.heatingKwh)}, Warmwasser ${kwh(result.hotWaterKwh)})`
+    : `Ihr Energieverbrauch für Heizwärme: ${kwh(result.energyKwh)}`
+  const { lowMax, mediumMax, elevatedMax } = result.rangeKwh
+  return {
+    row: [
+      CONSUMPTION_BENCHMARK_LABEL,
+      {
+        stack: [
+          `${formatNumber(result.kwhPerSqmYear, 1)} kWh je m² und Jahr – Einstufung „${label}“`,
+          energy,
+          `Klassengrenzen für Ihre Fläche und Nutzungszeit: niedrig bis ${kwh(lowMax)}, mittel bis ${kwh(mediumMax)}, erhöht bis ${kwh(elevatedMax)}, darüber zu hoch`,
+        ],
+      },
+    ],
+    footnote: consumptionBenchmarkFootnote(
+      result.benchmark,
+      result.annualization,
+    ),
+  }
 }
 
 /** Abrechnungs- und Verbrauchsinformationen nach § 6a HeizKV. */
@@ -216,6 +321,8 @@ export function consumptionInformation(
       `${formatNumber(averagePerSqm * ownArea * (facts.days / facts.periodDays))} ${unit} (${formatNumber(averagePerSqm)} ${unit} je m²)`,
     ])
   }
+  const benchmark = consumptionBenchmark(context, circuit.heatingCircuitId)
+  if (benchmark) rows.push(benchmark.row)
   const fees = meteringFeeCents(
     context.appData,
     context.billingPeriod.id,
@@ -247,7 +354,7 @@ export function consumptionInformation(
     },
     ...previousPeriodSection(context, facts, unit),
     {
-      text: `${averageText}${ENERGY_TAXES_NOTICE} ${ENERGY_ADVICE_NOTICE} ${DISPUTE_RESOLUTION_NOTICE}`,
+      text: `${benchmark ? `${benchmark.footnote} ` : ''}${averageText}${ENERGY_TAXES_NOTICE} ${ENERGY_ADVICE_NOTICE} ${DISPUTE_RESOLUTION_NOTICE}`,
       fontSize: 8,
       color: MUTED,
       margin: [0, 0, 0, 8],

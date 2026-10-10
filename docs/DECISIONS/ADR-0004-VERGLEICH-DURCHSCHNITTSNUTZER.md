@@ -89,3 +89,11 @@ Raumwärme **und** Warmwasser.
   nicht mehr geöffnet werden (strikte Schemaprüfung). Das betrifft nur
   Nutzer, die zu einer älteren Version zurückkehren.
 - Legacy-v3 kennt keine Vergleichswerte; der Import setzt das Feld nicht.
+
+## Umsetzung Teil B (10. Oktober 2026) – offene Annahmen
+
+- Ausgabe im § 6a-Block der Einzelabrechnung; ohne Vergleich (`unavailable`)
+  keine Zeile. Prüfung `heating.consumption_benchmark_missing` je Heizkreis
+  ohne Vergleichswerte.
+- Eingabe am Heizkreis; „aus dem Vorjahr übernehmen“ übernimmt das
+  Bezugsjahr unverändert (Hinweis `…_year_mismatch` bleibt).
