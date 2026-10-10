@@ -196,6 +196,10 @@ export const NOT_RESIDENT_IN_PREVIOUS_PERIOD =
 export const CIRCUIT_AVERAGE_LABEL =
   'Mittlerer Verbrauch im Heizkreis (umgerechnet auf Ihre Fläche und Nutzungsdauer)'
 
+/** § 6a Abs. 3 Nr. 4 HeizKV: Vergleich mit normiertem Durchschnittsnutzer. */
+export const CONSUMPTION_BENCHMARK_LABEL =
+  'Vergleich mit dem Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizKV)'
+
 /** Erläuterung des Heizkreis-Mittelwerts. */
 export function circuitAverageExplanation(
   totalConsumption: string,

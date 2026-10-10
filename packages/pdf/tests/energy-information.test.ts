@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AppDataFile } from '@nebenkosten/schema'
+import { compareTenantWithConsumptionBenchmark } from '@nebenkosten/core'
 import { buildTenantStatement } from '../src/tenant-statement'
 import {
   energyCarrierMixLabel,
@@ -172,6 +173,102 @@ describe('Anteile der Energieträger (§ 6a HeizKV)', () => {
     expect(
       energyCarrierShares(appData, thirds)!.map(({ percent }) => percent),
     ).toEqual([34, 33, 33])
+  })
+})
+
+describe('Vergleich mit dem normierten Durchschnittsnutzer (§ 6a HeizKV)', () => {
+  function withBenchmark(
+    caseId = 'case-06-heating-oil-fifo',
+    includesHotWater = false,
+  ) {
+    const appData = buildFixtureAppData(caseId)
+    const circuit = appData.billingData.heatingCircuits[0]!
+    circuit.consumptionBenchmark = {
+      source: 'Fiktive Vergleichsquelle',
+      sourceUrl: 'https://example.invalid/benchmark',
+      referenceYear: 2025,
+      category: 'Fiktiver Energieträger, Baualtersklasse X',
+      includesHotWater,
+      lowMaxKwhPerSqmYear: 70,
+      mediumMaxKwhPerSqmYear: 130,
+      elevatedMaxKwhPerSqmYear: 200,
+    }
+    return appData
+  }
+
+  it('prints the calculated class, source, category, year and scaled ranges', () => {
+    const context = buildFixtureTenantStatementContext(withBenchmark())
+    const output = text(buildTenantStatement(context).content)
+
+    expect(output).toContain(
+      'Vergleich mit dem Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizKV)',
+    )
+    expect(output).toContain('kWh je m² und Jahr')
+    expect(output).toContain('250,00 kWh je m² und Jahr (zu hoch)')
+    expect(output).toContain('Fiktive Vergleichsquelle')
+    expect(output).toContain('Fiktiver Energieträger, Baualtersklasse X')
+    expect(output).toContain('2025')
+    expect(output).toContain('Vergleichswerte enthalten kein Warmwasser')
+    expect(output).toContain(
+      'Klassengrenzen: niedrig bis 70,00; mittel bis 130,00; erhöht bis 200,00; darüber zu hoch kWh je m² und Jahr.',
+    )
+    expect(output).toContain(
+      'Für Ihre Fläche und Nutzungsdauer: niedrig bis 2.800,00 kWh; mittel bis 5.200,00 kWh; erhöht bis 8.000,00 kWh; darüber zu hoch.',
+    )
+    expect(output).toContain('https://example.invalid/benchmark')
+    expect(output).toContain('Heizoel 100 %')
+  })
+
+  it('does not print a comparison or imply compliance when core comparison is unavailable', () => {
+    const appData = withBenchmark()
+    const occupancy = appData.billingData.occupancyPeriods.find(
+      ({ kind }) => kind === 'tenant',
+    )!
+    occupancy.consumptionUnits = null
+    const context = buildFixtureTenantStatementContext(appData)
+    const output = text(buildTenantStatement(context).content)
+
+    expect(output).not.toContain(
+      'Vergleich mit dem Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizKV)',
+    )
+    expect(output).not.toContain('Vergleichsklasse')
+  })
+
+  it('marks a partial occupancy comparison as annualized', () => {
+    const appData = withBenchmark()
+    const period = appData.billingData.billingPeriods[0]!
+    const occupancy = appData.billingData.occupancyPeriods.find(
+      ({ kind }) => kind === 'tenant',
+    )!
+    occupancy.from = `${period.year}-07-01`
+    const context = buildFixtureTenantStatementContext(appData)
+    const partialContext = {
+      ...context,
+      calculation: buildFixtureCalculation(appData),
+    }
+    const output = text(buildTenantStatement(partialContext).content)
+
+    expect(output).toContain('Ihr Wert wurde auf ein Jahr hochgerechnet.')
+  })
+
+  it('includes the tenant allocated hot-water energy when the benchmark covers hot water', () => {
+    const appData = withBenchmark('case-10-central-hot-water', true)
+    const context = buildFixtureTenantStatementContext(appData)
+    const heatingCircuit = appData.billingData.heatingCircuits[0]!
+    const comparison = compareTenantWithConsumptionBenchmark(
+      context.calculation,
+      context.occupancyPeriod.id,
+      heatingCircuit,
+    )
+    const output = text(buildTenantStatement(context).content)
+
+    expect(comparison.status).toBe('compared')
+    if (comparison.status !== 'compared') return
+    expect(comparison.hotWaterKwh).toBeGreaterThan(0)
+    expect(output).toContain(
+      `${comparison.kwhPerSqmYear.toFixed(2).replace('.', ',')} kWh je m² und Jahr`,
+    )
+    expect(output).toContain('Die Vergleichswerte enthalten Warmwasser.')
   })
 })
 
