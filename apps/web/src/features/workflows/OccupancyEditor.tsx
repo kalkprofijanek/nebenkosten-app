@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import type {
   AppDataFile,
   OccupancyPeriod,
@@ -7,6 +7,16 @@ import type {
 import { WorkflowField } from './form-support'
 import { formatEuroInput } from '../../app/form-parsers'
 import { occupancyUsesMeteredKwh } from '../consumption/capture-mode'
+import { InterimReadingNotice } from '../occupancies/InterimReadingNotice'
+
+function datesOf(form: HTMLFormElement) {
+  const values = new FormData(form)
+  return {
+    from: String(values.get('from') ?? ''),
+    to: String(values.get('to') ?? ''),
+  }
+}
+
 const m3 = (value: number | undefined) =>
   value === undefined ? '–' : String(value).replace('.', ',')
 
@@ -24,6 +34,20 @@ export function OccupancyEditor({
   saveTenant,
   saveVacancy,
 }: Props) {
+  // Ein-/Auszug werden live verfolgt, damit der Hinweis zur Zwischenablesung
+  // (§ 9b Abs. 1 HeizKV) direkt am Feld erscheint; das Formular bleibt
+  // ungesteuert.
+  const [dates, setDates] = useState({
+    from: occupancy.from ?? '',
+    to: occupancy.to ?? '',
+  })
+  const notice = (
+    <InterimReadingNotice
+      data={data}
+      period={period}
+      draft={{ occupancyId: occupancy.id, unitId: occupancy.unitId, ...dates }}
+    />
+  )
   const tenancy = data.masterData.tenancies.find(
     ({ id }) => id === occupancy.tenancyId,
   )
@@ -53,6 +77,7 @@ export function OccupancyEditor({
           className="embedded-form"
           noValidate
           onSubmit={(event) => saveTenant(event, occupancy.id)}
+          onChange={(event) => setDates(datesOf(event.currentTarget))}
         >
           <WorkflowField
             label="Anzeigename bearbeiten"
@@ -88,6 +113,7 @@ export function OccupancyEditor({
             type="date"
             defaultValue={occupancy.to ?? ''}
           />
+          {notice}
           <WorkflowField
             label="Personenzahl bearbeiten"
             name="persons"
@@ -225,6 +251,7 @@ export function OccupancyEditor({
           className="embedded-form"
           noValidate
           onSubmit={(event) => saveVacancy(event, occupancy.id)}
+          onChange={(event) => setDates(datesOf(event.currentTarget))}
         >
           <WorkflowField
             label="Leerstand von bearbeiten"
@@ -238,6 +265,7 @@ export function OccupancyEditor({
             type="date"
             defaultValue={occupancy.to ?? ''}
           />
+          {notice}
           <WorkflowField
             label="Leerstandsnotiz bearbeiten"
             name="note"

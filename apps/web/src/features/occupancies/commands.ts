@@ -14,6 +14,11 @@ import {
   type Prepayment,
   type Tenancy,
 } from '@nebenkosten/schema'
+import {
+  degreeDaySplitExplanation,
+  degreeDaySplitPlan,
+  MAX_DEGREE_DAY_REASON_LENGTH,
+} from './degree-day-split'
 
 export type IdFactory = () => string
 
@@ -144,6 +149,28 @@ function withoutUndefined<T extends object>(value: T): T {
   return Object.fromEntries(
     Object.entries(value).filter(([, field]) => field !== undefined),
   ) as T
+}
+
+/**
+ * Entfernt leere Felder aus Zählerständen einschließlich der Tauschvorgänge
+ * (`replacements`, ADR-0008), damit der gespeicherte Stand JSON-sicher bleibt.
+ */
+function readingWithoutUndefined(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null || Array.isArray(value))
+    return value
+  const reading = withoutUndefined(value as Record<string, unknown>)
+  const replacements = reading.replacements
+  if (!Array.isArray(replacements)) return reading
+  return {
+    ...reading,
+    replacements: replacements.map((replacement: unknown) =>
+      typeof replacement === 'object' &&
+      replacement !== null &&
+      !Array.isArray(replacement)
+        ? withoutUndefined(replacement)
+        : replacement,
+    ),
+  }
 }
 
 function parsePrepaymentInput(
@@ -777,7 +804,8 @@ export function updateOccupancyPreviousConsumption(
           'Vorjahresverbrauch',
         )
   // Der Klimafaktor des Vorjahres (ADR-0005) bleibt erhalten, solange die
-  // Eingabe ihn nicht selbst setzt und das Jahr gleich bleibt.
+  // Eingabe ihn nicht selbst setzt und das Jahr gleich bleibt; `null` löscht
+  // ihn ausdrücklich.
   const stored = occupancy.previousConsumption
   const previousConsumption =
     parsed &&
@@ -785,7 +813,9 @@ export function updateOccupancyPreviousConsumption(
     stored?.climateFactor != null &&
     stored.year === parsed.year
       ? { ...parsed, climateFactor: stored.climateFactor }
-      : parsed
+      : parsed?.climateFactor === null
+        ? withoutUndefined({ ...parsed, climateFactor: undefined })
+        : parsed
   return validatedFile({
     ...file,
     billingData: {
@@ -801,7 +831,8 @@ export function updateOccupancyPreviousConsumption(
 
 /**
  * Setzt ausschließlich Heizverbrauch, Schätzkennzeichen, Schätzgrund,
- * Zählerstände sowie Kalt- und Warmwasser einer Mieter-Belegung. Fehlende Felder werden entfernt; alle
+ * Zählerstände (einschließlich Zählertausch in `heatMeterReading.replacements`,
+ * ADR-0008) sowie Kalt- und Warmwasser einer Mieter-Belegung. Fehlende Felder werden entfernt; alle
  * übrigen Angaben (Person, Zeitraum, Vorauszahlung …) bleiben unverändert.
  */
 export function updateOccupancyConsumption(
@@ -854,10 +885,7 @@ export function updateOccupancyConsumption(
       ? undefined
       : parseEntity(
           heatMeterReadingSchema,
-          typeof input.heatMeterReading === 'object' &&
-            input.heatMeterReading !== null
-            ? withoutUndefined(input.heatMeterReading)
-            : input.heatMeterReading,
+          readingWithoutUndefined(input.heatMeterReading),
           'Zählerstände',
         )
   const occupancy = file.billingData.occupancyPeriods.find(
@@ -892,6 +920,67 @@ export function updateOccupancyConsumption(
             })
           : item,
       ),
+    },
+  })
+}
+
+/**
+ * Teilt den Jahresverbrauch einer Wohnung mit mehreren Nutzungen (Mieter und
+ * Leerstand) nach Gradtagszahlen auf (§ 9b Abs. 3 HeizKV, ADR-0007/0009).
+ * Schreibt je Nutzung `consumptionUnits` und die Erläuterung (Grund und
+ * Rechenweg) in `consumptionUnitsEstimateReason`; das Schätzkennzeichen wird
+ * entfernt, weil keine Schätzung nach § 9a vorliegt. Zählerstände und Wasser
+ * bleiben unverändert.
+ */
+export function splitUnitConsumptionByDegreeDays(
+  file: AppDataFile,
+  rawInput: unknown,
+): AppDataFile {
+  const input = recordWithExactKeys(
+    rawInput,
+    ['billingPeriodId', 'unitId', 'totalUnits', 'reason'],
+    'Aufteilung nach Gradtagszahlen',
+  )
+  const billingPeriodId = requiredString(input, 'billingPeriodId')
+  const unitId = requiredString(input, 'unitId')
+  const total = input.totalUnits
+  if (typeof total !== 'number' || !Number.isFinite(total) || total < 0)
+    throw new OccupancyCommandError(
+      'Gesamtverbrauch: Bitte eine Zahl ab 0 eingeben.',
+    )
+  const reason = input.reason
+  if (typeof reason !== 'string' || reason.trim() === '')
+    throw new OccupancyCommandError(
+      'Bitte angeben, warum keine Zwischenablesung möglich war.',
+    )
+  if (reason.length > MAX_DEGREE_DAY_REASON_LENGTH)
+    throw new OccupancyCommandError(
+      `Die Begründung darf höchstens ${MAX_DEGREE_DAY_REASON_LENGTH} Zeichen lang sein.`,
+    )
+  const plan = degreeDaySplitPlan(file, billingPeriodId, unitId, total)
+  if (!plan.ok) throw new OccupancyCommandError(plan.problem)
+  const byId = new Map(
+    plan.shares.map((share) => [share.occupancy.id, share] as const),
+  )
+  return validatedFile({
+    ...file,
+    billingData: {
+      ...file.billingData,
+      occupancyPeriods: file.billingData.occupancyPeriods.map((item) => {
+        const share = byId.get(item.id)
+        if (!share) return item
+        const rest: OccupancyPeriod = { ...item }
+        delete rest.consumptionUnitsEstimated
+        return {
+          ...rest,
+          consumptionUnits: { value: share.value, unit: 'einheiten' as const },
+          consumptionUnitsEstimateReason: degreeDaySplitExplanation(
+            reason,
+            plan,
+            share,
+          ),
+        }
+      }),
     },
   })
 }

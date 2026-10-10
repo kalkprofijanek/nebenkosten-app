@@ -1,4 +1,9 @@
-import type { AppDataFile, BillingPeriod } from '@nebenkosten/schema'
+import { meterReadingConsumption, meterReadingTotal } from '@nebenkosten/core'
+import type {
+  AppDataFile,
+  BillingPeriod,
+  HeatMeterReading,
+} from '@nebenkosten/schema'
 import { useEffect, useMemo, useState } from 'react'
 import { parseOptionalNumber } from '../../app/form-parsers'
 import {
@@ -8,9 +13,11 @@ import {
 } from '../occupancies/commands'
 import { explainConsumptionEstimate } from '../occupancies/estimate-consumption'
 import { applyEditableBillingPeriodChange } from '../release/edit-guard'
+import { DegreeDaySplit } from './DegreeDaySplit'
 import {
   buildConsumptionOverview,
   ESTIMATED_SHARE_LIMIT,
+  isOpenOrDeviating,
   needsEstimate,
   section9aHint,
   type ConsumptionRow,
@@ -31,12 +38,21 @@ interface Feedback {
   readonly text: string
 }
 
+/** Ein Geräte- bzw. Zählertausch (ADR-0008) als Eingabe. */
+interface ReplacementDraft {
+  readonly date: string
+  readonly removedEndValue: string
+  readonly installedMeterNumber: string
+  readonly installedStartValue: string
+}
+
 interface Draft {
   readonly meterNumber: string
   readonly startValue: string
   readonly startDate: string
   readonly endValue: string
   readonly endDate: string
+  readonly replacements: readonly ReplacementDraft[]
   readonly units: string
   readonly estimated: boolean
   readonly reason: string
@@ -48,6 +64,23 @@ interface PreviousConsumptionDraft {
   readonly year: string
   readonly value: string
   readonly source: string
+  readonly climateFactor: string
+}
+
+const EMPTY_REPLACEMENT: ReplacementDraft = {
+  date: '',
+  removedEndValue: '',
+  installedMeterNumber: '',
+  installedStartValue: '',
+}
+
+const INVALID_REPLACEMENT: Readonly<
+  Record<'replacement_order' | 'replacement_outside', string>
+> = {
+  replacement_order:
+    'Zählertausch: Die Tauschtage müssen zeitlich aufsteigend erfasst sein.',
+  replacement_outside:
+    'Zählertausch: Ein Tauschdatum liegt außerhalb von Datum alt bis Datum neu.',
 }
 
 const STATUS_LABELS: Readonly<Record<ConsumptionStatus, string>> = {
@@ -74,6 +107,12 @@ function initialDraft(row: ConsumptionRow): Draft {
     startDate: row.reading?.startDate ?? '',
     endValue: input(row.reading?.endValue),
     endDate: row.reading?.endDate ?? '',
+    replacements: (row.reading?.replacements ?? []).map((replacement) => ({
+      date: replacement.date,
+      removedEndValue: input(replacement.removedEndValue),
+      installedMeterNumber: replacement.installedMeterNumber ?? '',
+      installedStartValue: input(replacement.installedStartValue),
+    })),
     units: input(row.units),
     estimated: row.estimated,
     reason: row.estimateReason ?? '',
@@ -90,13 +129,12 @@ function previousConsumptionDraft(
     year: previous ? String(previous.year) : '',
     value: input(previous?.value),
     source: previous?.source ?? '',
+    climateFactor: input(previous?.climateFactor),
   }
 }
 
 function sameDraft(left: Draft, right: Draft) {
-  return (Object.keys(left) as (keyof Draft)[]).every(
-    (key) => left[key] === right[key],
-  )
+  return JSON.stringify(left) === JSON.stringify(right)
 }
 
 function parse(value: string, label: string): number | undefined {
@@ -107,12 +145,46 @@ function parse(value: string, label: string): number | undefined {
   }
 }
 
-function draftDifference(draft: Draft): number | null {
+function replacementsInput(draft: Draft) {
+  return draft.replacements.map((replacement, index) => {
+    const label = `Zählertausch ${index + 1}`
+    const removedEndValue = parse(
+      replacement.removedEndValue,
+      `${label}, Endstand alt`,
+    )
+    const installedStartValue = parse(
+      replacement.installedStartValue,
+      `${label}, Anfangsstand neu`,
+    )
+    if (
+      !replacement.date ||
+      removedEndValue === undefined ||
+      installedStartValue === undefined
+    )
+      throw new OccupancyCommandError(
+        `${label}: Bitte Tauschdatum, Endstand alt und Anfangsstand neu angeben.`,
+      )
+    return {
+      date: replacement.date,
+      removedEndValue,
+      installedMeterNumber:
+        replacement.installedMeterNumber.trim() || undefined,
+      installedStartValue,
+    }
+  })
+}
+
+/** Zählerstände der Eingabe (ohne Prüfmeldungen) für die Vorschau. */
+function draftReading(draft: Draft): HeatMeterReading | null {
   try {
-    const start = parseOptionalNumber(draft.startValue)
-    const end = parseOptionalNumber(draft.endValue)
-    if (start === null || end === null) return null
-    return Math.round((end - start) * 1000) / 1000
+    return {
+      meterNumber: draft.meterNumber.trim() || undefined,
+      startValue: parse(draft.startValue, 'Stand alt'),
+      startDate: draft.startDate || undefined,
+      endValue: parse(draft.endValue, 'Stand neu'),
+      endDate: draft.endDate || undefined,
+      replacements: replacementsInput(draft),
+    }
   } catch {
     return null
   }
@@ -120,12 +192,14 @@ function draftDifference(draft: Draft): number | null {
 
 /** Speicherbare Eingabe für `updateOccupancyConsumption`. */
 function commandInput(occupancyPeriodId: string, draft: Draft) {
+  const replacements = replacementsInput(draft)
   const reading = {
     meterNumber: draft.meterNumber.trim() || undefined,
     startValue: parse(draft.startValue, 'Stand alt'),
     startDate: draft.startDate || undefined,
     endValue: parse(draft.endValue, 'Stand neu'),
     endDate: draft.endDate || undefined,
+    replacements: replacements.length > 0 ? replacements : undefined,
   }
   const units = parse(draft.units, 'Verbrauchseinheiten')
   if (draft.estimated && !draft.reason.trim())
@@ -214,7 +288,19 @@ function ConsumptionTableRow({
     setDraft((current) => ({ ...current, ...patch }))
   const setPrevious = (patch: Partial<PreviousConsumptionDraft>) =>
     setPreviousDraft((current) => ({ ...current, ...patch }))
-  const difference = draftDifference(draft)
+  // Verbrauch aus Zählerständen einschließlich Zählertausch (ADR-0008).
+  const reading = draftReading(draft)
+  const consumption = reading ? meterReadingConsumption(reading) : null
+  const difference = meterReadingTotal(reading)
+  const falling =
+    consumption?.status === 'complete' &&
+    consumption.segments.some((segment) => segment.consumption < 0)
+  const setReplacement = (index: number, patch: Partial<ReplacementDraft>) =>
+    set({
+      replacements: draft.replacements.map((replacement, position) =>
+        position === index ? { ...replacement, ...patch } : replacement,
+      ),
+    })
   const draftUnits = (() => {
     try {
       return parseOptionalNumber(draft.units)
@@ -286,7 +372,93 @@ function ConsumptionTableRow({
           {row.areaSqm ? ` · ${decimal(row.areaSqm)} m²` : ' · Fläche fehlt'}
         </small>
       </th>
-      <td>{textField('meterNumber', 'Zählernummer', 'consumption-meter')}</td>
+      <td>
+        {textField('meterNumber', 'Zählernummer', 'consumption-meter')}
+        {draft.replacements.map((replacement, index) => {
+          const name = `Zählertausch ${index + 1}`
+          return locked ? (
+            <small key={index} className="consumption-replacement">
+              {name} am {replacement.date ? date(replacement.date) : '—'}:
+              Endstand alt {replacement.removedEndValue || '—'}, neuer Zähler{' '}
+              {replacement.installedMeterNumber || '—'} ab{' '}
+              {replacement.installedStartValue || '—'}
+            </small>
+          ) : (
+            <fieldset key={index} className="consumption-replacement">
+              <legend>{name}</legend>
+              <input
+                type="date"
+                aria-label={`Tauschdatum ${index + 1} ${label}`}
+                value={replacement.date}
+                onChange={(event) =>
+                  setReplacement(index, { date: event.target.value })
+                }
+              />
+              <input
+                className="consumption-number"
+                inputMode="decimal"
+                placeholder="Endstand alt"
+                aria-label={`Endstand alt ${index + 1} ${label}`}
+                value={replacement.removedEndValue}
+                onChange={(event) =>
+                  setReplacement(index, { removedEndValue: event.target.value })
+                }
+              />
+              <input
+                className="consumption-meter"
+                placeholder="Neue Nummer"
+                aria-label={`Neue Zählernummer ${index + 1} ${label}`}
+                value={replacement.installedMeterNumber}
+                onChange={(event) =>
+                  setReplacement(index, {
+                    installedMeterNumber: event.target.value,
+                  })
+                }
+              />
+              <input
+                className="consumption-number"
+                inputMode="decimal"
+                placeholder="Anfangsstand neu"
+                aria-label={`Anfangsstand neu ${index + 1} ${label}`}
+                value={replacement.installedStartValue}
+                onChange={(event) =>
+                  setReplacement(index, {
+                    installedStartValue: event.target.value,
+                  })
+                }
+              />
+              <button
+                className="button button--quiet"
+                type="button"
+                aria-label={`${name} entfernen ${label}`}
+                onClick={() =>
+                  set({
+                    replacements: draft.replacements.filter(
+                      (_, position) => position !== index,
+                    ),
+                  })
+                }
+              >
+                entfernen
+              </button>
+            </fieldset>
+          )
+        })}
+        {locked ? null : (
+          <button
+            className="button button--quiet"
+            type="button"
+            aria-label={`Zähler getauscht ${label}`}
+            onClick={() =>
+              set({
+                replacements: [...draft.replacements, EMPTY_REPLACEMENT],
+              })
+            }
+          >
+            Zähler getauscht
+          </button>
+        )}
+      </td>
       <td>
         <div className="consumption-reading">
           {textField(
@@ -309,11 +481,17 @@ function ConsumptionTableRow({
               {row.readingUsesKwh ? ' kWh' : ''}
             </span>
           )}
-          {difference !== null && difference < 0 ? (
+          {falling ? (
             <small role="alert">Stand neu kleiner als Stand alt</small>
+          ) : null}
+          {consumption?.status === 'invalid' ? (
+            <small role="alert">
+              {INVALID_REPLACEMENT[consumption.reason]}
+            </small>
           ) : null}
           {!locked &&
           difference !== null &&
+          !falling &&
           difference >= 0 &&
           (draftUnits === null ||
             draft.estimated ||
@@ -392,6 +570,12 @@ function ConsumptionTableRow({
               {row.occupancy.previousConsumption?.source ? (
                 <small>{row.occupancy.previousConsumption.source}</small>
               ) : null}
+              {row.occupancy.previousConsumption?.climateFactor != null ? (
+                <small>
+                  Klimafaktor Vorjahr{' '}
+                  {decimal(row.occupancy.previousConsumption.climateFactor)}
+                </small>
+              ) : null}
             </>
           ) : (
             <>
@@ -426,6 +610,18 @@ function ConsumptionTableRow({
                   value={previousDraft.source}
                   onChange={(event) =>
                     setPrevious({ source: event.target.value })
+                  }
+                />
+              </label>
+              <label>
+                <span>Klimafaktor Vorjahr (DWD)</span>
+                <input
+                  aria-label={`Klimafaktor Vorjahr (DWD) ${label}`}
+                  className="consumption-number"
+                  inputMode="decimal"
+                  value={previousDraft.climateFactor}
+                  onChange={(event) =>
+                    setPrevious({ climateFactor: event.target.value })
                   }
                 />
               </label>
@@ -480,6 +676,13 @@ function ConsumptionTableRow({
             hier nicht verwendet.
           </small>
         ) : null}
+        {row.missingInterimReadings.map((changeDate) => (
+          <small key={changeDate} className="consumption-interim">
+            Nutzerwechsel zum {date(changeDate)} ohne Zwischenablesung (§ 9b
+            Abs. 1 HeizKV): Stand zum Wechseltag erfassen; nur wenn die Ablesung
+            nicht möglich war, nach Gradtagszahlen aufteilen.
+          </small>
+        ))}
         {!dirty && row.readingMismatch ? (
           <small role="alert">
             {row.estimated
@@ -550,8 +753,11 @@ function ConsumptionTable({
     (row) => needsEstimate(row) && row.estimate.ok,
   )
   const rows = onlyOpen
-    ? overview.rows.filter((row) => needsEstimate(row) || row.readingMismatch)
+    ? overview.rows.filter(isOpenOrDeviating)
     : overview.rows
+  const withoutInterimReading = overview.rows.filter(
+    (row) => row.missingInterimReadings.length > 0,
+  ).length
 
   useEffect(() => {
     if (!highlightId) return
@@ -590,12 +796,19 @@ function ConsumptionTable({
         throw new OccupancyCommandError(
           `Der Vorjahresverbrauch muss zum Vorjahr ${period.year - 1} gehören.`,
         )
+      const climateFactor = parse(draft.climateFactor, 'Klimafaktor Vorjahr')
+      if (climateFactor !== undefined && !(climateFactor > 0))
+        throw new OccupancyCommandError(
+          'Klimafaktor Vorjahr: Bitte eine Zahl größer 0 eingeben oder das Feld leeren.',
+        )
       return updateOccupancyPreviousConsumption(current, {
         occupancyPeriodId: row.occupancy.id,
         previousConsumption: {
           year,
           value,
           source: draft.source.trim() || undefined,
+          // Leeres Feld löscht einen gespeicherten Faktor ausdrücklich.
+          climateFactor: climateFactor ?? null,
         },
       })
     }, `Vorjahresverbrauch für ${row.unitLabel} (${row.tenantName}) gespeichert.`)
@@ -678,7 +891,11 @@ function ConsumptionTable({
             onChange={(event) => setOnlyOpen(event.target.checked)}
           />
           <span>
-            Nur offene und abweichende Zeilen ({overview.openCount} offen)
+            Nur offene und abweichende Zeilen ({overview.openCount} offen
+            {withoutInterimReading > 0
+              ? `, ${withoutInterimReading} ohne Zwischenablesung`
+              : ''}
+            )
           </span>
         </label>
         {locked ? null : (
@@ -746,6 +963,7 @@ function ConsumptionTable({
           </table>
         </div>
       )}
+      {locked ? null : <DegreeDaySplit data={data} period={period} run={run} />}
       <p>
         <small>Leerstände werden weiterhin unter „Nutzer“ gepflegt.</small>
       </p>
