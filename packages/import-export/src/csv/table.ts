@@ -2,7 +2,7 @@ export class CsvImportError extends Error {
   override readonly name = 'CsvImportError'
 }
 
-export function csvTable(text: string): string[][] {
+export function csvTable(text: string, maxDataRows = 1000): string[][] {
   if (
     !text.trim() ||
     new TextEncoder().encode(text).length > 5 * 1024 * 1024 ||
@@ -25,7 +25,7 @@ export function csvTable(text: string): string[][] {
     pushCell()
     if (row.some(Boolean)) rows.push(row)
     row = []
-    if (rows.length > 1001)
+    if (rows.length > maxDataRows + 1)
       throw new CsvImportError('CSV enthält zu viele Zeilen.')
   }
   const source = text.replace(/^\uFEFF/u, '')
