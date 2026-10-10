@@ -162,7 +162,7 @@ export function meteringFeesText(amount: string | null): string {
 
 /** § 6a HeizKV: Hinweis auf die Verbraucherschlichtungsstelle. */
 export const DISPUTE_RESOLUTION_NOTICE =
-  'Bei Streitigkeiten können Sie sich an die Allgemeine Verbraucherschlichtungsstelle des Zentrums für Schlichtung e. V., Straßburger Straße 8, 77694 Kehl (www.verbraucher-schlichter.de) wenden. Der Vermieter ist zur Teilnahme an einem Streitbeilegungsverfahren nicht verpflichtet und nimmt daran nicht teil.'
+  'Bei Streitigkeiten können Sie sich an die Universalschlichtungsstelle des Bundes (Zentrum für Schlichtung e. V.), Straßburger Straße 8, 77694 Kehl (www.verbraucher-schlichter.de) wenden. Der Vermieter ist zur Teilnahme an einem Streitbeilegungsverfahren nicht verpflichtet und nimmt daran nicht teil.'
 
 /** § 6a HeizKV: Energieträger mit Anteilen. */
 export const ENERGY_CARRIER_MIX_LABEL =
