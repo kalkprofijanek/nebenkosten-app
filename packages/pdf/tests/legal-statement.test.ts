@@ -380,10 +380,101 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     expect(serialized).toContain(
       'gesetzlichen Steuern und Abgaben (Umsatzsteuer, Energiesteuer, ggf. CO2-Kosten nach BEHG)',
     )
-    expect(serialized).toContain(
-      'Allgemeine Verbraucherschlichtungsstelle des Zentrums für Schlichtung e. V., Straßburger Straße 8, 77694 Kehl (www.verbraucher-schlichter.de)',
-    )
+    expect(serialized).toContain('Universalschlichtungsstelle des Bundes')
+    expect(serialized).not.toContain('Allgemeine Verbraucherschlichtungsstelle')
     expect(serialized).toContain('nimmt daran nicht teil.')
+  })
+
+  it('zeigt § 6a Abs. 3 Nr. 2 und 3 auch bei reiner Flächenverteilung nach § 9a Abs. 2', () => {
+    const original = buildFixtureTenantStatementContext(
+      buildFixtureAppData('case-12-co2-split'),
+    )
+    const context = {
+      ...original,
+      occupancyPeriod: {
+        ...original.occupancyPeriod,
+        consumptionUnitsEstimated: true,
+        consumptionUnitsEstimateReason: 'Keine verwertbare Verbrauchserfassung',
+      },
+    }
+    const calculation = {
+      ...context.calculation,
+      heating: {
+        ...context.calculation.heating,
+        trace: {
+          ...context.calculation.heating.trace,
+          circuits: context.calculation.heating.trace.circuits.map(
+            (circuit) => ({
+              ...circuit,
+              split: {
+                ...circuit.split,
+                areaOnlySection9a: true,
+                baseSharePercent: 100,
+                consumptionSharePercent: 0,
+                consumptionCents: 0,
+                estimatedAreaSharePercent: 30,
+              },
+            }),
+          ),
+        },
+      },
+    }
+    const serialized = text(buildTenantStatement({ ...context, calculation }))
+
+    expect(serialized).toContain(
+      'Abrechnungs- und Verbrauchsinformationen (§ 6a HeizKV)',
+    )
+    expect(serialized).toContain(
+      'Verbrauchskosten entfallen (§ 9a Abs. 2 HeizKV)',
+    )
+    expect(serialized).toContain('Informationen zu Energieeffizienzmaßnahmen')
+    expect(serialized).toContain('Universalschlichtungsstelle des Bundes')
+  })
+
+  it('verwendet für Wärmemengenzähler durchgehend kWh als Verbrauchseinheit', () => {
+    const original = buildFixtureTenantStatementContext(
+      buildFixtureAppData('case-06-heating-oil-fifo'),
+    )
+    const circuit = original.calculation.heating.trace.circuits[0]!
+    const tenant = original.calculation.tenants.find(
+      ({ id }) => id === original.occupancyPeriod.id,
+    )!
+    const context = {
+      ...original,
+      calculation: {
+        ...original.calculation,
+        meteringTrace: {
+          year: original.billingPeriod.year,
+          billingPeriodId: original.billingPeriod.id,
+          totalKwh: '400',
+          circuits: [
+            {
+              heatingCircuitId: circuit.heatingCircuitId ?? 'circuit',
+              buildingId: circuit.buildingId,
+              totalKwh: '400',
+              occupancies: [],
+            },
+          ],
+        },
+        tenants: original.calculation.tenants.map((item) =>
+          item.id === tenant.id
+            ? {
+                ...item,
+                ownBasis: {
+                  ...item.ownBasis!,
+                  consumption: 400,
+                  consumptionUnit: 'Einheiten' as const,
+                },
+              }
+            : item,
+        ),
+      },
+    }
+    const serialized = text(buildTenantStatement(context))
+
+    expect(serialized).toContain('€ je kWh × 400,00 kWh')
+    expect(serialized).toContain('400,00 kWh (')
+    expect(serialized).not.toContain('400,00 Einheiten')
   })
 
   it('verzichtet ohne Heizkreis auf Heiz-, CO2- und Verbrauchsangaben', () => {

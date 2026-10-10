@@ -77,7 +77,7 @@ describe('OccupancyEditor', () => {
       />,
     )
     expect(
-      screen.getByText(/119,5 Einheiten \(geschätzt\) · Zähler HZ-12/),
+      screen.getByText(/119,5 Einheiten \(HKV, geschätzt\) · Zähler HZ-12/),
     ).toBeVisible()
     expect(
       screen.getByRole('link', {
@@ -108,5 +108,44 @@ describe('OccupancyEditor', () => {
       />,
     )
     expect(screen.getByText(/Heizverbrauch: nicht erfasst/)).toBeVisible()
+  })
+
+  it('kennzeichnet alte HKV-Werte bei aktivem kWh-Messmodus als nicht verwendet', () => {
+    const source = fixture()
+    const data: AppDataFile = {
+      ...source,
+      masterData: {
+        ...source.masterData,
+        heatingSystems: [{ id: 'hs1', propertyId: 'p' }],
+      },
+      billingData: {
+        ...source.billingData,
+        heatingCircuits: [
+          {
+            id: 'c1',
+            billingPeriodId: 'y',
+            heatingSystemId: 'hs1',
+            buildingId: 'b1',
+            consumptionMode: 'metered_kwh',
+            meterAssignments: [{ meterId: 'm1', unitId: 'u1' }],
+            hasCentralHotWater: false,
+          },
+        ],
+      },
+    }
+    render(
+      <OccupancyEditor
+        data={data}
+        occupancy={data.billingData.occupancyPeriods[0]!}
+        period={data.billingData.billingPeriods[0]!}
+        saveTenant={vi.fn()}
+        saveVacancy={vi.fn()}
+      />,
+    )
+    expect(
+      screen.getByText(
+        /Wohnungswärme in kWh wird am Heizkreis gemessen; 420,5 Einheiten \(HKV\) — im kWh-Messmodus nicht verwendet/,
+      ),
+    ).toBeVisible()
   })
 })

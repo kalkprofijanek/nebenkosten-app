@@ -1,0 +1,614 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition > complete tenant statement definition 1`] = `
+{
+  "content": [
+    {
+      "absolutePosition": {
+        "x": 71,
+        "y": 133,
+      },
+      "decoration": "underline",
+      "fontSize": 7,
+      "text": "Mustermann Immobilien GmbH · Verwalterstraße · 00000 Musterstadt",
+    },
+    {
+      "absolutePosition": {
+        "x": 71,
+        "y": 159,
+      },
+      "fontSize": 10,
+      "stack": [
+        "Mieter T1",
+        "Fiktive Anschrift",
+        "00000 Musterstadt",
+      ],
+    },
+    {
+      "absolutePosition": {
+        "x": 340,
+        "y": 46,
+      },
+      "alignment": "right",
+      "fontSize": 9,
+      "stack": [
+        {
+          "bold": true,
+          "text": "Mustermann Immobilien GmbH",
+        },
+        "Verwalterstraße",
+        "00000 Musterstadt",
+      ],
+    },
+    {
+      "absolutePosition": {
+        "x": 340,
+        "y": 150,
+      },
+      "alignment": "right",
+      "fontSize": 9,
+      "text": "15.01.2026",
+    },
+    {
+      "margin": [
+        0,
+        244,
+        0,
+        4,
+      ],
+      "style": "title",
+      "text": "Heiz- und Hausnebenkostenabrechnung 2024",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        12,
+      ],
+      "text": "Nutzungseinheit Einheit u1 — Abrechnungszeitraum 01.01.2024 bis 31.12.2024",
+    },
+    {
+      "text": "",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        12,
+      ],
+      "text": "Hallo Mieter T1, anbei die Abrechnung 2024 für Einheit u1.",
+    },
+    {
+      "text": "",
+    },
+    {
+      "layout": "lightHorizontalLines",
+      "margin": [
+        0,
+        8,
+        0,
+        4,
+      ],
+      "table": {
+        "body": [
+          [
+            {
+              "bold": false,
+              "fillColor": undefined,
+              "text": "Ihre Heizkosten",
+            },
+            {
+              "alignment": "right",
+              "bold": false,
+              "color": undefined,
+              "fillColor": undefined,
+              "noWrap": true,
+              "text": "0,00 €",
+            },
+          ],
+          [
+            {
+              "bold": false,
+              "fillColor": undefined,
+              "text": "Ihr CO2-Kostenanteil",
+            },
+            {
+              "alignment": "right",
+              "bold": false,
+              "color": undefined,
+              "fillColor": undefined,
+              "noWrap": true,
+              "text": "0,00 €",
+            },
+          ],
+          [
+            {
+              "bold": false,
+              "fillColor": undefined,
+              "text": "Ihre Betriebskosten",
+            },
+            {
+              "alignment": "right",
+              "bold": false,
+              "color": undefined,
+              "fillColor": undefined,
+              "noWrap": true,
+              "text": "720,00 €",
+            },
+          ],
+          [
+            {
+              "bold": true,
+              "fillColor": undefined,
+              "text": "Ihr Anteil an den Gesamtkosten",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "color": undefined,
+              "fillColor": undefined,
+              "noWrap": true,
+              "text": "720,00 €",
+            },
+          ],
+          [
+            {
+              "bold": false,
+              "fillColor": undefined,
+              "text": "Von Ihnen geleistete Vorauszahlungen",
+            },
+            {
+              "alignment": "right",
+              "bold": false,
+              "color": undefined,
+              "fillColor": undefined,
+              "noWrap": true,
+              "text": "600,00 €",
+            },
+          ],
+          [
+            {
+              "bold": true,
+              "fillColor": "#eef4fb",
+              "text": "Nachzahlung",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "color": undefined,
+              "fillColor": "#eef4fb",
+              "noWrap": true,
+              "text": "120,00 €",
+            },
+          ],
+        ],
+        "widths": [
+          "*",
+          "auto",
+        ],
+      },
+    },
+    {
+      "color": "#5a6a78",
+      "fontSize": 7,
+      "margin": [
+        0,
+        0,
+        0,
+        6,
+      ],
+      "text": "Aufgrund der Berechnung mit ungerundeten Einzelwerten können Rundungsdifferenzen von wenigen Cent auftreten.",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        4,
+      ],
+      "text": "Bitte überweisen Sie den Nachzahlungsbetrag von 120,00 € bis zum 14.02.2026 auf das Konto IBAN DE89 3704 0044 0532 0130 00, Verwendungszweck „NK 2024 Einheit u1“.",
+    },
+    {
+      "margin": [
+        0,
+        8,
+        0,
+        2,
+      ],
+      "style": "th",
+      "text": "Abrechnungsgrundlagen",
+    },
+    {
+      "layout": "lightHorizontalLines",
+      "margin": [
+        0,
+        4,
+        0,
+        8,
+      ],
+      "table": {
+        "body": [
+          [
+            "Ihre Nutzungstage",
+            "366 von 366 Tagen (Zeitfaktor 1,0000)",
+          ],
+          [
+            "Ihre Wohnfläche",
+            "60,00 m²",
+          ],
+          [
+            "Abrechnungseinheit Betriebskosten",
+            "Objekt Beispielangabe",
+          ],
+          [
+            "Abrechnungseinheit Heizkosten",
+            "Heizkreis Haus Nord",
+          ],
+        ],
+        "widths": [
+          "*",
+          "auto",
+        ],
+      },
+    },
+    {
+      "margin": [
+        0,
+        8,
+        0,
+        4,
+      ],
+      "style": "th",
+      "text": "Betriebskosten",
+    },
+    {
+      "fontSize": 8,
+      "layout": "lightHorizontalLines",
+      "margin": [
+        0,
+        4,
+        0,
+        2,
+      ],
+      "table": {
+        "body": [
+          [
+            {
+              "style": "th",
+              "text": "Kostenart",
+            },
+            {
+              "alignment": "right",
+              "style": "th",
+              "text": "Gesamtkosten (umlagefähig)",
+            },
+            {
+              "style": "th",
+              "text": "Schlüssel",
+            },
+            {
+              "alignment": "right",
+              "style": "th",
+              "text": "Gesamt-einheiten",
+            },
+            {
+              "alignment": "right",
+              "style": "th",
+              "text": "Ihre Einheiten",
+            },
+            {
+              "alignment": "right",
+              "style": "th",
+              "text": "Ihr Anteil",
+            },
+          ],
+          [
+            {
+              "stack": [
+                "Muellbeseitigung",
+                {
+                  "color": "#5a6a78",
+                  "fontSize": 7,
+                  "text": "Objekt Beispielangabe",
+                },
+              ],
+            },
+            {
+              "alignment": "right",
+              "bold": undefined,
+              "noWrap": true,
+              "text": "1.200,00 €",
+            },
+            "nach Wohnfläche",
+            {
+              "alignment": "right",
+              "noWrap": true,
+              "text": "100,00 m²",
+            },
+            {
+              "alignment": "right",
+              "text": "60,00 m²",
+            },
+            {
+              "alignment": "right",
+              "bold": undefined,
+              "noWrap": true,
+              "text": "720,00 €",
+            },
+          ],
+          [
+            {
+              "bold": true,
+              "colSpan": 5,
+              "text": "Summe Ihrer Betriebskosten",
+            },
+            {},
+            {},
+            {},
+            {},
+            {
+              "alignment": "right",
+              "bold": true,
+              "noWrap": true,
+              "text": "720,00 €",
+            },
+          ],
+        ],
+        "dontBreakRows": true,
+        "headerRows": 1,
+        "widths": [
+          "*",
+          62,
+          "auto",
+          58,
+          70,
+          58,
+        ],
+      },
+    },
+    {
+      "color": "#5a6a78",
+      "fontSize": 7,
+      "margin": [
+        0,
+        0,
+        0,
+        8,
+      ],
+      "text": "Ihr Anteil = Gesamtkosten : Gesamteinheiten × Ihre Einheiten.",
+    },
+    {
+      "margin": [
+        0,
+        8,
+        0,
+        4,
+      ],
+      "style": "th",
+      "text": "CO2-Kostenaufteilung (Angaben nach § 7 Abs. 3 CO2KostAufG) – Heizkreis Haus Nord",
+    },
+    {
+      "layout": "lightHorizontalLines",
+      "margin": [
+        0,
+        0,
+        0,
+        8,
+      ],
+      "table": {
+        "body": [
+          [
+            "Energieträger",
+            "nicht angegeben",
+          ],
+          [
+            {
+              "colSpan": 2,
+              "text": "Keine CO2-Kosten nach BEHG angefallen (z. B. Wärmepumpe, Biomasse oder Fernwärme ohne CO2-Preisbestandteil).",
+            },
+            {},
+          ],
+        ],
+        "widths": [
+          "*",
+          "auto",
+        ],
+      },
+    },
+    {
+      "margin": [
+        0,
+        8,
+        0,
+        4,
+      ],
+      "style": "th",
+      "text": "Abrechnungs- und Verbrauchsinformationen (§ 6a HeizKV)",
+    },
+    {
+      "layout": "lightHorizontalLines",
+      "margin": [
+        0,
+        0,
+        0,
+        2,
+      ],
+      "table": {
+        "body": [
+          [
+            "Eingesetzte Energieträger Ihres Heizkreises",
+            "nicht angegeben",
+          ],
+          [
+            "Ihr Verbrauch im Nutzungszeitraum",
+            "0,00 Einheiten (0,00 Einheiten je m²)",
+          ],
+          [
+            {
+              "colSpan": 2,
+              "text": "Die Entgelte für Verbrauchserfassung und Abrechnung sind in den Betriebskosten der Heizungsanlage enthalten.",
+            },
+            {},
+          ],
+        ],
+        "widths": [
+          "*",
+          "auto",
+        ],
+      },
+    },
+    {
+      "bold": true,
+      "margin": [
+        0,
+        4,
+        0,
+        2,
+      ],
+      "text": "Vergleich mit dem vorhergehenden Abrechnungszeitraum",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        4,
+      ],
+      "text": "Ein grafischer, witterungsbereinigter Vergleich mit dem vorhergehenden Abrechnungszeitraum ist nicht möglich, weil für diesen Zeitraum keine Verbrauchsdaten vorliegen (Eigentümer- bzw. Abrechnungswechsel).",
+    },
+    {
+      "color": "#5a6a78",
+      "fontSize": 8,
+      "margin": [
+        0,
+        0,
+        0,
+        8,
+      ],
+      "text": "In den Brennstoff- und Energiekosten sind die gesetzlichen Steuern und Abgaben (Umsatzsteuer, Energiesteuer, ggf. CO2-Kosten nach BEHG) enthalten. Informationen zu Energieeffizienzmaßnahmen und unabhängiger Energieberatung erhalten Sie bei den Verbraucherzentralen (www.verbraucherzentrale-energieberatung.de) sowie bei Energieagenturen, z. B. der Deutschen Energie-Agentur (www.dena.de). Bei Streitigkeiten können Sie sich an die Universalschlichtungsstelle des Bundes (Zentrum für Schlichtung e. V.), Straßburger Straße 8, 77694 Kehl (www.verbraucher-schlichter.de) wenden. Der Vermieter ist zur Teilnahme an einem Streitbeilegungsverfahren nicht verpflichtet und nimmt daran nicht teil.",
+    },
+    {
+      "color": "#5a6a78",
+      "fontSize": 8,
+      "margin": [
+        0,
+        0,
+        0,
+        8,
+      ],
+      "text": "Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten erfolgt die Aufteilung bei Nutzerwechsel nach § 9b HeizKV: Grundkosten nach Kalendertagen, Verbrauchskosten nach dem erfassten Verbrauch bzw. – ohne Zwischenablesung – nach Gradtagszahlen. Auf Leerstandszeiten entfallende Kosten trägt der Vermieter.",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        8,
+      ],
+      "text": "Einwendungen gegen diese Abrechnung können Sie bis zum Ablauf des zwölften Monats nach Zugang der Abrechnung geltend machen (§ 556 Abs. 3 BGB). Die Abrechnungsbelege können Sie nach vorheriger Terminvereinbarung einsehen; auf Wunsch übersenden wir Ihnen Kopien.",
+    },
+    {
+      "margin": [
+        0,
+        4,
+        0,
+        4,
+      ],
+      "text": "Bankverbindung: IBAN: DE89 3704 0044 0532 0130 00 · BIC: COBADEFFXXX",
+    },
+    {
+      "margin": [
+        0,
+        8,
+        0,
+        0,
+      ],
+      "text": "Bitte prüfen Sie die Abrechnung sorgfältig.",
+    },
+    {
+      "margin": [
+        0,
+        8,
+        0,
+        0,
+      ],
+      "stack": [
+        {
+          "margin": [
+            0,
+            8,
+            0,
+            4,
+          ],
+          "style": "th",
+          "text": "Liegenschafts- und Abrechnungsdaten",
+        },
+        {
+          "layout": "lightHorizontalLines",
+          "table": {
+            "body": [
+              [
+                "Objekt",
+                "Beispielangabe, 00000 Musterstadt",
+              ],
+              [
+                "Abrechnungseinheit Betriebskosten",
+                "Objekt Beispielangabe",
+              ],
+              [
+                "Abrechnungszeitraum",
+                "01.01.2024 – 31.12.2024",
+              ],
+              [
+                "Ihr Nutzungszeitraum",
+                "01.01.2024 – 31.12.2024",
+              ],
+            ],
+            "widths": [
+              "*",
+              "auto",
+            ],
+          },
+        },
+      ],
+    },
+  ],
+  "defaultStyle": {
+    "color": "#1f2a36",
+    "font": "Roboto",
+    "fontSize": 9,
+  },
+  "footer": {
+    "color": "#5a6a78",
+    "fontSize": 7,
+    "margin": [
+      71,
+      0,
+      48,
+      0,
+    ],
+    "text": "Mustermann Immobilien GmbH · Verwalterstraße · 00000 Musterstadt · IBAN DE89 3704 0044 0532 0130 00     Seite 1/3",
+  },
+  "pageMargins": [
+    71,
+    46,
+    48,
+    58,
+  ],
+  "pageSize": "A4",
+  "styles": {
+    "th": {
+      "bold": true,
+      "color": "#1a3a5c",
+      "fontSize": 9,
+    },
+    "title": {
+      "bold": true,
+      "color": "#1a3a5c",
+      "fontSize": 14,
+    },
+  },
+}
+`;
