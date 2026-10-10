@@ -4,6 +4,16 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Zählertausch** im Datenmodell: `heatMeterReading.replacements` mit
+  Tauschtag, Endstand alt und Anfangsstand neu; Verbrauch = Summe der
+  Abschnitte, eine Regel im Core für Prüfung, PDF und Verbrauchsseite; neue
+  Warnung `heating.meter_replacement_invalid` (ADR-0008, Schema v5 additiv).
+  Erfassung in der Oberfläche folgt,
+- **Gradtagszahlen nach VDI 2067** im Core: Anteil eines Zeitraums in
+  Promille und Aufteilung eines Verbrauchs bei Nutzerwechsel ohne
+  Zwischenablesung (§ 9b Abs. 2 HeizKV); der Vergleich mit dem
+  Durchschnittsnutzer rechnet mit Nutzungszeitraum die Heizwärme nach
+  Gradtagen statt linear hoch (ADR-0007). Aufteilung in der Oberfläche folgt,
 - **Entgelte für Verbrauchserfassung** (§ 6a Abs. 3 Nr. 1c HeizKV): neues
   Kennzeichen `CostCategory.meteringFee` hat Vorrang vor der
   Schlagworterkennung; Erkennung im Core statt im PDF; Prüfhinweis
