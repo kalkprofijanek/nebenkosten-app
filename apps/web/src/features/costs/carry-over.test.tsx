@@ -118,6 +118,7 @@ describe('Kostenarten aus dem Vorjahr übernehmen', () => {
         allocablePercent: 90,
         laborSharePercent: 0,
         hideWhenZero: true,
+        meteringFee: false,
       }),
       category('53000000-0000-4000-8000-000000000003', IDS.otherPeriod, {
         label: 'Fremdes Objekt',
@@ -150,6 +151,7 @@ describe('Kostenarten aus dem Vorjahr übernehmen', () => {
         allocablePercent: 90,
         laborSharePercent: 0,
         hideWhenZero: true,
+        meteringFee: false,
       },
     ])
     expect(file.billingData.costCategories).toHaveLength(3)

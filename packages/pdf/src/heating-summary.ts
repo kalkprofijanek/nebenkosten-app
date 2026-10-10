@@ -525,55 +525,8 @@ export function heatingOperatingCostLines(
   return lines
 }
 
-/**
- * Schlagworte für Entgelte der Verbrauchserfassung (§ 6a HeizKV). „Abrechnung“
- * zählt nur als Heizkosten-/Verbrauchsabrechnung oder Abrechnungsentgelt –
- * nicht z. B. eine Erwerber- oder Energieabrechnung mit Brennstoffkosten.
- */
-const METERING_FEE_PATTERN =
-  /w(?:ä|ae)rmez(?:ä|ae)hler|heizkostenverteiler|messdienst|ablesung|(?:heizkosten|w(?:ä|ae)rmekosten|verbrauchs)abrechnung|abrechnungs(?:dienst|entgelt|geb(?:ü|ue)hr|kosten)|eichung|verbrauchserfassung|ger(?:ä|ae)temiete|z(?:ä|ae)hlermiete/iu
-
-/**
- * Summe der erkennbaren Entgelte für Verbrauchserfassung und Abrechnung
- * in den Heizungs-Betriebskosten des Heizkreises; `null`, wenn keine
- * Kostenposition erkennbar ist.
- */
-export function meteringFeeCents(
-  appData: AppDataFile,
-  billingPeriodId: string,
-  buildingId: string,
-): number | null {
-  let found = false
-  let total = 0
-  for (const category of heatingOperatingCategories(
-    appData,
-    billingPeriodId,
-    buildingId,
-  )) {
-    const entries = appData.billingData.costEntries.filter(
-      ({ costCategoryId }) => costCategoryId === category.id,
-    )
-    const categoryMatches = METERING_FEE_PATTERN.test(
-      `${category.label} ${category.statementText ?? ''}`,
-    )
-    if (entries.length === 0) {
-      if (categoryMatches && category.totalAmountCents) {
-        found = true
-        total += category.totalAmountCents
-      }
-      continue
-    }
-    for (const entry of entries)
-      if (
-        categoryMatches ||
-        METERING_FEE_PATTERN.test(entry.description ?? '')
-      ) {
-        found = true
-        total += entry.amountCents
-      }
-  }
-  return found ? total : null
-}
+/** Entgelte für Verbrauchserfassung und Abrechnung (Core, ADR-0006). */
+export { meteringFeeCents } from '@nebenkosten/core'
 
 /** Zusammenstellung der Heizkosten des Heizkreises (§ 7 Abs. 2 HeizKV). */
 export function heatingCompilationTable(

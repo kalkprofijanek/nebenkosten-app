@@ -59,6 +59,11 @@ export const previousConsumptionSchema = z.strictObject({
   year: z.int(),
   value: z.number().finite().nonnegative(),
   source: z.string().nullish(),
+  /**
+   * DWD-Klimafaktor des Vorjahreszeitraums für die Witterungsbereinigung
+   * (additiv, Schema v5; ADR-0005).
+   */
+  climateFactor: z.number().finite().positive().nullish(),
 })
 export type PreviousConsumption = z.infer<typeof previousConsumptionSchema>
 

@@ -569,6 +569,7 @@ const CARRY_OVER_KEYS = [
   'hideWhenZero',
   'allocablePercent',
   'laborSharePercent',
+  'meteringFee',
 ] as const satisfies readonly (keyof CostCategory)[]
 
 export interface PreviousYearCostCategories {

@@ -24,7 +24,7 @@ Heizkostenanteils um 3 % (§ 12 Abs. 1 HeizKV).
 | Abs. 3 Nr. 4: Vergleich mit normiertem Durchschnittsnutzer derselben Nutzerkategorie | teilweise        | nur Heizkreis-Mittelwert `tenant-statement.ts:1022-1029`, `legal-texts.ts:196`; Warnung `billing-information.ts:155-168`              | Referenzwerte je Nutzerkategorie hinterlegen und ausgeben                                                                                            |
 | Abs. 3 Nr. 5: grafischer Vergleich mit Vorperiode                                    | teilweise        | Balkengrafik `tenant-statement.ts:912-990`, Vorjahreswert `tenant-statement.ts:851-910`, `packages/schema/src/entities/tenancy.ts:58` | Witterungsbereinigung fehlt (Text `legal-texts.ts:176` „ohne Witterungsbereinigung“), Warmwasser nicht enthalten, bei HKV keine kWh                  |
 | Abs. 3 S. 2: Energieverbrauch = Wärme + Warmwasser                                   | fehlt            | Warmwasser nur als Kosten nach Personen (`tenant-statement.ts:535-538`)                                                               | Warmwasserenergie je Nutzer ermitteln (§ 9 HeizKV) und addieren                                                                                      |
-| Abs. 3 S. 3/4: Bereinigung nach anerkannten Regeln / Bundesanzeiger-Vereinfachung    | fehlt            | – (Gradtage nur für Nutzerwechsel, `packages/core/src/calculation/calculate-billing.ts:504`)                                          | Gradtagszahlen-Verfahren, siehe unten                                                                                                                |
+| Abs. 3 S. 3/4: Bereinigung nach anerkannten Regeln / Bundesanzeiger-Vereinfachung    | teilweise        | – (Gradtage nur für Nutzerwechsel, `packages/core/src/calculation/calculate-billing.ts:504`)                                          | Gradtagszahlen-Verfahren, siehe unten                                                                                                                |
 | Abs. 4: § 556 Abs. 3 BGB unberührt                                                   | erfüllt          | Abrechnungsfrist/-form an anderer Stelle                                                                                              | –                                                                                                                                                    |
 | Abs. 5: geschätzte Abrechnungen mind. Nr. 2 und 3                                    | erfüllt          | gleicher Block auch bei § 9a-Schätzung, `tenant-statement.ts:1061`                                                                    | Test für reine Flächenverteilung (§ 9a Abs. 2) ergänzen                                                                                              |
 
@@ -54,6 +54,13 @@ ursprüngliche Skizze:
 - Tests: Schema-Roundtrip, Berechnung kWh/m², PDF-Text mit/ohne Referenz.
 
 ### 2. Witterungsbereinigter Vorperiodenvergleich (Abs. 3 Nr. 5)
+
+Stand 10. Oktober 2026: Schema, Rechenvertrag und Prüfung umgesetzt mit
+DWD-**Klimafaktoren je Postleitzahl** statt eigener Gradtagsrechnung
+(ADR-0005; monatliche G20/15-Werte bietet der DWD nicht mehr kostenfrei an).
+Offen sind Import der DWD-Liste, Erfassung und PDF-Ausgabe
+(`docs/TASKS/PR-25-WITTERUNGSBEREINIGUNG.md`, Teil B). Die ursprüngliche
+Skizze:
 
 - Verfahren nach der Bundesanzeiger-Vereinfachung (BMWi/BMI): Heizwärme mit
   Gradtagszahlen (G20/15) des Standorts bereinigen, Warmwasser unbereinigt
@@ -93,6 +100,12 @@ ursprüngliche Skizze:
 - PDF: Zeile im § 6a-Block; Validator-Fehler bei Fernwärme ohne Angaben.
 
 ### 5. Steuern/Abgaben und Messentgelte beziffern (Abs. 3 Nr. 1b, 1c)
+
+Stand 10. Oktober 2026: Messentgelte (Nr. 1c) umgesetzt mit Kennzeichen
+`CostCategory.meteringFee` und Schlagworten als Ersatz, ohne Datenmigration
+(ADR-0006); Erfassung in der Oberfläche folgt
+(`docs/TASKS/PR-26-MESSDIENSTENTGELTE.md`). Steuern/Abgaben (Nr. 1b): offen,
+Entscheidung des Nutzers nötig. Die ursprüngliche Skizze:
 
 - Rechnungen: Felder `vatCents`, `energyTaxCents`, `co2LevyCents` je
   Energielieferung/-rechnung; Summe je Heizkreis im PDF statt Pauschaltext.

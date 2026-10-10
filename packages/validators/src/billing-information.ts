@@ -5,8 +5,11 @@
  * bezeichnete Belege.
  */
 import {
+  checkClimateFactor,
   compareTenantWithConsumptionBenchmark,
   isGridEnergySource,
+  meteringFeeCents,
+  previousPeriodClimateFactor,
 } from '@nebenkosten/core'
 import type {
   CalculationOutput,
@@ -160,6 +163,7 @@ export function heatingInformation(
     ({ billingPeriodId }) => billingPeriodId === period.id,
   )
   if (circuits.length === 0) return
+  climateFactorInformation(data, period, add)
   add(
     issue(
       'warning',
@@ -185,6 +189,20 @@ export function heatingInformation(
           {
             entity: { type: 'HeatingCircuit', id: circuit.id },
             detail: `Die Vergleichswerte (${benchmark.source}) beziehen sich auf ${benchmark.referenceYear}, abgerechnet wird ${period.year}. Sind Werte für ${period.year} noch nicht veröffentlicht, ist die jüngste Ausgabe zu verwenden und das Bezugsjahr anzugeben.`,
+          },
+        ),
+      )
+    if (meteringFeeCents(data, period.id, circuit.buildingId) === null)
+      add(
+        issue(
+          'warning',
+          'heating.metering_fee_not_identified',
+          'heating',
+          'Entgelte für Verbrauchserfassung nicht erkennbar',
+          {
+            entity: { type: 'HeatingCircuit', id: circuit.id },
+            detail:
+              'Unter den Heizungs-Betriebskosten des Gebäudes ist keine Kostenart als Entgelt für Verbrauchserfassung und Abrechnung (Gerätemiete, Ablesung, Abrechnung, Eichung) gekennzeichnet oder erkennbar. Die Einzelabrechnung nennt dann keinen Betrag (§ 6a Abs. 3 Nr. 1c HeizKV). Kostenart als Messdienstentgelt kennzeichnen; fallen keine Entgelte an, diesen Hinweis bestätigen.',
           },
         ),
       )
@@ -215,6 +233,89 @@ export function heatingInformation(
         ),
       )
   }
+}
+
+/**
+ * Witterungsbereinigung des Vorperiodenvergleichs (§ 6a Abs. 3 Satz 3/4
+ * HeizKV, ADR-0005): Ein erfasster Klimafaktor muss zum Abrechnungszeitraum
+ * und zur Postleitzahl des Objekts passen, und das Vorjahr braucht ebenfalls
+ * einen Faktor.
+ */
+function climateFactorInformation(
+  data: AppDataFile,
+  period: BillingPeriod,
+  add: Add,
+): void {
+  const climate = period.climateFactor
+  if (!climate) return
+  const entity = { type: 'BillingPeriod', id: period.id }
+  const property = data.masterData.properties.find(
+    ({ id }) => id === period.propertyId,
+  )
+  const check = checkClimateFactor(period, property)
+  if (check.status === 'period_mismatch')
+    add(
+      issue(
+        'warning',
+        'heating.climate_factor_period_mismatch',
+        'heating',
+        'Klimafaktor gilt für einen anderen Zeitraum',
+        {
+          entity,
+          detail: `Der Klimafaktor gilt vom ${formatDate(climate.periodStart)} bis ${formatDate(climate.periodEnd)}, abgerechnet wird vom ${formatDate(period.periodStart)} bis ${formatDate(period.periodEnd)}. Den Faktor aus der DWD-Liste mit genau diesem Zeitraum übernehmen.`,
+        },
+      ),
+    )
+  if (check.status === 'postal_code_mismatch')
+    add(
+      issue(
+        'warning',
+        'heating.climate_factor_postal_code_mismatch',
+        'heating',
+        'Klimafaktor für eine andere Postleitzahl',
+        {
+          entity,
+          detail: `Der Klimafaktor gilt für die Postleitzahl ${climate.postalCode}, das Objekt liegt in ${check.expectedPostalCode}.`,
+        },
+      ),
+    )
+  const previousPeriod = data.billingData.billingPeriods.find(
+    (candidate) =>
+      candidate.propertyId === period.propertyId &&
+      candidate.year === period.year - 1,
+  )
+  const previousInSystem =
+    previousPeriod !== undefined &&
+    data.billingData.occupancyPeriods.some(
+      ({ billingPeriodId }) => billingPeriodId === previousPeriod.id,
+    )
+  // Ohne Vorjahr im System zählen nur Nutzungen mit übernommenem
+  // Vorjahresverbrauch; nur für sie gibt es einen Vorjahresvergleich.
+  const missing = previousInSystem
+    ? !previousPeriod.climateFactor
+    : data.billingData.occupancyPeriods.some(
+        (occupancy) =>
+          occupancy.billingPeriodId === period.id &&
+          occupancy.previousConsumption?.year === period.year - 1 &&
+          previousPeriodClimateFactor(data, period, occupancy) === null,
+      )
+  if (missing)
+    add(
+      issue(
+        'warning',
+        'heating.climate_factor_previous_missing',
+        'heating',
+        'Klimafaktor des Vorjahres fehlt',
+        {
+          entity: previousInSystem
+            ? { type: 'BillingPeriod', id: previousPeriod.id }
+            : entity,
+          detail: previousInSystem
+            ? `Für ${period.year - 1} ist kein Klimafaktor erfasst. Ohne ihn kann der Vorjahresvergleich nicht witterungsbereinigt werden (§ 6a Abs. 3 HeizKV).`
+            : `Beim übernommenen Vorjahresverbrauch ${period.year - 1} fehlt der Klimafaktor. Ohne ihn kann der Vorjahresvergleich nicht witterungsbereinigt werden (§ 6a Abs. 3 HeizKV).`,
+        },
+      ),
+    )
 }
 
 const BENCHMARK_REASON_TEXT: Record<

@@ -226,6 +226,14 @@ bleiben gültig, daher bleibt `schemaVersion` 5 (keine Migration nötig).
 | `coverLetter`                | {active, text}                                                    | opt   | `anschreiben`                                |
 | `lastModifiedAt`             | IsoTimestamp                                                      | opt   | `_ts` (ms-Epoch → ISO)                       |
 
+
+`BillingPeriod.climateFactor` (`climateFactorSchema`, strikt, optional,
+additiv in Schema v5; ADR-0005): DWD-Klimafaktor für die Witterungsbereinigung
+des Vorperiodenvergleichs – `postalCode` (fünfstellig), `factor` (> 0),
+`periodStart` < `periodEnd` (Zwölfmonatszeitraum laut DWD-Datei), `source`.
+`PreviousConsumption.climateFactor` (optional, > 0) trägt den Faktor des
+Vorjahres, wenn das Vorjahr nicht im System liegt.
+
 ### 3.10 CostCategory / Kostenart (`costCategorySchema`)
 
 | Feld                           | Typ                           | P/opt | Legacy                                  |
@@ -251,6 +259,11 @@ bleiben gültig, daher bleibt `schemaVersion` 5 (keine Migration nötig).
 Umlageschlüssel (`allocationKeySchema`): `usable_area` (`m2_nf`),
 `heated_area` (`m2_nf_hzg`), `consumption_units` (`einheiten`),
 `residential_units` (`we_anzahl`), `direct` (`direkt`).
+
+`CostCategory.meteringFee` (optional, boolesch, additiv in Schema v5;
+ADR-0006): Entgelt für Verbrauchserfassung und Abrechnung (§ 6a Abs. 3 Nr. 1c
+HeizKV). `true` zählt die Kostenart, `false` schließt sie aus, leer =
+Erkennung über Schlagworte.
 
 ### 3.11 CostEntry / Kostenbuchung oder Rechnung (`costEntrySchema`)
 
