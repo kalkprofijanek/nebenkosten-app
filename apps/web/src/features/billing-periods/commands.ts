@@ -18,6 +18,12 @@ export class BillingPeriodCommandError extends Error {
   override readonly name = 'BillingPeriodCommandError'
 }
 
+function definedFields<T extends object>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, field]) => field !== undefined),
+  ) as T
+}
+
 export interface CreateBillingPeriodInput {
   readonly propertyId: string
   readonly year: number
@@ -165,20 +171,22 @@ export function updateBillingPeriod(
       ...data.billingData,
       billingPeriods: data.billingData.billingPeriods.map((item) =>
         item.id === billingPeriodId
-          ? {
+          ? definedFields({
               ...item,
               year,
               periodStart: input.periodStart,
               periodEnd: input.periodEnd,
-              notes: input.notes,
-              coverLetter: input.coverLetter,
-              heatingDefaults: input.heatingDefaults,
+              notes: input.notes && definedFields(input.notes),
+              coverLetter:
+                input.coverLetter && definedFields(input.coverLetter),
+              heatingDefaults:
+                input.heatingDefaults && definedFields(input.heatingDefaults),
               ...(input.climateFactor === undefined
                 ? {}
                 : input.climateFactor === null
                   ? { climateFactor: undefined }
                   : { climateFactor: input.climateFactor }),
-            }
+            })
           : item,
       ),
     },

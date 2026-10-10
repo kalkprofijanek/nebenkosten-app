@@ -4,6 +4,7 @@ import {
   type AppDataFile,
 } from '@nebenkosten/schema'
 import { describe, expect, it } from 'vitest'
+import { encodeCurrentAppData } from '@nebenkosten/import-export'
 import {
   createBillingPeriod,
   deleteBillingPeriod,
@@ -132,6 +133,34 @@ describe('createBillingPeriod', () => {
 })
 
 describe('updateBillingPeriod', () => {
+  it('speichert leere optionale Formularfelder und einen entfernten Klimafaktor als JSON', async () => {
+    const source = createBillingPeriod(
+      fileWithProperty(),
+      { propertyId: PROPERTY_ID, year: 2028 },
+      { createId: () => PERIOD_ID },
+    )
+    const result = updateBillingPeriod(source, PERIOD_ID, {
+      year: 2028,
+      periodStart: '2028-01-01',
+      periodEnd: '2028-12-31',
+      notes: { general: undefined },
+      coverLetter: { active: false, text: undefined },
+      heatingDefaults: { baseSharePercent: undefined },
+      climateFactor: null,
+    })
+    const encoded = await encodeCurrentAppData(result, {
+      savedAt: '2028-01-01T00:00:00.000Z',
+    })
+    expect(encoded.data.billingData.billingPeriods[0]).toMatchObject({
+      notes: {},
+      coverLetter: { active: false },
+      heatingDefaults: {},
+    })
+    expect(encoded.data.billingData.billingPeriods[0]).not.toHaveProperty(
+      'climateFactor',
+    )
+  })
+
   it('ändert Zeitraum und Jahr, ohne den Freigabestatus zu umgehen', () => {
     const source = createBillingPeriod(
       fileWithProperty(),

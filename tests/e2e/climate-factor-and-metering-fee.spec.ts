@@ -41,7 +41,9 @@ test('übernimmt den DWD-Faktor der Objekt-PLZ und speichert erst nach Prüfung'
       'DatAnf;DatEnd;PLZ;KF_k\n20250101;20251231;1234;1,14\n20250101;20251231;54321;0,91',
     ),
   })
-  await expect(page.getByLabel('DWD-Klimafaktor')).toHaveValue('1,14')
+  await expect(page.getByLabel('DWD-Klimafaktor', { exact: true })).toHaveValue(
+    '1,14',
+  )
   await expect(page.getByLabel('Quelle Klimafaktor')).toHaveValue(
     'Deutscher Wetterdienst',
   )
@@ -55,7 +57,20 @@ test('übernimmt den DWD-Faktor der Objekt-PLZ und speichert erst nach Prüfung'
     .click()
   await page.getByRole('button', { name: 'Abrechnungsjahr bearbeiten' }).click()
   await expect(page.getByLabel('Klimafaktor erfassen')).toBeChecked()
-  await expect(page.getByLabel('DWD-Klimafaktor')).toHaveValue('1,14')
+  await expect(page.getByLabel('DWD-Klimafaktor', { exact: true })).toHaveValue(
+    '1,14',
+  )
+  await page.getByLabel('Klimafaktor erfassen').uncheck()
+  await page
+    .getByRole('button', { name: 'Änderungen speichern', exact: true })
+    .click()
+  await expect(page.getByText('Lokal gespeichert')).toBeVisible()
+  await page.reload()
+  await page
+    .getByRole('link', { name: 'Abrechnungsjahre', exact: true })
+    .click()
+  await page.getByRole('button', { name: 'Abrechnungsjahr bearbeiten' }).click()
+  await expect(page.getByLabel('Klimafaktor erfassen')).not.toBeChecked()
 })
 
 test('speichert ein ausdrückliches Messdienstentgelt und setzt es auf automatisch zurück', async ({
