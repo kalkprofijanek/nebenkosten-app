@@ -194,6 +194,7 @@ describe('Vergleich mit normiertem Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizK
     expect(result.energyKwh).toBe(result.heatingKwh + result.hotWaterKwh)
     expect(result.areaSqm).toBe(100)
     expect(result.annualized).toBe(false)
+    expect(result.annualization).toBe('none')
     expect(result.kwhPerSqmYear).toBe(
       Math.round((60_000 + (20_000 * 2) / (2 + (2 * 184) / 365)) / 10) / 10,
     )
@@ -211,6 +212,7 @@ describe('Vergleich mit normiertem Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizK
     if (result.status !== 'compared') return
     const timeFactor = 184 / 365
     expect(result.annualized).toBe(true)
+    expect(result.annualization).toBe('linear')
     expect(result.heatingKwh).toBe(20_000)
     expect(result.kwhPerSqmYear).toBe(
       Math.round(
@@ -221,6 +223,34 @@ describe('Vergleich mit normiertem Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizK
       ) / 10,
     )
     expect(result.rangeKwh.mediumMax).toBe(Math.round(130 * 100 * timeFactor))
+  })
+
+  it('rechnet mit Nutzungszeitraum die Heizwärme nach Gradtagszahlen hoch', () => {
+    const file = data()
+    const output = calculateBilling(createCalculationInput(file, 'p-2025'))
+    const result = compareTenantWithConsumptionBenchmark(
+      output,
+      'occ-b',
+      file.billingData.heatingCircuits[0],
+      {
+        from: '2025-07-01',
+        to: '2025-12-31',
+        periodStart: '2025-01-01',
+        periodEnd: '2025-12-31',
+      },
+    )
+    expect(result.status).toBe('compared')
+    if (result.status !== 'compared') return
+    // Gradtage 01.07.–31.12.: 40 × 62/92 (Juli, August) + 390 = 416,957 ‰
+    const heatingFactor = ((40 * 62) / 92 + 390) / 1_000
+    const timeFactor = 184 / 365
+    const hotWater = (20_000 * 2 * timeFactor) / (2 + 2 * timeFactor)
+    const annual = 20_000 / heatingFactor + hotWater / timeFactor
+    expect(result.annualization).toBe('degree_days')
+    expect(result.kwhPerSqmYear).toBe(Math.round((annual / 100) * 10) / 10)
+    expect(result.rangeKwh.mediumMax).toBe(
+      Math.round((130 * 100 * (20_000 + hotWater)) / annual),
+    )
   })
 
   it('lässt Warmwasser weg, wenn die Vergleichswerte es nicht enthalten', () => {

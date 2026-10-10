@@ -62,8 +62,9 @@ Raumwärme **und** Warmwasser.
   nicht höchstrichterlich geklärt. Verbreitete Praxis der Messdienste ist ein
   Vergleich mit Kennwerten nach Gebäudekategorie; der Heizspiegel ist als
   Quelle nachvollziehbar und öffentlich.
-- **Hochrechnung bei Teilzeitraum:** linear über die Tage. Eine Gewichtung
-  nach Gradtagszahlen folgt mit dem DWD-Import (Bauliste Nr. 2).
+- **Hochrechnung bei Teilzeitraum:** Mit Nutzungszeitraum wird die
+  Heizwärme nach Gradtagszahlen (VDI 2067), das Warmwasser nach Tagen
+  hochgerechnet; ohne Nutzungszeitraum linear (ADR-0007, 10. Oktober 2026).
 - **Dezentrales Warmwasser:** Heizspiegel-Werte enthalten Warmwasser. Ohne
   zentrale Bereitung ist der Vergleich nur mit Werten ohne Warmwasser
   möglich (`includesHotWater: false`); woher diese stammen, ist offen.

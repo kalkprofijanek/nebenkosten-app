@@ -12,10 +12,12 @@
  *   Warmwasseranteil × eigene Personenzeit ÷ Personenzeit aller Nutzer.
  *
  * Bezug ist die Fläche des Grundkostenschlüssels; bei kürzerer Nutzung wird
- * linear auf ein ganzes Jahr hochgerechnet (`annualized`).
+ * auf ein ganzes Jahr hochgerechnet (`annualized`): mit Nutzungszeitraum
+ * nach Gradtagszahlen (VDI 2067, ADR-0007), sonst linear nach Tagen.
  */
 import type { ConsumptionBenchmark, HeatingCircuit } from '@nebenkosten/schema'
 import type { CalculationOutput } from '../contracts'
+import { degreeDayPermille } from './degree-days'
 
 export type ConsumptionBenchmarkClass = 'low' | 'medium' | 'elevated' | 'high'
 
@@ -57,6 +59,8 @@ export type TenantConsumptionBenchmark =
       areaSqm: number
       /** Auf ein ganzes Jahr hochgerechnet (Nutzung kürzer als Zeitraum). */
       annualized: boolean
+      /** Verfahren der Hochrechnung (`none` bei ganzjähriger Nutzung). */
+      annualization: 'none' | 'degree_days' | 'linear'
       /** Eigener Verbrauch je m² und Jahr, eine Nachkommastelle. */
       kwhPerSqmYear: number
       benchmarkClass: ConsumptionBenchmarkClass
@@ -88,6 +92,16 @@ export function compareTenantWithConsumptionBenchmark(
   output: CalculationOutput,
   occupancyPeriodId: string,
   circuit: Readonly<HeatingCircuit> | null | undefined,
+  /**
+   * Nutzungs- und Abrechnungszeitraum für die Hochrechnung nach
+   * Gradtagszahlen; ohne Angabe linear nach Tagen.
+   */
+  usage?: {
+    readonly from: string
+    readonly to: string
+    readonly periodStart: string
+    readonly periodEnd: string
+  },
 ): TenantConsumptionBenchmark {
   const unavailable = (
     reason: ConsumptionBenchmarkUnavailableReason,
@@ -151,10 +165,25 @@ export function compareTenantWithConsumptionBenchmark(
       : 0
   const energyKwh = heatingKwh + hotWaterKwh
   const annualized = timeFactor > 0 && timeFactor < 1
-  const yearFactor = annualized ? timeFactor : 1
-  const kwhPerSqmYear = round(energyKwh / areaSqm / yearFactor, 1)
+  const annualization = !annualized ? 'none' : usage ? 'degree_days' : 'linear'
+  // Heizwärme nach Gradtagszahlen (witterungsabhängig), Warmwasser nach
+  // Tagen (gleichmäßig über das Jahr).
+  const heatingYearFactor =
+    annualization === 'degree_days' && usage
+      ? degreeDayPermille(usage.from, usage.to) /
+        degreeDayPermille(usage.periodStart, usage.periodEnd)
+      : annualized
+        ? timeFactor
+        : 1
+  const hotWaterYearFactor = annualized ? timeFactor : 1
+  const annualKwh =
+    heatingKwh / heatingYearFactor + hotWaterKwh / hotWaterYearFactor
+  const kwhPerSqmYear = round(annualKwh / areaSqm, 1)
+  // Klassengrenzen auf den Nutzungszeitraum: derselbe Faktor wie zwischen
+  // Verbrauch im Zeitraum und hochgerechnetem Jahresverbrauch.
+  const periodFactor = annualKwh > 0 ? energyKwh / annualKwh : 1
   const toPeriod = (perSqmYear: number) =>
-    round(perSqmYear * areaSqm * yearFactor, 0)
+    round(perSqmYear * areaSqm * periodFactor, 0)
   return {
     status: 'compared',
     occupancyPeriodId,
@@ -164,6 +193,7 @@ export function compareTenantWithConsumptionBenchmark(
     energyKwh: round(energyKwh, 0),
     areaSqm,
     annualized,
+    annualization,
     kwhPerSqmYear,
     benchmarkClass: classifyConsumptionBenchmark(kwhPerSqmYear, benchmark),
     rangeKwh: {
