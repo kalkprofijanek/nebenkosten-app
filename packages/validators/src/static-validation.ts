@@ -910,6 +910,8 @@ function heating(data: AppDataFile, period: BillingPeriod, add: Add): void {
       )
     if (
       circuit.hasCentralHotWater &&
+      // Mit § 9 Abs. 2 HeizKV (hotWaterEnergy) gilt der ermittelte Anteil s.
+      !circuit.hotWaterEnergy &&
       (circuit.hotWaterSharePercent == null ||
         circuit.hotWaterSharePercent < 18 ||
         circuit.hotWaterSharePercent > 70)

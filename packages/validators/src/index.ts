@@ -33,3 +33,7 @@ export {
   type AreaRange,
   type EnergyCarrier,
 } from './plausibility'
+export {
+  heatingComplianceIssues,
+  heatingComplianceOutputIssues,
+} from './heating-compliance'
