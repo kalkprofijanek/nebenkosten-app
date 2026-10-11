@@ -7,6 +7,10 @@ import { calculateBilling, createCalculationInput } from '@nebenkosten/core'
 import { issue, keyed } from './issues'
 import { consumptionBenchmarkIssues } from './billing-information'
 import { collectStaticIssues } from './static-validation'
+import {
+  collectPlausibilityIssues,
+  section9aAreaOnlyIssues,
+} from './plausibility'
 import { withEntityContext } from './entity-context'
 import type { ValidationOptions, ValidationReport } from './types'
 import { co2OpeningPriceIssues } from './co2-price'
@@ -94,7 +98,10 @@ export function validateBillingPeriod(
       ],
       options,
     )
-  const issues = collectStaticIssues(parsed.data, period)
+  const issues = [
+    ...collectStaticIssues(parsed.data, period),
+    ...collectPlausibilityIssues(parsed.data, period),
+  ]
   co2OpeningPriceIssues(parsed.data, period, (value) => issues.push(value))
   try {
     const output = calculateBilling(
@@ -136,6 +143,7 @@ export function validateBillingPeriod(
     consumptionBenchmarkIssues(parsed.data, period, output, (value) =>
       issues.push(value),
     )
+    section9aAreaOnlyIssues(output, (value) => issues.push(value))
     for (const circuit of output.heating.trace.circuits)
       if (Math.abs(circuit.reconciliation.roundingDifferenceCents) > 1)
         issues.push(

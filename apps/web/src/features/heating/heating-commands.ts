@@ -321,12 +321,14 @@ export function addHeatingCircuit(
       'Für dieses Gebäude existiert im Abrechnungsjahr bereits ein Heizkreis.',
     )
   }
+  // Mit Wärmemenge nach § 9 Abs. 2 HeizKV ergibt sich der Warmwasseranteil
+  // aus der Wärmemenge (ADR-0010); der Pauschalanteil ist dann optional.
+  const shareRequired = input.hotWaterEnergy == null
   if (
     input.hasCentralHotWater &&
-    (input.hotWaterSharePercent === null ||
-      input.hotWaterSharePercent === undefined ||
-      input.hotWaterSharePercent < 18 ||
-      input.hotWaterSharePercent > 70)
+    (input.hotWaterSharePercent == null
+      ? shareRequired
+      : input.hotWaterSharePercent < 18 || input.hotWaterSharePercent > 70)
   ) {
     throw new HeatingCommandError(
       'invalid-value',
@@ -337,6 +339,15 @@ export function addHeatingCircuit(
     throw new HeatingCommandError(
       'invalid-value',
       'Ein Warmwasseranteil ist nur bei zentraler Warmwasserbereitung zulässig.',
+    )
+  }
+  if (
+    !input.hasCentralHotWater &&
+    (input.hotWaterEnergy != null || input.hotWaterAllocation != null)
+  ) {
+    throw new HeatingCommandError(
+      'invalid-value',
+      'Wärmemenge und Verteilung des Warmwassers sind nur bei zentraler Warmwasserbereitung zulässig.',
     )
   }
   const consumption = input.overrides?.consumptionSharePercent
@@ -351,8 +362,11 @@ export function addHeatingCircuit(
       'Verbrauchs- und Grundkostenanteil müssen zusammen 100 Prozent ergeben.',
     )
   }
+  const { hotWaterEnergy, hotWaterAllocation, ...rest } = input
   const entity = heatingCircuitSchema.parse({
-    ...input,
+    ...rest,
+    ...(hotWaterEnergy ? { hotWaterEnergy } : {}),
+    ...(hotWaterAllocation ? { hotWaterAllocation } : {}),
     id: newId(file, dependencies),
   })
   return validateResult({
@@ -619,7 +633,9 @@ export function updateHeatingSystem(
  * Verbrauchsmodus und Legacy-Reste bleiben erhalten. Für die Vergleichswerte
  * (§ 6a Abs. 3 Nr. 4 HeizKV) gilt: fehlt `consumptionBenchmark` in der
  * Eingabe (oder ist `undefined`), bleiben die gespeicherten Werte erhalten;
- * `null` entfernt sie ausdrücklich, ein Objekt setzt sie neu.
+ * `null` entfernt sie ausdrücklich, ein Objekt setzt sie neu. Dasselbe gilt
+ * für `hotWaterEnergy` und `hotWaterAllocation` (ADR-0010); ohne zentrale
+ * Warmwasserbereitung werden beide entfernt.
  */
 export function updateHeatingCircuit(
   currentFile: AppDataFile,
@@ -651,9 +667,30 @@ export function updateHeatingCircuit(
       ),
     },
   }
-  const validated = addHeatingCircuit(withoutCurrent, input, {
-    createId: () => heatingCircuitId,
-  })
+  // Warmwasser-Angaben (ADR-0010) wie die Vergleichswerte: `undefined`
+  // erhält den gespeicherten Wert, `null` entfernt ihn. Ohne zentrale
+  // Warmwasserbereitung entfallen beide.
+  const keep = <T>(
+    value: T | null | undefined,
+    stored: T | null | undefined,
+  ) =>
+    !input.hasCentralHotWater
+      ? undefined
+      : value === undefined
+        ? (stored ?? undefined)
+        : (value ?? undefined)
+  const validated = addHeatingCircuit(
+    withoutCurrent,
+    {
+      ...input,
+      hotWaterEnergy: keep(input.hotWaterEnergy, current.hotWaterEnergy),
+      hotWaterAllocation: keep(
+        input.hotWaterAllocation,
+        current.hotWaterAllocation,
+      ),
+    },
+    { createId: () => heatingCircuitId },
+  )
   const replacement = {
     ...validated.billingData.heatingCircuits.at(-1)!,
     consumptionMode: current.consumptionMode,

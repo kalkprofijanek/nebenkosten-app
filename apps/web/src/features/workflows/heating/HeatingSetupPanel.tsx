@@ -16,6 +16,11 @@ import {
   type ConsumptionBenchmarkErrors,
 } from '../../heating/consumption-benchmark-form'
 import { ConsumptionBenchmarkFields } from './ConsumptionBenchmarkFields'
+import {
+  readHotWaterForm,
+  type HotWaterErrors,
+} from '../../heating/hot-water-form'
+import { HotWaterFields } from '../../heating/HotWaterFields'
 import { WorkflowField } from '../form-support'
 import { formOptionalText, formText } from '../form-values'
 import type { WorkflowSubRouteProps } from '../route-types'
@@ -36,6 +41,11 @@ export function HeatingSetupPanel({
     useState<ConsumptionBenchmarkErrors>({})
   const [editBenchmarkErrors, setEditBenchmarkErrors] =
     useState<ConsumptionBenchmarkErrors>({})
+  const [createHotWaterErrors, setCreateHotWaterErrors] =
+    useState<HotWaterErrors>({})
+  const [editHotWaterErrors, setEditHotWaterErrors] = useState<HotWaterErrors>(
+    {},
+  )
   const period = data.billingData.billingPeriods.find(
     ({ id }) => id === selection.billingPeriodId,
   )!
@@ -67,6 +77,7 @@ export function HeatingSetupPanel({
 
   function toggleEditing(circuitId: string) {
     setEditBenchmarkErrors({})
+    setEditHotWaterErrors({})
     setEditingId(editingId === circuitId ? null : circuitId)
   }
 
@@ -75,7 +86,9 @@ export function HeatingSetupPanel({
     const form = new FormData(event.currentTarget)
     const benchmark = readConsumptionBenchmarkForm(form)
     setCreateBenchmarkErrors(benchmark.ok ? {} : benchmark.errors)
-    if (!benchmark.ok) return
+    const hotWater = readHotWaterForm(form, form.has('hasCentralHotWater'))
+    setCreateHotWaterErrors(hotWater.ok ? {} : hotWater.errors)
+    if (!benchmark.ok || !hotWater.ok) return
     if (
       apply((current) => {
         const dependencies = { createId: () => crypto.randomUUID() }
@@ -100,6 +113,8 @@ export function HeatingSetupPanel({
               ? optionalNumber(form, 'hotWaterSharePercent')
               : null,
             consumptionBenchmark: benchmark.value ?? undefined,
+            hotWaterEnergy: hotWater.hotWaterEnergy,
+            hotWaterAllocation: hotWater.hotWaterAllocation,
           },
           dependencies,
         )
@@ -138,7 +153,9 @@ export function HeatingSetupPanel({
     const hasCentralHotWater = form.has('hasCentralHotWater')
     const benchmark = readConsumptionBenchmarkForm(form)
     setEditBenchmarkErrors(benchmark.ok ? {} : benchmark.errors)
-    if (!benchmark.ok) return
+    const hotWater = readHotWaterForm(form, hasCentralHotWater)
+    setEditHotWaterErrors(hotWater.ok ? {} : hotWater.errors)
+    if (!benchmark.ok || !hotWater.ok) return
     if (
       apply((current) => {
         let next = updateHeatingSystem(current, system.id, {
@@ -165,6 +182,8 @@ export function HeatingSetupPanel({
             ),
           },
           consumptionBenchmark: benchmark.value,
+          hotWaterEnergy: hotWater.hotWaterEnergy,
+          hotWaterAllocation: hotWater.hotWaterAllocation,
         })
         return updateEnergySource(next, sourceId, {
           heatingCircuitId: circuit.id,
@@ -216,6 +235,10 @@ export function HeatingSetupPanel({
         <WorkflowField
           label="Warmwasseranteil in Prozent"
           name="hotWaterSharePercent"
+        />
+        <HotWaterFields
+          key={`hot-water-${createFormKey}`}
+          errors={createHotWaterErrors}
         />
         <ConsumptionBenchmarkFields
           key={createFormKey}
@@ -327,6 +350,12 @@ export function HeatingSetupPanel({
                       label="Warmwasseranteil bearbeiten"
                       name="hotWaterSharePercent"
                       defaultValue={circuit.hotWaterSharePercent ?? ''}
+                    />
+                    <HotWaterFields
+                      energy={circuit.hotWaterEnergy}
+                      allocation={circuit.hotWaterAllocation}
+                      energySourceType={source.sourceType}
+                      errors={editHotWaterErrors}
                     />
                     <WorkflowField
                       label="Verbrauchskostenanteil"
