@@ -25,3 +25,7 @@ export {
   legalRulesForPeriod,
   type LegalRule,
 } from './legal-rules'
+export {
+  heatingComplianceIssues,
+  heatingComplianceOutputIssues,
+} from './heating-compliance'

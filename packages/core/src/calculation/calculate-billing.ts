@@ -13,11 +13,15 @@ import {
   type CalculationOutput,
   type CircuitCo2Trace,
   type CircuitHeatingSplitTrace,
+  type CircuitHotWaterAllocationTrace,
+  type CircuitHotWaterCostSplit,
+  type CircuitHotWaterDistributionTrace,
   SECTION_9A_ESTIMATED_AREA_LIMIT,
   type CircuitWarmWaterTrace,
   type OperatingPositionTrace,
   type TenantAllocationBasis,
   type TenantCostBreakdown,
+  type TenantHotWaterBasis,
   type TenantSection35a,
 } from '../contracts'
 import { calculateOccupancyDays, calculatePeriodDays } from '../periods'
@@ -27,6 +31,11 @@ import { roundCentsHalfAwayFromZero } from '../rounding'
 import { calculateEnergySourceFuel } from '../heating/fuel'
 import { calculateOperatingElectricityPlan } from '../heating/operating-electricity'
 import { outputCircuit, outputCircuitTrace } from '../heating/output'
+import {
+  circuitEnergyInputKwh,
+  hotWaterEnergyTrace,
+  type HotWaterUnits,
+} from '../heating/hot-water'
 import { resolveMeteredConsumption } from '../metered-consumption'
 import type {
   AllocationBasis,
@@ -531,10 +540,25 @@ function rawCircuitResults(
       const co2Tenant = co2Cost * tenantFactor
       const co2Landlord = co2Cost - co2Tenant
       const fuelConsumption = Math.max(0, fuel.fullCost - co2Cost)
+      // § 9 Abs. 2/3 HeizKV (ADR-0010): Anteil s aus der Wärmemenge Q; ohne
+      // `hotWaterEnergy` bzw. ohne bekannten Energieeinsatz bisheriger
+      // Pauschalanteil `hotWaterSharePercent`.
+      const hotWaterEnergy =
+        circuit?.hasCentralHotWater && circuit.hotWaterEnergy
+          ? hotWaterEnergyTrace(
+              circuit.hotWaterEnergy,
+              circuitUsableAreaSqm(circuitContexts),
+              circuitEnergyInputKwh(fuel.energyKwh, fuel.sources),
+            )
+          : undefined
+      const hotWaterSection9Share =
+        hotWaterEnergy && !hotWaterEnergy.energyInputMissing
+          ? hotWaterEnergy.shareExact
+          : null
       const hotWaterShare = circuit?.hasCentralHotWater
-        ? (circuit.hotWaterSharePercent ?? 18) / 100
+        ? (hotWaterSection9Share ?? (circuit.hotWaterSharePercent ?? 18) / 100)
         : 0
-      const hotWater = fuelConsumption * hotWaterShare
+      const hotWaterFuel = fuelConsumption * hotWaterShare
       const heatingOperating = positions
         .filter(
           ({ category }) =>
@@ -551,6 +575,18 @@ function rawCircuitResults(
         fuelConsumption * operatingElectricityShare
       const operatingElectricity =
         operatingElectricityByBuildingId.get(buildingId) ?? 0
+      // § 9 Abs. 1 HeizKV: Die einheitlich entstandenen Kosten des Betriebs
+      // (Betriebsstrom, Wartung, Messdienst u. a.) werden mit demselben
+      // Anteil s aufgeteilt; im Pauschalverfahren bleiben sie Heizkosten.
+      const hotWaterElectricity =
+        hotWaterSection9Share === null
+          ? 0
+          : operatingElectricity * hotWaterSection9Share
+      const hotWaterOperating =
+        hotWaterSection9Share === null
+          ? 0
+          : heatingOperating * hotWaterSection9Share
+      const hotWater = hotWaterFuel + hotWaterElectricity + hotWaterOperating
       const heatingTotal =
         fuelConsumption - hotWater + heatingOperating + operatingElectricity
       const estimatedAreaShare = measuredKwhDenominatorByBuildingId?.has(
@@ -600,6 +636,22 @@ function rawCircuitResults(
       const hotWaterPersons = circuit?.hasCentralHotWater
         ? calculatedHotWaterPersons || 1
         : 0
+      // CO2KostAufG § 7 Abs. 1: Mieteranteil nach den Schlüsseln für
+      // Heizung und Warmwasser getrennt (nur im § 9-Verfahren).
+      const hotWaterCo2Tenant =
+        hotWaterSection9Share === null ? 0 : co2Tenant * hotWaterSection9Share
+      const co2TenantHeating = co2Tenant - hotWaterCo2Tenant
+      const hotWaterAllocation = hotWaterAllocationPlan(
+        circuit,
+        circuitContexts.filter((context) =>
+          occupancyMatchesScope(context, { kind: 'building', buildingId }),
+        ),
+        useUsableArea ? 'usable_area' : 'heated_area',
+        baseDenominator,
+        hotWaterPersons,
+        hotWater,
+        hotWaterCo2Tenant,
+      )
       const roundedCo2Split = new Map(
         allocateLargestRemainder([
           { id: 'tenant', exactCents: co2Tenant },
@@ -622,18 +674,40 @@ function rawCircuitResults(
         tenantCents: roundedCo2Split.get('tenant')!,
         landlordCents: roundedCo2Split.get('landlord')!,
       }
+      const byPersons = hotWaterAllocation.key === 'persons'
       const warmWaterTrace: CircuitWarmWaterTrace = {
-        method: circuit?.hasCentralHotWater
-          ? 'fuel_percentage_by_persons'
-          : 'none',
+        method: !circuit?.hasCentralHotWater
+          ? 'none'
+          : hotWaterSection9Share !== null
+            ? 'section9_energy'
+            : byPersons
+              ? 'fuel_percentage_by_persons'
+              : 'fuel_percentage',
         sharePercent: circuit?.hasCentralHotWater
           ? roundQuantity(hotWaterShare * 100, 3)
           : 0,
         poolCents: roundCentsHalfAwayFromZero(hotWater),
-        personTimeDenominator: circuit?.hasCentralHotWater
-          ? roundQuantity(hotWaterPersons, 3)
-          : 0,
-        fallbackOccupancyIds,
+        personTimeDenominator:
+          circuit?.hasCentralHotWater && byPersons
+            ? roundQuantity(hotWaterPersons, 3)
+            : 0,
+        fallbackOccupancyIds: byPersons ? fallbackOccupancyIds : [],
+        ...(circuit?.hasCentralHotWater
+          ? {
+              ...(hotWaterEnergy ? { energy: hotWaterEnergy } : {}),
+              ...(hotWaterSection9Share === null
+                ? {}
+                : {
+                    costSplit: hotWaterCostSplit(
+                      hotWaterFuel,
+                      hotWaterElectricity,
+                      hotWaterOperating,
+                      hotWaterCo2Tenant,
+                    ),
+                  }),
+              allocation: hotWaterAllocation.trace,
+            }
+          : {}),
       }
       const roundedHeatingSplit = new Map(
         allocateLargestRemainder([
@@ -673,14 +747,17 @@ function rawCircuitResults(
             ? consumptionCosts / consumptionDenominator
             : 0,
         hotWaterPricePerPerson:
-          hotWaterPersons > 0 ? hotWater / hotWaterPersons : 0,
+          byPersons && hotWaterPersons > 0 ? hotWater / hotWaterPersons : 0,
         // CO2-Mieteranteil nach dem Heizkreis-Schlüssel wie die
-        // Brennstoffkosten (Vermieterentscheidung, siehe docs/HEATING-CO2.md).
+        // Brennstoffkosten (Vermieterentscheidung, siehe docs/HEATING-CO2.md);
+        // im § 9-Verfahren nur der Heizungsanteil (1 − s).
         co2BasePrice:
-          baseDenominator > 0 ? (co2Tenant * baseFactor) / baseDenominator : 0,
+          baseDenominator > 0
+            ? (co2TenantHeating * baseFactor) / baseDenominator
+            : 0,
         co2ConsumptionPrice:
           consumptionDenominator > 0
-            ? (co2Tenant * consumptionFactor) / consumptionDenominator
+            ? (co2TenantHeating * consumptionFactor) / consumptionDenominator
             : 0,
         energySources: fuel.sources,
         co2Trace,
@@ -690,9 +767,215 @@ function rawCircuitResults(
         operatingElectricityIntended,
         splitTrace,
         areaOnlySection9a,
+        operatingElectricitySharePercent: operatingElectricityShare * 100,
+        hotWaterKey: hotWaterAllocation.key,
+        hotWaterExtended: Boolean(
+          circuit?.hasCentralHotWater &&
+          (circuit.hotWaterEnergy || circuit.hotWaterAllocation),
+        ),
+        hotWaterSection9Share,
+        hotWaterCo2Tenant,
+        hotWaterAreaPrice: hotWaterAllocation.areaPrice,
+        hotWaterM3Price: hotWaterAllocation.m3Price,
+        co2HotWaterPricePerPerson: hotWaterAllocation.co2PricePerPerson,
+        co2HotWaterAreaPrice: hotWaterAllocation.co2AreaPrice,
+        co2HotWaterM3Price: hotWaterAllocation.co2M3Price,
       }
     },
   )
+}
+
+/**
+ * Wohnfläche der Einheiten eines Heizkreises (jede Einheit einmal) als
+ * Ersatz für A_Wohn der Flächenformel nach § 9 Abs. 2 HeizKV.
+ */
+function circuitUsableAreaSqm(contexts: readonly OccupancyContext[]): number {
+  const byUnit = new Map<string, number>()
+  for (const context of contexts)
+    byUnit.set(context.unit.id, context.usableArea)
+  return [...byUnit.values()].reduce((sum, area) => sum + area, 0)
+}
+
+/** Warmwasseranteile je Kostenart, Restcent nach größtem Rest (§ 9 Abs. 1). */
+function hotWaterCostSplit(
+  fuel: number,
+  operatingElectricity: number,
+  heatingOperating: number,
+  co2Tenant: number,
+): CircuitHotWaterCostSplit {
+  const split = new Map(
+    allocateLargestRemainder([
+      { id: 'fuel', exactCents: fuel },
+      { id: 'operatingElectricity', exactCents: operatingElectricity },
+      { id: 'heatingOperating', exactCents: heatingOperating },
+    ]).map(({ id, cents }) => [id, cents]),
+  )
+  return {
+    fuelCents: split.get('fuel')!,
+    operatingElectricityCents: split.get('operatingElectricity')!,
+    heatingOperatingCents: split.get('heatingOperating')!,
+    co2TenantCents: roundCentsHalfAwayFromZero(co2Tenant),
+  }
+}
+
+interface HotWaterAllocationPlan {
+  key: 'persons' | 'area' | 'consumption'
+  areaPrice: number
+  m3Price: number
+  co2PricePerPerson: number
+  co2AreaPrice: number
+  co2M3Price: number
+  trace: CircuitHotWaterAllocationTrace
+}
+
+/**
+ * Schlüssel der Warmwasserkosten nach § 8 Abs. 1 HeizKV (ADR-0010):
+ * `consumption` = Anteil nach erfasstem Warmwasser (m³), Rest nach Fläche
+ * × Zeitanteil wie der Grundkostenschlüssel; `area` = vollständig nach
+ * Fläche × Zeitanteil; `persons` (leer) = bisher nach Personen × Zeitanteil.
+ * Bei Fläche und Verbrauch trägt ein Leerstand seinen Anteil (Vermieter).
+ */
+function hotWaterAllocationPlan(
+  circuit: PreparedCircuit['circuit'],
+  contexts: readonly OccupancyContext[],
+  areaBasis: 'usable_area' | 'heated_area',
+  areaTimeDenominator: number,
+  personTimeDenominator: number,
+  hotWater: number,
+  hotWaterCo2Tenant: number,
+): HotWaterAllocationPlan {
+  const key = circuit?.hotWaterAllocation?.key ?? 'persons'
+  if (key === 'persons') {
+    return {
+      key,
+      areaPrice: 0,
+      m3Price: 0,
+      co2PricePerPerson:
+        personTimeDenominator > 0
+          ? hotWaterCo2Tenant / personTimeDenominator
+          : 0,
+      co2AreaPrice: 0,
+      co2M3Price: 0,
+      trace: {
+        key,
+        consumptionSharePercent: 0,
+        areaBasis,
+        areaTimeDenominator: null,
+        warmWaterM3Denominator: null,
+        personTimeDenominator,
+        areaCents: 0,
+        consumptionCents: 0,
+        consumptionFallbackToArea: false,
+      },
+    }
+  }
+  const warmWaterM3Denominator = contexts.reduce(
+    (sum, context) => sum + quantityValue(context.occupancy.warmWater),
+    0,
+  )
+  // Offene Entscheidung: Ohne erfassten Warmwasserverbrauch wird ersatzweise
+  // vollständig nach Fläche verteilt (die Prüfung meldet einen Fehler).
+  const consumptionFallbackToArea =
+    key === 'consumption' && !(warmWaterM3Denominator > 0)
+  const consumptionFraction =
+    key === 'consumption' && !consumptionFallbackToArea
+      ? (circuit?.hotWaterAllocation?.consumptionSharePercent ?? 70) / 100
+      : 0
+  const areaFraction = 1 - consumptionFraction
+  const perArea = (amount: number) =>
+    areaTimeDenominator > 0 ? (amount * areaFraction) / areaTimeDenominator : 0
+  const perM3 = (amount: number) =>
+    consumptionFraction > 0
+      ? (amount * consumptionFraction) / warmWaterM3Denominator
+      : 0
+  const parts = new Map(
+    allocateLargestRemainder([
+      { id: 'area', exactCents: hotWater * areaFraction },
+      { id: 'consumption', exactCents: hotWater * consumptionFraction },
+    ]).map(({ id, cents }) => [id, cents]),
+  )
+  return {
+    key,
+    areaPrice: perArea(hotWater),
+    m3Price: perM3(hotWater),
+    co2PricePerPerson: 0,
+    co2AreaPrice: perArea(hotWaterCo2Tenant),
+    co2M3Price: perM3(hotWaterCo2Tenant),
+    trace: {
+      key,
+      consumptionSharePercent: roundQuantity(consumptionFraction * 100, 3),
+      areaBasis,
+      areaTimeDenominator,
+      warmWaterM3Denominator:
+        key === 'consumption' ? warmWaterM3Denominator : null,
+      personTimeDenominator: null,
+      areaCents: parts.get('area')!,
+      consumptionCents: parts.get('consumption')!,
+      consumptionFallbackToArea,
+    },
+  }
+}
+
+/** Bezugsgrößen einer Nutzung für die Warmwasserverteilung (ungerundet). */
+function hotWaterUnitsOf(
+  context: OccupancyContext,
+  baseArea: number,
+): HotWaterUnits {
+  return {
+    personTime:
+      context.occupancy.kind === 'vacancy'
+        ? 0
+        : (context.persons > 0 ? context.persons : 1) * context.timeFactor,
+    areaTime: baseArea * context.timeFactor,
+    warmWaterM3: quantityValue(context.occupancy.warmWater),
+  }
+}
+
+/**
+ * Warmwasserkosten und CO2-Warmwasseranteil einer Nutzung (ungerundet, vor
+ * einer Kürzung nach § 12 HeizKV). Beim Personenschlüssel unverändert
+ * `Preis × Personen × Zeitfaktor` wie bisher.
+ */
+function rawHotWater(
+  circuit: RawCircuitResult,
+  context: OccupancyContext,
+  baseArea: number,
+): { cost: number; co2: number } {
+  if (circuit.hotWaterKey === 'persons') {
+    const persons =
+      context.occupancy.kind === 'vacancy'
+        ? 0
+        : context.persons > 0
+          ? context.persons
+          : 1
+    return {
+      cost: circuit.hotWaterPricePerPerson * persons * context.timeFactor,
+      co2: circuit.co2HotWaterPricePerPerson * persons * context.timeFactor,
+    }
+  }
+  const units = hotWaterUnitsOf(context, baseArea)
+  return {
+    cost:
+      circuit.hotWaterAreaPrice * units.areaTime +
+      circuit.hotWaterM3Price * units.warmWaterM3,
+    co2:
+      circuit.co2HotWaterAreaPrice * units.areaTime +
+      circuit.co2HotWaterM3Price * units.warmWaterM3,
+  }
+}
+
+/** § 12 Abs. 1 HeizKV: Kürzung um 15 % (Bedingungen wie bisher). */
+function section12Factor(
+  context: OccupancyContext,
+  circuit: RawCircuitResult,
+  isMeteredOccupancy: boolean,
+): number {
+  return context.occupancy.applySection12Reduction &&
+    !isMeteredOccupancy &&
+    !circuit.areaOnlySection9a &&
+    context.occupancy.consumptionUnitsEstimated
+    ? 0.85
+    : 1
 }
 
 /**
@@ -757,13 +1040,8 @@ function rawTenantShare(
       (isMeteredOccupancy
         ? measuredKwhByOccupancy!.get(context.occupancy.id)!
         : context.consumptionUnits)
-  const persons =
-    context.occupancy.kind === 'vacancy'
-      ? 0
-      : context.persons > 0
-        ? context.persons
-        : 1
-  heating += circuit.hotWaterPricePerPerson * persons * context.timeFactor
+  const hotWater = rawHotWater(circuit, context, baseArea)
+  heating += hotWater.cost
   // § 12 HeizKV gilt nicht, wenn nach § 9a Abs. 2 HeizKV zulässig nur nach
   // Fläche verteilt wird.
   if (
@@ -780,7 +1058,11 @@ function rawTenantShare(
       (isMeteredOccupancy
         ? measuredKwhByOccupancy!.get(context.occupancy.id)!
         : context.consumptionUnits)
-  return operating + heating + co2
+  return (
+    operating +
+    heating +
+    (circuit.hotWaterSection9Share === null ? co2 : co2 + hotWater.co2)
+  )
 }
 
 /**
@@ -836,6 +1118,17 @@ function rawTenantSection35a(
           ? (measuredKwhByOccupancy!.get(context.occupancy.id) ?? 0)
           : context.consumptionUnits)
     const heatingFraction = tenantHeating / circuit.heatingTotal
+    // § 9 Abs. 1 HeizKV: Im § 9-Verfahren trägt der Warmwasseranteil s der
+    // Heizungs-Betriebskosten den Warmwasserschlüssel.
+    const share = circuit.hotWaterSection9Share
+    const tenantFraction =
+      share === null
+        ? heatingFraction
+        : (1 - share) * heatingFraction +
+          (circuit.hotWater > 0
+            ? share *
+              (rawHotWater(circuit, context, baseArea).cost / circuit.hotWater)
+            : 0)
     for (const position of positions) {
       if (
         laborPercent(position) > 0 &&
@@ -846,7 +1139,7 @@ function rawTenantSection35a(
         exactItems.push({
           costCategoryId: position.category.id,
           exactCents:
-            position.effectiveAmount * laborPercent(position) * heatingFraction,
+            position.effectiveAmount * laborPercent(position) * tenantFraction,
         })
       }
     }
@@ -918,19 +1211,14 @@ function rawTenantShareBreakdown(
   }
   const baseArea =
     defaultsBasis === 'usable_area' ? context.usableArea : context.heatedArea
-  const persons =
-    context.occupancy.kind === 'vacancy'
-      ? 0
-      : context.persons > 0
-        ? context.persons
-        : 1
-  const reduction =
-    context.occupancy.applySection12Reduction &&
-    !isMeteredOccupancy &&
-    !circuit.areaOnlySection9a &&
-    context.occupancy.consumptionUnitsEstimated
-      ? 0.85
-      : 1
+  const reduction = section12Factor(context, circuit, isMeteredOccupancy)
+  const hotWater = rawHotWater(circuit, context, baseArea)
+  const heatingCo2 =
+    circuit.co2BasePrice * baseArea * context.timeFactor +
+    circuit.co2ConsumptionPrice *
+      (isMeteredOccupancy
+        ? measuredKwhByOccupancy!.get(context.occupancy.id)!
+        : context.consumptionUnits)
   return {
     operatingByCategory,
     heatingBaseCents: roundCentsHalfAwayFromZero(
@@ -943,16 +1231,80 @@ function rawTenantShareBreakdown(
           : context.consumptionUnits) *
         reduction,
     ),
-    hotWaterCents: roundCentsHalfAwayFromZero(
-      circuit.hotWaterPricePerPerson * persons * context.timeFactor * reduction,
-    ),
+    hotWaterCents: roundCentsHalfAwayFromZero(hotWater.cost * reduction),
     heatingCo2Cents: roundCentsHalfAwayFromZero(
-      circuit.co2BasePrice * baseArea * context.timeFactor +
-        circuit.co2ConsumptionPrice *
-          (isMeteredOccupancy
-            ? measuredKwhByOccupancy!.get(context.occupancy.id)!
-            : context.consumptionUnits),
+      circuit.hotWaterSection9Share === null
+        ? heatingCo2
+        : heatingCo2 + hotWater.co2,
     ),
+    ...(circuit.hotWaterSection9Share === null
+      ? {}
+      : { hotWaterCo2Cents: roundCentsHalfAwayFromZero(hotWater.co2) }),
+  }
+}
+
+/** Warmwasser-Bezugsgröße der Nutzung (nur im neuen Verfahren, ADR-0010). */
+function tenantHotWaterBasis(
+  context: OccupancyContext,
+  circuits: readonly RawCircuitResult[],
+  defaultsBasis: 'usable_area' | 'heated_area',
+): { hotWaterBasis?: TenantHotWaterBasis } {
+  const circuit = circuits.find(
+    ({ buildingId }) => buildingId === context.buildingId,
+  )
+  if (!circuit?.hotWaterExtended) return {}
+  const baseArea =
+    defaultsBasis === 'usable_area' ? context.usableArea : context.heatedArea
+  return {
+    hotWaterBasis: {
+      key: circuit.hotWaterKey,
+      ...hotWaterUnitsOf(context, baseArea),
+    },
+  }
+}
+
+/**
+ * Kontrolle der Warmwasserverteilung eines Heizkreises: Summe der gerundeten
+ * Einzelbeträge von Mietern und Leerstand, Kürzung nach § 12 HeizKV und der
+ * verbleibende Rundungsrest – sichtbar statt im Leerstand verrechnet.
+ */
+function hotWaterDistribution(
+  circuit: RawCircuitResult,
+  contexts: readonly OccupancyContext[],
+  tenants: readonly { id: string; costBreakdown: TenantCostBreakdown }[],
+  defaultsBasis: 'usable_area' | 'heated_area',
+  measuredKwhDenominatorByBuildingId?: ReadonlyMap<string, number>,
+): CircuitHotWaterDistributionTrace {
+  const centsById = new Map(
+    tenants.map(({ id, costBreakdown }) => [id, costBreakdown.hotWaterCents]),
+  )
+  const isMetered = Boolean(
+    measuredKwhDenominatorByBuildingId?.has(circuit.buildingId),
+  )
+  let tenantsCents = 0
+  let vacancyCents = 0
+  let reduction = 0
+  for (const context of contexts) {
+    if (context.buildingId !== circuit.buildingId) continue
+    const cents = centsById.get(context.occupancy.id) ?? 0
+    if (context.occupancy.kind === 'vacancy') vacancyCents += cents
+    else tenantsCents += cents
+    const baseArea =
+      defaultsBasis === 'usable_area' ? context.usableArea : context.heatedArea
+    reduction +=
+      rawHotWater(circuit, context, baseArea).cost *
+      (1 - section12Factor(context, circuit, isMetered))
+  }
+  const section12ReductionCents = roundCentsHalfAwayFromZero(reduction)
+  return {
+    tenantsCents,
+    vacancyCents,
+    section12ReductionCents,
+    roundingDifferenceCents:
+      circuit.warmWaterTrace.poolCents -
+      tenantsCents -
+      vacancyCents -
+      section12ReductionCents,
   }
 }
 
@@ -1134,6 +1486,7 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
         usesMeteredConsumption ? measuredKwhByOccupancy : undefined,
         usesMeteredConsumption ? measuredKwhDenominatorByBuildingId : undefined,
       ),
+      ...tenantHotWaterBasis(context, circuits, defaultsBasis),
     }
   })
 
@@ -1248,6 +1601,17 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
         movedCents: 0,
         uncoveredCents: 0,
       },
+      circuit.warmWaterTrace.method === 'none'
+        ? undefined
+        : hotWaterDistribution(
+            circuit,
+            contexts,
+            tenants,
+            defaultsBasis,
+            usesMeteredConsumption
+              ? measuredKwhDenominatorByBuildingId
+              : undefined,
+          ),
     ),
   )
 

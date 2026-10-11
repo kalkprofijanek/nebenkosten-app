@@ -152,7 +152,11 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     const serialized = text(buildTenantStatement(context))
 
     expect(serialized).toContain('Kosten der Warmwasserbereitung')
-    expect(serialized).toContain('Warmwasser:')
+    // A3: konkreter Rechenweg statt Platzhalter „× Ihre Personen × Zeitfaktor“.
+    expect(serialized).toContain(
+      'Warmwasser nach Personen und Nutzungszeit: 2 Personen × 366/366 Tage = 2,0000 Personenjahre von 5,0000 Personenjahren; 1.200,00 € : 5,0000 = 240,0000 € je Personenjahr × 2,0000',
+    )
+    expect(serialized).not.toContain('Ihre Personen × Zeitfaktor')
     expect(serialized).not.toContain(
       'Eine zentrale Warmwasserbereitung besteht nicht.',
     )
