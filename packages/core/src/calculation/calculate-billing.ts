@@ -349,6 +349,7 @@ function operatingPositionTraces(
   originalPositions: readonly RawCostPosition[],
   positions: readonly RawCostPosition[],
   contexts: readonly OccupancyContext[],
+  deductedCentsByCostCategoryId: ReadonlyMap<string, number>,
 ): OperatingPositionTrace[] {
   return positions.map((position, index) => {
     const original = originalPositions[index]!
@@ -374,15 +375,22 @@ function operatingPositionTraces(
         vacancyCents: 0,
       }
     }
+    // Der verteilte Betrag ist der Rest nach Abzug des bereits gerundeten
+    // Betriebsstromanteils. Getrenntes Runden beider Teile kann bei einem
+    // halben Cent (x,5 + y,5) einen Cent mehr ergeben als die Rechnung.
+    const allocableCents = roundCentsHalfAwayFromZero(original.effectiveAmount)
+    const operatingElectricityDeductedCents =
+      deductedCentsByCostCategoryId.get(category.id) ??
+      roundCentsHalfAwayFromZero(
+        original.effectiveAmount - position.effectiveAmount,
+      )
     const amounts = {
       nonAllocableCents: roundCentsHalfAwayFromZero(
         original.freeLandlordAmount,
       ),
-      allocableCents: roundCentsHalfAwayFromZero(original.effectiveAmount),
-      operatingElectricityDeductedCents: roundCentsHalfAwayFromZero(
-        original.effectiveAmount - position.effectiveAmount,
-      ),
-      distributedCents: roundCentsHalfAwayFromZero(position.effectiveAmount),
+      allocableCents,
+      operatingElectricityDeductedCents,
+      distributedCents: allocableCents - operatingElectricityDeductedCents,
     }
     if (category.allocationKey === 'direct' || category.kind === 'heating') {
       return {
@@ -1708,6 +1716,14 @@ export function calculateBilling(input: CalculationInput): CalculationOutput {
       originalPositions,
       positions,
       contexts,
+      new Map(
+        operatingElectricityPlan.publicResult.sources.map(
+          ({ costCategoryId, deductedCents }) => [
+            costCategoryId,
+            deductedCents,
+          ],
+        ),
+      ),
     ),
     ...(usesMeteredConsumption ? { meteringTrace: metering.trace } : {}),
   }

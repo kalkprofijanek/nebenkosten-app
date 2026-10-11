@@ -110,7 +110,10 @@ export function co2DistributionSentence(
   baseSharePercent: number,
   consumptionSharePercent: number,
   baseAreaBasis: BaseAreaBasis,
+  hotWaterSharePercent?: string,
 ): string {
+  if (hotWaterSharePercent !== undefined)
+    return `Der Mieteranteil wird nach den Schlüsseln für Heizung und Warmwasser getrennt verteilt (§ 7 Abs. 1 CO2KostAufG): der Warmwasseranteil (${hotWaterSharePercent}, § 9 HeizKV) wie die Warmwasserkosten, der Heizungsanteil wie die Heizkosten zu ${baseSharePercent} % nach ${baseAreaDative(baseAreaBasis)} und zu ${consumptionSharePercent} % nach Verbrauch.`
   return `Der Mieteranteil wird wie die Heizkosten zu ${baseSharePercent} % nach ${baseAreaDative(baseAreaBasis)} und zu ${consumptionSharePercent} % nach Verbrauch auf die Nutzer verteilt.`
 }
 
@@ -231,9 +234,23 @@ export const CONSUMPTION_BENCHMARK_CLASS_LABELS = {
   high: 'zu hoch',
 } as const
 
+export type HotWaterKeyLabel = 'persons' | 'area' | 'consumption'
+
+const HOT_WATER_KEY_TEXT: Readonly<Record<HotWaterKeyLabel, string>> = {
+  persons: 'Warmwasser nach Personen und Nutzungszeit',
+  area: 'Warmwasser nach Fläche und Nutzungszeit',
+  consumption: 'Warmwasser nach Warmwasserverbrauch und Fläche',
+}
+
 /** Ermittlung des Nutzerverbrauchs für den Vergleich (ADR-0004). */
+export function consumptionBenchmarkEnergyShareNotice(
+  hotWaterKey: HotWaterKeyLabel = 'persons',
+): string {
+  return `Heizwärme und Warmwasser sind als Ihr Anteil am Energieeinsatz des Gebäudes nach den Verteilschlüsseln dieser Abrechnung ermittelt (Heizwärme nach Ihrem Verbrauchsanteil, ${HOT_WATER_KEY_TEXT[hotWaterKey]}).`
+}
+
 export const CONSUMPTION_BENCHMARK_ENERGY_SHARE_NOTICE =
-  'Heizwärme und Warmwasser sind als Ihr Anteil am Energieeinsatz des Gebäudes nach den Verteilschlüsseln dieser Abrechnung ermittelt (Heizwärme nach Ihrem Verbrauchsanteil, Warmwasser nach Personen und Nutzungszeit).'
+  consumptionBenchmarkEnergyShareNotice()
 
 /** Fußnote zum Vergleich mit dem Durchschnittsnutzer. */
 export function consumptionBenchmarkFootnote(
@@ -244,6 +261,7 @@ export function consumptionBenchmarkFootnote(
     readonly includesHotWater: boolean
   },
   annualization: 'none' | 'degree_days' | 'linear',
+  hotWaterKey: HotWaterKeyLabel = 'persons',
 ): string {
   const scope = benchmark.includesHotWater
     ? 'Heizung und Warmwasser'
@@ -254,7 +272,7 @@ export function consumptionBenchmarkFootnote(
       : annualization === 'linear'
         ? ' Ihr Verbrauch ist nach Tagen auf ein Jahr hochgerechnet.'
         : ''
-  return `Vergleichswerte: ${benchmark.source}, Kategorie „${benchmark.category}“, Bezugsjahr ${benchmark.referenceYear} (${scope}). ${CONSUMPTION_BENCHMARK_ENERGY_SHARE_NOTICE}${annual} Die Klassengrenzen sind auf Ihre Fläche und Nutzungszeit umgerechnet.`
+  return `Vergleichswerte: ${benchmark.source}, Kategorie „${benchmark.category}“, Bezugsjahr ${benchmark.referenceYear} (${scope}). ${consumptionBenchmarkEnergyShareNotice(hotWaterKey)}${annual} Die Klassengrenzen sind auf Ihre Fläche und Nutzungszeit umgerechnet.`
 }
 
 /** Vorjahresvergleich: witterungsbereinigt mit DWD-Klimafaktoren (ADR-0005). */

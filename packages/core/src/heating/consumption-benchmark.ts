@@ -9,7 +9,8 @@
  * - Heizwärme: Energieeinsatz × (1 − Warmwasseranteil) × eigener Verbrauch ÷
  *   Verbrauch aller Nutzungen (einschließlich Leerstand),
  * - Warmwasser (nur wenn die Vergleichswerte es enthalten): Energieeinsatz ×
- *   Warmwasseranteil × eigene Personenzeit ÷ Personenzeit aller Nutzer.
+ *   Warmwasseranteil × eigener Anteil nach dem Warmwasserschlüssel
+ *   (Personenzeit, Fläche × Zeit oder Verbrauch und Fläche).
  *
  * Bezug ist die Fläche des Grundkostenschlüssels; bei kürzerer Nutzung wird
  * auf ein ganzes Jahr hochgerechnet (`annualized`): mit Nutzungszeitraum
@@ -118,6 +119,28 @@ type TenantEnergyShare =
     }
 
 /**
+ * Anteil des Nutzers am Warmwasser nach dem Warmwasserschlüssel der
+ * Kostenverteilung (§ 8 Abs. 1 HeizKV, ADR-0010): Fläche × Zeit bzw.
+ * Verbrauch und Fläche, aus den ungerundeten Nennern des Rechenkerns.
+ * `null` im bisherigen Verfahren (nach Personen, ohne Schlüssel-Trace).
+ */
+function hotWaterAllocationFraction(
+  tenant: CalculationOutput['tenants'][number],
+  trace: CalculationOutput['heating']['trace']['circuits'][number],
+): number | null {
+  const allocation = trace.warmWater.allocation
+  const basis = tenant.hotWaterBasis
+  if (!allocation || !basis || allocation.key === 'persons') return null
+  const areaDenominator = allocation.areaTimeDenominator ?? 0
+  const areaPart = areaDenominator > 0 ? basis.areaTime / areaDenominator : 0
+  if (allocation.key === 'area') return areaPart
+  const consumptionFraction = allocation.consumptionSharePercent / 100
+  const m3Denominator = allocation.warmWaterM3Denominator ?? 0
+  const m3Part = m3Denominator > 0 ? basis.warmWaterM3 / m3Denominator : 0
+  return (1 - consumptionFraction) * areaPart + consumptionFraction * m3Part
+}
+
+/**
  * Ermittelt Heizwärme und Warmwasser eines Nutzers nach den Schlüsseln der
  * Kostenverteilung (ungerundet). Ohne `heatingCircuitId` gilt der Heizkreis
  * des Gebäudes, dem die Nutzung zugeordnet ist.
@@ -168,11 +191,15 @@ function tenantEnergyShare(
     (sum, candidate) => sum + personTimeOf(candidate),
     0,
   )
-  const hotWaterKwh =
-    centralHotWater && personTimeTotal > 0
-      ? (result.energyKwh * hotWaterShare * personTimeOf(tenant)) /
-        personTimeTotal
-      : 0
+  const hotWaterFraction = hotWaterAllocationFraction(tenant, trace)
+  const hotWaterKwh = !centralHotWater
+    ? 0
+    : hotWaterFraction !== null
+      ? result.energyKwh * hotWaterShare * hotWaterFraction
+      : personTimeTotal > 0
+        ? (result.energyKwh * hotWaterShare * personTimeOf(tenant)) /
+          personTimeTotal
+        : 0
   return {
     status: 'ok',
     tenant,
@@ -279,7 +306,9 @@ export function compareTenantWithConsumptionBenchmark(
     benchmark,
     heatingKwh: round(heatingKwh, 0),
     hotWaterKwh: round(hotWaterKwh, 0),
-    energyKwh: round(energyKwh, 0),
+    // Summe der gerundeten Teile, damit „Heizwärme + Warmwasser“ im PDF
+    // aufgeht und mit dem Vorjahresvergleich übereinstimmt.
+    energyKwh: round(heatingKwh, 0) + round(hotWaterKwh, 0),
     areaSqm,
     annualized,
     annualization,

@@ -366,7 +366,7 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     )
     expect(serialized).toContain('Eingesetzte Energieträger Ihres Heizkreises')
     expect(serialized).toContain(
-      'Heizoel 100 % (Anteil am Energieeinsatz in kWh)',
+      'Heizöl 100 % (Anteil am Energieeinsatz in kWh)',
     )
     // Der Heizkreis-Mittelwert ist kein normierter Durchschnittsnutzer und
     // wird nicht als solcher Vergleich ausgegeben.

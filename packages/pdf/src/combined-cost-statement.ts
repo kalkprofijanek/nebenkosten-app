@@ -9,6 +9,7 @@ import type {
 } from '@nebenkosten/core'
 import type { CostCategory, OccupancyPeriod } from '@nebenkosten/schema'
 import { buildSenderBlock } from './address'
+import { energyCarrierDisplayName } from './energy-carrier-label'
 import type { CombinedCostStatementContext } from './contracts'
 import {
   formatAllocationKeyLabel,
@@ -69,7 +70,8 @@ function fuelCostRows(context: CombinedCostStatementContext) {
           const source = energySources.find(
             ({ id }) => id === trace.energySourceId,
           )
-          return source?.name ?? source?.sourceType ?? source?.key ?? null
+          const raw = source?.name ?? source?.sourceType ?? source?.key
+          return raw ? energyCarrierDisplayName(raw) : null
         })
         .filter((name): name is string => Boolean(name))
       return {
