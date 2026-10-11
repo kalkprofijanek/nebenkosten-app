@@ -678,8 +678,53 @@ describe('ConsumptionRoute – Zählertausch, Nutzerwechsel und Klimafaktor', ()
       'consumptionUnitsEstimated',
     )
     expect(result.occupancy('o4').consumptionUnits?.value).toBe(550)
+    expect(result.occupancy('o1').section9bAllocation).toBe('degree_days')
+    expect(result.occupancy('o4').section9bAllocation).toBe('degree_days')
     expect(screen.getByRole('status')).toHaveTextContent(
       'Verbrauch von Wohnung 1 nach Gradtagszahlen aufgeteilt und gespeichert.',
+    )
+  })
+
+  it('teilt den Verbrauch einer Wohnung zeitanteilig auf (§ 9b Abs. 3)', () => {
+    const result = renderHarness(changeData())
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Nach Gradtagszahlen aufteilen Wohnung 1',
+      }),
+    )
+    fireEvent.change(screen.getByLabelText('Maßstab Wohnung 1'), {
+      target: { value: 'time' },
+    })
+    fireEvent.change(screen.getByLabelText('Gesamtverbrauch Wohnung 1'), {
+      target: { value: '365' },
+    })
+    const preview = within(
+      screen.getByRole('table', { name: 'Vorschau zeitanteilig Wohnung 1' }),
+    )
+    const tenant = within(
+      preview.getByRole('rowheader', { name: 'Fiktiv 1' }).closest('tr')!,
+    )
+    expect(tenant.getByText('90 Tage')).toBeVisible()
+    expect(tenant.getByText('90')).toBeVisible()
+    fireEvent.change(
+      screen.getByLabelText(
+        'Warum war keine Zwischenablesung möglich? Wohnung 1',
+      ),
+      { target: { value: 'Wohnung zum Auszug nicht zugänglich' } },
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Aufteilung übernehmen' }),
+    )
+    expect(result.occupancy('o1')).toMatchObject({
+      consumptionUnits: { value: 90 },
+      section9bAllocation: 'time',
+      consumptionUnitsEstimateReason: expect.stringContaining(
+        'Zeitanteilige Aufteilung (§ 9b Abs. 3 HeizKV)',
+      ),
+    })
+    expect(result.occupancy('o4').section9bAllocation).toBe('time')
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Verbrauch von Wohnung 1 zeitanteilig aufgeteilt und gespeichert.',
     )
   })
 

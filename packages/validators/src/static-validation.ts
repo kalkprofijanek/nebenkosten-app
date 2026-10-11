@@ -20,6 +20,7 @@ import {
   validIban,
   wholeYear,
 } from './helpers'
+import { section9bIssues } from './section-9b'
 import { issue } from './issues'
 import { legalRule, legalRulesForPeriod } from './legal-rules'
 import { ambiguousCostEntries, heatingInformation } from './billing-information'
@@ -1306,5 +1307,6 @@ export function collectStaticIssues(
   meterReadings(data, period, add)
   interimReadings(data, period, add)
   meters(data, period, add)
+  section9bIssues(data, period, add)
   return result
 }

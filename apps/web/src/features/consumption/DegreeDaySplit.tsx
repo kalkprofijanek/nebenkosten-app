@@ -4,11 +4,13 @@ import { parseOptionalNumber } from '../../app/form-parsers'
 import {
   OccupancyCommandError,
   splitUnitConsumptionByDegreeDays,
+  splitUnitConsumptionByTime,
 } from '../occupancies/commands'
 import {
-  degreeDaySplitPlan,
   germanDate,
   MAX_DEGREE_DAY_REASON_LENGTH,
+  section9bSplitPlan,
+  type Section9bSplitMethod,
   unitOccupancies,
 } from '../occupancies/degree-day-split'
 import { tenantDisplayName } from '../prepayments/overview'
@@ -45,9 +47,11 @@ function UnitSplit({
   const [open, setOpen] = useState(false)
   const [total, setTotal] = useState('')
   const [reason, setReason] = useState('')
+  const [method, setMethod] = useState<Section9bSplitMethod>('degree_days')
   const value = parsedTotal(total)
+  const byTime = method === 'time'
   // Ohne Eingabe wird nur die Abdeckung des Jahres geprüft.
-  const plan = degreeDaySplitPlan(data, period.id, unitId, value ?? 0)
+  const plan = section9bSplitPlan(data, period.id, unitId, value ?? 0, method)
   const name = (occupancyId: string) => {
     const occupancy = data.billingData.occupancyPeriods.find(
       ({ id }) => id === occupancyId,
@@ -59,18 +63,24 @@ function UnitSplit({
 
   function apply() {
     if (
-      run((current) => {
-        if (value === null)
-          throw new OccupancyCommandError(
-            'Gesamtverbrauch: Bitte eine Zahl ab 0 eingeben.',
-          )
-        return splitUnitConsumptionByDegreeDays(current, {
-          billingPeriodId: period.id,
-          unitId,
-          totalUnits: value,
-          reason,
-        })
-      }, `Verbrauch von ${unitLabel} nach Gradtagszahlen aufgeteilt und gespeichert.`)
+      run(
+        (current) => {
+          if (value === null)
+            throw new OccupancyCommandError(
+              'Gesamtverbrauch: Bitte eine Zahl ab 0 eingeben.',
+            )
+          const split = byTime
+            ? splitUnitConsumptionByTime
+            : splitUnitConsumptionByDegreeDays
+          return split(current, {
+            billingPeriodId: period.id,
+            unitId,
+            totalUnits: value,
+            reason,
+          })
+        },
+        `Verbrauch von ${unitLabel} ${byTime ? 'zeitanteilig' : 'nach Gradtagszahlen'} aufgeteilt und gespeichert.`,
+      )
     ) {
       setOpen(false)
       setTotal('')
@@ -100,6 +110,21 @@ function UnitSplit({
       {open ? (
         <div className="degree-day-split__form">
           <label>
+            <span>Maßstab nach § 9b Abs. 3 HeizKV (für alle Heizkosten)</span>
+            <select
+              aria-label={`Maßstab ${unitLabel}`}
+              value={method}
+              onChange={(event) =>
+                setMethod(event.target.value as Section9bSplitMethod)
+              }
+            >
+              <option value="degree_days">
+                Nach Gradtagszahlen (VDI 2067)
+              </option>
+              <option value="time">Zeitanteilig (nach Tagen)</option>
+            </select>
+          </label>
+          <label>
             <span>Gesamtverbrauch der Wohnung laut Jahresablesung</span>
             <input
               className="consumption-number"
@@ -124,13 +149,13 @@ function UnitSplit({
           ) : (
             <table
               className="data-table degree-day-split__preview"
-              aria-label={`Vorschau Gradtagszahlen ${unitLabel}`}
+              aria-label={`Vorschau ${byTime ? 'zeitanteilig' : 'Gradtagszahlen'} ${unitLabel}`}
             >
               <thead>
                 <tr>
                   <th scope="col">Nutzung</th>
                   <th scope="col">Zeitraum</th>
-                  <th scope="col">Promille</th>
+                  <th scope="col">{byTime ? 'Tage' : 'Promille'}</th>
                   <th scope="col">Anteil</th>
                 </tr>
               </thead>
@@ -141,7 +166,11 @@ function UnitSplit({
                     <td>
                       {germanDate(share.from)} – {germanDate(share.to)}
                     </td>
-                    <td>{decimal(share.permille)} ‰</td>
+                    <td>
+                      {byTime
+                        ? `${share.days} Tage`
+                        : `${decimal(share.permille)} ‰`}
+                    </td>
                     <td>{value === null ? '—' : decimal(share.value)}</td>
                   </tr>
                 ))}
@@ -193,9 +222,12 @@ export function DegreeDaySplit({
         Vorrang hat die Zwischenablesung (§ 9b Abs. 1 HeizKV): Stand neu der
         vorigen bzw. Stand alt der neuen Nutzung zum Wechseltag erfassen. Nur
         wenn sie nicht möglich war, wird der Jahresverbrauch der Wohnung nach
-        Gradtagszahlen (VDI 2067) auf die Nutzungen einschließlich Leerstand
-        aufgeteilt (§ 9b Abs. 3 HeizKV). Die Werte gelten nicht als Schätzung;
-        Begründung und Rechenweg werden als Erläuterung gespeichert.
+        Gradtagszahlen (VDI 2067) oder zeitanteilig auf die Nutzungen
+        einschließlich Leerstand aufgeteilt (§ 9b Abs. 3 HeizKV). Der gewählte
+        Maßstab gilt dann für die gesamten Heizkosten, also auch für die
+        Grundkosten; Warmwasser wird zeitanteilig verteilt. Die Werte gelten
+        nicht als Schätzung; Begründung und Rechenweg werden als Erläuterung
+        gespeichert.
       </p>
       <ul className="degree-day-split__list">
         {units.map((unit) => (

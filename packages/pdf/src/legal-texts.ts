@@ -16,9 +16,16 @@ export function estimatedConsumptionNote(reason?: string | null): string {
 /** Kompatibler Kurztext ohne Schätzgrund. */
 export const ESTIMATED_CONSUMPTION_NOTE = estimatedConsumptionNote()
 
-/** Erläuterung des Zeitfaktors bei Teilzeiträumen (§ 9b HeizKV). */
+/**
+ * Erläuterung des Zeitfaktors bei Teilzeiträumen (§ 9b HeizKV, Wortlaut
+ * geprüft am 10.10.2026): Abs. 2 – verbrauchsabhängige Kosten nach der
+ * Zwischenablesung, übrige Kosten des Wärmeverbrauchs nach Gradtagszahlen
+ * oder zeitanteilig, übrige Warmwasserkosten zeitanteilig; Abs. 3 – ohne
+ * Zwischenablesung die gesamten Kosten nach diesen Maßstäben. Der im
+ * Einzelfall angewandte Maßstab steht unter „Ihre Verbrauchserfassung“.
+ */
 export const TIME_FACTOR_EXPLANATION =
-  'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten erfolgt die Aufteilung bei Nutzerwechsel nach § 9b HeizKV: Grundkosten nach Kalendertagen, Verbrauchskosten nach dem erfassten Verbrauch bzw. – ohne Zwischenablesung – nach Gradtagszahlen. Auf Leerstandszeiten entfallende Kosten trägt der Vermieter.'
+  'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten werden bei Nutzerwechsel die verbrauchsabhängigen Kosten auf Grundlage der Zwischenablesung und die übrigen Kosten zeitanteilig aufgeteilt (§ 9b Abs. 2 HeizKV). Ist eine Zwischenablesung nicht möglich, werden die gesamten Heizkosten nach Gradtagszahlen oder zeitanteilig aufgeteilt, die Kosten für warmes Wasser zeitanteilig (§ 9b Abs. 3 HeizKV); Maßstab und Rechenweg sind unter „Ihre Verbrauchserfassung“ angegeben. Auf Leerstandszeiten entfallende Kosten trägt der Vermieter.'
 
 /** Hinweis unter der Ergebnistabelle (Rechnen mit ungerundeten Werten). */
 export const ROUNDING_DIFFERENCE_NOTICE =

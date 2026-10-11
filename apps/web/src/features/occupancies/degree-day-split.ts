@@ -7,7 +7,11 @@
  * Erläuterung vorangestellt. Das Ergebnis ist keine Schätzung nach § 9a,
  * `consumptionUnitsEstimated` bleibt deshalb ungesetzt.
  */
-import { splitByDegreeDays } from '@nebenkosten/core'
+import {
+  calculateOccupancyDays,
+  calculatePeriodDays,
+  splitByDegreeDays,
+} from '@nebenkosten/core'
 import type {
   AppDataFile,
   BillingPeriod,
@@ -23,6 +27,8 @@ export interface DegreeDaySplitShare {
   readonly to: string
   /** Gradtagsanteil des Zeitraums in Promille (drei Nachkommastellen). */
   readonly permille: number
+  /** Kalendertage des Zeitraums (für die zeitanteilige Aufteilung). */
+  readonly days: number
   /** Anteil am Gesamtverbrauch (drei Nachkommastellen). */
   readonly value: number
 }
@@ -30,12 +36,19 @@ export interface DegreeDaySplitShare {
 export type DegreeDaySplitPlan =
   | {
       readonly ok: true
+      /** Maßstab nach § 9b Abs. 3 HeizKV. */
+      readonly method: Section9bSplitMethod
       readonly total: number
+      /** Tage des Abrechnungszeitraums. */
+      readonly periodDays: number
       /** Summe der Promille aller Zeiträume (ganzes Jahr ≈ 1.000 ‰). */
       readonly permilleTotal: number
       readonly shares: readonly DegreeDaySplitShare[]
     }
   | { readonly ok: false; readonly problem: string }
+
+/** Maßstab nach § 9b Abs. 3 HeizKV. */
+export type Section9bSplitMethod = 'degree_days' | 'time'
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/u
 
@@ -93,11 +106,48 @@ function coverageProblem(
   return null
 }
 
+function round3(value: number): number {
+  return Math.round(value * 1_000) / 1_000
+}
+
+/**
+ * Zeitanteilige Aufteilung (§ 9b Abs. 3 HeizKV): Tage ÷ Tage des Jahres, drei
+ * Nachkommastellen; die Rundungsdifferenz trägt der längste Zeitraum.
+ */
+function splitByDays(total: number, days: readonly number[]): number[] {
+  const sum = days.reduce((left, right) => left + right, 0)
+  const values = days.map((value) =>
+    sum > 0 ? round3((total * value) / sum) : 0,
+  )
+  const difference = round3(
+    total - values.reduce((left, right) => left + right, 0),
+  )
+  if (difference !== 0) {
+    const largest = days.indexOf(Math.max(...days))
+    values[largest] = round3(values[largest]! + difference)
+  }
+  return values
+}
+
 export function degreeDaySplitPlan(
   data: Readonly<AppDataFile>,
   billingPeriodId: string,
   unitId: string,
   total: number,
+): DegreeDaySplitPlan {
+  return section9bSplitPlan(data, billingPeriodId, unitId, total, 'degree_days')
+}
+
+/**
+ * Aufteilungsplan nach § 9b Abs. 3 HeizKV, nach Gradtagszahlen (VDI 2067)
+ * oder zeitanteilig.
+ */
+export function section9bSplitPlan(
+  data: Readonly<AppDataFile>,
+  billingPeriodId: string,
+  unitId: string,
+  total: number,
+  method: Section9bSplitMethod,
 ): DegreeDaySplitPlan {
   const period = data.billingData.billingPeriods.find(
     ({ id }) => id === billingPeriodId,
@@ -124,16 +174,23 @@ export function degreeDaySplitPlan(
   const problem = coverageProblem(ranges, period)
   if (problem) return { ok: false, problem }
   const split = splitByDegreeDays(total, ranges)
+  const days = ranges.map(({ from, to }) =>
+    calculateOccupancyDays(period.periodStart, period.periodEnd, from, to),
+  )
+  const byDays = splitByDays(total, days)
   const shares = split.map((share, index) => ({
     occupancy: occupancies[index]!,
     from: ranges[index]!.from,
     to: ranges[index]!.to,
     permille: share.permille,
-    value: share.value,
+    days: days[index]!,
+    value: method === 'time' ? byDays[index]! : share.value,
   }))
   return {
     ok: true,
+    method,
     total,
+    periodDays: calculatePeriodDays(period.periodStart, period.periodEnd),
     permilleTotal:
       Math.round(
         shares.reduce((sum, { permille }) => sum + permille, 0) * 1_000,
@@ -144,7 +201,8 @@ export function degreeDaySplitPlan(
 
 /**
  * Erläuterung je Nutzung: Begründung nach § 9b Abs. 3 HeizKV und Rechenweg,
- * z. B. „… 1.000 Einheiten × 450 ‰ ÷ 1.000 ‰ = 450 Einheiten“.
+ * z. B. „… 1.000 Einheiten × 450 ‰ ÷ 1.000 ‰ = 450 Einheiten“ bzw.
+ * zeitanteilig „… × 90 Tage ÷ 365 Tage …“.
  */
 export function degreeDaySplitExplanation(
   reason: string,
@@ -152,5 +210,7 @@ export function degreeDaySplitExplanation(
   share: DegreeDaySplitShare,
 ): string {
   const justification = reason.trim().replace(/[.\s]+$/u, '')
+  if (plan.method === 'time')
+    return `Keine Zwischenablesung möglich: ${justification}. Zeitanteilige Aufteilung (§ 9b Abs. 3 HeizKV), Zeitraum ${germanDate(share.from)} bis ${germanDate(share.to)}: ${number(plan.total)} Einheiten × ${number(share.days)} Tage ÷ ${number(plan.periodDays)} Tage = ${number(share.value)} Einheiten.`
   return `Keine Zwischenablesung möglich: ${justification}. Aufteilung nach Gradtagszahlen (§ 9b Abs. 3 HeizKV, VDI 2067), Zeitraum ${germanDate(share.from)} bis ${germanDate(share.to)}: ${number(plan.total)} Einheiten × ${number(share.permille)} ‰ ÷ ${number(plan.permilleTotal)} ‰ = ${number(share.value)} Einheiten.`
 }
