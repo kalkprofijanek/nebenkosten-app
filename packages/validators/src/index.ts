@@ -25,3 +25,10 @@ export {
   legalRulesForPeriod,
   type LegalRule,
 } from './legal-rules'
+export {
+  ESTIMATE_PREVIOUS_DEVIATION_LIMIT,
+  detectEnergyCarriers,
+  parseCategoryAreaRange,
+  type AreaRange,
+  type EnergyCarrier,
+} from './plausibility'

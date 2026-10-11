@@ -1,4 +1,6 @@
 import {
+  calculateOccupancyDays,
+  calculatePeriodDays,
   calculateRentLedger,
   createCalculationInput,
   meterReadingConsumption,
@@ -1197,6 +1199,68 @@ function duplicateCostEntries(
   }
 }
 
+/** Erster Tag ohne Umlagefähigkeit des Kabel-TV-Signals (§ 230 Abs. 4 TKG). */
+const CABLE_TV_CUTOFF = '2024-07-01'
+/** Rundungstoleranz in Prozentpunkten für den zeitanteiligen Umlagegrad. */
+const CABLE_TV_PERCENT_TOLERANCE = 0.01
+
+function formatPercent(value: number): string {
+  return value.toLocaleString('de-DE', { maximumFractionDigits: 2 })
+}
+
+/**
+ * Höchstens zulässiger Umlagegrad einer Kabel-TV-Kostenart: Anteil der Tage
+ * des Abrechnungszeitraums bis zum 30.06.2024; `null`, wenn der Zeitraum
+ * vollständig nach dem Stichtag liegt.
+ * Offene Entscheidung: Abgrenzung nach Tagen des Abrechnungszeitraums; eine
+ * Abgrenzung nach dem Leistungszeitraum der einzelnen Rechnung wäre genauer,
+ * ist aber im Datenmodell nicht erfasst.
+ */
+function cableTvPermittedPercent(
+  period: BillingPeriod,
+): { percent: number; daysBefore: number; periodDays: number } | null {
+  if (period.periodStart >= CABLE_TV_CUTOFF) return null
+  let periodDays: number
+  let daysBefore: number
+  try {
+    periodDays = calculatePeriodDays(period.periodStart, period.periodEnd)
+    daysBefore = calculateOccupancyDays(
+      period.periodStart,
+      period.periodEnd,
+      null,
+      '2024-06-30',
+    )
+  } catch {
+    // Ungültige Zeiträume meldet die Zeitraumprüfung; dann streng prüfen.
+    return null
+  }
+  return { percent: (daysBefore / periodDays) * 100, daysBefore, periodDays }
+}
+
+/** Umlagegrad einer Kostenart in Prozent, wie ihn die Berechnung ansetzt. */
+function allocablePercent(
+  data: AppDataFile,
+  category: ReturnType<typeof periodCategories>[number],
+): number {
+  const entries = data.billingData.costEntries.filter(
+    ({ costCategoryId, amountCents }) =>
+      costCategoryId === category.id && amountCents !== 0,
+  )
+  const total = entries.reduce(
+    (sum, { amountCents }) => sum + Math.abs(amountCents),
+    0,
+  )
+  if (total > 0)
+    return (
+      entries.reduce(
+        (sum, entry) =>
+          sum + Math.abs(entry.amountCents) * (entry.allocablePercent ?? 100),
+        0,
+      ) / total
+    )
+  return category.allocablePercent ?? 100
+}
+
 /** BetrKV-Kategorie „§ 2 Nr. 15“ in allen üblichen Schreibweisen. */
 function isCableTvCategory(value: string | null | undefined): boolean {
   return /§\s*2\s*Nr\.?\s*15(?!\d)/iu.test(value ?? '')
@@ -1211,20 +1275,28 @@ function legalRules(data: AppDataFile, period: BillingPeriod, add: Add): void {
   )
   if (codes.has('cable-tv-signal')) {
     const rule = legalRule('cable-tv-signal')
-    for (const category of periodCategories(data, period.id))
-      if (isCableTvCategory(category.betrkvCategory))
-        add(
-          issue(
-            'warning',
-            'rules.cable_tv_signal',
-            'costs',
-            'Kabel-TV-Kosten prüfen',
-            {
-              entity: { type: 'CostCategory', id: category.id },
-              detail: `${rule.summary} (${rule.norm})`,
-            },
-          ),
-        )
+    const permitted = cableTvPermittedPercent(period)
+    for (const category of periodCategories(data, period.id)) {
+      if (!isCableTvCategory(category.betrkvCategory)) continue
+      const allocable = allocablePercent(data, category)
+      if (allocable <= (permitted?.percent ?? 0) + CABLE_TV_PERCENT_TOLERANCE)
+        continue
+      const share = permitted
+        ? `Der Abrechnungszeitraum überspannt den Stichtag: Umlagefähig ist höchstens der zeitanteilige Anteil bis zum 30.06.2024 (${permitted.daysBefore} von ${permitted.periodDays} Tagen = ${formatPercent(permitted.percent)} %); angesetzt sind ${formatPercent(allocable)} %. Umlagegrad der Kostenart bzw. der Belege auf höchstens ${formatPercent(permitted.percent)} % setzen (zeitanteilige Abgrenzung).`
+        : 'Der Abrechnungszeitraum liegt vollständig nach dem 30.06.2024. Die Kostenart als nicht umlagefähig führen oder ihren Umlagegrad auf 0 % setzen; weiterhin umlagefähige Kosten (z. B. Betriebsstrom einer Gemeinschaftsantenne) einer anderen BetrKV-Kategorie zuordnen.'
+      add(
+        issue(
+          'error',
+          'rules.cable_tv_signal',
+          'costs',
+          'Kabel-TV-Kosten ab 01.07.2024 nicht umlagefähig',
+          {
+            entity: { type: 'CostCategory', id: category.id },
+            detail: `${share} ${rule.summary} (${rule.norm})`,
+          },
+        ),
+      )
+    }
   }
   if (
     codes.has('remote-reading') &&

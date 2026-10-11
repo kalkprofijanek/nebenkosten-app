@@ -2277,3 +2277,12 @@ small.consumption-replacement {
 .degree-day-split__preview {
   font-variant-numeric: tabular-nums;
 }
+
+/* Warmwasser nach §§ 8, 9 HeizKV am Heizkreis (ADR-0010) */
+.hot-water-fields {
+  align-content: start;
+}
+
+.hot-water-fields select {
+  max-width: 100%;
+}

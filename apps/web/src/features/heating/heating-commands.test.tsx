@@ -676,3 +676,120 @@ describe('Vergleichswerte am Heizkreis (§ 6a Abs. 3 Nr. 4 HeizKV)', () => {
     ).toThrowError(HeatingCommandError)
   })
 })
+
+describe('Warmwasser am Heizkreis (§§ 8, 9 HeizKV, ADR-0010)', () => {
+  const hotWaterInput = {
+    billingPeriodId: IDS.period,
+    heatingSystemId: IDS.system,
+    buildingId: IDS.building,
+    hasCentralHotWater: true,
+  }
+  const energy = {
+    method: 'volume_formula' as const,
+    volumeM3: 120,
+    temperatureC: 55,
+    temperatureEstimated: true,
+  }
+
+  it('speichert Wärmemenge und Verteilung ohne Pauschalanteil', () => {
+    const result = updateHeatingCircuit(createHeatingContext(), IDS.circuit, {
+      ...hotWaterInput,
+      hotWaterEnergy: energy,
+      hotWaterAllocation: { key: 'area' },
+    })
+    const circuit = result.billingData.heatingCircuits[0]!
+    expect(circuit.hotWaterEnergy).toEqual(energy)
+    expect(circuit.hotWaterAllocation).toEqual({ key: 'area' })
+    expect(circuit).not.toHaveProperty('hotWaterSharePercent')
+  })
+
+  it('verlangt ohne Wärmemenge weiterhin den Warmwasseranteil', () => {
+    expect(() =>
+      updateHeatingCircuit(createHeatingContext(), IDS.circuit, hotWaterInput),
+    ).toThrowError('Der Warmwasseranteil muss zwischen 18 und 70 Prozent')
+    expect(() =>
+      updateHeatingCircuit(createHeatingContext(), IDS.circuit, {
+        ...hotWaterInput,
+        hotWaterEnergy: { method: 'heat_meter', heatKwh: 1000 },
+        hotWaterSharePercent: 80,
+      }),
+    ).toThrowError(HeatingCommandError)
+  })
+
+  it('erhält, ersetzt und entfernt die Angaben wie die Vergleichswerte', () => {
+    const set = updateHeatingCircuit(createHeatingContext(), IDS.circuit, {
+      ...hotWaterInput,
+      hotWaterEnergy: energy,
+      hotWaterAllocation: { key: 'consumption', consumptionSharePercent: 60 },
+    })
+    const kept = updateHeatingCircuit(set, IDS.circuit, hotWaterInput)
+    expect(kept.billingData.heatingCircuits[0]?.hotWaterEnergy).toEqual(energy)
+    expect(kept.billingData.heatingCircuits[0]?.hotWaterAllocation).toEqual({
+      key: 'consumption',
+      consumptionSharePercent: 60,
+    })
+    const removed = updateHeatingCircuit(kept, IDS.circuit, {
+      ...hotWaterInput,
+      hotWaterSharePercent: 20,
+      hotWaterEnergy: null,
+      hotWaterAllocation: null,
+    })
+    expect(removed.billingData.heatingCircuits[0]).not.toHaveProperty(
+      'hotWaterEnergy',
+    )
+    expect(removed.billingData.heatingCircuits[0]).not.toHaveProperty(
+      'hotWaterAllocation',
+    )
+    const withoutCentral = updateHeatingCircuit(set, IDS.circuit, {
+      ...hotWaterInput,
+      hasCentralHotWater: false,
+    })
+    expect(withoutCentral.billingData.heatingCircuits[0]).not.toHaveProperty(
+      'hotWaterEnergy',
+    )
+  })
+
+  it('lehnt Warmwasser-Angaben ohne zentrale Warmwasserbereitung und ungültige Werte ab', () => {
+    const withSystem = addHeatingSystem(
+      createBaseFile(),
+      { propertyId: IDS.property, name: 'Zentralheizung' },
+      dependencies(IDS.system),
+    )
+    expect(() =>
+      addHeatingCircuit(
+        withSystem,
+        {
+          ...hotWaterInput,
+          hasCentralHotWater: false,
+          hotWaterAllocation: { key: 'area' },
+        },
+        dependencies(IDS.circuit),
+      ),
+    ).toThrowError('nur bei zentraler Warmwasserbereitung')
+    expect(() =>
+      addHeatingCircuit(
+        withSystem,
+        {
+          ...hotWaterInput,
+          hotWaterEnergy: { method: 'area_formula', reason: ' ' },
+        },
+        dependencies(IDS.circuit),
+      ),
+    ).toThrowError(HeatingCommandError)
+    const created = addHeatingCircuit(
+      withSystem,
+      {
+        ...hotWaterInput,
+        hotWaterEnergy: {
+          method: 'area_formula',
+          reason: 'Kein Zähler, Volumen nicht messbar',
+        },
+        hotWaterAllocation: null,
+      },
+      dependencies(IDS.circuit),
+    )
+    expect(created.billingData.heatingCircuits[0]).not.toHaveProperty(
+      'hotWaterAllocation',
+    )
+  })
+})
