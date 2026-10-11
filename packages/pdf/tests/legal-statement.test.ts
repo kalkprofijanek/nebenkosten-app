@@ -477,7 +477,7 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     const serialized = text(buildTenantStatement(context))
 
     expect(serialized).toContain('€ je kWh × 400,00 kWh')
-    expect(serialized).toContain('400,00 kWh (')
+    expect(serialized).toContain('"400,00 kWh"')
     expect(serialized).not.toContain('400,00 Einheiten')
   })
 
@@ -562,7 +562,7 @@ describe('Gesamtabrechnung – interne Fassung und Fassung für Mieter', () => {
     )
       .map((item) => item.table as { body: unknown[][] } | undefined)
       .find((table) =>
-        JSON.stringify(table ?? {}).includes('= auf Mieter verteilt'),
+        JSON.stringify(table ?? {}).includes('= auf die Mieter verteilt'),
       )!
     const amounts = reconciliation.body.map((row) => {
       const cell = row[1] as { text: string }
@@ -577,7 +577,7 @@ describe('Gesamtabrechnung – interne Fassung und Fassung für Mieter', () => {
     expect(lines.reduce((sum, cents) => sum + cents, 0)).toBe(printedSum)
     expect(printedSum).toBe(tenantTotal)
     expect(JSON.stringify(reconciliation)).toContain(
-      'Leerstandsanteil (trägt der Vermieter)',
+      'Leerstandsanteil (trägt der Vermieter, Aufstellung unten)',
     )
     expect(JSON.stringify(reconciliation)).toContain(
       'CO2-Kosten Vermieteranteil',
@@ -680,7 +680,7 @@ describe('Gesamtabrechnung – interne Fassung und Fassung für Mieter', () => {
       }),
     )
     expect(serialized).toContain('Bezeichnung')
-    expect(serialized).toContain('= auf Mieter verteilt')
+    expect(serialized).toContain('= auf die Mieter verteilt')
   })
 })
 

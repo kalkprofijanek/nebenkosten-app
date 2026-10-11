@@ -443,7 +443,12 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
           ],
           [
             "Ihr Verbrauch im Nutzungszeitraum",
-            "0,00 Einheiten (0,00 Einheiten je m²)",
+            {
+              "stack": [
+                "0,00 Einheiten",
+                "0,00 Einheiten je m²",
+              ],
+            },
           ],
           [
             {

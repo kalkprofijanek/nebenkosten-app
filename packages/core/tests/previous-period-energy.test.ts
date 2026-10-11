@@ -3,8 +3,11 @@ import type { AppDataFile, ClimateFactor } from '@nebenkosten/schema'
 import {
   calculateBilling,
   compareTenantEnergyWithPreviousPeriod,
+  consumptionEstimation,
   createCalculationInput,
+  previousPeriodComparisonBasis,
   previousPeriodConsumption,
+  shiftIsoDateByYears,
   previousPeriodWeatherFactors,
   tenantEnergyKwh,
 } from '../src'
@@ -214,6 +217,16 @@ describe('Energievergleich Vorjahr / Abrechnungsjahr', () => {
       climate: { postalCode: '12345', current: 1.1, previous: 0.9 },
       centralHotWater: true,
       changePercent: 31.9,
+      basis: {
+        current: { from: '2025-01-01', to: '2025-12-31' },
+        previous: { from: '2024-01-01', to: '2024-12-31' },
+        fullYears: true,
+        proRata: null,
+      },
+      previousBeforeProRata: null,
+      climateNotAppliedPartialPeriod: false,
+      currentEstimation: 'none',
+      previousEstimated: false,
     })
   })
 
@@ -320,6 +333,7 @@ describe('Vorjahresverbrauch und Klimafaktoren', () => {
       source: null,
       previousPeriodId: 'p-2024',
       previousOccupancyIds: ['occ-a-2024'],
+      previousEstimated: false,
     })
   })
 
@@ -353,5 +367,164 @@ describe('Vorjahresverbrauch und Klimafaktoren', () => {
     period.climateFactor = climate(2025, 1.1)
     file.billingData.billingPeriods[0]!.climateFactor = null
     expect(previousPeriodWeatherFactors(file, period, occupancy)).toBeNull()
+  })
+})
+
+describe('Vergleich auf gleicher Basis (§ 6a Abs. 3 Satz 1 Nr. 2 HeizKV)', () => {
+  const withClimate = () =>
+    data([
+      { ...BOTH_YEARS[0]!, climateFactor: climate(2024, 0.9) },
+      { ...BOTH_YEARS[1]!, climateFactor: climate(2025, 1.1) },
+    ])
+  const occupancy = (file: AppDataFile, id: string) =>
+    file.billingData.occupancyPeriods.find((candidate) => candidate.id === id)!
+
+  it('rechnet das Vorjahr bei Auszug auf den Nutzungszeitraum um und bereinigt nicht mit Jahresfaktoren', () => {
+    const file = withClimate()
+    occupancy(file, 'occ-a-2025').to = '2025-03-31'
+    const result = compare(file)
+    expect(result.status).toBe('energy')
+    if (result.status !== 'energy') return
+    // Januar–März: 170 + 150 + 130 = 450 ‰; 2024 ganzjährig 1.000 ‰.
+    expect(result.basis).toEqual({
+      current: { from: '2025-01-01', to: '2025-03-31' },
+      previous: { from: '2024-01-01', to: '2024-12-31' },
+      fullYears: false,
+      proRata: {
+        mapped: { from: '2024-01-01', to: '2024-03-31' },
+        heatingFactor: expect.closeTo(0.45, 10) as number,
+        hotWaterFactor: 91 / 366,
+        mappedPermille: expect.closeTo(450, 8) as number,
+        previousPermille: expect.closeTo(1000, 8) as number,
+      },
+    })
+    // Heizwärme 54.000 × 0,45 = 24.300; Warmwasser 9.000 × 91/366 = 2.238.
+    expect(result.previous).toEqual({
+      year: 2024,
+      heatingKwh: 24_300,
+      heatingAdjustedKwh: 24_300,
+      hotWaterKwh: 2_238,
+      totalKwh: 26_538,
+      climateFactor: null,
+    })
+    expect(result.previousBeforeProRata).toEqual({
+      heatingKwh: 54_000,
+      hotWaterKwh: 9_000,
+    })
+    expect(result.weatherAdjusted).toBe(false)
+    expect(result.climate).toBeNull()
+    expect(result.climateNotAppliedPartialPeriod).toBe(true)
+    expect(result.current.climateFactor).toBeNull()
+    expect(result.changePercent).toBe(
+      Math.round(((result.current.totalKwh - 26_538) / 26_538) * 1000) / 10,
+    )
+    // Ohne Umrechnung wäre der Vergleich (Teilzeitraum gegen Gesamtjahr) stark negativ.
+    expect(result.changePercent!).toBeGreaterThan(0)
+  })
+
+  it('rechnet eine kürzere Vorjahresnutzung auf den Nutzungszeitraum hoch', () => {
+    const file = data(BOTH_YEARS)
+    occupancy(file, 'occ-a-2024').from = '2024-07-01'
+    const period = file.billingData.billingPeriods[1]!
+    const current = occupancy(file, 'occ-a-2025')
+    const consumption = previousPeriodConsumption(file, period, current)
+    if (consumption.kind !== 'available') throw new Error('erwartet')
+    const basis = previousPeriodComparisonBasis(
+      file,
+      period,
+      current,
+      consumption,
+    )
+    expect(basis.fullYears).toBe(false)
+    expect(basis.previous).toEqual({ from: '2024-07-01', to: '2024-12-31' })
+    expect(basis.proRata?.mapped).toEqual({
+      from: '2024-01-01',
+      to: '2024-12-31',
+    })
+    // Juli–Dezember: 40 × 62/92 + 390 ‰
+    expect(basis.proRata?.heatingFactor).toBeCloseTo(
+      1000 / ((40 * 62) / 92 + 390),
+      8,
+    )
+    expect(basis.proRata?.hotWaterFactor).toBe(366 / 184)
+  })
+
+  it('nimmt einen übernommenen Vorjahreswert als ganzes Vorjahr', () => {
+    const file = data([BOTH_YEARS[1]!])
+    const current = file.billingData.occupancyPeriods[0]!
+    current.from = '2025-10-01'
+    current.previousConsumption = { year: 2024, value: 280 }
+    const period = file.billingData.billingPeriods[0]!
+    const consumption = previousPeriodConsumption(file, period, current)
+    if (consumption.kind !== 'available') throw new Error('erwartet')
+    const basis = previousPeriodComparisonBasis(
+      file,
+      period,
+      current,
+      consumption,
+    )
+    expect(basis.previous).toEqual({ from: '2024-01-01', to: '2024-12-31' })
+    expect(basis.proRata?.mapped).toEqual({
+      from: '2024-10-01',
+      to: '2024-12-31',
+    })
+    expect(basis.proRata?.heatingFactor).toBeCloseTo(0.36, 8)
+  })
+
+  it('weist bei Schätzung aus dem Vorjahr keine Veränderung aus', () => {
+    const file = data(BOTH_YEARS)
+    const current = occupancy(file, 'occ-a-2025')
+    current.consumptionUnitsEstimated = true
+    current.consumptionUnitsEstimateReason =
+      'Gerät defekt; Schätzung nach dem Vorjahresverbrauch.'
+    expect(compare(file)).toMatchObject({
+      status: 'energy',
+      changePercent: null,
+      currentEstimation: 'estimated_from_previous_period',
+      previousEstimated: false,
+    })
+    current.consumptionUnitsEstimateReason =
+      'Schätzung nach vergleichbaren Räumen.'
+    expect(compare(file)).toMatchObject({
+      currentEstimation: 'estimated',
+      changePercent: 11.1,
+    })
+    occupancy(file, 'occ-a-2024').consumptionUnitsEstimated = true
+    expect(compare(file)).toMatchObject({ previousEstimated: true })
+  })
+
+  it('erkennt die Art der Verbrauchsermittlung', () => {
+    expect(consumptionEstimation({})).toBe('none')
+    expect(
+      consumptionEstimation({
+        consumptionUnitsEstimated: false,
+        consumptionUnitsEstimateReason: 'Vorjahr',
+      }),
+    ).toBe('none')
+    expect(consumptionEstimation({ consumptionUnitsEstimated: true })).toBe(
+      'estimated',
+    )
+    expect(
+      consumptionEstimation({
+        consumptionUnitsEstimated: true,
+        consumptionUnitsEstimateReason: 'wie im Vergleichszeitraum',
+      }),
+    ).toBe('estimated_from_previous_period')
+  })
+
+  it('verschiebt Daten um Jahre und berücksichtigt den 29. Februar', () => {
+    expect(shiftIsoDateByYears('2024-02-29', -1)).toBe('2023-02-28')
+    expect(shiftIsoDateByYears('2025-03-31', -1)).toBe('2024-03-31')
+    expect(shiftIsoDateByYears('2023-02-28', 1)).toBe('2024-02-28')
+  })
+
+  it('vergleicht nie mit dem Verbrauch eines anderen Nutzers', () => {
+    const file = data(BOTH_YEARS)
+    // Nutzerwechsel: 2024 wohnte ein anderes Mietverhältnis in der Wohnung.
+    occupancy(file, 'occ-a-2024').tenancyId = 'ten-previous'
+    expect(compare(file)).toEqual({
+      status: 'unavailable',
+      reason: 'not_resident',
+    })
   })
 })

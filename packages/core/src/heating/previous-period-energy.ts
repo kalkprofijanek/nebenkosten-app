@@ -12,6 +12,18 @@
  * Ist das nicht möglich (z. B. nur ein übernommener Vorjahresverbrauch nach
  * Eigentümerwechsel), bleibt es beim Vergleich der erfassten
  * Verbrauchseinheiten der Heizung (`units_only`).
+ *
+ * Gleiche Basis (§ 6a Abs. 3 Satz 1 Nr. 2 HeizKV: Vergleich mit dem
+ * Verbrauch „des Nutzers“ im vorhergehenden Abrechnungszeitraum):
+ * - Verglichen wird nur mit Nutzungen desselben Mietverhältnisses in
+ *   derselben Wohnung; bei Nutzerwechsel entfällt der Vergleich mit Hinweis
+ *   (`not_resident`), Werte eines anderen Nutzers werden nie verwendet.
+ * - Decken Nutzung und Vorjahresnutzung nicht jeweils das ganze
+ *   Abrechnungsjahr ab, wird der Vorjahreswert nach Gradtagszahlen (VDI 2067,
+ *   ADR-0007) auf den Nutzungszeitraum des Abrechnungsjahres umgerechnet
+ *   (Warmwasser nach Tagen), `comparisonBasis`.
+ * - Die DWD-Klimafaktoren gelten für Zwölfmonatszeiträume; sie werden nur
+ *   angewandt, wenn beide Nutzungen ihr ganzes Abrechnungsjahr umfassen.
  */
 import type {
   AppDataFile,
@@ -22,6 +34,7 @@ import { calculateBilling } from '../calculation/calculate-billing'
 import type { CalculationOutput } from '../contracts'
 import { createCalculationInput } from '../input/create-calculation-input'
 import { tenantEnergyKwh, type TenantEnergyKwh } from './consumption-benchmark'
+import { degreeDayPermille } from './degree-days'
 import {
   checkClimateFactor,
   previousPeriodClimateFactor,
@@ -47,6 +60,8 @@ export type PreviousPeriodConsumption =
       readonly previousPeriodId: string | null
       /** Nutzungen derselben Mietpartei und Wohnung im Vorjahr. */
       readonly previousOccupancyIds: readonly string[]
+      /** Mindestens eine Vorjahresnutzung ist geschätzt (§ 9a HeizKV). */
+      readonly previousEstimated: boolean
     }
 
 function previousPeriodOf(
@@ -89,6 +104,7 @@ export function previousPeriodConsumption(
       source: stored.source ?? null,
       previousPeriodId: null,
       previousOccupancyIds: [],
+      previousEstimated: false,
     }
   if (!previousPeriod)
     return occupancy.kind === 'tenant' &&
@@ -116,6 +132,9 @@ export function previousPeriodConsumption(
         source: null,
         previousPeriodId: previousPeriod.id,
         previousOccupancyIds: previous.map(({ id }) => id),
+        previousEstimated: previous.some(
+          ({ consumptionUnitsEstimated }) => consumptionUnitsEstimated === true,
+        ),
       }
     : { kind: 'no_consumption' }
 }
@@ -152,6 +171,173 @@ export function previousPeriodWeatherFactors(
       }
 }
 
+export interface ComparisonWindow {
+  readonly from: string
+  readonly to: string
+}
+
+export interface PreviousPeriodComparisonBasis {
+  /** Nutzungszeitraum im Abrechnungsjahr (auf das Jahr begrenzt). */
+  readonly current: ComparisonWindow
+  /** Nutzungszeitraum im Vorjahr, auf den sich der Vorjahreswert bezieht. */
+  readonly previous: ComparisonWindow
+  /** Beide Zeiträume umfassen ihr ganzes Abrechnungsjahr. */
+  readonly fullYears: boolean
+  /**
+   * Umrechnung des Vorjahreswerts auf den Nutzungszeitraum (`null` bei
+   * ganzen Jahren): derselbe Kalenderzeitraum im Vorjahr (`mapped`), Faktor
+   * für die Heizwärme nach Gradtagszahlen und für Warmwasser nach Tagen.
+   */
+  readonly proRata: {
+    readonly mapped: ComparisonWindow
+    readonly heatingFactor: number
+    readonly hotWaterFactor: number
+    /** Gradtagsanteil des umgerechneten Zeitraums in Promille. */
+    readonly mappedPermille: number
+    /** Gradtagsanteil der Vorjahresnutzung in Promille. */
+    readonly previousPermille: number
+  } | null
+}
+
+const DAY_MS = 86_400_000
+
+function isoTime(value: string): number {
+  return Date.parse(`${value}T00:00:00Z`)
+}
+
+function inclusiveDays(window: ComparisonWindow): number {
+  return Math.round((isoTime(window.to) - isoTime(window.from)) / DAY_MS) + 1
+}
+
+/** Datum um ganze Jahre verschoben; 29.02. wird im Gemeinjahr zum 28.02. */
+export function shiftIsoDateByYears(value: string, years: number): string {
+  const [year, month, day] = value.split('-').map(Number) as [
+    number,
+    number,
+    number,
+  ]
+  const target = year + years
+  const leap = target % 4 === 0 && (target % 100 !== 0 || target % 400 === 0)
+  const safeDay = month === 2 && day === 29 && !leap ? 28 : day
+  return `${String(target).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`
+}
+
+function clampWindow(
+  from: string | null | undefined,
+  to: string | null | undefined,
+  bounds: ComparisonWindow,
+): ComparisonWindow {
+  return {
+    from: from && from > bounds.from ? from : bounds.from,
+    to: to && to < bounds.to ? to : bounds.to,
+  }
+}
+
+/**
+ * Vergleichsbasis Vorjahr / Abrechnungsjahr: Nutzungszeiträume beider Jahre
+ * und – wenn sie nicht jeweils das ganze Jahr umfassen – die Umrechnung des
+ * Vorjahreswerts auf den Nutzungszeitraum nach Gradtagszahlen.
+ *
+ * Offene Entscheidung: Ein übernommener Vorjahresverbrauch
+ * (`previousConsumption`) gilt als Verbrauch des ganzen Vorjahres, weil das
+ * Schema keinen Zeitraum dafür kennt.
+ */
+export function previousPeriodComparisonBasis(
+  data: Readonly<AppDataFile>,
+  period: Readonly<BillingPeriod>,
+  occupancy: Readonly<OccupancyPeriod>,
+  consumption: Extract<PreviousPeriodConsumption, { kind: 'available' }>,
+): PreviousPeriodComparisonBasis {
+  const currentBounds = { from: period.periodStart, to: period.periodEnd }
+  const current = clampWindow(occupancy.from, occupancy.to, currentBounds)
+  const yearShift = consumption.year - period.year
+  const previousPeriod =
+    consumption.previousPeriodId === null
+      ? undefined
+      : data.billingData.billingPeriods.find(
+          ({ id }) => id === consumption.previousPeriodId,
+        )
+  const previousBounds = previousPeriod
+    ? { from: previousPeriod.periodStart, to: previousPeriod.periodEnd }
+    : {
+        from: shiftIsoDateByYears(period.periodStart, yearShift),
+        to: shiftIsoDateByYears(period.periodEnd, yearShift),
+      }
+  const previousOccupancies = data.billingData.occupancyPeriods.filter(
+    ({ id }) => consumption.previousOccupancyIds.includes(id),
+  )
+  const previous =
+    previousOccupancies.length === 0
+      ? previousBounds
+      : previousOccupancies
+          .map((candidate) =>
+            clampWindow(candidate.from, candidate.to, previousBounds),
+          )
+          .reduce((left, right) => ({
+            from: right.from < left.from ? right.from : left.from,
+            to: right.to > left.to ? right.to : left.to,
+          }))
+  const fullYears =
+    current.from === currentBounds.from &&
+    current.to === currentBounds.to &&
+    previous.from === previousBounds.from &&
+    previous.to === previousBounds.to
+  if (fullYears) return { current, previous, fullYears, proRata: null }
+  const mapped = clampWindow(
+    shiftIsoDateByYears(current.from, yearShift),
+    shiftIsoDateByYears(current.to, yearShift),
+    previousBounds,
+  )
+  const mappedPermille = degreeDayPermille(mapped.from, mapped.to)
+  const previousPermille = degreeDayPermille(previous.from, previous.to)
+  const hotWaterFactor = inclusiveDays(mapped) / inclusiveDays(previous)
+  return {
+    current,
+    previous,
+    fullYears,
+    proRata: {
+      mapped,
+      // Ohne Gradtage im Vorjahreszeitraum (reiner Sommer) nach Tagen.
+      heatingFactor:
+        previousPermille > 0
+          ? mappedPermille / previousPermille
+          : hotWaterFactor,
+      hotWaterFactor,
+      mappedPermille,
+      previousPermille,
+    },
+  }
+}
+
+export type ConsumptionEstimation =
+  /** Verbrauch erfasst. */
+  | 'none'
+  /** Geschätzt (§ 9a HeizKV), Grundlage nicht aus dem Vorjahr. */
+  | 'estimated'
+  /** Geschätzt auf Grundlage des Vorjahresverbrauchs: Vergleich zirkulär. */
+  | 'estimated_from_previous_period'
+
+/**
+ * Art der Verbrauchsermittlung einer Nutzung für den Vorjahresvergleich.
+ *
+ * Offene Entscheidung: Das Schema kennt kein strukturiertes Schätzverfahren;
+ * die Ableitung aus dem Vorjahr wird am Begründungstext erkannt
+ * („Vorjahr“, „vorherige(n) Abrechnung“, „Vorperiode“).
+ */
+export function consumptionEstimation(
+  occupancy: Pick<
+    OccupancyPeriod,
+    'consumptionUnitsEstimated' | 'consumptionUnitsEstimateReason'
+  >,
+): ConsumptionEstimation {
+  if (occupancy.consumptionUnitsEstimated !== true) return 'none'
+  return /vorjahr|vorperiode|vorherige[nr]? (abrechnung|zeitraum)|vergleichszeitraum/iu.test(
+    occupancy.consumptionUnitsEstimateReason ?? '',
+  )
+    ? 'estimated_from_previous_period'
+    : 'estimated'
+}
+
 export interface TenantEnergyYear {
   readonly year: number
   /** Heizwärme laut Verteilung, ganze kWh. */
@@ -175,8 +361,29 @@ export type PreviousPeriodEnergyComparison =
       readonly climate: PreviousPeriodClimateFactors | null
       /** Warmwasser wird in mindestens einem Jahr zentral bereitet. */
       readonly centralHotWater: boolean
-      /** Veränderung des Energieverbrauchs in Prozent, eine Stelle. */
+      /**
+       * Veränderung des Energieverbrauchs in Prozent, eine Stelle; `null`,
+       * wenn der Vergleich nicht aussagekräftig ist (Schätzung aus dem
+       * Vorjahr) oder der Vorjahreswert 0 ist.
+       */
       readonly changePercent: number | null
+      /** Zeiträume und Umrechnung des Vorjahreswerts. */
+      readonly basis: PreviousPeriodComparisonBasis
+      /**
+       * Vorjahr vor der Umrechnung auf den Nutzungszeitraum (ganze kWh,
+       * unbereinigt); `null` ohne Umrechnung.
+       */
+      readonly previousBeforeProRata: {
+        readonly heatingKwh: number
+        readonly hotWaterKwh: number
+      } | null
+      /**
+       * Klimafaktoren liegen vor, wurden aber nicht angewandt, weil ein
+       * Zeitraum kein ganzes Abrechnungsjahr ist (Jahresfaktor des DWD).
+       */
+      readonly climateNotAppliedPartialPeriod: boolean
+      readonly currentEstimation: ConsumptionEstimation
+      readonly previousEstimated: boolean
     }
   | {
       readonly status: 'units_only'
@@ -261,13 +468,28 @@ export function compareTenantEnergyWithPreviousPeriod(
     }),
     { heatingKwh: 0, hotWaterKwh: 0, centralHotWater: false },
   )
-  const climate = previousPeriodWeatherFactors(data, period, occupancy)
+  const basis = previousPeriodComparisonBasis(
+    data,
+    period,
+    occupancy,
+    consumption,
+  )
+  const factors = previousPeriodWeatherFactors(data, period, occupancy)
+  const climate = basis.fullYears ? factors : null
+  const scaledPrevious: TenantEnergyKwh = basis.proRata
+    ? {
+        ...previous,
+        heatingKwh: previous.heatingKwh * basis.proRata.heatingFactor,
+        hotWaterKwh: previous.hotWaterKwh * basis.proRata.hotWaterFactor,
+      }
+    : previous
   const previousYear = energyYear(
     consumption.year,
-    previous,
+    scaledPrevious,
     climate?.previous ?? null,
   )
   const currentYear = energyYear(period.year, current, climate?.current ?? null)
+  const currentEstimation = consumptionEstimation(occupancy)
   return {
     status: 'energy',
     previous: previousYear,
@@ -276,7 +498,8 @@ export function compareTenantEnergyWithPreviousPeriod(
     climate,
     centralHotWater: previous.centralHotWater || current.centralHotWater,
     changePercent:
-      previousYear.totalKwh > 0
+      previousYear.totalKwh > 0 &&
+      currentEstimation !== 'estimated_from_previous_period'
         ? round(
             ((currentYear.totalKwh - previousYear.totalKwh) /
               previousYear.totalKwh) *
@@ -284,5 +507,15 @@ export function compareTenantEnergyWithPreviousPeriod(
             1,
           )
         : null,
+    basis,
+    previousBeforeProRata: basis.proRata
+      ? {
+          heatingKwh: round(previous.heatingKwh, 0),
+          hotWaterKwh: round(previous.hotWaterKwh, 0),
+        }
+      : null,
+    climateNotAppliedPartialPeriod: !basis.fullYears && factors !== null,
+    currentEstimation,
+    previousEstimated: consumption.previousEstimated,
   }
 }

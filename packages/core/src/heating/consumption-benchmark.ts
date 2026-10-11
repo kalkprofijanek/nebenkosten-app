@@ -195,6 +195,25 @@ export function tenantEnergyKwh(
   return share.status === 'ok' ? share.energy : null
 }
 
+export interface UsageWindow {
+  readonly from: string
+  readonly to: string
+  readonly periodStart: string
+  readonly periodEnd: string
+}
+
+/**
+ * Anteil des Nutzungszeitraums am Abrechnungszeitraum nach Gradtagszahlen
+ * (VDI 2067, ADR-0007), z. B. 0,45 für Januar bis März. Grundlage für die
+ * einheitliche Hochrechnung witterungsabhängiger Verbräuche (Einheiten, kWh
+ * Heizwärme) auf ein Jahr und die Umrechnung von Jahreswerten auf den
+ * Nutzungszeitraum. Ohne Gradtage im Abrechnungszeitraum 0.
+ */
+export function degreeDayShareOfPeriod(usage: UsageWindow): number {
+  const total = degreeDayPermille(usage.periodStart, usage.periodEnd)
+  return total > 0 ? degreeDayPermille(usage.from, usage.to) / total : 0
+}
+
 export function compareTenantWithConsumptionBenchmark(
   output: CalculationOutput,
   occupancyPeriodId: string,
@@ -203,12 +222,7 @@ export function compareTenantWithConsumptionBenchmark(
    * Nutzungs- und Abrechnungszeitraum für die Hochrechnung nach
    * Gradtagszahlen; ohne Angabe linear nach Tagen.
    */
-  usage?: {
-    readonly from: string
-    readonly to: string
-    readonly periodStart: string
-    readonly periodEnd: string
-  },
+  usage?: UsageWindow,
 ): TenantConsumptionBenchmark {
   const unavailable = (
     reason: ConsumptionBenchmarkUnavailableReason,
@@ -235,13 +249,18 @@ export function compareTenantWithConsumptionBenchmark(
   const timeFactor = tenant.timeFactor ?? 1
   const energyKwh = heatingKwh + hotWaterKwh
   const annualized = timeFactor > 0 && timeFactor < 1
-  const annualization = !annualized ? 'none' : usage ? 'degree_days' : 'linear'
   // Heizwärme nach Gradtagszahlen (witterungsabhängig), Warmwasser nach
-  // Tagen (gleichmäßig über das Jahr).
+  // Tagen (gleichmäßig über das Jahr). Ein Zeitraum ganz ohne Gradtage
+  // (Sommer) wird linear hochgerechnet.
+  const degreeDayShare = annualized && usage ? degreeDayShareOfPeriod(usage) : 0
+  const annualization = !annualized
+    ? 'none'
+    : degreeDayShare > 0
+      ? 'degree_days'
+      : 'linear'
   const heatingYearFactor =
-    annualization === 'degree_days' && usage
-      ? degreeDayPermille(usage.from, usage.to) /
-        degreeDayPermille(usage.periodStart, usage.periodEnd)
+    annualization === 'degree_days'
+      ? degreeDayShare
       : annualized
         ? timeFactor
         : 1
