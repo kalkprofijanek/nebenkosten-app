@@ -207,6 +207,32 @@ describe('Vergleich mit normiertem Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizK
     })
   })
 
+  it('verteilt das Warmwasser nach demselben Schlüssel wie die Kosten (Fläche)', () => {
+    const result = compare(
+      data({ hotWaterAllocation: { key: 'area' } }),
+      'occ-a',
+    )
+    expect(result.status).toBe('compared')
+    if (result.status !== 'compared') return
+    // 20.000 kWh × 100 m² ÷ (100 + 100 × 181/365 Leerstand + 100 × 184/365)
+    expect(result.hotWaterKwh).toBe(10_000)
+    expect(result.energyKwh).toBe(result.heatingKwh + result.hotWaterKwh)
+  })
+
+  it('verteilt das Warmwasser beim Verbrauchsschlüssel nach m³ und Fläche', () => {
+    const file = data({
+      hotWaterAllocation: { key: 'consumption', consumptionSharePercent: 70 },
+    })
+    const occupancies = file.billingData.occupancyPeriods
+    occupancies[0]!.warmWater = { value: 30, unit: 'm3' }
+    occupancies[2]!.warmWater = { value: 10, unit: 'm3' }
+    const result = compare(file, 'occ-a')
+    expect(result.status).toBe('compared')
+    if (result.status !== 'compared') return
+    // 20.000 kWh × (70 % × 30/40 m³ + 30 % × 100/200 m²)
+    expect(result.hotWaterKwh).toBe(13_500)
+  })
+
   it('rechnet bei Teilzeitraum auf ein Jahr hoch und skaliert die Grenzen', () => {
     const result = compare(data(), 'occ-b')
     expect(result.status).toBe('compared')

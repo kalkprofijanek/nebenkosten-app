@@ -455,6 +455,7 @@ function consumptionBenchmark(
     footnote: `${consumptionBenchmarkFootnote(
       result.benchmark,
       result.annualization,
+      circuitTraceFor(context)?.warmWater.allocation?.key ?? 'persons',
     )}${
       estimated
         ? ' Grundlage der Einstufung ist Ihr geschätzter Verbrauch (§ 9a HeizKV); sie ist daher nur eingeschränkt aussagekräftig.'
@@ -537,15 +538,21 @@ export function consumptionInformation(
   // Die Begründung steht unter „Ihre Verbrauchserfassung“, wenn dort
   // geschätzt oder mit Zählerständen erfasst wird; sonst hier, damit z. B.
   // eine Aufteilung nach Gradtagszahlen ohne Zwischenablesung erkennbar ist.
+  // Bei § 9b Abs. 3 HeizKV steht der Rechenweg samt Anmerkung unter „Ihre
+  // Verbrauchserfassung“; hier nur der Verweis (keine Doppelnennung).
+  const section9b = context.occupancyPeriod.section9bAllocation
   const reasonInCapture =
     estimation !== 'none' ||
+    section9b != null ||
     hasReading(context.occupancyPeriod.heatMeterReading)
-  if (reason || estimation !== 'none')
+  if (reason || estimation !== 'none' || section9b != null)
     consumptionStack.push({
       text:
-        estimation === 'none'
-          ? `Ermittlung: ${reasonInCapture ? 'siehe „Ihre Verbrauchserfassung“' : reason}`
-          : `Grundlage der Schätzung: siehe „Ihre Verbrauchserfassung“`,
+        estimation !== 'none'
+          ? `Grundlage der Schätzung: siehe „Ihre Verbrauchserfassung“`
+          : section9b != null
+            ? `Ermittlung: Aufteilung ohne Zwischenablesung nach § 9b Abs. 3 HeizKV (${section9b === 'degree_days' ? 'nach Gradtagszahlen' : 'zeitanteilig'}), siehe „Ihre Verbrauchserfassung“`
+            : `Ermittlung: ${reasonInCapture ? 'siehe „Ihre Verbrauchserfassung“' : reason}`,
       fontSize: 7.5,
       color: MUTED,
     })

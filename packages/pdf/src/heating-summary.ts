@@ -1,4 +1,5 @@
 import type { Content, TableCell } from 'pdfmake/interfaces'
+import { energyCarrierDisplayName } from './energy-carrier-label'
 import {
   isGridEnergySource,
   type CalculationOutput,
@@ -108,7 +109,9 @@ function sourceLabel(
   trace: EnergySourceCalculationTrace,
 ): string {
   const source = energySourceFor(appData, trace)
-  return source?.name ?? source?.sourceType ?? source?.key ?? 'Energiequelle'
+  return energyCarrierDisplayName(
+    source?.name ?? source?.sourceType ?? source?.key ?? 'Energiequelle',
+  )
 }
 
 function carrierName(
@@ -116,7 +119,8 @@ function carrierName(
   trace: EnergySourceCalculationTrace,
 ): string | null {
   const source = energySourceFor(appData, trace)
-  return source?.sourceType ?? source?.name ?? source?.key ?? null
+  const raw = source?.sourceType ?? source?.name ?? source?.key ?? null
+  return raw === null ? null : energyCarrierDisplayName(raw)
 }
 
 /** Energieträger eines Heizkreises (Namen bzw. Art der Energiequellen). */
@@ -793,6 +797,30 @@ export function hasNoBehgCo2Costs(circuit: HeatingCircuitTrace): boolean {
  * Vollständige CO2-Tabelle nach § 7 Abs. 3 CO2KostAufG. Mit `tenantCents`
  * wird zusätzlich der Anteil des Mieters ausgewiesen.
  */
+/**
+ * CO2-Preis der Tabelle. Bei Bewertung je FIFO-Los (ADR-0010, A12) gelten
+ * unterschiedliche Preise je Los; dann werden alle genannt statt nur des
+ * Preises des Abrechnungsjahres.
+ */
+export function co2PriceText(circuit: HeatingCircuitTrace): string {
+  const { co2 } = circuit
+  if (co2.mode !== 'manual') {
+    const lotPrices = [
+      ...new Set(
+        circuit.energySources.flatMap(({ co2Lots }) =>
+          (co2Lots ?? []).map(({ pricePerTonCents }) => pricePerTonCents),
+        ),
+      ),
+    ].sort((left, right) => left - right)
+    if (lotPrices.length > 1)
+      return `${lotPrices.map(formatEuroCents).join(' / ')} je t (je Brennstoff-Los nach Lieferjahr)`
+    if (lotPrices.length === 1) return `${formatEuroCents(lotPrices[0]!)} je t`
+  }
+  return co2.pricePerTonCents == null
+    ? 'manuell festgelegt'
+    : `${formatEuroCents(co2.pricePerTonCents)} je t`
+}
+
 export function co2Table(
   appData: AppDataFile,
   circuit: HeatingCircuitTrace,
@@ -831,14 +859,7 @@ export function co2Table(
       'CO2-Emissionen im Abrechnungszeitraum',
       value(`${formatNumber(co2EmissionsKg(circuit), 1)} kg`),
     ],
-    [
-      'CO2-Preis',
-      value(
-        co2.pricePerTonCents == null
-          ? 'manuell festgelegt'
-          : `${formatEuroCents(co2.pricePerTonCents)} je t`,
-      ),
-    ],
+    ['CO2-Preis', value(co2PriceText(circuit))],
     ['CO2-Kosten gesamt', amountCell(co2.totalCents)],
     [
       'Beheizte Wohnfläche des Gebäudes',
@@ -891,7 +912,7 @@ export function co2Table(
     },
     {
       // Bei 0 € Vermieteranteil (Stufe 1) wäre der Abzugssatz irreführend.
-      text: `${co2.landlordCents !== 0 ? `${co2LandlordDeductedSentence(formatEuroCents(co2.landlordCents))} ` : ''}${co2DistributionSentence(split.baseSharePercent, split.consumptionSharePercent, split.baseAreaBasis)}`,
+      text: `${co2.landlordCents !== 0 ? `${co2LandlordDeductedSentence(formatEuroCents(co2.landlordCents))} ` : ''}${co2DistributionSentence(split.baseSharePercent, split.consumptionSharePercent, split.baseAreaBasis, hotWaterCo2 === undefined ? undefined : `${formatNumber(circuit.warmWater.sharePercent, 2)} %`)}`,
       fontSize: 8,
       color: MUTED,
       margin: [0, 0, 0, 8],

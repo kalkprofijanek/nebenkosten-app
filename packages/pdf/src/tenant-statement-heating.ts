@@ -8,6 +8,8 @@ import {
   type Section9bShare,
 } from '@nebenkosten/core'
 import type { TenantStatementContext } from './contracts'
+import { energyCarrierDisplayName } from './energy-carrier-label'
+import { section9bOwnNote } from './section9b-note'
 import {
   amountCell,
   captureModeFor,
@@ -149,6 +151,130 @@ function section9bCalculation(
   return `${head} zeitanteilig für die gesamten Heizkosten${hasHotWater ? ' und Warmwasser' : ''}: Ihr Zeitraum ${own} = ${share.days} von ${groupDays} Tagen${units}.`
 }
 
+interface Co2HeatingFactors {
+  hotWaterPoolCents: number
+  ownArea: number
+  baseText: string
+  baseTimeFactor: number
+  consumption: number
+  unit: string
+  unitSingular: string
+}
+
+/**
+ * CO2-Anteil Warmwasser des Mieters nach dem Warmwasserschlüssel
+ * (§ 7 Abs. 1 CO2KostAufG i. V. m. § 8 HeizKV): Rechenweg und Betrag.
+ */
+function hotWaterCo2Part(
+  context: TenantStatementContext,
+  circuit: HeatingCircuitTrace,
+  facts: TenantFacts,
+  poolCents: number,
+): { text: string; cents: number } {
+  const tenant = tenantResult(context)
+  const { warmWater } = circuit
+  const allocation = warmWater.allocation
+  const basis = tenant.hotWaterBasis
+  const time = `${facts.days}/${facts.periodDays} Tage`
+  const fraction = facts.days / facts.periodDays
+  const pool = formatEuroCents(poolCents)
+  if (!allocation || allocation.key === 'persons') {
+    const denominator =
+      allocation?.personTimeDenominator ?? warmWater.personTimeDenominator
+    const persons =
+      facts.basis.persons > 0 ? facts.basis.persons : tenant.isVacancy ? 0 : 1
+    const own = basis?.personTime ?? persons * fraction
+    const price = denominator > 0 ? poolCents / denominator : 0
+    const cents = Math.round(price * own)
+    return {
+      text: `CO2 Warmwasser nach Personen und Nutzungszeit = ${pool} : ${formatNumber(denominator, 4)} Personenjahre = ${formatUnitPrice(price, 'Personenjahr')} × ${formatNumber(own, 4)} Personenjahre = ${formatEuroCents(cents)}`,
+      cents,
+    }
+  }
+  const ownArea =
+    allocation.areaBasis === 'usable_area'
+      ? facts.basis.usableAreaSqm
+      : facts.basis.heatedAreaSqm
+  const areaTime = basis?.areaTime ?? ownArea * fraction
+  const areaDenominator = allocation.areaTimeDenominator ?? 0
+  const consumptionFraction =
+    allocation.key === 'consumption'
+      ? allocation.consumptionSharePercent / 100
+      : 0
+  const areaPool = poolCents * (1 - consumptionFraction)
+  const areaPrice = areaDenominator > 0 ? areaPool / areaDenominator : 0
+  const areaCents = Math.round(areaPrice * areaTime)
+  const areaText = `${formatUnitPrice(areaPrice, 'm²')} × ${formatNumber(areaTime, 4)} m² (${formatNumber(ownArea)} m² × ${time})`
+  if (consumptionFraction === 0) {
+    return {
+      text: `CO2 Warmwasser nach Fläche = ${pool} : ${formatNumber(areaDenominator, 4)} m² = ${areaText} = ${formatEuroCents(areaCents)}`,
+      cents: areaCents,
+    }
+  }
+  const m3 = basis?.warmWaterM3 ?? context.occupancyPeriod.warmWater?.value ?? 0
+  const m3Denominator = allocation.warmWaterM3Denominator ?? 0
+  const m3Price =
+    m3Denominator > 0 ? (poolCents * consumptionFraction) / m3Denominator : 0
+  const m3Cents = Math.round(m3Price * m3)
+  return {
+    text: `CO2 Warmwasser = ${pool}: ${formatPercent(allocation.consumptionSharePercent)} nach Verbrauch ${formatUnitPrice(m3Price, 'm³')} × ${formatNumber(m3, 3)} m³ = ${formatEuroCents(m3Cents)}; ${formatPercent(100 - allocation.consumptionSharePercent)} nach Fläche ${areaText} = ${formatEuroCents(areaCents)}`,
+    cents: m3Cents + areaCents,
+  }
+}
+
+/**
+ * CO2-Rechenweg im § 9-Verfahren: Der Mieteranteil des Heizkreises wird in
+ * den Warmwasseranteil (Warmwasserschlüssel) und den Heizungsanteil
+ * (Grund-/Verbrauchsanteil) getrennt; die Zeilen summieren sich auf den
+ * verbindlichen CO2-Anteil, eine Rundungsdifferenz wird ausgewiesen.
+ */
+function co2LinesWithHotWater(
+  context: TenantStatementContext,
+  circuit: HeatingCircuitTrace,
+  facts: TenantFacts,
+  factors: Co2HeatingFactors,
+): string[] {
+  const { split, co2, warmWater } = circuit
+  const { costBreakdown } = tenantResult(context)
+  const heatingPool = co2.tenantCents - factors.hotWaterPoolCents
+  const basePrice =
+    split.baseDenominator > 0
+      ? (heatingPool * (split.baseSharePercent / 100)) / split.baseDenominator
+      : 0
+  const consumptionPrice =
+    split.consumptionDenominator > 0
+      ? (heatingPool * (split.consumptionSharePercent / 100)) /
+        split.consumptionDenominator
+      : 0
+  const hotWater = hotWaterCo2Part(
+    context,
+    circuit,
+    facts,
+    factors.hotWaterPoolCents,
+  )
+  const baseCents = Math.round(
+    basePrice * factors.ownArea * factors.baseTimeFactor,
+  )
+  const consumptionCents = Math.round(consumptionPrice * factors.consumption)
+  const rounding =
+    costBreakdown.heatingCo2Cents -
+    hotWater.cents -
+    baseCents -
+    consumptionCents
+  const sharePercent = `${formatNumber(warmWater.sharePercent, 2)} %`
+  return [
+    `CO2-Kosten Mieteranteil des Heizkreises = ${formatEuroCents(co2.tenantCents)}, davon Warmwasser ${sharePercent} = ${formatEuroCents(factors.hotWaterPoolCents)} (nach dem Warmwasserschlüssel) und Heizung ${formatEuroCents(heatingPool)} (${formatPercent(split.baseSharePercent)} Grundanteil, ${formatPercent(split.consumptionSharePercent)} Verbrauchsanteil)`,
+    hotWater.text,
+    `CO2-Grundanteil Heizung = ${formatEuroCents(heatingPool)} × ${formatPercent(split.baseSharePercent)} : ${formatNumber(split.baseDenominator)} m² = ${formatUnitPrice(basePrice, 'm²')} × ${formatNumber(factors.ownArea)} m² × ${factors.baseText} = ${formatEuroCents(baseCents)}`,
+    `CO2-Verbrauchsanteil Heizung = ${formatEuroCents(heatingPool)} × ${formatPercent(split.consumptionSharePercent)} : ${formatNumber(split.consumptionDenominator)} ${factors.unit} = ${formatUnitPrice(consumptionPrice, factors.unitSingular)} × ${formatNumber(factors.consumption)} ${factors.unit} = ${formatEuroCents(consumptionCents)}`,
+    `Ihr CO2-Kostenanteil = ${[hotWater.cents, baseCents, consumptionCents]
+      .map(formatEuroCents)
+      .join(
+        ' + ',
+      )}${rounding !== 0 ? ` ${rounding > 0 ? '+' : '−'} Rundungsausgleich ${formatEuroCents(Math.abs(rounding))}` : ''} = ${formatEuroCents(costBreakdown.heatingCo2Cents)}`,
+  ]
+}
+
 /**
  * „Ihre Verbrauchserfassung“: Zählerstände (bzw. Schätzgrund) und die
  * vollständige Rechnung der Heiz- und CO2-Kosten des Mieters.
@@ -203,7 +329,14 @@ function consumptionCapture(
       fontSize: 8,
       margin: [0, 0, 0, 2],
     })
-  const ownNote = occupancyPeriod.consumptionUnitsEstimateReason?.trim()
+  // Bei § 9b Abs. 3 steht der Rechenweg bereits oben; vom gespeicherten
+  // Text bleibt nur eine darüber hinausgehende Anmerkung.
+  const section9bNote = share9b
+    ? section9bOwnNote(occupancyPeriod.consumptionUnitsEstimateReason)
+    : null
+  const ownNote = share9b
+    ? section9bNote && `Anmerkung: ${section9bNote}`
+    : occupancyPeriod.consumptionUnitsEstimateReason?.trim()
   if (estimated) {
     content.push({
       text: estimatedConsumptionNote(
@@ -284,7 +417,25 @@ function consumptionCapture(
         .map(formatEuroCents)
         .join(' + ')} = ${formatEuroCents(heatingTotalCents(tenant))}`,
     )
-  if (costBreakdown.heatingCo2Cents !== 0 && co2.tenantCents !== 0) {
+  const hotWaterCo2Pool = circuit.warmWater.costSplit?.co2TenantCents
+  if (
+    costBreakdown.heatingCo2Cents !== 0 &&
+    co2.tenantCents !== 0 &&
+    costBreakdown.hotWaterCo2Cents !== undefined &&
+    hotWaterCo2Pool !== undefined
+  ) {
+    lines.push(
+      ...co2LinesWithHotWater(context, circuit, facts, {
+        hotWaterPoolCents: hotWaterCo2Pool,
+        ownArea,
+        baseText,
+        baseTimeFactor,
+        consumption,
+        unit,
+        unitSingular,
+      }),
+    )
+  } else if (costBreakdown.heatingCo2Cents !== 0 && co2.tenantCents !== 0) {
     const co2BasePrice =
       split.baseDenominator > 0
         ? (co2.tenantCents * (split.baseSharePercent / 100)) /
@@ -374,7 +525,9 @@ function co2SourceName(
   const source = context.appData.billingData.energySources.find(
     ({ id }) => id === trace.energySourceId,
   )
-  return source?.sourceType ?? source?.name ?? source?.key ?? 'Energiequelle'
+  return energyCarrierDisplayName(
+    source?.sourceType ?? source?.name ?? source?.key ?? 'Energiequelle',
+  )
 }
 
 function co2LotLabel(
