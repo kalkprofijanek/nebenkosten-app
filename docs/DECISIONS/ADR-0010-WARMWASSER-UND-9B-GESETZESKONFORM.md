@@ -1,7 +1,6 @@
 # ADR-0010: Warmwasser, verbundene Anlage und Nutzerwechsel gesetzeskonform
 
-- Status: angenommen (Schema-Vertrag); Umsetzung in Core, Prüfung, PDF und
-  Oberfläche in diesem Arbeitspaket
+- Status: angenommen und umgesetzt (Core, Prüfung, PDF, Oberfläche)
 - Datum: 2026-10-10
 - Entscheidungen des Nutzers (10. Oktober 2026): „alles gesetzeskonform“;
   im Objekt gibt es **keine Warmwasserzähler** (Nachrüstung möglich)
@@ -59,6 +58,12 @@
   Flächenverteilung (`area`) ist der Ersatz mit dem geringsten Abstand zur
   Verordnung. Das Kürzungsrecht nach § 12 Abs. 1 HeizKV (15 %) bleibt; ob der
   Vermieter es von sich aus berücksichtigt, entscheidet er.
+- Ersatzfläche der Flächenformel: Wohnfläche der versorgten Einheiten
+  (`usableAreaSqm`); ob die beheizte Fläche maßgeblich ist, ist offen.
+- 32 kWh/m² werden bei Abrechnungszeiträumen ungleich einem Jahr nicht
+  anteilig umgerechnet.
+- § 9b Abs. 3 mit Warmwasser nach Verbrauch: m³-Werte werden nicht
+  automatisch aufgeteilt (derzeit keine Warmwasserzähler im Objekt).
 - Rechtsauffassungen der Prüf-Agenten sind keine Rechtsberatung.
 
 ## Migrationsauswirkungen
