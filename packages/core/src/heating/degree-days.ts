@@ -2,8 +2,9 @@
  * Gradtagszahlen nach VDI 2067 (Promille-Tabelle, ADR-0007).
  *
  * Verwendung:
- * - Aufteilung des Verbrauchs bei Nutzerwechsel ohne Zwischenablesung
- *   (§ 9b Abs. 2 HeizKV: verbrauchsabhängige Kosten nach Gradtagszahlen),
+ * - Aufteilung bei Nutzerwechsel ohne Zwischenablesung (§ 9b Abs. 3
+ *   HeizKV: die gesamten Heizkosten nach Gradtagszahlen oder zeitanteilig;
+ *   Grundkosten siehe `section-9b.ts`),
  * - Hochrechnung eines Teilzeitraums auf ein Jahr (Vergleich mit dem
  *   Durchschnittsnutzer, ADR-0004).
  *

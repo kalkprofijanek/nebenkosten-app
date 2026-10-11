@@ -21,6 +21,10 @@ import {
   type TenantSection35a,
 } from '../contracts'
 import { calculateOccupancyDays, calculatePeriodDays } from '../periods'
+import {
+  heatingBaseTimeFactor,
+  withSection9bBaseFactors,
+} from '../heating/section-9b'
 import { calculatePrepaymentCents } from '../prepayments'
 import { allocateLargestRemainder } from '../rest-cents'
 import { roundCentsHalfAwayFromZero } from '../rounding'
@@ -74,7 +78,7 @@ function buildOccupancyContexts(input: CalculationInput): OccupancyContext[] {
     input.billingPeriod.periodEnd,
   )
 
-  return input.occupancyPeriods.map((occupancy) => {
+  const contexts = input.occupancyPeriods.map((occupancy) => {
     const unit = unitsById.get(occupancy.unitId)
     if (!unit) {
       throw new Error(
@@ -104,6 +108,10 @@ function buildOccupancyContexts(input: CalculationInput): OccupancyContext[] {
       consumptionUnits: quantityValue(occupancy.consumptionUnits),
     }
   })
+  return withSection9bBaseFactors<OccupancyContext>(
+    contexts,
+    input.billingPeriod,
+  )
 }
 
 function occupancyMatchesScope(
@@ -786,7 +794,7 @@ function rawTenantShare(
   const baseArea =
     defaultsBasis === 'usable_area' ? context.usableArea : context.heatedArea
   let heating =
-    circuit.basePrice * baseArea * context.timeFactor +
+    circuit.basePrice * baseArea * heatingBaseTimeFactor(context) +
     circuit.consumptionPrice *
       (isMeteredOccupancy
         ? measuredKwhByOccupancy!.get(context.occupancy.id)!
@@ -809,7 +817,7 @@ function rawTenantShare(
     heating *= 0.85
   }
   const co2 =
-    circuit.co2BasePrice * baseArea * context.timeFactor +
+    circuit.co2BasePrice * baseArea * heatingBaseTimeFactor(context) +
     circuit.co2ConsumptionPrice *
       (isMeteredOccupancy
         ? measuredKwhByOccupancy!.get(context.occupancy.id)!
@@ -864,7 +872,7 @@ function rawTenantSection35a(
     const baseArea =
       defaultsBasis === 'usable_area' ? context.usableArea : context.heatedArea
     const tenantHeating =
-      circuit.basePrice * baseArea * context.timeFactor +
+      circuit.basePrice * baseArea * heatingBaseTimeFactor(context) +
       circuit.consumptionPrice *
         (isMeteredOccupancy
           ? (measuredKwhByOccupancy!.get(context.occupancy.id) ?? 0)
@@ -968,7 +976,7 @@ function rawTenantShareBreakdown(
   return {
     operatingByCategory,
     heatingBaseCents: roundCentsHalfAwayFromZero(
-      circuit.basePrice * baseArea * context.timeFactor * reduction,
+      circuit.basePrice * baseArea * heatingBaseTimeFactor(context) * reduction,
     ),
     heatingConsumptionCents: roundCentsHalfAwayFromZero(
       circuit.consumptionPrice *
@@ -981,7 +989,7 @@ function rawTenantShareBreakdown(
       circuit.hotWaterPricePerPerson * persons * context.timeFactor * reduction,
     ),
     heatingCo2Cents: roundCentsHalfAwayFromZero(
-      circuit.co2BasePrice * baseArea * context.timeFactor +
+      circuit.co2BasePrice * baseArea * heatingBaseTimeFactor(context) +
         circuit.co2ConsumptionPrice *
           (isMeteredOccupancy
             ? measuredKwhByOccupancy!.get(context.occupancy.id)!

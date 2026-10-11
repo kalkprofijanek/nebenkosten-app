@@ -18,6 +18,11 @@ export interface OccupancyContext {
   tenancy?: Readonly<Tenancy>
   days: number
   timeFactor: number
+  /**
+   * § 9b Abs. 3 HeizKV: Faktor für Heizungs-Grundkosten und CO₂-Grundanteil
+   * (Gradtagsanteil statt Zeitanteil). Fehlt er, gilt `timeFactor`.
+   */
+  heatingBaseTimeFactor?: number
   buildingId?: string
   usableArea: number
   heatedArea: number

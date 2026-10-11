@@ -3,7 +3,9 @@ import {
   meterReadingConsumption,
   type EnergySourceCalculationTrace,
   type FuelLotCo2Trace,
+  section9bShares,
   type HeatingCircuitTrace,
+  type Section9bShare,
 } from '@nebenkosten/core'
 import type { TenantStatementContext } from './contracts'
 import {
@@ -75,6 +77,78 @@ function replacementSum(
     : '–'
 }
 
+const flexible = (value: number) =>
+  value.toLocaleString('de-DE', { maximumFractionDigits: 3 })
+
+/** Anteil nach § 9b Abs. 3 HeizKV dieser Nutzung, falls festgelegt. */
+function section9bShare(
+  context: TenantStatementContext,
+): Section9bShare | undefined {
+  return section9bShares(
+    context.appData.billingData.occupancyPeriods.filter(
+      ({ billingPeriodId }) => billingPeriodId === context.billingPeriod.id,
+    ),
+    context.billingPeriod,
+  ).get(context.occupancyPeriod.id)
+}
+
+/**
+ * Faktor der Grundkosten im Rechenweg: „90/365 Tage“ bzw. nach § 9b Abs. 3
+ * „450 ‰ ÷ 1.000 ‰“ (bei Teilabdeckung mit dem Zeitanteil der Gruppe).
+ */
+function baseFactorText(
+  share: Section9bShare | undefined,
+  timeText: string,
+  periodDays: number,
+): string {
+  if (share?.allocation !== 'degree_days') return timeText
+  const ratio = `${flexible(share.permille)} ‰ ÷ ${flexible(share.groupPermille)} ‰`
+  const groupDays = Math.round(share.groupTimeFactor * periodDays)
+  return groupDays === periodDays
+    ? ratio
+    : `${groupDays}/${periodDays} Tage × ${ratio}`
+}
+
+/**
+ * Rechenweg der Aufteilung ohne Zwischenablesung (§ 9b Abs. 3 HeizKV):
+ * Wechseltag, Maßstab, eigener Anteil und – bei HKV-Einheiten – die
+ * Herleitung der eigenen Einheiten aus dem Gesamtverbrauch der Wohnung.
+ */
+function section9bCalculation(
+  context: TenantStatementContext,
+  share: Section9bShare,
+  periodDays: number,
+  unit: string,
+  metered: boolean,
+  hasHotWater: boolean,
+): string {
+  const dates = share.changeDates.map((date) => formatIsoDate(date))
+  const own = `${formatIsoDate(share.from)} bis ${formatIsoDate(share.to)}`
+  const groupDays = Math.round(share.groupTimeFactor * periodDays)
+  const head = `Keine Zwischenablesung beim Nutzerwechsel${dates.length > 0 ? ` am ${dates.join(' und ')}` : ''}; Aufteilung nach § 9b Abs. 3 HeizKV`
+  const occupancies = context.appData.billingData.occupancyPeriods.filter(
+    (item) =>
+      item.billingPeriodId === context.billingPeriod.id &&
+      item.unitId === share.unitId &&
+      item.section9bAllocation != null,
+  )
+  const total = occupancies.reduce(
+    (sum, item) => sum + (item.consumptionUnits?.value ?? 0),
+    0,
+  )
+  const ownUnits = context.occupancyPeriod.consumptionUnits?.value ?? 0
+  if (share.allocation === 'degree_days') {
+    const units = metered
+      ? ''
+      : `; Ihre ${unit} = Gesamt ${flexible(total)} ${unit} × ${flexible(share.permille)} ‰ ÷ ${flexible(share.groupPermille)} ‰ = ${flexible(ownUnits)} ${unit}`
+    return `${head} nach Gradtagszahlen (VDI 2067) für die gesamten Heizkosten${hasHotWater ? ', Warmwasser zeitanteilig' : ''}: Ihr Zeitraum ${own} = ${flexible(share.permille)} ‰ von ${flexible(share.groupPermille)} ‰${units}.`
+  }
+  const units = metered
+    ? ''
+    : `; Ihre ${unit} = Gesamt ${flexible(total)} ${unit} × ${share.days} ÷ ${groupDays} Tage = ${flexible(ownUnits)} ${unit}`
+  return `${head} zeitanteilig für die gesamten Heizkosten${hasHotWater ? ' und Warmwasser' : ''}: Ihr Zeitraum ${own} = ${share.days} von ${groupDays} Tagen${units}.`
+}
+
 /**
  * „Ihre Verbrauchserfassung“: Zählerstände (bzw. Schätzgrund) und die
  * vollständige Rechnung der Heiz- und CO2-Kosten des Mieters.
@@ -104,6 +178,10 @@ function consumptionCapture(
       : 0
   const reduction = section12Applies(context) ? ' × 85 %' : ''
   const timeText = `${facts.days}/${facts.periodDays} Tage`
+  const share9b = section9bShare(context)
+  const baseText = baseFactorText(share9b, timeText, facts.periodDays)
+  const baseTimeFactor =
+    share9b?.baseTimeFactor ?? facts.days / facts.periodDays
   const reading = occupancyPeriod.heatMeterReading
   const estimated = Boolean(
     occupancyPeriod.consumptionUnitsEstimated && !isMeteredOccupancy(context),
@@ -112,6 +190,20 @@ function consumptionCapture(
     { text: 'Ihre Verbrauchserfassung', style: 'th', margin: [0, 6, 0, 2] },
   ]
   const lines: string[] = []
+  if (share9b)
+    content.push({
+      text: section9bCalculation(
+        context,
+        share9b,
+        facts.periodDays,
+        unit,
+        isMeteredOccupancy(context),
+        circuit.warmWater.method !== 'none',
+      ),
+      fontSize: 8,
+      margin: [0, 0, 0, 2],
+    })
+  const ownNote = occupancyPeriod.consumptionUnitsEstimateReason?.trim()
   if (estimated) {
     content.push({
       text: estimatedConsumptionNote(
@@ -126,8 +218,8 @@ function consumptionCapture(
   } else if (hasReading(reading)) {
     // Erläuterung zur Herleitung (z. B. abgeleiteter Anfangsstand, Aufteilung
     // nach Gradtagszahlen bei Nutzerwechsel) auch bei gemessenem Verbrauch.
-    const note = occupancyPeriod.consumptionUnitsEstimateReason?.trim()
-    if (note) content.push({ text: note, fontSize: 8, margin: [0, 0, 0, 2] })
+    if (ownNote)
+      content.push({ text: ownNote, fontSize: 8, margin: [0, 0, 0, 2] })
     content.push({
       table: {
         headerRows: 1,
@@ -162,6 +254,9 @@ function consumptionCapture(
         )
     }
   } else {
+    // Erläuterung (z. B. Grund und Rechenweg der Aufteilung) immer ausgeben.
+    if (ownNote)
+      content.push({ text: ownNote, fontSize: 8, margin: [0, 0, 0, 2] })
     lines.push(
       `Verbrauch laut Erfassung = ${formatNumber(consumption)} ${unit}`,
     )
@@ -170,7 +265,7 @@ function consumptionCapture(
     split.areaOnlySection9a
       ? 'Verbrauchskosten entfallen (§ 9a Abs. 2 HeizKV): Verteilung ausschließlich nach Fläche'
       : `Verbrauchskosten = ${formatUnitPrice(consumptionPrice, unitSingular)} × ${formatNumber(consumption)} ${unit}${reduction} = ${formatEuroCents(costBreakdown.heatingConsumptionCents)}`,
-    `${split.areaOnlySection9a ? 'Heizkosten nach Fläche' : 'Grundkosten'} = ${formatUnitPrice(basePrice, 'm²')} × ${formatNumber(ownArea)} m² × ${timeText}${reduction} = ${formatEuroCents(costBreakdown.heatingBaseCents)}`,
+    `${split.areaOnlySection9a ? 'Heizkosten nach Fläche' : 'Grundkosten'} = ${formatUnitPrice(basePrice, 'm²')} × ${formatNumber(ownArea)} m² × ${baseText}${reduction} = ${formatEuroCents(costBreakdown.heatingBaseCents)}`,
   )
   const hasHotWater = circuit.warmWater.method !== 'none'
   if (hasHotWater)
@@ -200,13 +295,11 @@ function consumptionCapture(
         ? (co2.tenantCents * (split.consumptionSharePercent / 100)) /
           split.consumptionDenominator
         : 0
-    const co2BaseCents = Math.round(
-      co2BasePrice * ownArea * (facts.days / facts.periodDays),
-    )
+    const co2BaseCents = Math.round(co2BasePrice * ownArea * baseTimeFactor)
     const co2ConsumptionCents = costBreakdown.heatingCo2Cents - co2BaseCents
     lines.push(
       `CO2-Kosten Mieteranteil des Heizkreises = ${formatEuroCents(co2.tenantCents)} (${formatPercent(split.baseSharePercent)} Grundanteil, ${formatPercent(split.consumptionSharePercent)} Verbrauchsanteil)`,
-      `CO2-Grundanteil = ${formatUnitPrice(co2BasePrice, 'm²')} × ${formatNumber(ownArea)} m² × ${timeText} = ${formatEuroCents(co2BaseCents)}`,
+      `CO2-Grundanteil = ${formatUnitPrice(co2BasePrice, 'm²')} × ${formatNumber(ownArea)} m² × ${baseText} = ${formatEuroCents(co2BaseCents)}`,
       `CO2-Verbrauchsanteil = ${formatUnitPrice(co2ConsumptionPrice, unitSingular)} × ${formatNumber(consumption)} ${unit} = ${formatEuroCents(co2ConsumptionCents)}`,
       `Ihr CO2-Kostenanteil = ${formatEuroCents(co2BaseCents)} + ${formatEuroCents(co2ConsumptionCents)} = ${formatEuroCents(costBreakdown.heatingCo2Cents)}`,
     )
