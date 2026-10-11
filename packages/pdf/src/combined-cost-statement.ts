@@ -3,8 +3,11 @@ import type {
   TableCell,
   TDocumentDefinitions,
 } from 'pdfmake/interfaces'
-import type { OperatingPositionTrace } from '@nebenkosten/core'
-import type { CostCategory } from '@nebenkosten/schema'
+import type {
+  HeatingCircuitTrace,
+  OperatingPositionTrace,
+} from '@nebenkosten/core'
+import type { CostCategory, OccupancyPeriod } from '@nebenkosten/schema'
 import { buildSenderBlock } from './address'
 import type { CombinedCostStatementContext } from './contracts'
 import {
@@ -26,7 +29,7 @@ import {
   propertyUnitLabel,
   scopeLabel,
 } from './heating-summary'
-import { ROUNDING_DIFFERENCE_NOTICE } from './legal-texts'
+import { ROUNDING_DIFFERENCE_NOTICE, baseAreaLabel } from './legal-texts'
 import { circuitMeterReadingTables } from './meter-readings'
 import { meteringStatement } from './metering-statement'
 
@@ -80,6 +83,20 @@ function fuelCostRows(context: CombinedCostStatementContext) {
     .filter(({ amountCents }) => amountCents !== 0)
 }
 
+/** Interner Kennzeichner nicht umlagefähiger Kostenarten (Legacy). */
+const NOT_ALLOCABLE_CODE = /^NICHT[_ ]?UML/iu
+
+/**
+ * BetrKV-Spalte: Fundstelle in der BetrKV; der interne Code für nicht
+ * umlagefähige Kosten erscheint im Klartext.
+ */
+export function betrkvCell(code: string | null | undefined): TableCell {
+  if (!code) return { text: '–', noWrap: true }
+  if (NOT_ALLOCABLE_CODE.test(code))
+    return { text: 'nicht umlagefähig', fontSize: 6.5, color: MUTED }
+  return { text: code, noWrap: true }
+}
+
 function distributionLabel(position: OperatingPositionTrace): string {
   switch (position.distribution) {
     case 'heating_pool':
@@ -128,7 +145,7 @@ function legacyCostCategoriesTable(
       { text: 'Betrag', style: 'th', alignment: 'right' },
     ],
     ...rows.map(({ category, amountCents }): TableCell[] => [
-      { text: category.betrkvCategory ?? '–', noWrap: true },
+      betrkvCell(category.betrkvCategory),
       category.statementText ?? category.label,
       costKindLabels[category.kind] ?? category.kind,
       amountCell(amountCents),
@@ -168,7 +185,7 @@ function costCategoriesTable(
   const fuelRows = fuelCostRows(context)
   const dash: TableCell = { text: '–', alignment: 'right' }
   const categoryRows = visible.map((position): TableCell[] => [
-    { text: position.betrkvCategory ?? '–', noWrap: true },
+    betrkvCell(position.betrkvCategory),
     labelWithScope(
       position.label,
       scopeLabel(context.appData, position.scope, context.property),
@@ -344,7 +361,7 @@ function reconciliationTable(
       cents: -calculation.co2.landlordCents,
     },
     {
-      label: '− Leerstandsanteil (trägt der Vermieter)',
+      label: '− Leerstandsanteil (trägt der Vermieter, Aufstellung unten)',
       cents: -calculation.vacancyLandlordCents,
     },
   )
@@ -356,7 +373,14 @@ function reconciliationTable(
   }
   const distributed = tenantShareTotalCents(context)
   const subtotal = lines.reduce((sum, line) => sum + line.cents, 0)
-  lines.push({ label: '± Rundung', cents: distributed - subtotal })
+  // Nur eine tatsächliche Differenz wird als eigene Zeile ausgewiesen; die
+  // Summenzeile ist stets die Summe der gedruckten Zeilen.
+  if (distributed !== subtotal)
+    lines.push({
+      label:
+        '± Rundungsausgleich (Mieteranteile einzeln auf Cent gerundet, Restcent-Verteilung)',
+      cents: distributed - subtotal,
+    })
   const printedSum = lines.reduce((sum, line) => sum + line.cents, 0)
   return {
     table: {
@@ -367,7 +391,7 @@ function reconciliationTable(
           amountCell(line.cents),
         ]),
         [
-          { text: '= auf Mieter verteilt (Summe der Zeilen)', bold: true },
+          { text: '= auf die Mieter verteilt', bold: true },
           amountCell(printedSum, { bold: true }),
         ],
       ],
@@ -377,38 +401,304 @@ function reconciliationTable(
   }
 }
 
+function vacancyPeriodLine(
+  context: CombinedCostStatementContext,
+  occupancy: OccupancyPeriod,
+): string {
+  const unit = context.units.find(({ id }) => id === occupancy.unitId)
+  const result = context.calculation.tenants.find(
+    ({ id }) => id === occupancy.id,
+  )
+  const circuit = context.calculation.heating.trace.circuits.find(
+    ({ buildingId }) => buildingId === result?.ownBasis?.buildingId,
+  )
+  const from =
+    occupancy.from && occupancy.from > context.billingPeriod.periodStart
+      ? occupancy.from
+      : context.billingPeriod.periodStart
+  const to =
+    occupancy.to && occupancy.to < context.billingPeriod.periodEnd
+      ? occupancy.to
+      : context.billingPeriod.periodEnd
+  const basis = result?.ownBasis
+  const areaBasis = circuit?.split.baseAreaBasis ?? 'usable_area'
+  const area = basis
+    ? areaBasis === 'usable_area'
+      ? basis.usableAreaSqm
+      : basis.heatedAreaSqm
+    : (unit?.usableAreaSqm?.value ?? 0)
+  return [
+    `${unit?.label ?? occupancy.unitId}: ${formatIsoDate(from)} – ${formatIsoDate(to)}${
+      result?.days != null ? ` (${result.days} Tage)` : ''
+    }`,
+    `${formatNumber(area)} m² ${baseAreaLabel(areaBasis)}`,
+    basis && basis.consumption > 0
+      ? `Verbrauch ${formatNumber(basis.consumption)} ${basis.consumptionUnit}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(', ')
+}
+
+/**
+ * Aufstellung des Leerstandsanteils: leerstehende Nutzungen mit Zeitraum,
+ * Fläche und Verbrauch, die Beträge je Kostenart, Heiz- und CO₂-Kosten
+ * getrennt und eine sichtbare Rundungszeile. Überschrift und Tabelle bleiben
+ * auf einer Seite.
+ */
 function vacancyTable(context: CombinedCostStatementContext): Content[] {
   const total = context.calculation.vacancyLandlordCents
   if (total === 0) return []
   const positions = (context.calculation.operatingPositions ?? []).filter(
     ({ vacancyCents }) => vacancyCents !== 0,
   )
-  const operatingVacancy = positions.reduce(
-    (sum, position) => sum + position.vacancyCents,
-    0,
+  const vacancyOccupancies = context.occupancyPeriods.filter(
+    (occupancy) =>
+      occupancy.kind === 'vacancy' &&
+      occupancy.billingPeriodId === context.billingPeriod.id,
   )
+  const vacancyResults = context.calculation.tenants.filter(
+    ({ isVacancy }) => isVacancy,
+  )
+  const breakdownSum = (
+    pick: (
+      breakdown: (typeof vacancyResults)[number]['costBreakdown'],
+    ) => number,
+  ) =>
+    vacancyResults.reduce((sum, result) => sum + pick(result.costBreakdown), 0)
   const rows: TableCell[][] = positions.map((position): TableCell[] => [
     position.label,
     amountCell(position.vacancyCents),
   ])
-  if (positions.length > 0 && total - operatingVacancy !== 0) {
-    rows.push([
-      'Heiz- und CO2-Kosten sowie Rundung',
-      amountCell(total - operatingVacancy),
-    ])
+  if (positions.length > 0) {
+    const heating = breakdownSum(
+      (breakdown) =>
+        breakdown.heatingBaseCents +
+        breakdown.heatingConsumptionCents +
+        breakdown.hotWaterCents,
+    )
+    const co2 = breakdownSum(({ heatingCo2Cents }) => heatingCo2Cents)
+    if (heating !== 0)
+      rows.push([
+        'Heizkosten (Grund-, Verbrauchs- und Warmwasserkosten)',
+        amountCell(heating),
+      ])
+    if (co2 !== 0) rows.push(['CO2-Kostenanteil', amountCell(co2)])
+    const printed = positions.reduce(
+      (sum, position) => sum + position.vacancyCents,
+      heating + co2,
+    )
+    const rest = total - printed
+    // Wenige Cent sind Rundung der einzeln gerundeten Zeilen; ein größerer
+    // Rest stammt aus nicht als Nutzung erfassten Leerstandszeiten/-flächen
+    // (Gesamtnenner größer als die Summe der Nutzungen).
+    if (rest !== 0)
+      rows.push(
+        Math.abs(rest) <= rows.length
+          ? [
+              {
+                text: 'Rundungsausgleich (Zeilen einzeln auf Cent gerundet)',
+                color: MUTED,
+              },
+              amountCell(rest),
+            ]
+          : [
+              'Heiz- und CO2-Kosten nicht als Nutzung erfasster Leerstandszeiten bzw. -flächen (einschl. Rundung)',
+              amountCell(rest),
+            ],
+      )
   }
   rows.push([
     { text: 'Leerstandsanteil gesamt (Vermieter)', bold: true },
     amountCell(total, { bold: true }),
   ])
+  const details: Content[] =
+    vacancyOccupancies.length > 0
+      ? [
+          {
+            ul: vacancyOccupancies.map((occupancy) =>
+              vacancyPeriodLine(context, occupancy),
+            ),
+            fontSize: 8,
+            margin: [0, 0, 0, 4],
+          },
+        ]
+      : []
   return [
-    { text: 'Leerstandsanteil', style: 'th', margin: [0, 0, 0, 4] },
     {
-      table: { widths: ['*', 90], body: rows },
-      layout: 'lightHorizontalLines',
-      margin: [0, 0, 140, 12],
+      unbreakable: true,
+      stack: [
+        { text: 'Leerstandsanteil', style: 'th', margin: [0, 0, 0, 4] },
+        ...details,
+        {
+          table: { widths: ['*', 90], body: rows },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 140, 12],
+        },
+      ],
     },
   ]
+}
+
+/** Personenzeit einer Nutzung wie in der Warmwasserverteilung. */
+function personYears(
+  result: CombinedCostStatementContext['calculation']['tenants'][number],
+): number {
+  if (result.isVacancy || !result.ownBasis) return 0
+  const persons = result.ownBasis.persons > 0 ? result.ownBasis.persons : 1
+  return persons * (result.timeFactor ?? 1)
+}
+
+/**
+ * Verteilungsgrundlagen eines Heizkreises: Summe der Verbräuche (davon
+ * Leerstand) und – bei Warmwasser nach Personen – die Personenjahre. Die
+ * interne Fassung listet die Werte je Nutzung.
+ *
+ * Offene Entscheidung: In der Fassung für Mieter erscheinen nur Summen,
+ * keine Personenzahlen und Verbräuche einzelner Wohnungen (Datenschutz);
+ * Einzelwerte bleiben der Belegeinsicht vorbehalten.
+ */
+function distributionBasisTable(
+  context: CombinedCostStatementContext,
+  circuit: HeatingCircuitTrace,
+): Content[] {
+  const results = context.calculation.tenants.filter(
+    ({ ownBasis }) => ownBasis?.buildingId === circuit.buildingId,
+  )
+  if (results.length === 0) return []
+  const unit = results[0]?.ownBasis?.consumptionUnit ?? 'Einheiten'
+  const vacancyConsumption = results
+    .filter(({ isVacancy }) => isVacancy)
+    .reduce((sum, result) => sum + (result.ownBasis?.consumption ?? 0), 0)
+  const tenantCount = results.filter(({ isVacancy }) => !isVacancy).length
+  const hotWater = circuit.warmWater.method !== 'none'
+  const rows: TableCell[][] = [
+    [
+      'Nutzungen im Heizkreis',
+      `${tenantCount} Mieter-Nutzungen, ${results.length - tenantCount} Leerstand`,
+    ],
+    [
+      `Fläche (${baseAreaLabel(circuit.split.baseAreaBasis)}) für die Grundkosten`,
+      `${formatNumber(circuit.split.baseDenominator)} m²`,
+    ],
+    [
+      'Verbrauch aller Nutzungen für die Verbrauchskosten',
+      `${formatNumber(circuit.split.consumptionDenominator)} ${unit}${
+        vacancyConsumption > 0
+          ? ` (davon Leerstand ${formatNumber(vacancyConsumption)} ${unit})`
+          : ''
+      }`,
+    ],
+  ]
+  if (hotWater)
+    rows.push([
+      'Personenjahre für die Warmwasserkosten (Personen × Nutzungstage ÷ Tage des Abrechnungszeitraums; Leerstand ohne Personen)',
+      `${formatNumber(circuit.warmWater.personTimeDenominator, 3)} Personenjahre; ${formatEuroCents(circuit.warmWater.poolCents)} : ${formatNumber(circuit.warmWater.personTimeDenominator, 3)} = ${formatNumber(
+        circuit.warmWater.personTimeDenominator > 0
+          ? circuit.warmWater.poolCents /
+              100 /
+              circuit.warmWater.personTimeDenominator
+          : 0,
+        4,
+      )} € je Personenjahr`,
+    ])
+  const content: Content[] = [
+    {
+      unbreakable: true,
+      stack: [
+        {
+          text: `Verteilungsgrundlagen ${circuitTitle(context.appData, circuit)}`,
+          style: 'th',
+          margin: [0, 4, 0, 4],
+        },
+        {
+          table: { widths: ['*', 'auto'], body: rows },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 8],
+        },
+      ],
+    },
+  ]
+  if (context.audience !== 'internal') return content
+  const byId = new Map(context.occupancyPeriods.map((item) => [item.id, item]))
+  const detailRows: TableCell[][] = results.map((result) => {
+    const occupancy = byId.get(result.id)
+    const unitLabel =
+      context.units.find(({ id }) => id === occupancy?.unitId)?.label ??
+      occupancy?.unitId ??
+      result.id
+    return [
+      `${unitLabel}${result.isVacancy ? ' (Leerstand)' : ''}`,
+      { text: `${result.days ?? '–'}`, alignment: 'right' },
+      {
+        text: result.isVacancy
+          ? '–'
+          : formatNumber(result.ownBasis?.persons ?? 0),
+        alignment: 'right',
+      },
+      {
+        text: hotWater ? formatNumber(personYears(result), 3) : '–',
+        alignment: 'right',
+      },
+      {
+        text: `${formatNumber(result.ownBasis?.consumption ?? 0)}${
+          occupancy?.consumptionUnitsEstimated ? ' (geschätzt)' : ''
+        }`,
+        alignment: 'right',
+      },
+    ]
+  })
+  const th = (text: string, right = true): TableCell => ({
+    text,
+    style: 'th',
+    fontSize: 7.5,
+    alignment: right ? 'right' : 'left',
+  })
+  content.push({
+    table: {
+      headerRows: 1,
+      widths: ['*', 'auto', 'auto', 'auto', 'auto'],
+      body: [
+        [
+          th('Nutzung', false),
+          th('Tage'),
+          th('Personen'),
+          th('Personenjahre'),
+          th(`Verbrauch (${unit})`),
+        ],
+        ...detailRows,
+        [
+          { text: 'Summe', bold: true },
+          '',
+          '',
+          {
+            text: hotWater
+              ? formatNumber(
+                  results.reduce((sum, result) => sum + personYears(result), 0),
+                  3,
+                )
+              : '–',
+            alignment: 'right',
+            bold: true,
+          },
+          {
+            text: formatNumber(
+              results.reduce(
+                (sum, result) => sum + (result.ownBasis?.consumption ?? 0),
+                0,
+              ),
+            ),
+            alignment: 'right',
+            bold: true,
+          },
+        ],
+      ],
+    },
+    layout: 'lightHorizontalLines',
+    fontSize: 7.5,
+    margin: [0, 0, 0, 12],
+  })
+  return content
 }
 
 function heatingSections(context: CombinedCostStatementContext): Content[] {
@@ -438,6 +728,7 @@ function heatingSections(context: CombinedCostStatementContext): Content[] {
         captureModeFor(context.calculation, circuit.buildingId),
       ),
       ...co2Table(context.appData, circuit),
+      ...distributionBasisTable(context, circuit),
     ])
 }
 

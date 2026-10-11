@@ -13,7 +13,6 @@ import {
 import {
   OBJECTION_NOTICE,
   PROPERTY_DATA_HEADING,
-  ROUNDING_DIFFERENCE_NOTICE,
   TIME_FACTOR_EXPLANATION,
   estimatedConsumptionNote,
 } from './legal-texts'
@@ -30,8 +29,8 @@ import {
   MUTED,
   operatingUnitLabel,
   paymentContent,
-  summaryTable,
 } from './tenant-statement-tables'
+import { summaryWithRounding } from './tenant-statement-summary'
 import {
   co2Section,
   heatingSection,
@@ -275,13 +274,7 @@ export function buildTenantStatement(
       ...openingContent,
       ...coverLetterContent,
       estimationNote(context),
-      summaryTable(context),
-      {
-        text: ROUNDING_DIFFERENCE_NOTICE,
-        fontSize: 7,
-        color: MUTED,
-        margin: [0, 0, 0, 6],
-      },
+      ...summaryWithRounding(context),
       ...paymentContent(context),
       { text: 'Abrechnungsgrundlagen', style: 'th', margin: [0, 8, 0, 2] },
       basisTable(context, facts, circuit),
