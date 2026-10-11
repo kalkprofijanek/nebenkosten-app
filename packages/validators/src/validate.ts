@@ -9,6 +9,7 @@ import { consumptionBenchmarkIssues } from './billing-information'
 import { collectStaticIssues } from './static-validation'
 import { withEntityContext } from './entity-context'
 import type { ValidationOptions, ValidationReport } from './types'
+import { co2OpeningPriceIssues } from './co2-price'
 
 function report(
   id: string,
@@ -94,6 +95,7 @@ export function validateBillingPeriod(
       options,
     )
   const issues = collectStaticIssues(parsed.data, period)
+  co2OpeningPriceIssues(parsed.data, period, (value) => issues.push(value))
   try {
     const output = calculateBilling(
       createCalculationInput(parsed.data, billingPeriodId),

@@ -1,13 +1,17 @@
 import type { Content, TableCell } from 'pdfmake/interfaces'
 import {
   meterReadingConsumption,
+  type EnergySourceCalculationTrace,
+  type FuelLotCo2Trace,
   type HeatingCircuitTrace,
 } from '@nebenkosten/core'
 import type { TenantStatementContext } from './contracts'
 import {
+  amountCell,
   captureModeFor,
   circuitTitle,
   co2Table,
+  hasNoBehgCo2Costs,
   fuelAccountTable,
   heatingCompilationTable,
   heatingOperatingCostLines,
@@ -20,8 +24,10 @@ import {
 } from './legal-texts'
 import {
   formatEuroCents,
+  formatIsoDate,
   formatNumber,
   formatPercent,
+  formatQuantityUnit,
   formatUnitPrice,
 } from './format'
 import {
@@ -268,6 +274,139 @@ export function heatingSection(
   ]
 }
 
+function co2SourceName(
+  context: TenantStatementContext,
+  trace: EnergySourceCalculationTrace,
+): string {
+  const source = context.appData.billingData.energySources.find(
+    ({ id }) => id === trace.energySourceId,
+  )
+  return source?.sourceType ?? source?.name ?? source?.key ?? 'Energiequelle'
+}
+
+function co2LotLabel(
+  context: TenantStatementContext,
+  lot: FuelLotCo2Trace,
+): string {
+  if (lot.kind === 'opening_stock') return 'Anfangsbestand (Vorjahr)'
+  const delivery = context.appData.billingData.fuelDeliveries.find(
+    ({ id }) => id === lot.sourceId,
+  )
+  return `Lieferung ${formatIsoDate(delivery?.date)}`
+}
+
+function rightCell(text: string, bold?: boolean): TableCell {
+  return { text, alignment: 'right', noWrap: true, bold }
+}
+
+/** Tonnen CO2 mit drei Nachkommastellen (kg-genau). */
+function formatTons(kg: number): string {
+  return `${formatNumber(kg / 1_000, 3)} t`
+}
+
+/**
+ * Berechnungsgrundlagen nach § 7 Abs. 3 CO2KostAufG je Energiequelle:
+ * Energiegehalt der verbrauchten Brennstoffmenge, Emissionsfaktor und
+ * Brennstoffemissionen; bei Preisen je FIFO-Los (ADR-0010, A12) zusätzlich
+ * die Aufschlüsselung je Los.
+ */
+function co2CalculationBasis(
+  context: TenantStatementContext,
+  circuit: HeatingCircuitTrace,
+): Content[] {
+  if (hasNoBehgCo2Costs(circuit)) return []
+  const sources = circuit.energySources.filter(
+    ({ energyKwh, co2Kg }) => energyKwh > 0 || co2Kg > 0,
+  )
+  if (sources.length === 0) return []
+  const named = sources.length > 1
+  const rows: TableCell[][] = sources.flatMap((trace) => {
+    const prefix = named ? `${co2SourceName(context, trace)}: ` : ''
+    const unit = formatQuantityUnit(trace.quantityUnit)
+    return [
+      [
+        `${prefix}Energiegehalt der verbrauchten Brennstoffmenge`,
+        rightCell(
+          trace.calorificValueKwhPerUnit > 0 && unit
+            ? `${formatNumber(trace.consumedQuantity, 3)} ${unit} × ${formatNumber(trace.calorificValueKwhPerUnit, 3)} kWh/${unit} = ${formatNumber(trace.energyKwh, 0)} kWh`
+            : `${formatNumber(trace.energyKwh, 0)} kWh`,
+        ),
+      ],
+      [
+        `${prefix}Emissionsfaktor`,
+        rightCell(`${formatNumber(trace.co2FactorKgPerKwh, 4)} kg CO2/kWh`),
+      ],
+      [`${prefix}Brennstoffemissionen`, rightCell(formatTons(trace.co2Kg))],
+    ]
+  })
+  const content: Content[] = [
+    {
+      text: 'Berechnungsgrundlagen der CO2-Kosten (§ 7 Abs. 3 CO2KostAufG)',
+      style: 'th',
+      margin: [0, 4, 0, 4],
+    },
+    {
+      table: { widths: ['*', 'auto'], body: rows },
+      layout: 'lightHorizontalLines',
+      margin: [0, 0, 0, 4],
+    },
+  ]
+  const lotSources = sources.filter(({ co2Lots }) => co2Lots?.length)
+  if (lotSources.length === 0) return content
+  const header = [
+    'Brennstoff-Los',
+    'Menge',
+    'kWh',
+    't CO2',
+    'CO2-Preis je t',
+    'CO2-Kosten',
+  ].map((text, index) => ({
+    text,
+    bold: true,
+    alignment: index === 0 ? 'left' : 'right',
+  })) as TableCell[]
+  const lotRows: TableCell[][] = lotSources.flatMap((trace) => {
+    const unit = formatQuantityUnit(trace.quantityUnit)
+    const prefix = named ? `${co2SourceName(context, trace)}: ` : ''
+    return [
+      ...(trace.co2Lots ?? []).map((lot): TableCell[] => [
+        `${prefix}${co2LotLabel(context, lot)}`,
+        rightCell(`${formatNumber(lot.consumedQuantity, 3)} ${unit}`.trim()),
+        rightCell(formatNumber(lot.energyKwh, 0)),
+        rightCell(formatNumber(lot.co2Kg / 1_000, 3)),
+        rightCell(formatEuroCents(lot.pricePerTonCents)),
+        amountCell(lot.costCents),
+      ]),
+      [
+        { text: `${prefix}Summe CO2-Kosten`, bold: true, colSpan: 5 },
+        {},
+        {},
+        {},
+        {},
+        amountCell(trace.co2CostCents ?? 0, { bold: true }),
+      ],
+    ]
+  })
+  content.push(
+    {
+      table: {
+        headerRows: 1,
+        widths: ['*', 'auto', 'auto', 'auto', 'auto', 'auto'],
+        body: [header, ...lotRows],
+      },
+      layout: 'lightHorizontalLines',
+      margin: [0, 0, 0, 2],
+    },
+    {
+      text: 'Der Anfangsbestand wurde vor dem Abrechnungszeitraum geliefert und ist mit dem CO2-Preis seines Lieferjahres bewertet; Lieferungen im Abrechnungszeitraum mit dem CO2-Preis des Abrechnungsjahres. Verbrauch nach dem FIFO-Verfahren.',
+      fontSize: 8,
+      color: MUTED,
+      margin: [0, 0, 0, 8],
+    },
+  )
+  return content
+}
+
 export function co2Section(context: TenantStatementContext): Content[] {
   const tenant = tenantResult(context)
   const circuit = circuitTraceFor(context)
@@ -279,11 +418,10 @@ export function co2Section(context: TenantStatementContext): Content[] {
     }
     return []
   }
-  return co2Table(
-    context.appData,
-    circuit,
-    tenant.costBreakdown.heatingCo2Cents,
-  )
+  return [
+    ...co2Table(context.appData, circuit, tenant.costBreakdown.heatingCo2Cents),
+    ...co2CalculationBasis(context, circuit),
+  ]
 }
 
 /** Bescheinigung nach § 35a EStG; entfällt ohne erfassten Lohnanteil. */

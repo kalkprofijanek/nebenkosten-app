@@ -78,6 +78,8 @@ export interface AggregateFuelResult {
   fullCost: number
   energyKwh: number
   co2Kg: number
+  /** CO₂-Kosten je FIFO-Los (A12); `null`, solange kein Los einen eigenen Preis hat. */
+  co2CostByLots: number | null
   sources: EnergySourceCalculationTrace[]
 }
 

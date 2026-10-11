@@ -465,23 +465,56 @@ function prepareCircuits(
           ({ heatingCircuitId }) => heatingCircuitId === circuit.id,
         )
       : []
-    const fuel = sources.reduce<AggregateFuelResult>(
+    // CO₂-Preis des Abrechnungsjahres (nur Modus auto, wie bisher 45 €/t
+    // als Vorgabe); Grundlage der Los-Bewertung nach ADR-0010 (A12).
+    const yearCo2Price =
+      circuit?.co2?.mode === 'manual'
+        ? null
+        : (circuit?.co2?.co2PricePerTonCents ?? 4_500)
+    const summed = sources.reduce<
+      Omit<AggregateFuelResult, 'co2CostByLots'> & {
+        co2LotSources: { co2KgRaw: number; costRaw: number | null }[]
+      }
+    >(
       (sum, source) => {
         const result = calculateEnergySourceFuel(
           source,
           input.fuelStocks,
           input.fuelDeliveries,
           circuit?.co2?.co2FactorKgPerKwh ?? 0,
+          { co2PricePerTonCents: yearCo2Price },
         )
         return {
           fullCost: sum.fullCost + result.fullCostCentsRaw,
           energyKwh: sum.energyKwh + result.energyKwhRaw,
           co2Kg: sum.co2Kg + result.co2KgRaw,
+          co2LotSources: [
+            ...sum.co2LotSources,
+            { co2KgRaw: result.co2KgRaw, costRaw: result.co2CostCentsRaw },
+          ],
           sources: [...sum.sources, result.trace],
         }
       },
-      { fullCost: 0, energyKwh: 0, co2Kg: 0, sources: [] },
+      { fullCost: 0, energyKwh: 0, co2Kg: 0, co2LotSources: [], sources: [] },
     )
+    // Nur wenn ein Los einen eigenen CO₂-Preis trägt, werden die Kosten je
+    // Los summiert (Quellen ohne eigenen Preis: Emissionen × Jahrespreis).
+    const co2CostByLots =
+      yearCo2Price != null &&
+      summed.co2LotSources.some(({ costRaw }) => costRaw !== null)
+        ? summed.co2LotSources.reduce(
+            (sum, { co2KgRaw, costRaw }) =>
+              sum + (costRaw ?? (co2KgRaw / 1_000) * yearCo2Price),
+            0,
+          )
+        : null
+    const fuel: AggregateFuelResult = {
+      fullCost: summed.fullCost,
+      energyKwh: summed.energyKwh,
+      co2Kg: summed.co2Kg,
+      co2CostByLots,
+      sources: summed.sources,
+    }
     return { buildingId: building.id, circuit, contexts: circuitContexts, fuel }
   })
 }
@@ -521,7 +554,8 @@ function rawCircuitResults(
       const manual = co2Config?.mode === 'manual'
       const co2Cost = manual
         ? (co2Config.levyCents ?? 0)
-        : (fuel.co2Kg / 1_000) * (co2Config?.co2PricePerTonCents ?? 4_500)
+        : (fuel.co2CostByLots ??
+          (fuel.co2Kg / 1_000) * (co2Config?.co2PricePerTonCents ?? 4_500))
       const intensity = manual
         ? (co2Config.intensityKgPerSqmYear ?? 0)
         : automaticIntensity

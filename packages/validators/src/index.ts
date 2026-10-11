@@ -25,3 +25,4 @@ export {
   legalRulesForPeriod,
   type LegalRule,
 } from './legal-rules'
+export { co2OpeningPriceIssues } from './co2-price'

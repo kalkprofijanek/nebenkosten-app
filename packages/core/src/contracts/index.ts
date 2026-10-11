@@ -115,6 +115,29 @@ export interface EnergySourceCalculationTrace {
   energyKwh: number
   co2FactorKgPerKwh: number
   co2Kg: number
+  /**
+   * CO₂-Kosten je verbrauchtem FIFO-Los (ADR-0010, A12). Nur vorhanden, wenn
+   * ein Anfangsbestand einen eigenen CO₂-Preis des Lieferjahres trägt.
+   */
+  co2Lots?: FuelLotCo2Trace[]
+  /** Summe der CO₂-Kosten aller Lose in Cent (gerundet), nur mit `co2Lots`. */
+  co2CostCents?: number
+}
+
+/** CO₂-Aufschlüsselung eines verbrauchten FIFO-Loses (ADR-0010, A12). */
+export interface FuelLotCo2Trace {
+  kind: FuelLotTrace['kind']
+  sourceId: string
+  /** Verbrauchte Menge aus diesem Los. */
+  consumedQuantity: number
+  energyKwh: number
+  co2Kg: number
+  /** Angesetzter CO₂-Preis in Cent je Tonne. */
+  pricePerTonCents: number
+  /** Herkunft des Preises: Lieferjahr des Anfangsbestands oder Abrechnungsjahr. */
+  priceSource: 'opening_stock' | 'billing_year'
+  /** CO₂-Kosten des Loses in Cent (kaufmännisch gerundet). */
+  costCents: number
 }
 
 export interface CircuitCo2Trace {
