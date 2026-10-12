@@ -27,7 +27,6 @@ import {
   DISPUTE_RESOLUTION_NOTICE,
   ENERGY_ADVICE_NOTICE,
   ENERGY_CARRIER_MIX_LABEL,
-  ENERGY_TAXES_NOTICE,
   NO_PREVIOUS_PERIOD_CONSUMPTION,
   NO_PREVIOUS_PERIOD_DATA,
   NOT_RESIDENT_IN_PREVIOUS_PERIOD,
@@ -53,6 +52,7 @@ import {
   type TenantFacts,
 } from './tenant-statement-data'
 import { MUTED } from './tenant-statement-tables'
+import { energyTaxesInformation } from './taxes-and-levies'
 
 /** Heller Balkenanteil (Warmwasser) neben `MUTED` (Heizwärme). */
 const LIGHT = '#b8c4ce'
@@ -593,6 +593,8 @@ export function consumptionInformation(
         `${formatNumber(split.baseDenominator)} m² ${baseAreaLabel(split.baseAreaBasis)}`,
       )} `
     : ''
+  // § 6a Abs. 3 Nr. 1 b HeizKV (ADR-0011)
+  const taxes = energyTaxesInformation(context, circuit)
   return [
     {
       text: CONSUMPTION_INFORMATION_HEADING,
@@ -605,8 +607,9 @@ export function consumptionInformation(
       margin: [0, 0, 0, 2],
     },
     ...previousPeriodSection(context, facts, unit),
+    ...taxes.content,
     {
-      text: `${benchmark ? `${benchmark.footnote} ` : ''}${averageText}${ENERGY_TAXES_NOTICE} ${ENERGY_ADVICE_NOTICE} ${DISPUTE_RESOLUTION_NOTICE}`,
+      text: `${benchmark ? `${benchmark.footnote} ` : ''}${averageText}${taxes.notice}${ENERGY_ADVICE_NOTICE} ${DISPUTE_RESOLUTION_NOTICE}`,
       fontSize: 8,
       color: MUTED,
       margin: [0, 0, 0, 8],

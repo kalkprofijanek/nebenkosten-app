@@ -26,6 +26,7 @@ import type {
 } from '@nebenkosten/schema'
 import { blank, periodCategories } from './helpers'
 import { issue } from './issues'
+import { taxesAndLeviesIssues } from './taxes-and-levies'
 
 type Add = (value: ValidationIssue) => void
 
@@ -210,6 +211,7 @@ export function heatingInformation(
           },
         ),
       )
+    taxesAndLeviesIssues(data, period, circuit, add)
     const sources = data.billingData.energySources.filter(
       ({ heatingCircuitId }) => heatingCircuitId === circuit.id,
     )

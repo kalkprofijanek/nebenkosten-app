@@ -7,6 +7,7 @@ import {
   type EnergySourceCalculationTrace,
   type FuelLotTrace,
   type HeatingCircuitTrace,
+  type HotWaterDenominatorSourceTrace,
 } from '@nebenkosten/core'
 import type {
   AllocationScope,
@@ -604,7 +605,46 @@ export function hotWaterEnergyText(energy: CircuitHotWaterEnergyTrace): string {
     : ''
   if (energy.energyInputMissing)
     return `Wärmemenge Warmwasser (§ 9 Abs. 2 HeizKV): ${formula}${condensing}. Der Energieeinsatz des Heizkreises ist nicht bekannt; ersatzweise gilt der Pauschalanteil.`
-  return `Wärmemenge Warmwasser (§ 9 Abs. 2 HeizKV): ${formula}${condensing}. Anteil am Energieeinsatz ${kwh(energy.energyInputKwh)}: ${formatNumber(energy.shareExact * 100, 2)} %${energy.capped ? ' (auf 100 % begrenzt)' : ''} (§ 9 Abs. 3 HeizKV).`
+  const share = `${formatNumber(energy.shareExact * 100, 2)} %${energy.capped ? ' (auf 100 % begrenzt)' : ''}`
+  const prefix = `Wärmemenge Warmwasser (§ 9 Abs. 2 HeizKV): ${formula}${condensing}.`
+  const method = energy.denominatorMethod ?? 'energy_input'
+  if (method === 'measured_heat')
+    return `${prefix} Anteil an der erzeugten Wärme: ${kwh(energy.heatKwh)} ÷ ${kwh(energy.denominatorKwh ?? energy.energyInputKwh)} gemessene Wärmemenge am Wärmeerzeuger = ${share} (Wärmepumpe, sinngemäß § 9 Abs. 3 HeizKV).`
+  if (method === 'seasonal_performance_factor')
+    return `${prefix} Anteil an der erzeugten Wärme: ${kwh(energy.heatKwh)} ÷ (${generatedHeatTerms(energy)}) = ${share} (Wärmepumpe: ${(energy.denominatorSources ?? []).some((source) => source.seasonalPerformanceFactorEstimated) ? 'Schätzung über die Jahresarbeitszahl' : 'erzeugte Wärme über die Jahresarbeitszahl'}, keine Wärmemessung am Erzeuger; sinngemäß § 9 Abs. 3 HeizKV).`
+  const heatPumpNote = energy.heatPumpWithoutHeatOutput
+    ? ' Hinweis: Der Energieeinsatz enthält Wärmepumpenstrom; ohne Jahresarbeitszahl oder gemessene Wärmemenge ist der Anteil auf den Strom statt auf die erzeugte Wärme bezogen.'
+    : ''
+  return `${prefix} Anteil am Energieeinsatz ${kwh(energy.energyInputKwh)}: ${share} (§ 9 Abs. 3 HeizKV).${heatPumpNote}`
+}
+
+/**
+ * Erzeugte Wärme je Energiequelle als Rechenweg, z. B. „21.500 kWh Strom ×
+ * Jahresarbeitszahl 3,2 = 68.800 kWh“, beim Hybrid ergänzt um die übrigen
+ * Quellen und die Summe.
+ */
+function estimateNote(source: HotWaterDenominatorSourceTrace): string {
+  if (!source.seasonalPerformanceFactorEstimated) return ''
+  return source.seasonalPerformanceFactorReason
+    ? ` (geschätzt: ${source.seasonalPerformanceFactorReason})`
+    : ' (geschätzt)'
+}
+
+function generatedHeatTerms(energy: CircuitHotWaterEnergyTrace): string {
+  const kwh = (value: number) => `${formatNumber(value, 0)} kWh`
+  const sources = (energy.denominatorSources ?? []).filter(
+    ({ energyInputKwh }) => energyInputKwh > 0,
+  )
+  const label = (raw: string | null, heatPump: boolean) =>
+    raw ? energyCarrierDisplayName(raw) : heatPump ? 'Strom' : 'Energie'
+  const terms = sources.map((source) =>
+    source.heatPump && source.seasonalPerformanceFactor != null
+      ? `${kwh(source.energyInputKwh)} ${label(source.label, true)} × Jahresarbeitszahl ${formatNumber(source.seasonalPerformanceFactor, Number.isInteger(source.seasonalPerformanceFactor * 10) ? 1 : 2)}${estimateNote(source)} = ${kwh(source.generatedHeatKwh)}`
+      : `${kwh(source.energyInputKwh)} ${label(source.label, false)}`,
+  )
+  return terms.length > 1
+    ? `${terms.join(' + ')} = ${kwh(energy.denominatorKwh ?? energy.energyInputKwh)}`
+    : (terms[0] ?? kwh(energy.denominatorKwh ?? energy.energyInputKwh))
 }
 
 /**

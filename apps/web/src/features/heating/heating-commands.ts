@@ -14,6 +14,7 @@ import {
   type HeatingSystem,
   type Quantity,
 } from '@nebenkosten/schema'
+import { isElectricityOrHeatPump } from './hot-water-form'
 
 export interface HeatingCommandDependencies {
   createId: () => string
@@ -343,11 +344,13 @@ export function addHeatingCircuit(
   }
   if (
     !input.hasCentralHotWater &&
-    (input.hotWaterEnergy != null || input.hotWaterAllocation != null)
+    (input.hotWaterEnergy != null ||
+      input.hotWaterAllocation != null ||
+      input.generatedHeatKwh != null)
   ) {
     throw new HeatingCommandError(
       'invalid-value',
-      'Wärmemenge und Verteilung des Warmwassers sind nur bei zentraler Warmwasserbereitung zulässig.',
+      'Wärmemenge, erzeugte Wärme und Verteilung des Warmwassers sind nur bei zentraler Warmwasserbereitung zulässig.',
     )
   }
   const consumption = input.overrides?.consumptionSharePercent
@@ -362,11 +365,13 @@ export function addHeatingCircuit(
       'Verbrauchs- und Grundkostenanteil müssen zusammen 100 Prozent ergeben.',
     )
   }
-  const { hotWaterEnergy, hotWaterAllocation, ...rest } = input
+  const { hotWaterEnergy, hotWaterAllocation, generatedHeatKwh, ...rest } =
+    input
   const entity = heatingCircuitSchema.parse({
     ...rest,
     ...(hotWaterEnergy ? { hotWaterEnergy } : {}),
     ...(hotWaterAllocation ? { hotWaterAllocation } : {}),
+    ...(generatedHeatKwh != null ? { generatedHeatKwh } : {}),
     id: newId(file, dependencies),
   })
   return validateResult({
@@ -415,8 +420,54 @@ export function addEnergySource(
       'Der Schlüssel wird in diesem Heizkreis bereits verwendet.',
     )
   }
+  // Jahresarbeitszahl nur für Wärmepumpenstrom (ADR-0010 „Wärmepumpen“).
+  if (
+    input.seasonalPerformanceFactor != null &&
+    !isElectricityOrHeatPump(input.sourceType, input.name, input.key)
+  ) {
+    throw new HeatingCommandError(
+      'invalid-value',
+      'Eine Jahresarbeitszahl ist nur bei Energiequellen mit Strom (Wärmepumpe) zulässig.',
+    )
+  }
+  if (
+    input.seasonalPerformanceFactor != null &&
+    input.seasonalPerformanceFactorEstimated === true &&
+    !input.seasonalPerformanceFactorReason?.trim()
+  ) {
+    throw new HeatingCommandError(
+      'invalid-value',
+      'Bitte die Grundlage der geschätzten Jahresarbeitszahl angeben (z. B. Herstellerangabe oder Planungswert).',
+    )
+  }
+  assertText(
+    input.seasonalPerformanceFactorReason,
+    'Die Grundlage der Jahresarbeitszahl',
+    300,
+  )
+  // Schätzkennzeichen und Begründung nur zusammen mit einer Jahresarbeitszahl.
+  const {
+    seasonalPerformanceFactor,
+    seasonalPerformanceFactorEstimated,
+    seasonalPerformanceFactorReason,
+    ...sourceRest
+  } = input
   const entity = energySourceSchema.parse({
-    ...input,
+    ...sourceRest,
+    ...(seasonalPerformanceFactor != null
+      ? {
+          seasonalPerformanceFactor,
+          ...(seasonalPerformanceFactorEstimated
+            ? { seasonalPerformanceFactorEstimated: true }
+            : {}),
+          ...(seasonalPerformanceFactorReason?.trim()
+            ? {
+                seasonalPerformanceFactorReason:
+                  seasonalPerformanceFactorReason.trim(),
+              }
+            : {}),
+        }
+      : {}),
     id: newId(file, dependencies),
   })
   return validateResult({
@@ -688,6 +739,7 @@ export function updateHeatingCircuit(
         input.hotWaterAllocation,
         current.hotWaterAllocation,
       ),
+      generatedHeatKwh: keep(input.generatedHeatKwh, current.generatedHeatKwh),
     },
     { createId: () => heatingCircuitId },
   )

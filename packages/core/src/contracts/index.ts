@@ -177,7 +177,23 @@ export interface CircuitHotWaterEnergyTrace {
   heatKwh: number
   /** Energieeinsatz des Heizkreises in kWh (Brennstoffverbrauch × Heizwert). */
   energyInputKwh: number
-  /** Ungerundeter Anteil s = min(1, Q ÷ Energieeinsatz) als Zahl 0–1. */
+  /**
+   * Bezugsgröße von s (ADR-0010 „Wärmepumpen“): Energieeinsatz, gemessene
+   * erzeugte Wärme oder Energieeinsatz × Jahresarbeitszahl. Die vier
+   * Nenner-Felder fehlen in Snapshots vor ADR-0010 „Wärmepumpen“
+   * (dann gilt `energy_input`).
+   */
+  denominatorMethod?: HotWaterDenominatorMethod
+  /** Nenner von s in kWh (bei `energy_input` = `energyInputKwh`). */
+  denominatorKwh?: number
+  /** Energieeinsatz und daraus erzeugte Wärme je Energiequelle. */
+  denominatorSources?: HotWaterDenominatorSourceTrace[]
+  /**
+   * Wärmepumpenquelle ohne Jahresarbeitszahl und ohne gemessene erzeugte
+   * Wärme: s ist auf den Strom statt auf die erzeugte Wärme bezogen.
+   */
+  heatPumpWithoutHeatOutput?: boolean
+  /** Ungerundeter Anteil s = min(1, Q ÷ Nenner) als Zahl 0–1. */
   shareExact: number
   /** Q war größer als der Energieeinsatz; s wurde auf 1 begrenzt. */
   capped: boolean
@@ -186,6 +202,29 @@ export interface CircuitHotWaterEnergyTrace {
    * bestimmbar, es gilt ersatzweise `hotWaterSharePercent`.
    */
   energyInputMissing: boolean
+}
+
+/** Bezugsgröße des Warmwasseranteils s (ADR-0010 „Wärmepumpen“). */
+export type HotWaterDenominatorMethod =
+  'energy_input' | 'measured_heat' | 'seasonal_performance_factor'
+
+/** Energieeinsatz und erzeugte Wärme einer Energiequelle für den Nenner von s. */
+export interface HotWaterDenominatorSourceTrace {
+  energySourceId: string
+  /** Bezeichnung der Energiequelle (Name, Energieträger oder Schlüssel). */
+  label: string | null
+  /** Energieeinsatz in kWh (Verbrauch × Heizwert bzw. Strom-kWh). */
+  energyInputKwh: number
+  /** Als Wärmepumpenstrom erkannt. */
+  heatPump: boolean
+  /** Jahresarbeitszahl (nur Wärmepumpen). */
+  seasonalPerformanceFactor: number | null
+  /** Jahresarbeitszahl ist geschätzt (z. B. Herstellerangabe). */
+  seasonalPerformanceFactorEstimated?: boolean
+  /** Begründung bzw. Quelle der Jahresarbeitszahl. */
+  seasonalPerformanceFactorReason?: string | null
+  /** Angesetzte erzeugte Wärme in kWh (Energieeinsatz × Jahresarbeitszahl bzw. × 1). */
+  generatedHeatKwh: number
 }
 
 /** Warmwasseranteile je Kostenart nach § 9 Abs. 1 HeizKV (gerundet, Summe = Topf). */

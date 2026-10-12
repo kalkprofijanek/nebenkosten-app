@@ -52,6 +52,69 @@
    meldet die nicht verordnungskonformen Altverfahren (Pauschalanteil,
    Personenschlüssel, gemischter Maßstab ohne Zwischenablesung).
 
+## Wärmepumpen (Ergänzung 12.10.2026)
+
+**Problem.** s = Q ÷ Energieeinsatz in kWh setzt bei elektrischen
+Wärmepumpen die Wärmemenge Q ins Verhältnis zum **Strom**. Aus einer kWh
+Strom entstehen etwa so viele kWh Wärme, wie die Jahresarbeitszahl angibt.
+Beispiel (fiktiv): Q = 32 kWh/m² × 400 m² = 12.800 kWh, Strom 21.500 kWh →
+s = 59,5 %; bezogen auf die erzeugte Wärme (Jahresarbeitszahl 3,2 → 68.800
+kWh) s = 18,6 %. Beim Hybrid (Wärmepumpe + Erdgas) ist der
+Wärmepumpenanteil am Nenner entsprechend unterbewertet.
+
+**Rechtslage.** § 9 Abs. 3 HeizKV (B = Q ÷ Hᵢ) ist für Brennstoffe
+formuliert. Für elektrisch angetriebene Wärmepumpen enthält die HeizKV keine
+Regel zur Aufteilung bei verbundenen Anlagen.
+
+**Entscheidung (offene Entscheidung, sachgerechte Auslegung).** Q wird ins
+Verhältnis zur **erzeugten Wärme** gesetzt:
+
+1. `HeatingCircuit.generatedHeatKwh` (optional, > 0): gemessene, vom
+   Erzeuger abgegebene Wärmemenge (Wärmemengenzähler) → s = Q ÷
+   `generatedHeatKwh`.
+2. Sonst `EnergySource.seasonalPerformanceFactor` (optional, 1–8,
+   Jahresarbeitszahl) je Wärmepumpenquelle → Nenner = Σ kWh je Quelle ×
+   Jahresarbeitszahl (Wärmepumpenstrom) bzw. × 1 (Brennstoffe, Fernwärme).
+3. Wärmepumpenquelle ohne beides → bisheriges Verhalten (Strom-kWh), Trace
+   `heatPumpWithoutHeatOutput`, Prüffehler
+   `heating_compliance.heat_pump_heat_output_missing`.
+4. **Entscheidung des Nutzers (12.10.2026):** An den Wärmepumpen gibt es
+   weder Wärmemengenzähler noch eine bekannte Jahresarbeitszahl, nur
+   Strom-kWh. Die Jahresarbeitszahl kann deshalb als **Schätzwert** erfasst
+   werden: `EnergySource.seasonalPerformanceFactorEstimated` (Kennzeichen)
+   und `EnergySource.seasonalPerformanceFactorReason` (Pflichtbegründung,
+   z. B. Herstellerangabe, Planungswert). Das PDF weist sie als Schätzung
+   mit Grundlage aus; die Prüfung warnt
+   (`heating_compliance.heat_pump_seasonal_performance_factor_estimated`)
+   und meldet einen Fehler bei fehlender Begründung
+   (`heating_compliance.heat_pump_seasonal_performance_factor_reason_missing`).
+   Eine nicht als geschätzt gekennzeichnete Jahresarbeitszahl ohne
+   Wärmemessung erzeugt den Hinweis
+   `heating_compliance.heat_pump_seasonal_performance_factor_estimate`.
+   Der Kern setzt **keine Standard-Jahresarbeitszahl** an (offene
+   Entscheidung, welcher Wert sachgerecht wäre).
+
+Wärmepumpen werden erkannt an einer gesetzten Jahresarbeitszahl,
+„Wärmepumpe“/Schlüssel `wp…` an der Energiequelle oder Strom als
+Energieträger in einem Gebäude mit Energieträger „WP …“/„Hybrid …“
+(`isHeatPumpEnergySource`). Der Trace weist Nenner-Methode, Nenner und
+erzeugte Wärme je Quelle aus; das PDF zeigt den Rechenweg, z. B. „Anteil an
+der erzeugten Wärme: 12.800 kWh ÷ (21.500 kWh Strom × Jahresarbeitszahl 3,2
+= 68.800 kWh) = 18,60 %“.
+
+Der § 6a-Block bleibt unverändert: Er verteilt den Energieeinsatz des
+Gebäudes (bei Wärmepumpen Strom-kWh) mit dem dimensionslosen Anteil s auf
+Heizung und Warmwasser; die Energieträger-Anteile bleiben Anteile am
+Energieeinsatz (§ 6a Abs. 3 Nr. 2 HeizKV). Das ist mit dem neuen Nenner
+konsistent.
+
+Offen: ob der Vermieter bei Wärmepumpen statt der Jahresarbeitszahl eine
+andere Schätzung (z. B. Herstellerangabe, Wärmepumpen-Effizienzmessung)
+ansetzen darf; ob Strom für eine Direktheizung im Hybridgebäude von der
+Freitext-Erkennung als Wärmepumpe erfasst wird (dann Jahresarbeitszahl 1
+eintragen); die Jahresarbeitszahl gilt für Heizung und Warmwasser
+einheitlich.
+
 ## Offene Entscheidungen
 
 - Ohne Warmwasserzähler ist keine Verteilung verbrauchsabhängig; die
@@ -68,4 +131,6 @@
 
 ## Migrationsauswirkungen
 
-Additive, optionale Felder; Schema v5 bleibt; keine Migration.
+Additive, optionale Felder; Schema v5 bleibt; keine Migration. Das gilt
+auch für `HeatingCircuit.generatedHeatKwh` und
+`EnergySource.seasonalPerformanceFactor` (Wärmepumpen).

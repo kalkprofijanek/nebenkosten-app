@@ -8,8 +8,11 @@ import {
   circuitEnergyInputKwh,
   hotWaterEnergyShare,
   hotWaterEnergyTrace,
+  hotWaterDenominator,
   hotWaterHeatKwh,
+  sourceEnergyInputKwh,
 } from '../src/heating/hot-water'
+import { isHeatPumpEnergySource } from '../src/heating/energy-carrier'
 import type { EnergySourceCalculationTrace } from '../src'
 
 function appDataFor(caseId = 'case-10-central-hot-water'): AppDataFile {
@@ -408,5 +411,186 @@ describe('§ 8 Abs. 1 HeizKV: Verteilschlüssel Warmwasser', () => {
       consumptionFallbackToArea: true,
       consumptionSharePercent: 0,
     })
+  })
+})
+
+describe('Warmwasseranteil bei Wärmepumpen (ADR-0010 „Wärmepumpen“)', () => {
+  /** Die Energiequelle des Musterfalls wird zum Wärmepumpenstrom (40.000 kWh). */
+  function heatPumpAppData(
+    patch: Partial<HeatingCircuit> = {},
+    seasonalPerformanceFactor?: number,
+  ): AppDataFile {
+    const appData = sectionNineAppData({
+      hotWaterEnergy: { method: 'heat_meter', heatKwh: 8_000 },
+      ...patch,
+    })
+    const source = appData.billingData.energySources[0]!
+    Object.assign(source, {
+      key: 'wp_strom',
+      name: 'Wärmepumpenstrom',
+      sourceType: 'Strom',
+      ...(seasonalPerformanceFactor != null
+        ? { seasonalPerformanceFactor }
+        : {}),
+    })
+    return appData
+  }
+
+  it('bleibt ohne Wärmepumpe beim Energieeinsatz', () => {
+    const energy = calculate(
+      sectionNineAppData({
+        hotWaterEnergy: { method: 'heat_meter', heatKwh: 8_000 },
+      }),
+    ).heating.trace.circuits[0]!.warmWater.energy!
+    expect(energy).toMatchObject({
+      denominatorMethod: 'energy_input',
+      denominatorKwh: 40_000,
+      heatPumpWithoutHeatOutput: false,
+      shareExact: 0.2,
+    })
+    expect(energy.denominatorSources?.[0]).toMatchObject({
+      heatPump: false,
+      energyInputKwh: 40_000,
+      generatedHeatKwh: 40_000,
+    })
+  })
+
+  it('meldet Wärmepumpe ohne Jahresarbeitszahl und rechnet wie bisher', () => {
+    const energy =
+      calculate(heatPumpAppData()).heating.trace.circuits[0]!.warmWater.energy!
+    expect(energy).toMatchObject({
+      denominatorMethod: 'energy_input',
+      denominatorKwh: 40_000,
+      heatPumpWithoutHeatOutput: true,
+      shareExact: 0.2,
+    })
+  })
+
+  it('rechnet den Strom mit der Jahresarbeitszahl in erzeugte Wärme um', () => {
+    const result = calculate(heatPumpAppData({}, 2))
+    const { warmWater } = result.heating.trace.circuits[0]!
+    expect(warmWater.energy).toMatchObject({
+      denominatorMethod: 'seasonal_performance_factor',
+      energyInputKwh: 40_000,
+      denominatorKwh: 80_000,
+      heatPumpWithoutHeatOutput: false,
+      shareExact: 0.1,
+    })
+    expect(warmWater.energy!.denominatorSources?.[0]).toMatchObject({
+      heatPump: true,
+      seasonalPerformanceFactor: 2,
+      generatedHeatKwh: 80_000,
+    })
+    expect(warmWater.sharePercent).toBe(10)
+    expect(result.totals.controlDifferenceCents).toBe(0)
+  })
+
+  it('übernimmt Schätzkennzeichen und Begründung der Jahresarbeitszahl', () => {
+    const appData = heatPumpAppData({}, 3)
+    Object.assign(appData.billingData.energySources[0]!, {
+      seasonalPerformanceFactorEstimated: true,
+      seasonalPerformanceFactorReason: 'Herstellerangabe (fiktiv)',
+    })
+    const energy =
+      calculate(appData).heating.trace.circuits[0]!.warmWater.energy!
+    expect(energy.denominatorSources?.[0]).toMatchObject({
+      seasonalPerformanceFactor: 3,
+      seasonalPerformanceFactorEstimated: true,
+      seasonalPerformanceFactorReason: 'Herstellerangabe (fiktiv)',
+      generatedHeatKwh: 120_000,
+    })
+  })
+
+  it('bevorzugt die gemessene erzeugte Wärme', () => {
+    const energy = calculate(heatPumpAppData({ generatedHeatKwh: 64_000 }, 2))
+      .heating.trace.circuits[0]!.warmWater.energy!
+    expect(energy).toMatchObject({
+      denominatorMethod: 'measured_heat',
+      denominatorKwh: 64_000,
+      heatPumpWithoutHeatOutput: false,
+      shareExact: 0.125,
+    })
+  })
+
+  it('rechnet beim Hybrid je Quelle (nur Wärmepumpenstrom × Jahresarbeitszahl)', () => {
+    const denominator = hotWaterDenominator(
+      21_500 + 26_000,
+      [
+        {
+          trace: sourceTrace({
+            energySourceId: 'wp',
+            quantityUnit: 'kWh',
+            consumedQuantity: 21_500,
+            calorificValueKwhPerUnit: 1,
+            energyKwh: 21_500,
+          }),
+          heatPump: true,
+          seasonalPerformanceFactor: 3.2,
+        },
+        {
+          trace: sourceTrace({
+            energySourceId: 'gas',
+            quantityUnit: 'm3',
+            consumedQuantity: 2_600,
+            calorificValueKwhPerUnit: 10,
+            energyKwh: 26_000,
+          }),
+          heatPump: false,
+          seasonalPerformanceFactor: null,
+        },
+      ],
+      null,
+    )
+    expect(denominator.method).toBe('seasonal_performance_factor')
+    expect(denominator.denominatorKwh).toBeCloseTo(68_800 + 26_000, 6)
+    expect(denominator.sources.map((s) => s.generatedHeatKwh)).toEqual([
+      68_800, 26_000,
+    ])
+  })
+
+  it('zählt Strom ohne Heizwert mit seiner Menge in kWh', () => {
+    expect(
+      sourceEnergyInputKwh(
+        sourceTrace({ quantityUnit: 'kWh', consumedQuantity: 500 }),
+      ),
+    ).toBe(500)
+    expect(
+      sourceEnergyInputKwh(
+        sourceTrace({ quantityUnit: 'l', consumedQuantity: 5 }),
+      ),
+    ).toBe(0)
+  })
+})
+
+describe('isHeatPumpEnergySource', () => {
+  it.each([
+    [{ key: 'wp_strom', name: null, sourceType: null }, null],
+    [{ key: 'wp', name: null, sourceType: 'Strom' }, null],
+    [{ key: 'haupt', name: 'Wärmepumpenstrom', sourceType: null }, null],
+    [{ key: 'haupt', name: null, sourceType: 'Strom' }, 'WP Mono'],
+    [{ key: 'haupt', name: null, sourceType: 'Strom' }, 'Hybrid WP+Gas'],
+    [
+      {
+        key: 'haupt',
+        name: null,
+        sourceType: 'Heizöl',
+        seasonalPerformanceFactor: 3,
+      },
+      null,
+    ],
+  ])('erkennt Wärmepumpenstrom (%o, Gebäude %s)', (source, building) => {
+    expect(isHeatPumpEnergySource(source, building)).toBe(true)
+  })
+
+  it.each([
+    [{ key: 'haupt', name: null, sourceType: 'Strom' }, null],
+    [{ key: 'haupt', name: null, sourceType: 'Strom' }, 'Heizöl'],
+    [
+      { key: 'gas', name: 'Erdgas Spitzenlast', sourceType: 'Gas' },
+      'Hybrid WP+Gas',
+    ],
+    [{ key: 'wpx', name: null, sourceType: null }, null],
+  ])('erkennt keine Wärmepumpe (%o, Gebäude %s)', (source, building) => {
+    expect(isHeatPumpEnergySource(source, building)).toBe(false)
   })
 })

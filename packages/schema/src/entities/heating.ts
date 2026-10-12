@@ -8,6 +8,7 @@ import {
   entityIdSchema,
   isoDateSchema,
   moneyCentsSchema,
+  nonNegativeMoneyCentsSchema,
   percentSchema,
   quantitySchema,
 } from '../primitives'
@@ -192,6 +193,15 @@ export const heatingCircuitSchema = z.strictObject({
   hotWaterEnergy: hotWaterEnergySchema.nullish(),
   /** Verteilung der Warmwasserkosten nach § 8 HeizKV (additiv, ADR-0010). */
   hotWaterAllocation: hotWaterAllocationSchema.nullish(),
+  /**
+   * Gemessene, vom Wärmeerzeuger abgegebene Wärmemenge des Heizkreises im
+   * Abrechnungszeitraum in kWh (Wärmemengenzähler am Erzeuger, additiv,
+   * ADR-0010 „Wärmepumpen“). Gesetzt, bezieht der Kern den
+   * Warmwasseranteil s = Q ÷ erzeugte Wärme auf diesen Wert statt auf den
+   * Energieeinsatz. Leer = Energieeinsatz, bei Wärmepumpen mit
+   * `EnergySource.seasonalPerformanceFactor` hochgerechnet.
+   */
+  generatedHeatKwh: z.number().finite().positive().nullish(),
 })
 export type HeatingCircuit = z.infer<typeof heatingCircuitSchema>
 
@@ -211,6 +221,25 @@ export const energySourceSchema = z.strictObject({
   /** Heizwert kWh je Mengeneinheit (Legacy `heizwert_kwh`). */
   calorificValueKwhPerUnit: z.number().finite().nonnegative().nullish(),
   co2FactorKgPerKwh: z.number().finite().nonnegative().nullish(),
+  /**
+   * Jahresarbeitszahl einer Wärmepumpe (erzeugte Wärme ÷ eingesetzter Strom,
+   * additiv, ADR-0010 „Wärmepumpen“), nur bei Wärmepumpenstrom. Damit wird
+   * der Stromeinsatz für den Warmwasseranteil in erzeugte Wärme umgerechnet,
+   * wenn keine gemessene Wärmemenge (`HeatingCircuit.generatedHeatKwh`)
+   * vorliegt. Schätzwert; ein Wärmemengenzähler ist vorzuziehen.
+   */
+  seasonalPerformanceFactor: z.number().finite().min(1).max(8).nullish(),
+  /**
+   * Die Jahresarbeitszahl ist geschätzt (z. B. Herstellerangabe oder
+   * Planungswert), nicht aus Wärme- und Strommessung ermittelt. Die Prüfung
+   * warnt; das PDF weist sie als Schätzung aus.
+   */
+  seasonalPerformanceFactorEstimated: z.boolean().nullish(),
+  /**
+   * Begründung bzw. Quelle der Jahresarbeitszahl (Pflicht bei geschätzter
+   * Jahresarbeitszahl; Prüfung und Eingabe verlangen sie).
+   */
+  seasonalPerformanceFactorReason: z.string().trim().min(1).nullish(),
 })
 export type EnergySource = z.infer<typeof energySourceSchema>
 
@@ -245,6 +274,31 @@ export type FuelStock = z.infer<typeof fuelStockSchema>
 export const fuelDeliveryQuantityStatusSchema = z.string()
 
 /**
+ * In einer Brennstoff-/Energierechnung ausgewiesene Steuern und Abgaben
+ * (§ 6a Abs. 3 Nr. 1 b HeizKV, ADR-0011). Alle Beträge in Cent und als
+ * Bestandteile des Rechnungsbetrags `FuelDelivery.amountCents` (brutto,
+ * einschließlich Umsatzsteuer); sie werden nicht zusätzlich verteilt.
+ * - `vatCents`/`vatRatePercent`: Umsatzsteuer und ihr Satz (z. B. 19 oder 7),
+ * - `energyTaxCents`: Energiesteuer (Heizöl, Gas) bzw. Stromsteuer,
+ * - `co2LevyCents`: CO₂-Kosten nach BEHG, sofern auf der Rechnung ausgewiesen
+ *   (leer = die berechneten CO₂-Kosten werden ausgewiesen),
+ * - `otherLeviesCents`/`otherLeviesLabel`: sonstige Abgaben und Umlagen
+ *   (z. B. Konzessionsabgabe, Gasspeicherumlage) mit Bezeichnung.
+ * Leer = nicht erfasst (additiv, Schema v5).
+ */
+export const fuelDeliveryTaxesAndLeviesSchema = z.strictObject({
+  vatCents: nonNegativeMoneyCentsSchema.nullish(),
+  vatRatePercent: percentSchema.nullish(),
+  energyTaxCents: nonNegativeMoneyCentsSchema.nullish(),
+  co2LevyCents: nonNegativeMoneyCentsSchema.nullish(),
+  otherLeviesCents: nonNegativeMoneyCentsSchema.nullish(),
+  otherLeviesLabel: z.string().trim().max(200).nullish(),
+})
+export type FuelDeliveryTaxesAndLevies = z.infer<
+  typeof fuelDeliveryTaxesAndLeviesSchema
+>
+
+/**
  * FuelDelivery / Brennstofflieferung (Legacy: `lieferungen[]`).
  */
 export const fuelDeliverySchema = z.strictObject({
@@ -265,5 +319,7 @@ export const fuelDeliverySchema = z.strictObject({
   meterId: entityIdSchema.nullish(),
   /** Herkunftsmarker: aus Kostenart-Beleg konvertiert (Legacy). */
   convertedFromCostCategoryId: entityIdSchema.nullish(),
+  /** Steuern und Abgaben laut Rechnung (§ 6a Abs. 3 Nr. 1 b HeizKV, ADR-0011). */
+  taxesAndLevies: fuelDeliveryTaxesAndLeviesSchema.nullish(),
 })
 export type FuelDelivery = z.infer<typeof fuelDeliverySchema>

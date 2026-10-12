@@ -39,9 +39,12 @@ export function HotWaterFields({
   energy,
   allocation,
   energySourceType,
+  generatedHeatKwh,
   errors = {},
 }: {
   readonly energy?: HotWaterEnergy | null
+  /** Gemessene erzeugte Wärme des Heizkreises (ADR-0010 „Wärmepumpen“). */
+  readonly generatedHeatKwh?: number | null
   readonly allocation?: HotWaterAllocation | null
   /** Energieträger des Heizkreises; ohne Angabe bleibt Erdgas wählbar. */
   readonly energySourceType?: string | null
@@ -196,6 +199,19 @@ export function HotWaterFields({
           {hint(
             'condensing',
             '§ 9 Abs. 2 Satz 5 HeizKV: Nur bei Erdgas, dessen Lieferung nach dem Brennwert abgerechnet wird.',
+          )}
+        </>
+      ) : null}
+      {method !== '' ? (
+        <>
+          {numberInput(
+            'generatedHeatKwh',
+            'Erzeugte Wärme des Heizkreises (kWh, Wärmemengenzähler am Erzeuger, optional)',
+            generatedHeatKwh,
+          )}
+          {hint(
+            'generated-heat',
+            'Bei Wärmepumpen wird die Wärmemenge Warmwasser auf die erzeugte Wärme bezogen, nicht auf den Strom. Leer = Stromverbrauch × Jahresarbeitszahl der Energiequelle (Schätzung); bei Brennstoffen bleibt es beim Energieeinsatz.',
           )}
         </>
       ) : null}

@@ -22,6 +22,7 @@ export type HotWaterField =
   | 'areaSqm'
   | 'reason'
   | 'consumptionSharePercent'
+  | 'generatedHeatKwh'
 
 export type HotWaterErrors = Partial<Record<HotWaterField, string>>
 
@@ -37,6 +38,7 @@ export const HOT_WATER_FIELD_NAMES = {
   condensingNaturalGas: 'hotWaterCondensingNaturalGas',
   allocationKey: 'hotWaterAllocationKey',
   consumptionSharePercent: 'hotWaterConsumptionSharePercent',
+  generatedHeatKwh: 'generatedHeatKwh',
 } as const
 
 export const HOT_WATER_ENERGY_OPTIONS: readonly {
@@ -84,6 +86,8 @@ const FIELD_MESSAGES: Record<HotWaterField, string> = {
     'Bitte begründen, warum weder Wärmemenge noch Volumen gemessen werden können (§ 9 Abs. 2 Satz 4 HeizKV).',
   consumptionSharePercent:
     'Bitte den Verbrauchsanteil zwischen 50 und 70 Prozent angeben (§ 8 Abs. 1 HeizKV).',
+  generatedHeatKwh:
+    'Die erzeugte Wärmemenge muss eine positive Zahl in kWh sein oder leer bleiben.',
 }
 
 export type HotWaterFormResult =
@@ -91,6 +95,11 @@ export type HotWaterFormResult =
       readonly ok: true
       readonly hotWaterEnergy: HotWaterEnergy | null
       readonly hotWaterAllocation: HotWaterAllocation | null
+      /**
+       * Gemessene erzeugte Wärme des Heizkreises in kWh
+       * (`HeatingCircuit.generatedHeatKwh`, ADR-0010 „Wärmepumpen“).
+       */
+      readonly generatedHeatKwh: number | null
     }
   | { readonly ok: false; readonly errors: HotWaterErrors }
 
@@ -168,7 +177,12 @@ export function readHotWaterForm(
   hasCentralHotWater: boolean,
 ): HotWaterFormResult {
   if (!hasCentralHotWater)
-    return { ok: true, hotWaterEnergy: null, hotWaterAllocation: null }
+    return {
+      ok: true,
+      hotWaterEnergy: null,
+      hotWaterAllocation: null,
+      generatedHeatKwh: null,
+    }
   const errors: HotWaterErrors = {}
   const method = text(
     form,
@@ -204,8 +218,29 @@ export function readHotWaterForm(
     else
       errors.consumptionSharePercent ??= FIELD_MESSAGES.consumptionSharePercent
   }
+  let generatedHeatKwh: number | null = null
+  if (method !== '') {
+    const value = readNumbers(
+      form,
+      ['generatedHeatKwh'],
+      errors,
+    ).generatedHeatKwh
+    if (value !== undefined) {
+      if (value > 0) generatedHeatKwh = value
+      else errors.generatedHeatKwh = FIELD_MESSAGES.generatedHeatKwh
+    }
+  }
   if (Object.keys(errors).length > 0) return { ok: false, errors }
-  return { ok: true, hotWaterEnergy, hotWaterAllocation }
+  return { ok: true, hotWaterEnergy, hotWaterAllocation, generatedHeatKwh }
+}
+
+/** Ob die Energiequelle Strom bzw. eine Wärmepumpe ist (Jahresarbeitszahl). */
+export function isElectricityOrHeatPump(
+  ...values: readonly (string | null | undefined)[]
+): boolean {
+  return values.some((value) =>
+    /strom|w(?:ä|ae)rmepumpe|^wp(?:\b|_)/iu.test((value ?? '').trim()),
+  )
 }
 
 /** Ob der Energieträger-Freitext auf Erdgas hindeutet (Faktor 1,11). */
@@ -216,3 +251,10 @@ export function isNaturalGas(sourceType: string | null | undefined): boolean {
 export function germanNumber(value: number | null | undefined): string {
   return value == null ? '' : String(value).replace('.', ',')
 }
+
+/** Formularfeldnamen der Jahresarbeitszahl (ADR-0010 „Wärmepumpen“). */
+export const SEASONAL_PERFORMANCE_FACTOR_FIELD_NAMES = {
+  value: 'seasonalPerformanceFactor',
+  estimated: 'seasonalPerformanceFactorEstimated',
+  reason: 'seasonalPerformanceFactorReason',
+} as const
