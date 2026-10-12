@@ -32,11 +32,13 @@ import {
 import { calculatePrepaymentCents } from '../prepayments'
 import { allocateLargestRemainder } from '../rest-cents'
 import { roundCentsHalfAwayFromZero } from '../rounding'
+import { isHeatPumpEnergySource } from '../heating/energy-carrier'
 import { calculateEnergySourceFuel } from '../heating/fuel'
 import { calculateOperatingElectricityPlan } from '../heating/operating-electricity'
 import { outputCircuit, outputCircuitTrace } from '../heating/output'
 import {
   circuitEnergyInputKwh,
+  hotWaterDenominator,
   hotWaterEnergyTrace,
   type HotWaterUnits,
 } from '../heating/hot-water'
@@ -595,10 +597,13 @@ function rawCircuitResults(
       // Pauschalanteil `hotWaterSharePercent`.
       const hotWaterEnergy =
         circuit?.hasCentralHotWater && circuit.hotWaterEnergy
-          ? hotWaterEnergyTrace(
+          ? hotWaterEnergyTraceForCircuit(
+              input,
+              buildingId,
+              circuit,
               circuit.hotWaterEnergy,
               circuitUsableAreaSqm(circuitContexts),
-              circuitEnergyInputKwh(fuel.energyKwh, fuel.sources),
+              fuel,
             )
           : undefined
       const hotWaterSection9Share =
@@ -839,6 +844,53 @@ function rawCircuitResults(
  * Wohnfläche der Einheiten eines Heizkreises (jede Einheit einmal) als
  * Ersatz für A_Wohn der Flächenformel nach § 9 Abs. 2 HeizKV.
  */
+/**
+ * Wärmemenge und Anteil s mit dem Nenner nach ADR-0010 „Wärmepumpen“
+ * (gemessene erzeugte Wärme bzw. Jahresarbeitszahl je Wärmepumpenquelle).
+ */
+function hotWaterEnergyTraceForCircuit(
+  input: CalculationInput,
+  buildingId: string,
+  circuit: CalculationInput['heatingCircuits'][number],
+  energy: NonNullable<
+    CalculationInput['heatingCircuits'][number]['hotWaterEnergy']
+  >,
+  usableAreaSqm: number,
+  fuel: AggregateFuelResult,
+) {
+  const energyInputKwh = circuitEnergyInputKwh(fuel.energyKwh, fuel.sources)
+  const buildingEnergySourceType = input.buildings.find(
+    ({ id }) => id === buildingId,
+  )?.defaultEnergySourceType
+  const entities = new Map(
+    input.energySources
+      .filter(({ heatingCircuitId }) => heatingCircuitId === circuit.id)
+      .map((source) => [source.id, source]),
+  )
+  const sources = fuel.sources.map((trace) => {
+    const entity = entities.get(trace.energySourceId)
+    return {
+      trace,
+      label: entity ? (entity.name ?? entity.sourceType ?? entity.key) : null,
+      heatPump: entity
+        ? isHeatPumpEnergySource(entity, buildingEnergySourceType)
+        : false,
+      seasonalPerformanceFactor: entity?.seasonalPerformanceFactor ?? null,
+      seasonalPerformanceFactorEstimated: Boolean(
+        entity?.seasonalPerformanceFactorEstimated,
+      ),
+      seasonalPerformanceFactorReason:
+        entity?.seasonalPerformanceFactorReason ?? null,
+    }
+  })
+  return hotWaterEnergyTrace(
+    energy,
+    usableAreaSqm,
+    energyInputKwh,
+    hotWaterDenominator(energyInputKwh, sources, circuit.generatedHeatKwh),
+  )
+}
+
 function circuitUsableAreaSqm(contexts: readonly OccupancyContext[]): number {
   const byUnit = new Map<string, number>()
   for (const context of contexts)

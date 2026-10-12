@@ -200,3 +200,65 @@ describe('Warmwasser nach §§ 8, 9 HeizKV in der Einzelabrechnung', () => {
     expect(table).toContain('davon Heizung (nach Grund- und Verbrauchsanteil)')
   })
 })
+
+describe('Warmwasseranteil bei Wärmepumpen im PDF (ADR-0010 „Wärmepumpen“)', () => {
+  function heatPumpText(
+    patch: Partial<HeatingCircuit>,
+    seasonalPerformanceFactor?: number,
+  ): string {
+    const data = appData({
+      hotWaterEnergy: { method: 'heat_meter', heatKwh: 8_000 },
+      ...patch,
+    })
+    Object.assign(data.billingData.energySources[0]!, {
+      key: 'wp_strom',
+      name: 'Strom',
+      sourceType: 'Strom',
+      seasonalPerformanceFactor,
+    })
+    return text(
+      buildTenantStatement(buildFixtureTenantStatementContext(data)).content,
+    )
+  }
+
+  it('weist den Nenner mit Jahresarbeitszahl nachvollziehbar aus', () => {
+    expect(heatPumpText({}, 3.2)).toContain(
+      'Anteil an der erzeugten Wärme: 8.000 kWh ÷ (40.000 kWh Strom × Jahresarbeitszahl 3,2 = 128.000 kWh) = 6,25 %',
+    )
+  })
+
+  it('weist eine geschätzte Jahresarbeitszahl mit Begründung aus', () => {
+    const data = appData({
+      hotWaterEnergy: { method: 'heat_meter', heatKwh: 8_000 },
+    })
+    Object.assign(data.billingData.energySources[0]!, {
+      key: 'wp_strom',
+      name: 'Strom',
+      sourceType: 'Strom',
+      seasonalPerformanceFactor: 3.2,
+      seasonalPerformanceFactorEstimated: true,
+      seasonalPerformanceFactorReason: 'Herstellerangabe (fiktiv)',
+    })
+    const serialized = text(
+      buildTenantStatement(buildFixtureTenantStatementContext(data)).content,
+    )
+    expect(serialized).toContain(
+      '40.000 kWh Strom × Jahresarbeitszahl 3,2 (geschätzt: Herstellerangabe (fiktiv)) = 128.000 kWh',
+    )
+    expect(serialized).toContain('Schätzung über die Jahresarbeitszahl')
+  })
+
+  it('weist die gemessene Wärmemenge als Nenner aus', () => {
+    expect(heatPumpText({ generatedHeatKwh: 100_000 }, 3.2)).toContain(
+      'Anteil an der erzeugten Wärme: 8.000 kWh ÷ 100.000 kWh gemessene Wärmemenge am Wärmeerzeuger = 8,00 %',
+    )
+  })
+
+  it('weist ohne Jahresarbeitszahl auf den Strombezug hin', () => {
+    const serialized = heatPumpText({})
+    expect(serialized).toContain('Anteil am Energieeinsatz 40.000 kWh: 20,00 %')
+    expect(serialized).toContain(
+      'ist der Anteil auf den Strom statt auf die erzeugte Wärme bezogen',
+    )
+  })
+})

@@ -793,3 +793,83 @@ describe('Warmwasser am Heizkreis (§§ 8, 9 HeizKV, ADR-0010)', () => {
     )
   })
 })
+
+describe('Wärmepumpe am Heizkreis (ADR-0010 „Wärmepumpen“)', () => {
+  const circuitInput = {
+    billingPeriodId: IDS.period,
+    heatingSystemId: IDS.system,
+    buildingId: IDS.building,
+    hasCentralHotWater: true,
+    hotWaterEnergy: { method: 'heat_meter' as const, heatKwh: 12_800 },
+  }
+
+  it('erhält, setzt und entfernt die erzeugte Wärme', () => {
+    const set = updateHeatingCircuit(createHeatingContext(), IDS.circuit, {
+      ...circuitInput,
+      generatedHeatKwh: 68_800,
+    })
+    expect(set.billingData.heatingCircuits[0]?.generatedHeatKwh).toBe(68_800)
+    const kept = updateHeatingCircuit(set, IDS.circuit, circuitInput)
+    expect(kept.billingData.heatingCircuits[0]?.generatedHeatKwh).toBe(68_800)
+    const removed = updateHeatingCircuit(kept, IDS.circuit, {
+      ...circuitInput,
+      generatedHeatKwh: null,
+    })
+    expect(removed.billingData.heatingCircuits[0]).not.toHaveProperty(
+      'generatedHeatKwh',
+    )
+  })
+
+  it('lässt die Jahresarbeitszahl nur bei Strom zu', () => {
+    const context = createHeatingContext()
+    expect(() =>
+      updateEnergySource(context, IDS.source, {
+        heatingCircuitId: IDS.circuit,
+        key: 'haupt',
+        name: 'Heizöl',
+        sourceType: 'Heizöl',
+        seasonalPerformanceFactor: 3,
+      }),
+    ).toThrowError('Jahresarbeitszahl')
+    const heatPump = updateEnergySource(context, IDS.source, {
+      heatingCircuitId: IDS.circuit,
+      key: 'wp',
+      name: 'Wärmepumpenstrom',
+      sourceType: 'Strom',
+      calorificValueKwhPerUnit: 1,
+      seasonalPerformanceFactor: 3.2,
+    })
+    expect(
+      heatPump.billingData.energySources[0]?.seasonalPerformanceFactor,
+    ).toBe(3.2)
+    const estimate = {
+      heatingCircuitId: IDS.circuit,
+      key: 'wp',
+      name: 'Wärmepumpenstrom',
+      sourceType: 'Strom',
+      seasonalPerformanceFactor: 3,
+      seasonalPerformanceFactorEstimated: true,
+    }
+    expect(() =>
+      updateEnergySource(heatPump, IDS.source, estimate),
+    ).toThrowError('Grundlage der geschätzten Jahresarbeitszahl')
+    const estimated = updateEnergySource(heatPump, IDS.source, {
+      ...estimate,
+      seasonalPerformanceFactorReason: ' Planungswert (fiktiv) ',
+    })
+    expect(estimated.billingData.energySources[0]).toMatchObject({
+      seasonalPerformanceFactorEstimated: true,
+      seasonalPerformanceFactorReason: 'Planungswert (fiktiv)',
+    })
+    const withoutFactor = updateEnergySource(heatPump, IDS.source, {
+      heatingCircuitId: IDS.circuit,
+      key: 'wp',
+      name: 'Wärmepumpenstrom',
+      sourceType: 'Strom',
+      seasonalPerformanceFactor: null,
+    })
+    expect(withoutFactor.billingData.energySources[0]).not.toHaveProperty(
+      'seasonalPerformanceFactor',
+    )
+  })
+})
