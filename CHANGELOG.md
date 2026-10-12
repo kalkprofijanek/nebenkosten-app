@@ -4,6 +4,16 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Warmwasseranteil bei Wärmepumpen (ADR-0010 „Wärmepumpen“)**: s = Q ÷
+  erzeugte Wärme statt ÷ Strom-kWh; neue optionale Felder
+  `HeatingCircuit.generatedHeatKwh` (gemessene Wärmemenge am Erzeuger) und
+  `EnergySource.seasonalPerformanceFactor` (Jahresarbeitszahl, 1–8) mit
+  `seasonalPerformanceFactorEstimated`/`seasonalPerformanceFactorReason`
+  (Schätzwert mit Pflichtbegründung), Schema v5 ohne Migration; Rechenweg je
+  Quelle im PDF mit Kennzeichnung der Schätzung; Prüffehler
+  `heating_compliance.heat_pump_heat_output_missing`, Warnung bei geschätzter
+  Jahresarbeitszahl, Fehler ohne Begründung; keine Standard-Jahresarbeitszahl;
+  Eingabe im Heizkreis-Formular,
 - **Warmwasser gesetzeskonform (ADR-0010)**: Wärmemenge nach § 9 Abs. 2
   HeizKV (Wärmezähler, Volumenformel 2,5 × V × (tw − 10) oder Flächenformel
   32 × A, Erdgas × 1,11); Anteil gilt nach § 9 Abs. 1 für Brennstoff,

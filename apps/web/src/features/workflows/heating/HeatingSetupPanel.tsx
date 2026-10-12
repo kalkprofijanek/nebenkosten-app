@@ -17,10 +17,13 @@ import {
 } from '../../heating/consumption-benchmark-form'
 import { ConsumptionBenchmarkFields } from './ConsumptionBenchmarkFields'
 import {
+  SEASONAL_PERFORMANCE_FACTOR_FIELD_NAMES,
+  isElectricityOrHeatPump,
   readHotWaterForm,
   type HotWaterErrors,
 } from '../../heating/hot-water-form'
 import { HotWaterFields } from '../../heating/HotWaterFields'
+import { SeasonalPerformanceFactorFields } from '../../heating/SeasonalPerformanceFactorFields'
 import { WorkflowField } from '../form-support'
 import { formOptionalText, formText } from '../form-values'
 import type { WorkflowSubRouteProps } from '../route-types'
@@ -28,6 +31,17 @@ import type { WorkflowApply } from '../HeatingRoute'
 
 function optionalNumber(form: FormData, name: string) {
   return parseOptionalNumber(formText(form, name)) ?? null
+}
+
+/** Jahresarbeitszahl mit Schätzkennzeichen und Grundlage (ADR-0010). */
+function seasonalPerformanceFactorInput(form: FormData) {
+  const names = SEASONAL_PERFORMANCE_FACTOR_FIELD_NAMES
+  return {
+    seasonalPerformanceFactor: optionalNumber(form, names.value),
+    seasonalPerformanceFactorEstimated: form.has(names.estimated) ? true : null,
+    seasonalPerformanceFactorReason:
+      formOptionalText(form, names.reason) ?? null,
+  }
 }
 
 export function HeatingSetupPanel({
@@ -115,6 +129,7 @@ export function HeatingSetupPanel({
             consumptionBenchmark: benchmark.value ?? undefined,
             hotWaterEnergy: hotWater.hotWaterEnergy,
             hotWaterAllocation: hotWater.hotWaterAllocation,
+            generatedHeatKwh: hotWater.generatedHeatKwh,
           },
           dependencies,
         )
@@ -131,6 +146,7 @@ export function HeatingSetupPanel({
               'calorificValueKwhPerUnit',
             ),
             co2FactorKgPerKwh: optionalNumber(form, 'co2FactorKgPerKwh'),
+            ...seasonalPerformanceFactorInput(form),
           },
           dependencies,
         )
@@ -184,6 +200,7 @@ export function HeatingSetupPanel({
           consumptionBenchmark: benchmark.value,
           hotWaterEnergy: hotWater.hotWaterEnergy,
           hotWaterAllocation: hotWater.hotWaterAllocation,
+          generatedHeatKwh: hotWater.generatedHeatKwh,
         })
         return updateEnergySource(next, sourceId, {
           heatingCircuitId: circuit.id,
@@ -195,6 +212,7 @@ export function HeatingSetupPanel({
             'calorificValueKwhPerUnit',
           ),
           co2FactorKgPerKwh: optionalNumber(form, 'co2FactorKgPerKwh'),
+          ...seasonalPerformanceFactorInput(form),
         })
       })
     )
@@ -228,6 +246,7 @@ export function HeatingSetupPanel({
           name="calorificValueKwhPerUnit"
         />
         <WorkflowField label="CO₂-Faktor kg je kWh" name="co2FactorKgPerKwh" />
+        <SeasonalPerformanceFactorFields key={`spf-${createFormKey}`} />
         <label className="checkbox-field">
           <input type="checkbox" name="hasCentralHotWater" />
           <span>Zentrale Warmwasserbereitung</span>
@@ -338,6 +357,16 @@ export function HeatingSetupPanel({
                       name="co2FactorKgPerKwh"
                       defaultValue={source.co2FactorKgPerKwh ?? ''}
                     />
+                    {isElectricityOrHeatPump(
+                      source.sourceType,
+                      source.name,
+                      source.key,
+                    ) ? (
+                      <SeasonalPerformanceFactorFields
+                        source={source}
+                        labelSuffix=" bearbeiten"
+                      />
+                    ) : null}
                     <label className="checkbox-field">
                       <input
                         type="checkbox"
@@ -355,6 +384,7 @@ export function HeatingSetupPanel({
                       energy={circuit.hotWaterEnergy}
                       allocation={circuit.hotWaterAllocation}
                       energySourceType={source.sourceType}
+                      generatedHeatKwh={circuit.generatedHeatKwh}
                       errors={editHotWaterErrors}
                     />
                     <WorkflowField

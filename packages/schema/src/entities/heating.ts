@@ -192,6 +192,15 @@ export const heatingCircuitSchema = z.strictObject({
   hotWaterEnergy: hotWaterEnergySchema.nullish(),
   /** Verteilung der Warmwasserkosten nach § 8 HeizKV (additiv, ADR-0010). */
   hotWaterAllocation: hotWaterAllocationSchema.nullish(),
+  /**
+   * Gemessene, vom Wärmeerzeuger abgegebene Wärmemenge des Heizkreises im
+   * Abrechnungszeitraum in kWh (Wärmemengenzähler am Erzeuger, additiv,
+   * ADR-0010 „Wärmepumpen“). Gesetzt, bezieht der Kern den
+   * Warmwasseranteil s = Q ÷ erzeugte Wärme auf diesen Wert statt auf den
+   * Energieeinsatz. Leer = Energieeinsatz, bei Wärmepumpen mit
+   * `EnergySource.seasonalPerformanceFactor` hochgerechnet.
+   */
+  generatedHeatKwh: z.number().finite().positive().nullish(),
 })
 export type HeatingCircuit = z.infer<typeof heatingCircuitSchema>
 
@@ -211,6 +220,25 @@ export const energySourceSchema = z.strictObject({
   /** Heizwert kWh je Mengeneinheit (Legacy `heizwert_kwh`). */
   calorificValueKwhPerUnit: z.number().finite().nonnegative().nullish(),
   co2FactorKgPerKwh: z.number().finite().nonnegative().nullish(),
+  /**
+   * Jahresarbeitszahl einer Wärmepumpe (erzeugte Wärme ÷ eingesetzter Strom,
+   * additiv, ADR-0010 „Wärmepumpen“), nur bei Wärmepumpenstrom. Damit wird
+   * der Stromeinsatz für den Warmwasseranteil in erzeugte Wärme umgerechnet,
+   * wenn keine gemessene Wärmemenge (`HeatingCircuit.generatedHeatKwh`)
+   * vorliegt. Schätzwert; ein Wärmemengenzähler ist vorzuziehen.
+   */
+  seasonalPerformanceFactor: z.number().finite().min(1).max(8).nullish(),
+  /**
+   * Die Jahresarbeitszahl ist geschätzt (z. B. Herstellerangabe oder
+   * Planungswert), nicht aus Wärme- und Strommessung ermittelt. Die Prüfung
+   * warnt; das PDF weist sie als Schätzung aus.
+   */
+  seasonalPerformanceFactorEstimated: z.boolean().nullish(),
+  /**
+   * Begründung bzw. Quelle der Jahresarbeitszahl (Pflicht bei geschätzter
+   * Jahresarbeitszahl; Prüfung und Eingabe verlangen sie).
+   */
+  seasonalPerformanceFactorReason: z.string().trim().min(1).nullish(),
 })
 export type EnergySource = z.infer<typeof energySourceSchema>
 

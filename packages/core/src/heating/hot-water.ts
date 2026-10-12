@@ -13,6 +13,8 @@ import type { HotWaterEnergy } from '@nebenkosten/schema'
 import type {
   CircuitHotWaterEnergyTrace,
   EnergySourceCalculationTrace,
+  HotWaterDenominatorMethod,
+  HotWaterDenominatorSourceTrace,
 } from '../contracts'
 
 /** Faktor 2,5 kWh/(m³·K) der Volumenformel (§ 9 Abs. 2 Satz 2 HeizKV). */
@@ -90,6 +92,128 @@ export function circuitEnergyInputKwh(
   )
 }
 
+/**
+ * Energieeinsatz einer Energiequelle in kWh: Verbrauch × Heizwert, ohne
+ * Heizwert bei Mengen in kWh die verbrauchte Menge (wie
+ * `circuitEnergyInputKwh`).
+ */
+export function sourceEnergyInputKwh(
+  source: EnergySourceCalculationTrace,
+): number {
+  if (source.energyKwh !== 0) return source.energyKwh
+  return source.quantityUnit === 'kWh' ? source.consumedQuantity : 0
+}
+
+/** Energiequelle mit Wärmepumpen-Kennzeichen für den Nenner von s. */
+export interface HotWaterDenominatorSourceInput {
+  readonly trace: EnergySourceCalculationTrace
+  readonly label?: string | null
+  readonly heatPump: boolean
+  readonly seasonalPerformanceFactor: number | null
+  readonly seasonalPerformanceFactorEstimated?: boolean
+  readonly seasonalPerformanceFactorReason?: string | null
+}
+
+export interface HotWaterDenominator {
+  readonly method: HotWaterDenominatorMethod
+  readonly denominatorKwh: number
+  readonly heatPumpWithoutHeatOutput: boolean
+  readonly sources: readonly HotWaterDenominatorSourceTrace[]
+}
+
+/**
+ * Nenner des Warmwasseranteils s (ADR-0010 „Wärmepumpen“).
+ *
+ * § 9 Abs. 3 HeizKV (B = Q ÷ Hᵢ) setzt Q ins Verhältnis zum Brennstoff.
+ * Bei elektrischen Wärmepumpen ist der Energieeinsatz Strom, aus dem ein
+ * Vielfaches an Wärme entsteht; Q ÷ Strom-kWh würde den Warmwasseranteil
+ * um die Jahresarbeitszahl überhöhen. Die HeizKV regelt diesen Fall nicht.
+ * Offene Entscheidung (sachgerechte Auslegung): Q wird ins Verhältnis zur
+ * erzeugten Wärme gesetzt –
+ * 1. gemessene Wärmemenge am Erzeuger (`generatedHeatKwh`), sonst
+ * 2. Σ Energieeinsatz je Quelle × Jahresarbeitszahl (Wärmepumpenstrom)
+ *    bzw. × 1 (Brennstoffe, Fernwärme, Strom ohne Wärmepumpe).
+ * Fehlt bei einer Wärmepumpenquelle die Jahresarbeitszahl und ist keine
+ * Wärmemenge gemessen, bleibt es beim Energieeinsatz (bisheriges
+ * Verhalten) und `heatPumpWithoutHeatOutput` wird gesetzt. Eine
+ * Standard-Jahresarbeitszahl setzt der Kern bewusst nicht an (offene
+ * Entscheidung); eine geschätzte Jahresarbeitszahl gibt der Vermieter mit
+ * Begründung ein.
+ *
+ * `energyInputKwh` ist der ungerundete Energieeinsatz aus
+ * `circuitEnergyInputKwh`; die Umrechnung addiert je Wärmepumpenquelle
+ * kWh × (Jahresarbeitszahl − 1), damit ohne Wärmepumpe exakt der bisherige
+ * Nenner entsteht.
+ */
+export function hotWaterDenominator(
+  energyInputKwh: number,
+  sources: readonly HotWaterDenominatorSourceInput[],
+  generatedHeatKwh: number | null | undefined,
+): HotWaterDenominator {
+  const heatPumpWithoutFactor = sources.some(
+    ({ heatPump, seasonalPerformanceFactor }) =>
+      heatPump && seasonalPerformanceFactor == null,
+  )
+  const useFactor =
+    generatedHeatKwh == null &&
+    !heatPumpWithoutFactor &&
+    sources.some(({ heatPump }) => heatPump)
+  const traces = sources.map(
+    ({
+      trace,
+      label,
+      heatPump,
+      seasonalPerformanceFactor,
+      seasonalPerformanceFactorEstimated,
+      seasonalPerformanceFactorReason,
+    }) => {
+      const inputKwh = sourceEnergyInputKwh(trace)
+      const factor =
+        useFactor && heatPump ? (seasonalPerformanceFactor ?? 1) : 1
+      return {
+        energySourceId: trace.energySourceId,
+        label: label ?? null,
+        energyInputKwh: inputKwh,
+        heatPump,
+        seasonalPerformanceFactor: heatPump ? seasonalPerformanceFactor : null,
+        seasonalPerformanceFactorEstimated:
+          heatPump && seasonalPerformanceFactor != null
+            ? Boolean(seasonalPerformanceFactorEstimated)
+            : false,
+        seasonalPerformanceFactorReason:
+          heatPump && seasonalPerformanceFactor != null
+            ? (seasonalPerformanceFactorReason ?? null)
+            : null,
+        generatedHeatKwh: inputKwh * factor,
+      }
+    },
+  )
+  if (generatedHeatKwh != null)
+    return {
+      method: 'measured_heat',
+      denominatorKwh: generatedHeatKwh,
+      heatPumpWithoutHeatOutput: false,
+      sources: traces,
+    }
+  if (useFactor)
+    return {
+      method: 'seasonal_performance_factor',
+      denominatorKwh: traces.reduce(
+        (sum, source) =>
+          sum + (source.generatedHeatKwh - source.energyInputKwh),
+        energyInputKwh,
+      ),
+      heatPumpWithoutHeatOutput: false,
+      sources: traces,
+    }
+  return {
+    method: 'energy_input',
+    denominatorKwh: energyInputKwh,
+    heatPumpWithoutHeatOutput: heatPumpWithoutFactor,
+    sources: traces,
+  }
+}
+
 /** Anteil s = min(1, Q ÷ Energieeinsatz); `null` ohne Energieeinsatz. */
 export function hotWaterEnergyShare(
   heatKwh: number,
@@ -107,9 +231,15 @@ export function hotWaterEnergyTrace(
   energy: Readonly<HotWaterEnergy>,
   circuitUsableAreaSqm: number,
   energyInputKwh: number,
+  denominator: HotWaterDenominator = {
+    method: 'energy_input',
+    denominatorKwh: energyInputKwh,
+    heatPumpWithoutHeatOutput: false,
+    sources: [],
+  },
 ): CircuitHotWaterEnergyTrace {
   const heat = hotWaterHeatKwh(energy, circuitUsableAreaSqm)
-  const share = hotWaterEnergyShare(heat.heatKwh, energyInputKwh)
+  const share = hotWaterEnergyShare(heat.heatKwh, denominator.denominatorKwh)
   return {
     method: energy.method,
     volumeM3: energy.method === 'volume_formula' ? energy.volumeM3 : null,
@@ -125,6 +255,10 @@ export function hotWaterEnergyTrace(
     heatKwhBeforeCondensing: heat.heatKwhBeforeCondensing,
     heatKwh: heat.heatKwh,
     energyInputKwh,
+    denominatorMethod: denominator.method,
+    denominatorKwh: denominator.denominatorKwh,
+    denominatorSources: [...denominator.sources],
+    heatPumpWithoutHeatOutput: denominator.heatPumpWithoutHeatOutput,
     shareExact: share?.share ?? 0,
     capped: share?.capped ?? false,
     energyInputMissing: share === null,

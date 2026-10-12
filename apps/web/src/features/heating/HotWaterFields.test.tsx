@@ -281,6 +281,7 @@ describe('readHotWaterForm', () => {
       ok: true,
       hotWaterEnergy: null,
       hotWaterAllocation: null,
+      generatedHeatKwh: null,
     })
   })
 
@@ -295,5 +296,87 @@ describe('readHotWaterForm', () => {
       'temperatureC',
       'volumeM3',
     ])
+  })
+})
+
+describe('Wärmepumpe: erzeugte Wärme und Jahresarbeitszahl (ADR-0010)', () => {
+  it('speichert erzeugte Wärme und Jahresarbeitszahl der Stromquelle', () => {
+    const panel = renderPanel(
+      createData(
+        { hotWaterEnergy: { method: 'heat_meter', heatKwh: 12_800 } },
+        'Strom',
+      ),
+    )
+    const form = openEditor()
+    select(form, 'Jahresarbeitszahl bearbeiten', '3,2')
+    select(
+      form,
+      'Erzeugte Wärme des Heizkreises (kWh, Wärmemengenzähler am Erzeuger, optional)',
+      '68800',
+    )
+    fireEvent.click(form.getByRole('button', { name: 'Heizkreis speichern' }))
+    expect(panel.apply).toHaveBeenCalledTimes(1)
+    expect(stored(panel.current())?.generatedHeatKwh).toBe(68_800)
+    expect(
+      panel.current().billingData.energySources[0]?.seasonalPerformanceFactor,
+    ).toBe(3.2)
+  })
+
+  it('speichert eine geschätzte Jahresarbeitszahl mit Grundlage', () => {
+    const panel = renderPanel(
+      createData(
+        { hotWaterEnergy: { method: 'heat_meter', heatKwh: 12_800 } },
+        'Strom',
+      ),
+    )
+    const form = openEditor()
+    select(form, 'Jahresarbeitszahl bearbeiten', '3')
+    fireEvent.click(
+      form.getByLabelText('Jahresarbeitszahl geschätzt bearbeiten'),
+    )
+    select(
+      form,
+      'Grundlage der Jahresarbeitszahl bearbeiten',
+      'Herstellerangabe (fiktiv)',
+    )
+    fireEvent.click(form.getByRole('button', { name: 'Heizkreis speichern' }))
+    expect(panel.current().billingData.energySources[0]).toMatchObject({
+      seasonalPerformanceFactor: 3,
+      seasonalPerformanceFactorEstimated: true,
+      seasonalPerformanceFactorReason: 'Herstellerangabe (fiktiv)',
+    })
+  })
+
+  it('zeigt die Jahresarbeitszahl nur bei Strom und prüft die Wärmemenge', () => {
+    const panel = renderPanel(
+      createData({ hotWaterEnergy: { method: 'heat_meter', heatKwh: 100 } }),
+    )
+    const form = openEditor()
+    expect(form.queryByLabelText('Jahresarbeitszahl bearbeiten')).toBeNull()
+    select(
+      form,
+      'Erzeugte Wärme des Heizkreises (kWh, Wärmemengenzähler am Erzeuger, optional)',
+      '0',
+    )
+    fireEvent.click(form.getByRole('button', { name: 'Heizkreis speichern' }))
+    expect(panel.apply).not.toHaveBeenCalled()
+    expect(
+      form.getByText(/erzeugte Wärmemenge muss eine positive/),
+    ).toBeVisible()
+  })
+
+  it('liest die erzeugte Wärme nur mit Wärmemenge nach § 9 Abs. 2', () => {
+    const form = new FormData()
+    form.set(HOT_WATER_FIELD_NAMES.generatedHeatKwh, '5000')
+    expect(readHotWaterForm(form, true)).toMatchObject({
+      ok: true,
+      generatedHeatKwh: null,
+    })
+    form.set(HOT_WATER_FIELD_NAMES.method, 'heat_meter')
+    form.set(HOT_WATER_FIELD_NAMES.heatKwh, '1000')
+    expect(readHotWaterForm(form, true)).toMatchObject({
+      ok: true,
+      generatedHeatKwh: 5_000,
+    })
   })
 })

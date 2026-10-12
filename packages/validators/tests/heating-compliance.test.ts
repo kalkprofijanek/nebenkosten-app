@@ -138,3 +138,71 @@ describe('Prüfung Warmwasser nach §§ 8, 9, 12 HeizKV', () => {
     ).toContain('warning:heating_compliance.hot_water_share_capped')
   })
 })
+
+describe('Prüfung Wärmepumpe: Warmwasseranteil auf erzeugte Wärme (ADR-0010)', () => {
+  /** Die fiktive Energiequelle wird zum Wärmepumpenstrom. */
+  function heatPumpData(
+    patch: Partial<HeatingCircuit> = {},
+    seasonalPerformanceFactor?: number,
+  ): AppDataFile {
+    const data = circuitData({
+      hotWaterEnergy: { method: 'heat_meter', heatKwh: 2_000 },
+      ...patch,
+    })
+    Object.assign(data.billingData.energySources[0]!, {
+      key: 'wp_strom',
+      name: 'Wärmepumpenstrom',
+      sourceType: 'Strom',
+      seasonalPerformanceFactor,
+    })
+    return data
+  }
+  const heatPumpCodes = (data: AppDataFile) =>
+    codes(data).filter((code) => code.includes('heat_pump'))
+
+  it('meldet einen Fehler ohne erzeugte Wärme und ohne Jahresarbeitszahl', () => {
+    expect(heatPumpCodes(heatPumpData())).toEqual([
+      'error:heating_compliance.heat_pump_heat_output_missing',
+    ])
+  })
+
+  it('weist bei Jahresarbeitszahl ohne Messung auf die Schätzung hin', () => {
+    expect(heatPumpCodes(heatPumpData({}, 3.2))).toEqual([
+      'info:heating_compliance.heat_pump_seasonal_performance_factor_estimate',
+    ])
+  })
+
+  it('warnt bei geschätzter Jahresarbeitszahl und verlangt eine Begründung', () => {
+    const estimated = heatPumpData({}, 3)
+    Object.assign(estimated.billingData.energySources[0]!, {
+      seasonalPerformanceFactorEstimated: true,
+    })
+    expect(heatPumpCodes(estimated)).toEqual([
+      'error:heating_compliance.heat_pump_seasonal_performance_factor_reason_missing',
+      'warning:heating_compliance.heat_pump_seasonal_performance_factor_estimated',
+    ])
+    Object.assign(estimated.billingData.energySources[0]!, {
+      seasonalPerformanceFactorReason: 'Herstellerangabe (fiktiv)',
+    })
+    expect(heatPumpCodes(estimated)).toEqual([
+      'warning:heating_compliance.heat_pump_seasonal_performance_factor_estimated',
+    ])
+  })
+
+  it('meldet nichts mit gemessener erzeugter Wärme', () => {
+    expect(heatPumpCodes(heatPumpData({ generatedHeatKwh: 30_000 }))).toEqual(
+      [],
+    )
+  })
+
+  it('meldet nichts ohne Wärmemenge nach § 9 Abs. 2 oder ohne Wärmepumpe', () => {
+    expect(heatPumpCodes(heatPumpData({ hotWaterEnergy: null }))).toEqual([])
+    expect(
+      heatPumpCodes(
+        circuitData({
+          hotWaterEnergy: { method: 'heat_meter', heatKwh: 2_000 },
+        }),
+      ),
+    ).toEqual([])
+  })
+})

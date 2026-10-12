@@ -3,7 +3,10 @@
  * Die Altverfahren (Pauschalanteil, Personenschlüssel) bleiben rechenbar,
  * werden aber als nicht verordnungskonform gemeldet.
  */
-import type { CalculationOutput } from '@nebenkosten/core'
+import {
+  isHeatPumpEnergySource,
+  type CalculationOutput,
+} from '@nebenkosten/core'
 import type {
   AppDataFile,
   BillingPeriod,
@@ -45,7 +48,8 @@ function circuitOccupancies(
  * (c) Flächenformel bzw. Flächenschlüssel: keine verbrauchsabhängige
  *     Verteilung, Kürzungsrecht nach § 12 Abs. 1,
  * (d) Verbrauchsschlüssel ohne erfassten Warmwasserverbrauch,
- * (e) Volumenformel mit geschätzter Temperatur.
+ * (e) Volumenformel mit geschätzter Temperatur,
+ * (f) Wärmepumpe ohne erzeugte Wärme (ADR-0010 „Wärmepumpen“).
  */
 export function heatingComplianceIssues(
   data: AppDataFile,
@@ -138,7 +142,111 @@ export function heatingComplianceIssues(
           },
         ),
       )
+    if (energy) heatPumpHeatOutputIssues(data, circuit, add)
   }
+}
+
+/**
+ * Wärmepumpe im Heizkreis (ADR-0010 „Wärmepumpen“): Der Warmwasseranteil
+ * s = Q ÷ Energieeinsatz wäre auf den Strom statt auf die erzeugte Wärme
+ * bezogen und damit um die Jahresarbeitszahl zu hoch. Benötigt wird die
+ * gemessene erzeugte Wärme oder die Jahresarbeitszahl je Wärmepumpenquelle.
+ */
+function heatPumpHeatOutputIssues(
+  data: AppDataFile,
+  circuit: HeatingCircuit,
+  add: Add,
+): void {
+  if (circuit.generatedHeatKwh != null) return
+  const buildingEnergySourceType = data.masterData.buildings.find(
+    ({ id }) => id === circuit.buildingId,
+  )?.defaultEnergySourceType
+  const heatPumps = data.billingData.energySources.filter(
+    (source) =>
+      source.heatingCircuitId === circuit.id &&
+      isHeatPumpEnergySource(source, buildingEnergySourceType),
+  )
+  if (heatPumps.length === 0) return
+  const entity = circuitEntity(circuit)
+  const withoutFactor = heatPumps.filter(
+    ({ seasonalPerformanceFactor }) => seasonalPerformanceFactor == null,
+  )
+  const names = (sources: typeof heatPumps) =>
+    sources.map((source) => `„${source.name ?? source.key}“`).join(', ')
+  if (withoutFactor.length > 0) {
+    add(
+      issue(
+        'error',
+        'heating_compliance.heat_pump_heat_output_missing',
+        'hot_water',
+        'Warmwasseranteil wäre auf Strom statt auf erzeugte Wärme bezogen',
+        {
+          entity,
+          path: ['generatedHeatKwh'],
+          detail: `Der Heizkreis wird (auch) von einer Wärmepumpe versorgt (${names(withoutFactor)}). Die Wärmemenge der Warmwasserbereitung (§ 9 Abs. 2 HeizKV) wird sonst durch den Stromverbrauch geteilt; der Warmwasseranteil wäre dadurch etwa um die Jahresarbeitszahl zu hoch. Bitte die vom Wärmeerzeuger abgegebene Wärmemenge (Wärmemengenzähler) am Heizkreis oder die Jahresarbeitszahl der Wärmepumpe an der Energiequelle erfassen.`,
+        },
+      ),
+    )
+    return
+  }
+  // Geschätzte Jahresarbeitszahl: Pflichtbegründung, Warnung (Schätzung).
+  const estimated = heatPumps.filter(
+    ({ seasonalPerformanceFactorEstimated }) =>
+      seasonalPerformanceFactorEstimated === true,
+  )
+  for (const source of estimated.filter(
+    ({ seasonalPerformanceFactorReason }) =>
+      !seasonalPerformanceFactorReason?.trim(),
+  ))
+    add(
+      issue(
+        'error',
+        'heating_compliance.heat_pump_seasonal_performance_factor_reason_missing',
+        'hot_water',
+        'Begründung der geschätzten Jahresarbeitszahl fehlt',
+        {
+          entity: { type: 'EnergySource', id: source.id },
+          path: ['seasonalPerformanceFactorReason'],
+          detail: `Die Jahresarbeitszahl von ${names([source])} ist als geschätzt gekennzeichnet. Bitte die Grundlage der Schätzung angeben (z. B. Herstellerangabe, Planungswert).`,
+        },
+      ),
+    )
+  if (estimated.length > 0) {
+    add(
+      issue(
+        'warning',
+        'heating_compliance.heat_pump_seasonal_performance_factor_estimated',
+        'hot_water',
+        'Warmwasseranteil beruht auf einer geschätzten Jahresarbeitszahl',
+        {
+          entity,
+          path: ['generatedHeatKwh'],
+          detail: `Die vom Wärmeerzeuger abgegebene Wärme ist nicht gemessen; der Stromverbrauch der Wärmepumpe (${names(estimated)}) wird mit einer geschätzten Jahresarbeitszahl in erzeugte Wärme umgerechnet (${estimated
+            .map(
+              (source) =>
+                `${source.seasonalPerformanceFactor?.toLocaleString('de-DE')}${source.seasonalPerformanceFactorReason ? `: ${source.seasonalPerformanceFactorReason}` : ''}`,
+            )
+            .join(
+              '; ',
+            )}). Die HeizKV regelt Wärmepumpen bei verbundenen Anlagen nicht; die Schätzung wird im PDF ausgewiesen. Ein Wärmemengenzähler am Erzeuger wird empfohlen.`,
+        },
+      ),
+    )
+    return
+  }
+  add(
+    issue(
+      'info',
+      'heating_compliance.heat_pump_seasonal_performance_factor_estimate',
+      'hot_water',
+      'Erzeugte Wärme der Wärmepumpe ist über die Jahresarbeitszahl ermittelt',
+      {
+        entity,
+        path: ['generatedHeatKwh'],
+        detail: `Der Stromverbrauch der Wärmepumpe (${names(heatPumps)}) wird mit der Jahresarbeitszahl in erzeugte Wärme umgerechnet. Die Wärme des Abrechnungszeitraums ist damit nicht unmittelbar gemessen; ein Wärmemengenzähler am Erzeuger wird empfohlen.`,
+      },
+    ),
+  )
 }
 
 /**
