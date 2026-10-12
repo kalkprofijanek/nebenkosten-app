@@ -382,7 +382,7 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
       'Ein grafischer, witterungsbereinigter Vergleich mit dem vorhergehenden Abrechnungszeitraum ist nicht möglich, weil für diesen Zeitraum keine Verbrauchsdaten vorliegen (Eigentümer- bzw. Abrechnungswechsel).',
     )
     expect(serialized).toContain(
-      'gesetzlichen Steuern und Abgaben (Umsatzsteuer, Energiesteuer, ggf. CO2-Kosten nach BEHG)',
+      'gesetzlichen Steuern und Abgaben (Umsatzsteuer, Energie- bzw. Stromsteuer) sowie CO2-Kosten nach BEHG von 293,04 € (Gebäude gesamt) enthalten.',
     )
     expect(serialized).toContain('Universalschlichtungsstelle des Bundes')
     expect(serialized).not.toContain('Allgemeine Verbraucherschlichtungsstelle')

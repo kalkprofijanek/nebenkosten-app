@@ -4,6 +4,12 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Steuern und Abgaben (ADR-0011)**: `FuelDelivery.taxesAndLevies`
+  (Umsatzsteuer mit Satz, Energie-/Stromsteuer, CO₂-Kosten BEHG, sonstige
+  Abgaben); Einzelabrechnung weist die enthaltenen Beträge je Art für das
+  Gebäude und den Mieteranteil aus (§ 6a Abs. 3 Nr. 1 b HeizKV), sonst
+  Hinweis mit konkretem CO₂-Betrag; Eingabe an der Lieferung mit
+  Umsatzsteuer-Rechner; Prüfhinweis `heating.taxes_and_levies_missing`,
 - **Warmwasser gesetzeskonform (ADR-0010)**: Wärmemenge nach § 9 Abs. 2
   HeizKV (Wärmezähler, Volumenformel 2,5 × V × (tw − 10) oder Flächenformel
   32 × A, Erdgas × 1,11); Anteil gilt nach § 9 Abs. 1 für Brennstoff,
