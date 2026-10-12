@@ -141,7 +141,7 @@ describe('Vergleich mit dem Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizKV)', ()
       '250,0 kWh je m² und Jahr – Einstufung „erhöht“',
     )
     expect(serialized).toContain(
-      'Ihr Energieverbrauch für Heizwärme: 10.000 kWh',
+      'Ihr Energieverbrauch für Heizwärme im Nutzungszeitraum (nicht witterungsbereinigt): 10.000 kWh',
     )
     expect(serialized).toContain(
       'niedrig bis 4.000 kWh, mittel bis 8.000 kWh, erhöht bis 12.000 kWh, darüber zu hoch',
@@ -166,7 +166,7 @@ describe('Vergleich mit dem Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizKV)', ()
     const serialized = statement(appData)
     // Heizwärme 20.000 × 40 % = 8.000 kWh, Warmwasser 5.000 ÷ 3 = 1.667 kWh.
     expect(serialized).toContain(
-      'Ihr Energieverbrauch: 9.667 kWh (Heizwärme 8.000 kWh, Warmwasser 1.667 kWh)',
+      'Ihr Energieverbrauch im Nutzungszeitraum (nicht witterungsbereinigt): 9.667 kWh (Heizwärme 8.000 kWh, Warmwasser 1.667 kWh)',
     )
     expect(serialized).toContain('241,7 kWh je m² und Jahr')
     expect(serialized).toContain('(Heizung und Warmwasser)')
@@ -204,7 +204,9 @@ describe('Vorjahresvergleich in Verbrauchseinheiten', () => {
     expect(serialized).toContain(
       'Witterungsbereinigt mit Klimafaktoren des Deutschen Wetterdienstes (Postleitzahl 00000, Faktor Vorjahr 0,90, Abrechnungsjahr 1,10).',
     )
-    expect(serialized).toContain('Veränderung gegenüber dem Vorjahr: -51,1 %.')
+    expect(serialized).toContain(
+      'Veränderung gegenüber dem Vorjahr (witterungsbereinigt): -51,1 %.',
+    )
     expect(serialized).not.toContain('ohne Witterungsbereinigung')
   })
 
@@ -242,12 +244,17 @@ describe('Vorjahresvergleich des Energieverbrauchs (§ 6a Abs. 3 Satz 2 HeizKV)'
     )
     // Vorjahr 22.000 × 40 % = 8.800 × 0,9 = 7.920 kWh,
     // Abrechnungsjahr 10.000 × 1,1 = 11.000 kWh → +38,9 %.
-    expect(serialized).toContain('Ihr Energieverbrauch im Vorjahr (2023)')
+    expect(serialized).toContain(
+      'Ihr Energieverbrauch im Vorjahr 2023 (witterungsbereinigt)',
+    )
+    expect(serialized).toContain(
+      'Ihr Energieverbrauch 2024 (witterungsbereinigt)',
+    )
     expect(serialized).toContain('"7.920 kWh"')
     expect(serialized).toContain('"11.000 kWh"')
     expect(serialized).toContain('"w":200')
     expect(serialized).toContain(
-      '2023: Heizwärme 8.800 kWh × Klimafaktor 0,90 = 7.920 kWh',
+      'Vorjahr 2023: Heizwärme gemessen 8.800 kWh × Klimafaktor 0,90 = witterungsbereinigt 7.920 kWh = 7.920 kWh',
     )
     expect(serialized).toContain(
       'Das Warmwasser wird nicht über die Heizungsanlage bereitet',
@@ -255,7 +262,13 @@ describe('Vorjahresvergleich des Energieverbrauchs (§ 6a Abs. 3 Satz 2 HeizKV)'
     expect(serialized).toContain(
       'Witterungsbereinigt mit Klimafaktoren des Deutschen Wetterdienstes (Postleitzahl 00000, Faktor Vorjahr 0,90, Abrechnungsjahr 1,10).',
     )
-    expect(serialized).toContain('Veränderung gegenüber dem Vorjahr: +38,9 %.')
+    expect(serialized).toContain(
+      'Veränderung gegenüber dem Vorjahr (witterungsbereinigt): +38,9 %.',
+    )
+    // 8.800 → 10.000 kWh gemessen: +13,6 %
+    expect(serialized).toContain(
+      'Ohne Witterungsbereinigung (gemessen): +13,6 %.',
+    )
   })
 
   it('addiert Warmwasser unbereinigt als eigenen Balkenanteil', () => {
@@ -286,5 +299,128 @@ describe('Vorjahresvergleich des Energieverbrauchs (§ 6a Abs. 3 Satz 2 HeizKV)'
       'Darstellung ohne Witterungsbereinigung, weil nicht für beide Jahre ein passender Klimafaktor',
     )
     expect(serialized).toContain('Veränderung gegenüber dem Vorjahr: +13,6 %.')
+  })
+})
+
+describe('Vorjahresvergleich auf gleicher Basis (A1, A5)', () => {
+  const current = (appData: AppDataFile) =>
+    appData.billingData.occupancyPeriods[0]!
+
+  it('rechnet das Vorjahr bei Auszug nach Gradtagszahlen auf den Nutzungszeitraum um', () => {
+    const appData = withClimateFactors(withPreviousYear(base()), 1.1, 0.9)
+    current(appData).to = '2024-03-31'
+    const serialized = statement(appData)
+    expect(serialized).toContain(
+      'Ihr Energieverbrauch im Vorjahr 2023 (nicht witterungsbereinigt)',
+    )
+    expect(serialized).toContain(
+      'Der Vorjahreswert ist deshalb anteilig für den Zeitraum 01.01.2023 – 31.03.2023 nach Gradtagszahlen (VDI 2067) umgerechnet',
+    )
+    // Januar–März 2023: 450 ‰ von 1.000 ‰
+    expect(serialized).toContain('× 450 ‰ ÷ 1.000 ‰')
+    expect(serialized).toContain(
+      'Keine Witterungsbereinigung mit Klimafaktoren',
+    )
+    expect(serialized).not.toContain('× Klimafaktor')
+    expect(serialized).not.toContain('(witterungsbereinigt)')
+  })
+
+  it('unterscheidet gemessenen und witterungsbereinigten Energieverbrauch', () => {
+    const appData = withClimateFactors(withPreviousYear(base()), 1.1, 0.9)
+    appData.billingData.heatingCircuits[0]!.consumptionBenchmark = BENCHMARK
+    const serialized = statement(appData)
+    expect(serialized).toContain(
+      'Ihr Energieverbrauch für Heizwärme im Nutzungszeitraum (nicht witterungsbereinigt): 10.000 kWh',
+    )
+    expect(serialized).toContain(
+      'Ihr Energieverbrauch 2024 (witterungsbereinigt)',
+    )
+    expect(serialized).toContain('Quelle: DWD, Klimafaktoren.')
+  })
+
+  it('wendet den Klimafaktor im Einheitenvergleich bei Teilzeitraum nicht an', () => {
+    const appData = withClimateFactors(
+      withPreviousYear(base(), { withCircuit: false }),
+      1.1,
+      0.9,
+    )
+    appData.billingData.occupancyPeriods.find(
+      ({ id }) => id === 'op-t1-previous',
+    )!.consumptionUnits = { value: 100, unit: 'einheiten' }
+    current(appData).to = '2024-03-31'
+    const serialized = statement(appData)
+    // 100 Einheiten × 450 ‰ ÷ 1.000 ‰ = 45 Einheiten
+    expect(serialized).toContain('"45,00 Einheiten"')
+    expect(serialized).toContain(
+      '100,00 Einheiten × 450 ‰ ÷ 1.000 ‰ = 45,00 Einheiten',
+    )
+    expect(serialized).not.toContain('Witterungsbereinigt mit Klimafaktoren')
+    expect(serialized).toContain(
+      'Keine Witterungsbereinigung mit Klimafaktoren',
+    )
+  })
+})
+
+describe('Schätzung im § 6a-Block (A6)', () => {
+  it('kennzeichnet den geschätzten Verbrauch und weist bei Schätzung aus dem Vorjahr keine Veränderung aus', () => {
+    const appData = withPreviousYear(base())
+    appData.billingData.heatingCircuits[0]!.consumptionBenchmark = BENCHMARK
+    Object.assign(appData.billingData.occupancyPeriods[0]!, {
+      consumptionUnitsEstimated: true,
+      consumptionUnitsEstimateReason:
+        'Gerät defekt (fiktiv); Schätzung nach dem Vorjahresverbrauch.',
+    })
+    const serialized = statement(appData)
+    expect(serialized).toContain('40,00 Einheiten – geschätzt (§ 9a HeizKV)')
+    expect(serialized).toContain(
+      'Grundlage der Schätzung: siehe „Ihre Verbrauchserfassung“',
+    )
+    expect(serialized).toContain(
+      'Ihr Energieverbrauch 2024 (gemessen, nicht witterungsbereinigt, geschätzt nach § 9a HeizKV)',
+    )
+    expect(serialized).toContain(
+      'Ein Vergleich mit dem Vorjahr ist deshalb nicht aussagekräftig',
+    )
+    expect(serialized).not.toContain('Veränderung gegenüber dem Vorjahr')
+    expect(serialized).toContain(
+      'Grundlage der Einstufung ist Ihr geschätzter Verbrauch (§ 9a HeizKV)',
+    )
+  })
+
+  it('weist bei sonstiger Schätzung die Veränderung mit Hinweis aus', () => {
+    const appData = withPreviousYear(base())
+    Object.assign(appData.billingData.occupancyPeriods[0]!, {
+      consumptionUnitsEstimated: true,
+      consumptionUnitsEstimateReason: 'Gerät defekt (fiktiv).',
+    })
+    const serialized = statement(appData)
+    expect(serialized).toContain('Veränderung gegenüber dem Vorjahr: +13,6 %.')
+    expect(serialized).toContain(
+      'Ihr Verbrauch 2024 ist geschätzt (§ 9a HeizKV); der Vergleich ist nur eingeschränkt aussagekräftig.',
+    )
+  })
+
+  it('zeigt die Ermittlung ohne Zählerstände im § 6a-Block', () => {
+    const appData = base()
+    appData.billingData.occupancyPeriods[0]!.consumptionUnitsEstimateReason =
+      'Aufteilung nach Gradtagszahlen (fiktiv)'
+    expect(statement(appData)).toContain(
+      'Ermittlung: Aufteilung nach Gradtagszahlen (fiktiv)',
+    )
+  })
+})
+
+describe('Einheitliche Umrechnung nach Gradtagszahlen (A4)', () => {
+  it('rechnet Einheiten je m² und den Heizkreis-Mittelwert nach Gradtagen um', () => {
+    const appData = base()
+    appData.billingData.occupancyPeriods[0]!.to = '2024-03-31'
+    const serialized = statement(appData)
+    // 40 Einheiten ÷ 40 m² ÷ 0,45 = 2,22 Einheiten je m² und Jahr
+    expect(serialized).toContain(
+      '2,22 Einheiten je m², nach Gradtagszahlen (VDI 2067) auf ein ganzes Jahr hochgerechnet',
+    )
+    expect(serialized).toContain(
+      'Ihr Nutzungszeitraum entspricht nach Gradtagszahlen (VDI 2067) 450 ‰ des Jahres',
+    )
   })
 })

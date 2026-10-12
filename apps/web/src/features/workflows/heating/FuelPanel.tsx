@@ -77,6 +77,7 @@ export function FuelPanel({
       openingQuantity: optionalQuantity(form, 'openingQuantity', unit),
       openingValueCents: optionalEuro(form, 'openingValue'),
       openingPricePerUnitCents: optionalEuro(form, 'openingPricePerUnit'),
+      openingCo2PricePerTonCents: optionalEuro(form, 'openingCo2PricePerTon'),
       remainingQuantity: optionalQuantity(form, 'remainingQuantity', unit),
     }
     apply((current) =>
@@ -208,6 +209,15 @@ export function FuelPanel({
             stock?.openingPricePerUnitCents == null
               ? ''
               : formatEuroInput(stock.openingPricePerUnitCents)
+          }
+        />
+        <WorkflowField
+          label="CO₂-Preis des Anfangsbestands in Euro je Tonne (Lieferjahr)"
+          name="openingCo2PricePerTon"
+          defaultValue={
+            stock?.openingCo2PricePerTonCents == null
+              ? ''
+              : formatEuroInput(stock.openingCo2PricePerTonCents)
           }
         />
         <WorkflowField

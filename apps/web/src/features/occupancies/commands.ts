@@ -16,8 +16,9 @@ import {
 } from '@nebenkosten/schema'
 import {
   degreeDaySplitExplanation,
-  degreeDaySplitPlan,
   MAX_DEGREE_DAY_REASON_LENGTH,
+  section9bSplitPlan,
+  type Section9bSplitMethod,
 } from './degree-day-split'
 
 export type IdFactory = () => string
@@ -926,20 +927,52 @@ export function updateOccupancyConsumption(
 
 /**
  * Teilt den Jahresverbrauch einer Wohnung mit mehreren Nutzungen (Mieter und
- * Leerstand) nach Gradtagszahlen auf (§ 9b Abs. 3 HeizKV, ADR-0007/0009).
- * Schreibt je Nutzung `consumptionUnits` und die Erläuterung (Grund und
- * Rechenweg) in `consumptionUnitsEstimateReason`; das Schätzkennzeichen wird
- * entfernt, weil keine Schätzung nach § 9a vorliegt. Zählerstände und Wasser
- * bleiben unverändert.
+ * Leerstand) nach Gradtagszahlen auf (§ 9b Abs. 3 HeizKV, ADR-0007/0009/0010).
+ * Schreibt je Nutzung `consumptionUnits`, die Erläuterung (Grund und
+ * Rechenweg mit Gradtags-Promille) in `consumptionUnitsEstimateReason` und
+ * `section9bAllocation = 'degree_days'`, damit auch die Grundkosten nach
+ * Gradtagszahlen verteilt werden (kein gemischter Maßstab). Das
+ * Schätzkennzeichen wird entfernt, weil keine Schätzung nach § 9a vorliegt.
+ * Zählerstände und Wasser bleiben unverändert.
  */
 export function splitUnitConsumptionByDegreeDays(
   file: AppDataFile,
   rawInput: unknown,
 ): AppDataFile {
+  return splitUnitConsumptionSection9b(
+    file,
+    rawInput,
+    'degree_days',
+    'Aufteilung nach Gradtagszahlen',
+  )
+}
+
+/**
+ * Zeitanteilige Aufteilung nach § 9b Abs. 3 HeizKV: Verbrauchseinheiten nach
+ * Tagen, `section9bAllocation = 'time'` (alle Heizkosten zeitanteilig).
+ */
+export function splitUnitConsumptionByTime(
+  file: AppDataFile,
+  rawInput: unknown,
+): AppDataFile {
+  return splitUnitConsumptionSection9b(
+    file,
+    rawInput,
+    'time',
+    'Zeitanteilige Aufteilung',
+  )
+}
+
+function splitUnitConsumptionSection9b(
+  file: AppDataFile,
+  rawInput: unknown,
+  method: Section9bSplitMethod,
+  label: string,
+): AppDataFile {
   const input = recordWithExactKeys(
     rawInput,
     ['billingPeriodId', 'unitId', 'totalUnits', 'reason'],
-    'Aufteilung nach Gradtagszahlen',
+    label,
   )
   const billingPeriodId = requiredString(input, 'billingPeriodId')
   const unitId = requiredString(input, 'unitId')
@@ -957,7 +990,7 @@ export function splitUnitConsumptionByDegreeDays(
     throw new OccupancyCommandError(
       `Die Begründung darf höchstens ${MAX_DEGREE_DAY_REASON_LENGTH} Zeichen lang sein.`,
     )
-  const plan = degreeDaySplitPlan(file, billingPeriodId, unitId, total)
+  const plan = section9bSplitPlan(file, billingPeriodId, unitId, total, method)
   if (!plan.ok) throw new OccupancyCommandError(plan.problem)
   const byId = new Map(
     plan.shares.map((share) => [share.occupancy.id, share] as const),
@@ -979,6 +1012,7 @@ export function splitUnitConsumptionByDegreeDays(
             plan,
             share,
           ),
+          section9bAllocation: method,
         }
       }),
     },

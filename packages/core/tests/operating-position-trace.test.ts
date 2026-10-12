@@ -153,3 +153,35 @@ describe('CO2-Mieteranteil nach Heizkreis-Schlüssel', () => {
     ).toBeLessThanOrEqual(1)
   })
 })
+
+describe('Betriebsstrom-Umbuchung im Umlage-Nachweis', () => {
+  it('teilt die Stromrechnung bei halbem Cent ohne Rundungsüberschuss auf', () => {
+    const appData = appDataFor('case-08-heat-pump')
+    appData.billingData.billingPeriods[0]!.heatingDefaults!.operatingElectricitySharePercent = 5
+    // 5 % von 2.400,10 € = 120,005 € → exakt halber Cent
+    appData.billingData.fuelDeliveries[0]!.amountCents = 240_010
+    appData.billingData.costCategories = [
+      ...appData.billingData.costCategories,
+      {
+        id: 'k-operating-electricity',
+        billingPeriodId: 'bp-1',
+        kind: 'operating',
+        label: 'Allgemeinstrom',
+        allocationKey: 'usable_area',
+        scope: { kind: 'property' },
+        totalAmountCents: 20_001,
+        isOperatingElectricitySource: true,
+      },
+    ]
+
+    const result = calculate(appData)
+    const position = result.operatingPositions!.find(
+      ({ costCategoryId }) => costCategoryId === 'k-operating-electricity',
+    )!
+
+    expect(result.heating.operatingElectricity.movedCents).toBe(12_001)
+    expect(position.allocableCents).toBe(20_001)
+    expect(position.operatingElectricityDeductedCents).toBe(12_001)
+    expect(position.distributedCents).toBe(8_000)
+  })
+})

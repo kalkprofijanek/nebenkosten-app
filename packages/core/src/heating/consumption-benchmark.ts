@@ -9,7 +9,8 @@
  * - Heizwärme: Energieeinsatz × (1 − Warmwasseranteil) × eigener Verbrauch ÷
  *   Verbrauch aller Nutzungen (einschließlich Leerstand),
  * - Warmwasser (nur wenn die Vergleichswerte es enthalten): Energieeinsatz ×
- *   Warmwasseranteil × eigene Personenzeit ÷ Personenzeit aller Nutzer.
+ *   Warmwasseranteil × eigener Anteil nach dem Warmwasserschlüssel
+ *   (Personenzeit, Fläche × Zeit oder Verbrauch und Fläche).
  *
  * Bezug ist die Fläche des Grundkostenschlüssels; bei kürzerer Nutzung wird
  * auf ein ganzes Jahr hochgerechnet (`annualized`): mit Nutzungszeitraum
@@ -118,6 +119,28 @@ type TenantEnergyShare =
     }
 
 /**
+ * Anteil des Nutzers am Warmwasser nach dem Warmwasserschlüssel der
+ * Kostenverteilung (§ 8 Abs. 1 HeizKV, ADR-0010): Fläche × Zeit bzw.
+ * Verbrauch und Fläche, aus den ungerundeten Nennern des Rechenkerns.
+ * `null` im bisherigen Verfahren (nach Personen, ohne Schlüssel-Trace).
+ */
+function hotWaterAllocationFraction(
+  tenant: CalculationOutput['tenants'][number],
+  trace: CalculationOutput['heating']['trace']['circuits'][number],
+): number | null {
+  const allocation = trace.warmWater.allocation
+  const basis = tenant.hotWaterBasis
+  if (!allocation || !basis || allocation.key === 'persons') return null
+  const areaDenominator = allocation.areaTimeDenominator ?? 0
+  const areaPart = areaDenominator > 0 ? basis.areaTime / areaDenominator : 0
+  if (allocation.key === 'area') return areaPart
+  const consumptionFraction = allocation.consumptionSharePercent / 100
+  const m3Denominator = allocation.warmWaterM3Denominator ?? 0
+  const m3Part = m3Denominator > 0 ? basis.warmWaterM3 / m3Denominator : 0
+  return (1 - consumptionFraction) * areaPart + consumptionFraction * m3Part
+}
+
+/**
  * Ermittelt Heizwärme und Warmwasser eines Nutzers nach den Schlüsseln der
  * Kostenverteilung (ungerundet). Ohne `heatingCircuitId` gilt der Heizkreis
  * des Gebäudes, dem die Nutzung zugeordnet ist.
@@ -168,11 +191,15 @@ function tenantEnergyShare(
     (sum, candidate) => sum + personTimeOf(candidate),
     0,
   )
-  const hotWaterKwh =
-    centralHotWater && personTimeTotal > 0
-      ? (result.energyKwh * hotWaterShare * personTimeOf(tenant)) /
-        personTimeTotal
-      : 0
+  const hotWaterFraction = hotWaterAllocationFraction(tenant, trace)
+  const hotWaterKwh = !centralHotWater
+    ? 0
+    : hotWaterFraction !== null
+      ? result.energyKwh * hotWaterShare * hotWaterFraction
+      : personTimeTotal > 0
+        ? (result.energyKwh * hotWaterShare * personTimeOf(tenant)) /
+          personTimeTotal
+        : 0
   return {
     status: 'ok',
     tenant,
@@ -195,6 +222,25 @@ export function tenantEnergyKwh(
   return share.status === 'ok' ? share.energy : null
 }
 
+export interface UsageWindow {
+  readonly from: string
+  readonly to: string
+  readonly periodStart: string
+  readonly periodEnd: string
+}
+
+/**
+ * Anteil des Nutzungszeitraums am Abrechnungszeitraum nach Gradtagszahlen
+ * (VDI 2067, ADR-0007), z. B. 0,45 für Januar bis März. Grundlage für die
+ * einheitliche Hochrechnung witterungsabhängiger Verbräuche (Einheiten, kWh
+ * Heizwärme) auf ein Jahr und die Umrechnung von Jahreswerten auf den
+ * Nutzungszeitraum. Ohne Gradtage im Abrechnungszeitraum 0.
+ */
+export function degreeDayShareOfPeriod(usage: UsageWindow): number {
+  const total = degreeDayPermille(usage.periodStart, usage.periodEnd)
+  return total > 0 ? degreeDayPermille(usage.from, usage.to) / total : 0
+}
+
 export function compareTenantWithConsumptionBenchmark(
   output: CalculationOutput,
   occupancyPeriodId: string,
@@ -203,12 +249,7 @@ export function compareTenantWithConsumptionBenchmark(
    * Nutzungs- und Abrechnungszeitraum für die Hochrechnung nach
    * Gradtagszahlen; ohne Angabe linear nach Tagen.
    */
-  usage?: {
-    readonly from: string
-    readonly to: string
-    readonly periodStart: string
-    readonly periodEnd: string
-  },
+  usage?: UsageWindow,
 ): TenantConsumptionBenchmark {
   const unavailable = (
     reason: ConsumptionBenchmarkUnavailableReason,
@@ -235,13 +276,18 @@ export function compareTenantWithConsumptionBenchmark(
   const timeFactor = tenant.timeFactor ?? 1
   const energyKwh = heatingKwh + hotWaterKwh
   const annualized = timeFactor > 0 && timeFactor < 1
-  const annualization = !annualized ? 'none' : usage ? 'degree_days' : 'linear'
   // Heizwärme nach Gradtagszahlen (witterungsabhängig), Warmwasser nach
-  // Tagen (gleichmäßig über das Jahr).
+  // Tagen (gleichmäßig über das Jahr). Ein Zeitraum ganz ohne Gradtage
+  // (Sommer) wird linear hochgerechnet.
+  const degreeDayShare = annualized && usage ? degreeDayShareOfPeriod(usage) : 0
+  const annualization = !annualized
+    ? 'none'
+    : degreeDayShare > 0
+      ? 'degree_days'
+      : 'linear'
   const heatingYearFactor =
-    annualization === 'degree_days' && usage
-      ? degreeDayPermille(usage.from, usage.to) /
-        degreeDayPermille(usage.periodStart, usage.periodEnd)
+    annualization === 'degree_days'
+      ? degreeDayShare
       : annualized
         ? timeFactor
         : 1
@@ -260,7 +306,9 @@ export function compareTenantWithConsumptionBenchmark(
     benchmark,
     heatingKwh: round(heatingKwh, 0),
     hotWaterKwh: round(hotWaterKwh, 0),
-    energyKwh: round(energyKwh, 0),
+    // Summe der gerundeten Teile, damit „Heizwärme + Warmwasser“ im PDF
+    // aufgeht und mit dem Vorjahresvergleich übereinstimmt.
+    energyKwh: round(heatingKwh, 0) + round(hotWaterKwh, 0),
     areaSqm,
     annualized,
     annualization,

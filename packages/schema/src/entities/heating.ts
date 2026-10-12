@@ -102,6 +102,65 @@ export const consumptionBenchmarkSchema = z
 export type ConsumptionBenchmark = z.infer<typeof consumptionBenchmarkSchema>
 
 /**
+ * Wärmemenge der zentralen Warmwasserbereitung nach § 9 Abs. 2 HeizKV
+ * (ADR-0010). Leer = bisheriges Verfahren über `hotWaterSharePercent`
+ * (Pauschalanteil, nicht verordnungskonform; Prüfung warnt).
+ * - `heat_meter`: gemessene Wärmemenge Q in kWh (Wärmezähler, Regelfall),
+ * - `volume_formula`: Q = 2,5 × V × (tw − 10) mit gemessenem Volumen V (m³)
+ *   und gemessener oder geschätzter mittlerer Temperatur tw (°C),
+ * - `area_formula`: Q = 32 × A_Wohn (Ausnahme, wenn weder Wärmemenge noch
+ *   Volumen gemessen werden können); A_Wohn leer = versorgte Fläche aller
+ *   Nutzungen des Heizkreises.
+ * `condensingNaturalGas`: brennwertbezogene Erdgasabrechnung, Q × 1,11.
+ */
+export const hotWaterEnergySchema = z.discriminatedUnion('method', [
+  z.strictObject({
+    method: z.literal('heat_meter'),
+    heatKwh: z.number().finite().nonnegative(),
+    condensingNaturalGas: z.boolean().nullish(),
+  }),
+  z.strictObject({
+    method: z.literal('volume_formula'),
+    volumeM3: z.number().finite().nonnegative(),
+    temperatureC: z.number().finite().min(10).max(100),
+    temperatureEstimated: z.boolean().nullish(),
+    condensingNaturalGas: z.boolean().nullish(),
+  }),
+  z.strictObject({
+    method: z.literal('area_formula'),
+    areaSqm: z.number().finite().positive().nullish(),
+    reason: z.string().trim().min(1),
+    condensingNaturalGas: z.boolean().nullish(),
+  }),
+])
+export type HotWaterEnergy = z.infer<typeof hotWaterEnergySchema>
+
+/**
+ * Verteilung der Warmwasserkosten nach § 8 Abs. 1 HeizKV (ADR-0010):
+ * `consumption` = `consumptionSharePercent` (50–70) nach erfasstem
+ * Warmwasserverbrauch (`OccupancyPeriod.warmWater`, m³), Rest nach Fläche;
+ * `area` = vollständig nach Fläche (Ersatz ohne Warmwasserzähler, nicht
+ * verbrauchsabhängig; Prüfung warnt vor § 12 Abs. 1 HeizKV);
+ * `persons` = bisheriges Verfahren nach Personen und Zeit (nicht in der
+ * HeizKV vorgesehen). Leer = `persons` (unverändert für bestehende Jahre).
+ */
+export const hotWaterAllocationSchema = z
+  .strictObject({
+    key: z.enum(['consumption', 'area', 'persons']),
+    consumptionSharePercent: z.number().finite().min(50).max(70).nullish(),
+  })
+  .refine(
+    (value) =>
+      value.key !== 'consumption' || value.consumptionSharePercent != null,
+    {
+      message:
+        'Bei Verteilung nach Verbrauch ist der Verbrauchsanteil (50–70 %) anzugeben.',
+      path: ['consumptionSharePercent'],
+    },
+  )
+export type HotWaterAllocation = z.infer<typeof hotWaterAllocationSchema>
+
+/**
  * HeatingCircuit / Heizkreis eines Abrechnungsjahres (Legacy:
  * `Abrechnung.heizkreise[]`, 1:1 zum Gebäudeblock).
  */
@@ -129,6 +188,10 @@ export const heatingCircuitSchema = z.strictObject({
   hotWaterSharePercent: percentSchema.nullish(),
   /** Vergleichswerte nach § 6a Abs. 3 Nr. 4 HeizKV (additiv, Schema v5). */
   consumptionBenchmark: consumptionBenchmarkSchema.nullish(),
+  /** Wärmemenge Warmwasser nach § 9 Abs. 2 HeizKV (additiv, ADR-0010). */
+  hotWaterEnergy: hotWaterEnergySchema.nullish(),
+  /** Verteilung der Warmwasserkosten nach § 8 HeizKV (additiv, ADR-0010). */
+  hotWaterAllocation: hotWaterAllocationSchema.nullish(),
 })
 export type HeatingCircuit = z.infer<typeof heatingCircuitSchema>
 
@@ -167,6 +230,11 @@ export const fuelStockSchema = z.strictObject({
   /** Preis je Mengeneinheit in Cent (Legacy `anfangsbestand_preis`). */
   openingPricePerUnitCents: moneyCentsSchema.nullish(),
   remainingQuantity: quantitySchema.nullish(),
+  /**
+   * CO₂-Preis (BEHG) in Cent je Tonne, der im Anfangsbestand enthalten ist
+   * (Preis des Lieferjahres, ADR-0010). Leer = Preis des Abrechnungsjahres.
+   */
+  openingCo2PricePerTonCents: moneyCentsSchema.nullish(),
 })
 export type FuelStock = z.infer<typeof fuelStockSchema>
 

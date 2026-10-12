@@ -4,6 +4,31 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Warmwasser gesetzeskonform (ADR-0010)**: Wärmemenge nach § 9 Abs. 2
+  HeizKV (Wärmezähler, Volumenformel 2,5 × V × (tw − 10) oder Flächenformel
+  32 × A, Erdgas × 1,11); Anteil gilt nach § 9 Abs. 1 für Brennstoff,
+  Betriebsstrom und Heizungs-Betriebskosten; Verteilung nach § 8 Abs. 1
+  (50–70 % Verbrauch, Rest Fläche) oder ersatzweise nach Fläche; CO₂-Mieteranteil
+  getrennt nach Heizung und Warmwasser; Rechenweg im Mieterblatt; Prüfregeln
+  `heating_compliance.*` für Altverfahren und § 12-Hinweis; Eingabe im
+  Heizkreis-Formular,
+- **§ 9b Abs. 3 HeizKV ohne gemischten Maßstab**: Nutzerwechsel ohne
+  Zwischenablesung werden für die gesamten Heizkosten einheitlich nach
+  Gradtagszahlen oder zeitanteilig aufgeteilt (Warmwasser zeitanteilig);
+  Rechenweg im PDF; Prüfregeln `heating.section9b_*`,
+- **CO₂-Preis je Brennstoff-Los**: Anfangsbestand mit dem CO₂-Preis seines
+  Lieferjahres; Berechnungsgrundlagen nach § 7 Abs. 3 CO2KostAufG im PDF;
+  Prüfhinweis `co2.opening_stock_price_missing`,
+- **§ 6a-Block**: Vorjahresvergleich auf gleichem Zeitraum (Gradtage),
+  Klimafaktor nur bei vollen Jahren, eindeutige Beschriftung gemessen /
+  witterungsbereinigt, Kennzeichnung geschätzter Werte (§ 9a),
+- **Gesamtabrechnung und Rundung**: Verteilungsgrundlagen (Verbrauchssumme,
+  Personenjahre), Leerstandsblock, Klartext statt interner Kennung,
+  sichtbarer Rundungsausgleich,
+- **Prüfung**: Kabel-TV ab 01.07.2024 als Fehler (§ 2 Nr. 15 BetrKV),
+  Heizspiegel-Kategorie gegen Gebäudefläche und Energieträger, Schätzungen
+  ohne Begründung, mit starker Vorjahresabweichung oder über 25 % der Fläche,
+
 - **§ 6a HeizKV in der Einzelabrechnung**: Vergleich mit dem
   Durchschnittsnutzer (Heizspiegel-Klassen, eigener Wert in kWh je m² und
   Jahr, Grenzen auf eigene Fläche und Nutzungszeit); Vorjahresvergleich

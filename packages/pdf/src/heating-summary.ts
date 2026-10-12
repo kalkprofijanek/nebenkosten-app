@@ -1,7 +1,9 @@
 import type { Content, TableCell } from 'pdfmake/interfaces'
+import { energyCarrierDisplayName } from './energy-carrier-label'
 import {
   isGridEnergySource,
   type CalculationOutput,
+  type CircuitHotWaterEnergyTrace,
   type EnergySourceCalculationTrace,
   type FuelLotTrace,
   type HeatingCircuitTrace,
@@ -107,7 +109,9 @@ function sourceLabel(
   trace: EnergySourceCalculationTrace,
 ): string {
   const source = energySourceFor(appData, trace)
-  return source?.name ?? source?.sourceType ?? source?.key ?? 'Energiequelle'
+  return energyCarrierDisplayName(
+    source?.name ?? source?.sourceType ?? source?.key ?? 'Energiequelle',
+  )
 }
 
 function carrierName(
@@ -115,7 +119,8 @@ function carrierName(
   trace: EnergySourceCalculationTrace,
 ): string | null {
   const source = energySourceFor(appData, trace)
-  return source?.sourceType ?? source?.name ?? source?.key ?? null
+  const raw = source?.sourceType ?? source?.name ?? source?.key ?? null
+  return raw === null ? null : energyCarrierDisplayName(raw)
 }
 
 /** Energieträger eines Heizkreises (Namen bzw. Art der Energiequellen). */
@@ -528,12 +533,125 @@ export function heatingOperatingCostLines(
 /** Entgelte für Verbrauchserfassung und Abrechnung (Core, ADR-0006). */
 export { meteringFeeCents } from '@nebenkosten/core'
 
+/** Eingerückte, kleine „davon“-Zeile. */
+function detailRow(text: string, cents: number): TableCell[] {
+  return [
+    { text, fontSize: 7.5, color: MUTED, margin: [10, 0, 0, 0] },
+    {
+      text: formatEuroCents(cents),
+      alignment: 'right',
+      noWrap: true,
+      fontSize: 7.5,
+      color: MUTED,
+    },
+  ]
+}
+
+/** Eingerückte Erläuterung ohne Betrag. */
+function noteRow(text: string): TableCell[] {
+  return [
+    {
+      text,
+      fontSize: 7.5,
+      color: MUTED,
+      margin: [10, 0, 0, 0],
+      colSpan: 2,
+    },
+    {},
+  ]
+}
+
+/**
+ * Herkunft des Betriebsstroms (A7): Der Betrag ist kein gemessener Wert,
+ * sondern die Vorgabe `operatingElectricitySharePercent` (Prozent der
+ * Brennstoffkosten), umgebucht aus den Allgemeinstromkosten.
+ */
+export function operatingElectricityNote(
+  circuit: HeatingCircuitTrace,
+): string | null {
+  const percent = circuit.operatingElectricitySharePercent
+  const moved = circuit.reconciliation.plusOperatingElectricityCents
+  if (moved === 0 && !percent) return null
+  const basis =
+    percent != null && percent > 0
+      ? `Schätzung: ${formatPercent(percent)} der Brennstoffkosten nach CO2-Abzug laut Vorgabe für den Betriebsstromanteil`
+      : 'Schätzung laut Vorgabe für den Betriebsstromanteil'
+  const uncovered = circuit.operatingElectricity.uncoveredCents
+  return `${basis}; kein Zwischenzähler für den Strom der Heizungsanlage. Der Betrag ist aus den Allgemeinstromkosten umgebucht und dort abgezogen.${
+    uncovered > 0
+      ? ` ${formatEuroCents(uncovered)} des vorgesehenen Betrags sind durch Allgemeinstromkosten nicht gedeckt und nicht angesetzt.`
+      : ''
+  }`
+}
+
+/** Wärmemenge Q und Anteil s (§ 9 Abs. 2/3 HeizKV) als Rechenweg. */
+export function hotWaterEnergyText(energy: CircuitHotWaterEnergyTrace): string {
+  const kwh = (value: number) => `${formatNumber(value, 0)} kWh`
+  let formula: string
+  switch (energy.method) {
+    case 'heat_meter':
+      formula = `Wärmemenge laut Wärmezähler ${kwh(energy.heatKwhBeforeCondensing)}`
+      break
+    case 'volume_formula':
+      formula = `Q = 2,5 × ${formatNumber(energy.volumeM3 ?? 0)} m³ × (${formatNumber(energy.temperatureC ?? 0, 1)} °C${energy.temperatureEstimated ? ' (geschätzt)' : ''} − 10) = ${kwh(energy.heatKwhBeforeCondensing)}`
+      break
+    case 'area_formula':
+      formula = `Q = 32 kWh/m² × ${formatNumber(energy.areaSqm ?? 0)} m² ${energy.areaSource === 'input' ? 'Wohnfläche' : 'Wohnfläche der versorgten Einheiten'} = ${kwh(energy.heatKwhBeforeCondensing)}`
+      break
+  }
+  const condensing = energy.condensingNaturalGas
+    ? `; × 1,11 (brennwertbezogene Erdgasabrechnung) = ${kwh(energy.heatKwh)}`
+    : ''
+  if (energy.energyInputMissing)
+    return `Wärmemenge Warmwasser (§ 9 Abs. 2 HeizKV): ${formula}${condensing}. Der Energieeinsatz des Heizkreises ist nicht bekannt; ersatzweise gilt der Pauschalanteil.`
+  return `Wärmemenge Warmwasser (§ 9 Abs. 2 HeizKV): ${formula}${condensing}. Anteil am Energieeinsatz ${kwh(energy.energyInputKwh)}: ${formatNumber(energy.shareExact * 100, 2)} %${energy.capped ? ' (auf 100 % begrenzt)' : ''} (§ 9 Abs. 3 HeizKV).`
+}
+
+/**
+ * Verteilungskontrolle des Warmwassertopfs: Mieter, Leerstand, Kürzung
+ * nach § 12 HeizKV und Rundungsrest der Einzelbeträge werden ausgewiesen,
+ * statt Restcents stillschweigend dem Leerstand zuzurechnen.
+ */
+function hotWaterDistributionRows(circuit: HeatingCircuitTrace): TableCell[][] {
+  const distribution = circuit.warmWater.distribution
+  if (!distribution) return []
+  const rows: TableCell[][] = [
+    detailRow(
+      'davon auf Mieter verteilt (Summe der Einzelbeträge)',
+      distribution.tenantsCents,
+    ),
+  ]
+  if (distribution.vacancyCents !== 0)
+    rows.push(
+      detailRow(
+        'davon Leerstand (trägt der Vermieter)',
+        distribution.vacancyCents,
+      ),
+    )
+  if (distribution.section12ReductionCents !== 0)
+    rows.push(
+      detailRow(
+        'davon Kürzung nach § 12 HeizKV (trägt der Vermieter)',
+        distribution.section12ReductionCents,
+      ),
+    )
+  if (distribution.roundingDifferenceCents !== 0)
+    rows.push(
+      detailRow(
+        'davon Rundungsdifferenz der Einzelbeträge (trägt der Vermieter)',
+        distribution.roundingDifferenceCents,
+      ),
+    )
+  return rows
+}
+
 /** Zusammenstellung der Heizkosten des Heizkreises (§ 7 Abs. 2 HeizKV). */
 export function heatingCompilationTable(
   circuit: HeatingCircuitTrace,
   operatingLines: readonly HeatingOperatingCostLine[] = [],
 ): Content {
-  const { reconciliation } = circuit
+  const { reconciliation, warmWater } = circuit
+  const section9 = warmWater.method === 'section9_energy'
   const rows: TableCell[][] = [
     [
       'Brennstoff-/Energiekosten (Verbrauch)',
@@ -544,37 +662,69 @@ export function heatingCompilationTable(
       amountCell(reconciliation.minusCo2Cents),
     ],
   ]
-  if (circuit.warmWater.method !== 'none') {
-    rows.push([
-      `− Kosten der Warmwasserbereitung (${formatPercent(circuit.warmWater.sharePercent)})`,
-      amountCell(reconciliation.minusHotWaterCents),
-    ])
+  const hotWaterRows = (label: string): TableCell[][] => [
+    [label, amountCell(reconciliation.minusHotWaterCents)],
+    ...(warmWater.energy
+      ? [noteRow(hotWaterEnergyText(warmWater.energy))]
+      : []),
+    ...(warmWater.costSplit
+      ? [
+          detailRow(
+            'davon Brennstoff-/Energiekosten',
+            warmWater.costSplit.fuelCents,
+          ),
+          detailRow(
+            'davon Betriebsstrom',
+            warmWater.costSplit.operatingElectricityCents,
+          ),
+          detailRow(
+            'davon Betriebskosten der Heizungsanlage',
+            warmWater.costSplit.heatingOperatingCents,
+          ),
+        ]
+      : []),
+    ...hotWaterDistributionRows(circuit),
+  ]
+  if (warmWater.method !== 'none' && !section9) {
+    rows.push(
+      ...hotWaterRows(
+        `− Kosten der Warmwasserbereitung (${formatPercent(warmWater.sharePercent)}${warmWater.energy ? '' : ' der Brennstoffkosten, Pauschalanteil'})`,
+      ),
+    )
   }
+  const electricityNote = operatingElectricityNote(circuit)
   rows.push(
     [
       '+ Betriebsstrom der Heizungsanlage',
       amountCell(reconciliation.plusOperatingElectricityCents),
     ],
+    ...(electricityNote ? [noteRow(electricityNote)] : []),
     [
       '+ Betriebskosten der Heizungsanlage (Wartung, Messdienst u. a.)',
       amountCell(reconciliation.plusHeatingOperatingCostsCents),
     ],
-    ...operatingLines.map((line): TableCell[] => [
-      {
-        text: `davon ${line.date ? `${formatIsoDate(line.date)} ` : ''}${line.label}`,
-        fontSize: 7.5,
-        color: MUTED,
-        margin: [10, 0, 0, 0],
-      },
-      {
-        text: formatEuroCents(line.amountCents),
-        alignment: 'right',
-        noWrap: true,
-        fontSize: 7.5,
-        color: MUTED,
-      },
-    ]),
+    ...operatingLines.map((line): TableCell[] =>
+      detailRow(
+        `davon ${line.date ? `${formatIsoDate(line.date)} ` : ''}${line.label}`,
+        line.amountCents,
+      ),
+    ),
   )
+  if (section9) {
+    rows.push(
+      [
+        '= Kosten des Betriebs der zentralen Anlage (Heizung und Warmwasser)',
+        amountCell(
+          reconciliation.fuelAfterCo2Cents +
+            reconciliation.plusOperatingElectricityCents +
+            reconciliation.plusHeatingOperatingCostsCents,
+        ),
+      ],
+      ...hotWaterRows(
+        `− Anteil Warmwasser ${formatNumber(warmWater.sharePercent, 2)} % (§ 9 Abs. 1 HeizKV)`,
+      ),
+    )
+  }
   if (reconciliation.roundingDifferenceCents !== 0) {
     rows.push([
       '± Rundungsdifferenz',
@@ -647,6 +797,30 @@ export function hasNoBehgCo2Costs(circuit: HeatingCircuitTrace): boolean {
  * Vollständige CO2-Tabelle nach § 7 Abs. 3 CO2KostAufG. Mit `tenantCents`
  * wird zusätzlich der Anteil des Mieters ausgewiesen.
  */
+/**
+ * CO2-Preis der Tabelle. Bei Bewertung je FIFO-Los (ADR-0010, A12) gelten
+ * unterschiedliche Preise je Los; dann werden alle genannt statt nur des
+ * Preises des Abrechnungsjahres.
+ */
+export function co2PriceText(circuit: HeatingCircuitTrace): string {
+  const { co2 } = circuit
+  if (co2.mode !== 'manual') {
+    const lotPrices = [
+      ...new Set(
+        circuit.energySources.flatMap(({ co2Lots }) =>
+          (co2Lots ?? []).map(({ pricePerTonCents }) => pricePerTonCents),
+        ),
+      ),
+    ].sort((left, right) => left - right)
+    if (lotPrices.length > 1)
+      return `${lotPrices.map(formatEuroCents).join(' / ')} je t (je Brennstoff-Los nach Lieferjahr)`
+    if (lotPrices.length === 1) return `${formatEuroCents(lotPrices[0]!)} je t`
+  }
+  return co2.pricePerTonCents == null
+    ? 'manuell festgelegt'
+    : `${formatEuroCents(co2.pricePerTonCents)} je t`
+}
+
 export function co2Table(
   appData: AppDataFile,
   circuit: HeatingCircuitTrace,
@@ -685,14 +859,7 @@ export function co2Table(
       'CO2-Emissionen im Abrechnungszeitraum',
       value(`${formatNumber(co2EmissionsKg(circuit), 1)} kg`),
     ],
-    [
-      'CO2-Preis',
-      value(
-        co2.pricePerTonCents == null
-          ? 'manuell festgelegt'
-          : `${formatEuroCents(co2.pricePerTonCents)} je t`,
-      ),
-    ],
+    ['CO2-Preis', value(co2PriceText(circuit))],
     ['CO2-Kosten gesamt', amountCell(co2.totalCents)],
     [
       'Beheizte Wohnfläche des Gebäudes',
@@ -713,8 +880,23 @@ export function co2Table(
       ),
     ],
     ['Mieteranteil (auf Nutzer verteilt)', amountCell(co2.tenantCents)],
-    ['Vermieteranteil (nicht umgelegt)', amountCell(co2.landlordCents)],
   ]
+  const hotWaterCo2 = circuit.warmWater.costSplit?.co2TenantCents
+  if (hotWaterCo2 !== undefined) {
+    // § 7 Abs. 1 CO2KostAufG: Mieteranteil nach den Schlüsseln für Heizung
+    // und Warmwasser getrennt (Anteil s nach § 9 HeizKV).
+    rows.push(
+      detailRow(
+        `davon Warmwasser (${formatNumber(circuit.warmWater.sharePercent, 2)} %, nach dem Warmwasserschlüssel)`,
+        hotWaterCo2,
+      ),
+      detailRow(
+        'davon Heizung (nach Grund- und Verbrauchsanteil)',
+        co2.tenantCents - hotWaterCo2,
+      ),
+    )
+  }
+  rows.push(['Vermieteranteil (nicht umgelegt)', amountCell(co2.landlordCents)])
   if (tenantCents !== undefined) {
     rows.push([
       { text: 'Ihr Anteil an den CO2-Kosten', bold: true },
@@ -730,7 +912,7 @@ export function co2Table(
     },
     {
       // Bei 0 € Vermieteranteil (Stufe 1) wäre der Abzugssatz irreführend.
-      text: `${co2.landlordCents !== 0 ? `${co2LandlordDeductedSentence(formatEuroCents(co2.landlordCents))} ` : ''}${co2DistributionSentence(split.baseSharePercent, split.consumptionSharePercent, split.baseAreaBasis)}`,
+      text: `${co2.landlordCents !== 0 ? `${co2LandlordDeductedSentence(formatEuroCents(co2.landlordCents))} ` : ''}${co2DistributionSentence(split.baseSharePercent, split.consumptionSharePercent, split.baseAreaBasis, hotWaterCo2 === undefined ? undefined : `${formatNumber(circuit.warmWater.sharePercent, 2)} %`)}`,
       fontSize: 8,
       color: MUTED,
       margin: [0, 0, 0, 8],

@@ -13,6 +13,7 @@ import {
   formatIban,
   formatIsoDate,
   formatNumber,
+  formatPercent,
   formatUnitPrice,
 } from './format'
 import {
@@ -361,6 +362,63 @@ export function section12Applies(context: TenantStatementContext): boolean {
   )
 }
 
+function personLabel(persons: number): string {
+  return `${formatNumber(persons, Number.isInteger(persons) ? 0 : 2)} ${persons === 1 ? 'Person' : 'Personen'}`
+}
+
+/**
+ * Rechenweg der Warmwasserkosten des Mieters mit konkreten Zahlen (A3):
+ * eigene Bezugsgröße, Gesamtnenner mit vier Nachkommastellen (ungerundet
+ * aus dem Rechenkern) und Preis je Einheit, so dass die Nachrechnung auf
+ * den Cent aufgeht.
+ */
+export function hotWaterCalculationText(
+  context: TenantStatementContext,
+  circuit: HeatingCircuitTrace,
+  facts: TenantFacts,
+): string {
+  const tenant = tenantResult(context)
+  const { warmWater } = circuit
+  const allocation = warmWater.allocation
+  const time = `${facts.days}/${facts.periodDays} Tage`
+  const fraction = facts.days / facts.periodDays
+  if (!allocation || allocation.key === 'persons') {
+    const denominator =
+      allocation?.personTimeDenominator ?? warmWater.personTimeDenominator
+    const persons =
+      facts.basis.persons > 0 ? facts.basis.persons : tenant.isVacancy ? 0 : 1
+    const fallback = warmWater.fallbackOccupancyIds.includes(tenant.id)
+      ? ' (ohne Personenangabe mit 1 Person angesetzt)'
+      : ''
+    const own = tenant.hotWaterBasis?.personTime ?? persons * fraction
+    const price = denominator > 0 ? warmWater.poolCents / denominator : 0
+    return `Warmwasser nach Personen und Nutzungszeit: ${personLabel(persons)}${fallback} × ${time} = ${formatNumber(own, 4)} Personenjahre von ${formatNumber(denominator, 4)} Personenjahren; ${formatEuroCents(warmWater.poolCents)} : ${formatNumber(denominator, 4)} = ${formatUnitPrice(price, 'Personenjahr')} × ${formatNumber(own, 4)}`
+  }
+  const ownArea =
+    allocation.areaBasis === 'usable_area'
+      ? facts.basis.usableAreaSqm
+      : facts.basis.heatedAreaSqm
+  const areaTime = tenant.hotWaterBasis?.areaTime ?? ownArea * fraction
+  const areaDenominator = allocation.areaTimeDenominator ?? 0
+  const areaPrice =
+    areaDenominator > 0 ? allocation.areaCents / areaDenominator : 0
+  const areaText = `${formatEuroCents(allocation.areaCents)} : ${formatNumber(areaDenominator, 4)} m² = ${formatUnitPrice(areaPrice, 'm²')} × ${formatNumber(ownArea)} m² ${baseAreaLabel(allocation.areaBasis)} × ${time} (= ${formatNumber(areaTime, 4)} m²)`
+  if (allocation.key === 'area' || allocation.consumptionCents === 0) {
+    const fallback = allocation.consumptionFallbackToArea
+      ? ' – ersatzweise, da kein Warmwasserverbrauch erfasst ist'
+      : ''
+    return `Warmwasser nach Fläche (§ 8 Abs. 1 HeizKV${fallback}): ${areaText}`
+  }
+  const m3 =
+    tenant.hotWaterBasis?.warmWaterM3 ??
+    context.occupancyPeriod.warmWater?.value ??
+    0
+  const m3Denominator = allocation.warmWaterM3Denominator ?? 0
+  const m3Price =
+    m3Denominator > 0 ? allocation.consumptionCents / m3Denominator : 0
+  return `Warmwasser nach § 8 Abs. 1 HeizKV: ${formatPercent(allocation.consumptionSharePercent)} nach Verbrauch ${formatEuroCents(allocation.consumptionCents)} : ${formatNumber(m3Denominator, 4)} m³ = ${formatUnitPrice(m3Price, 'm³')} × ${formatNumber(m3, 3)} m³ Ihr Warmwasserverbrauch; ${formatPercent(100 - allocation.consumptionSharePercent)} nach Fläche ${areaText}`
+}
+
 export function tenantHeatingTable(
   context: TenantStatementContext,
   circuit: HeatingCircuitTrace,
@@ -402,7 +460,7 @@ export function tenantHeatingTable(
   ]
   if (circuit.warmWater.method !== 'none') {
     rows.push([
-      `Warmwasser: ${formatEuroCents(circuit.warmWater.poolCents)} : ${formatNumber(circuit.warmWater.personTimeDenominator)} Personenjahre × Ihre Personen × Zeitfaktor`,
+      `${hotWaterCalculationText(context, circuit, facts)}${reduction}`,
       amountCell(costBreakdown.hotWaterCents),
     ])
   }

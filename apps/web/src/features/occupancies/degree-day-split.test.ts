@@ -1,8 +1,11 @@
 import type { AppDataFile, OccupancyPeriod } from '@nebenkosten/schema'
 import { describe, expect, it } from 'vitest'
 import { consumptionFixture } from '../consumption/consumption-fixture'
-import { splitUnitConsumptionByDegreeDays } from './commands'
-import { degreeDaySplitPlan } from './degree-day-split'
+import {
+  splitUnitConsumptionByDegreeDays,
+  splitUnitConsumptionByTime,
+} from './commands'
+import { degreeDaySplitPlan, section9bSplitPlan } from './degree-day-split'
 
 function vacancy(patch: Partial<OccupancyPeriod> = {}): OccupancyPeriod {
   return {
@@ -53,6 +56,10 @@ describe('Aufteilung nach Gradtagszahlen', () => {
     const tenant = occupancy(result, 'o1')
     expect(tenant.consumptionUnits).toEqual({ value: 450, unit: 'einheiten' })
     expect(tenant).not.toHaveProperty('consumptionUnitsEstimated')
+    // § 9b Abs. 3: auch die Grundkosten nach Gradtagszahlen.
+    expect(tenant.section9bAllocation).toBe('degree_days')
+    expect(occupancy(result, 'o4').section9bAllocation).toBe('degree_days')
+    expect(occupancy(result, 'o2')).not.toHaveProperty('section9bAllocation')
     expect(tenant.heatMeterReading).toEqual({ meterNumber: 'HKV-TEST' })
     expect(tenant.consumptionUnitsEstimateReason).toBe(
       'Keine Zwischenablesung möglich: Mieter war zum Auszug nicht erreichbar. Aufteilung nach Gradtagszahlen (§ 9b Abs. 3 HeizKV, VDI 2067), Zeitraum 01.01.2025 bis 31.03.2025: 1.000 Einheiten × 450 ‰ ÷ 1.000 ‰ = 450 Einheiten.',
@@ -154,5 +161,49 @@ describe('Aufteilung nach Gradtagszahlen', () => {
     expect(degreeDaySplitPlan(data, 'y', 'u1', Number.NaN)).toMatchObject({
       ok: false,
     })
+  })
+})
+
+describe('Zeitanteilige Aufteilung (§ 9b Abs. 3 HeizKV)', () => {
+  it('teilt nach Tagen, setzt den Maßstab und erläutert den Rechenweg', () => {
+    const data = changeFixture()
+    const plan = section9bSplitPlan(data, 'y', 'u1', 365, 'time')
+    expect(plan).toMatchObject({
+      ok: true,
+      method: 'time',
+      periodDays: 365,
+      shares: [
+        { days: 90, value: 90 },
+        { days: 275, value: 275 },
+      ],
+    })
+    const result = splitUnitConsumptionByTime(data, {
+      billingPeriodId: 'y',
+      unitId: 'u1',
+      totalUnits: 1000,
+      reason: 'Ablesedienst nicht verfügbar',
+    })
+    const tenant = occupancy(result, 'o1')
+    const empty = occupancy(result, 'o4')
+    expect(tenant.section9bAllocation).toBe('time')
+    expect(empty.section9bAllocation).toBe('time')
+    expect(tenant.consumptionUnits!.value + empty.consumptionUnits!.value).toBe(
+      1000,
+    )
+    expect(tenant.consumptionUnits!.value).toBe(246.575)
+    expect(tenant.consumptionUnitsEstimateReason).toBe(
+      'Keine Zwischenablesung möglich: Ablesedienst nicht verfügbar. Zeitanteilige Aufteilung (§ 9b Abs. 3 HeizKV), Zeitraum 01.01.2025 bis 31.03.2025: 1.000 Einheiten × 90 Tage ÷ 365 Tage = 246,575 Einheiten.',
+    )
+  })
+
+  it('übernimmt die Prüfungen der Gradtagsaufteilung', () => {
+    expect(() =>
+      splitUnitConsumptionByTime(changeFixture(), {
+        billingPeriodId: 'y',
+        unitId: 'u1',
+        totalUnits: 1,
+        reason: ' ',
+      }),
+    ).toThrow('Bitte angeben, warum keine Zwischenablesung möglich war.')
   })
 })

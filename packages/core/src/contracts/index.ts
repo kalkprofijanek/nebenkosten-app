@@ -115,6 +115,29 @@ export interface EnergySourceCalculationTrace {
   energyKwh: number
   co2FactorKgPerKwh: number
   co2Kg: number
+  /**
+   * CO₂-Kosten je verbrauchtem FIFO-Los (ADR-0010, A12). Nur vorhanden, wenn
+   * ein Anfangsbestand einen eigenen CO₂-Preis des Lieferjahres trägt.
+   */
+  co2Lots?: FuelLotCo2Trace[]
+  /** Summe der CO₂-Kosten aller Lose in Cent (gerundet), nur mit `co2Lots`. */
+  co2CostCents?: number
+}
+
+/** CO₂-Aufschlüsselung eines verbrauchten FIFO-Loses (ADR-0010, A12). */
+export interface FuelLotCo2Trace {
+  kind: FuelLotTrace['kind']
+  sourceId: string
+  /** Verbrauchte Menge aus diesem Los. */
+  consumedQuantity: number
+  energyKwh: number
+  co2Kg: number
+  /** Angesetzter CO₂-Preis in Cent je Tonne. */
+  pricePerTonCents: number
+  /** Herkunft des Preises: Lieferjahr des Anfangsbestands oder Abrechnungsjahr. */
+  priceSource: 'opening_stock' | 'billing_year'
+  /** CO₂-Kosten des Loses in Cent (kaufmännisch gerundet). */
+  costCents: number
 }
 
 export interface CircuitCo2Trace {
@@ -132,12 +155,106 @@ export interface CircuitCo2Trace {
   landlordCents: number
 }
 
+/**
+ * Wärmemenge der Warmwasserbereitung nach § 9 Abs. 2 HeizKV und daraus
+ * abgeleiteter Anteil am Energieeinsatz (§ 9 Abs. 3, ADR-0010).
+ */
+export interface CircuitHotWaterEnergyTrace {
+  method: 'heat_meter' | 'volume_formula' | 'area_formula'
+  /** Gemessenes Volumen V in m³ (nur `volume_formula`). */
+  volumeM3: number | null
+  /** Mittlere Warmwassertemperatur tw in °C (nur `volume_formula`). */
+  temperatureC: number | null
+  temperatureEstimated: boolean
+  /** Wohnfläche A_Wohn in m² (nur `area_formula`). */
+  areaSqm: number | null
+  /** Herkunft der Fläche: Eingabe oder Summe der Wohnflächen des Heizkreises. */
+  areaSource: 'input' | 'circuit_usable_area' | null
+  condensingNaturalGas: boolean
+  /** Q vor dem Faktor 1,11 für brennwertbezogene Erdgasabrechnung. */
+  heatKwhBeforeCondensing: number
+  /** Maßgebliche Wärmemenge Q in kWh. */
+  heatKwh: number
+  /** Energieeinsatz des Heizkreises in kWh (Brennstoffverbrauch × Heizwert). */
+  energyInputKwh: number
+  /** Ungerundeter Anteil s = min(1, Q ÷ Energieeinsatz) als Zahl 0–1. */
+  shareExact: number
+  /** Q war größer als der Energieeinsatz; s wurde auf 1 begrenzt. */
+  capped: boolean
+  /**
+   * Energieeinsatz unbekannt (Menge oder Heizwert fehlt); s nicht
+   * bestimmbar, es gilt ersatzweise `hotWaterSharePercent`.
+   */
+  energyInputMissing: boolean
+}
+
+/** Warmwasseranteile je Kostenart nach § 9 Abs. 1 HeizKV (gerundet, Summe = Topf). */
+export interface CircuitHotWaterCostSplit {
+  fuelCents: number
+  operatingElectricityCents: number
+  heatingOperatingCents: number
+  /** Warmwasseranteil am CO2-Mieteranteil (§ 7 Abs. 1 CO2KostAufG). */
+  co2TenantCents: number
+}
+
+/** Verteilschlüssel der Warmwasserkosten (§ 8 Abs. 1 HeizKV). */
+export interface CircuitHotWaterAllocationTrace {
+  key: 'persons' | 'area' | 'consumption'
+  /** Verbrauchsabhängiger Anteil in Prozent (nur `consumption`), sonst 0. */
+  consumptionSharePercent: number
+  /** Flächenart des Flächenanteils (wie der Grundkostenschlüssel). */
+  areaBasis: 'usable_area' | 'heated_area'
+  /** Fläche × Zeitanteil aller Nutzungen, ungerundet (`area`/`consumption`). */
+  areaTimeDenominator: number | null
+  /** Summe der Warmwasser-m³ aller Nutzungen, ungerundet (`consumption`). */
+  warmWaterM3Denominator: number | null
+  /** Personen × Zeitanteil der Mieter, ungerundet (`persons`). */
+  personTimeDenominator: number | null
+  /** Flächenabhängiger Teil des Warmwassertopfs in Cent (gerundet). */
+  areaCents: number
+  /** Verbrauchsabhängiger Teil des Warmwassertopfs in Cent (gerundet). */
+  consumptionCents: number
+  /** Kein erfasster Warmwasserverbrauch: ersatzweise 100 % nach Fläche. */
+  consumptionFallbackToArea: boolean
+}
+
+/**
+ * Kontrolle der Warmwasserverteilung: Summe der gerundeten Einzelbeträge
+ * aller Nutzungen gegenüber dem Topf; die Restcents werden ausgewiesen statt
+ * stillschweigend dem Leerstand zugerechnet.
+ */
+export interface CircuitHotWaterDistributionTrace {
+  tenantsCents: number
+  vacancyCents: number
+  /** Kürzung nach § 12 Abs. 1 HeizKV auf den Warmwasseranteil (Vermieter). */
+  section12ReductionCents: number
+  /** Topf − Mieter − Leerstand − Kürzung (Rundung der Einzelbeträge). */
+  roundingDifferenceCents: number
+}
+
 export interface CircuitWarmWaterTrace {
-  method: 'none' | 'fuel_percentage_by_persons'
+  /**
+   * `fuel_percentage_by_persons`: bisheriges Pauschalverfahren;
+   * `fuel_percentage`: Pauschalanteil mit Schlüssel nach § 8 HeizKV;
+   * `section9_energy`: Anteil nach § 9 Abs. 2/3 HeizKV.
+   */
+  method:
+    | 'none'
+    | 'fuel_percentage_by_persons'
+    | 'fuel_percentage'
+    | 'section9_energy'
   sharePercent: number
   poolCents: number
   personTimeDenominator: number
   fallbackOccupancyIds: string[]
+  /** § 9 Abs. 2 HeizKV; nur bei gesetztem `hotWaterEnergy`. */
+  energy?: CircuitHotWaterEnergyTrace
+  /** Warmwasseranteile je Kostenart; nur bei gesetztem `hotWaterEnergy`. */
+  costSplit?: CircuitHotWaterCostSplit
+  /** Schlüssel und ungerundete Nenner; fehlt in älteren Rechenständen. */
+  allocation?: CircuitHotWaterAllocationTrace
+  /** Verteilungskontrolle; fehlt in älteren Rechenständen. */
+  distribution?: CircuitHotWaterDistributionTrace
 }
 
 export interface CircuitHeatingSplitTrace {
@@ -185,6 +302,11 @@ export interface HeatingCircuitTrace {
   operatingElectricity: CircuitOperatingElectricityResult
   split: CircuitHeatingSplitTrace
   reconciliation: CircuitHeatingReconciliation
+  /**
+   * Vorgabewert Betriebsstromanteil in Prozent der Brennstoffkosten
+   * (Heizkreis bzw. Objektvorgabe); fehlt in älteren Rechenständen.
+   */
+  operatingElectricitySharePercent?: number
 }
 
 export interface HeatingCalculationTrace {
@@ -227,6 +349,26 @@ export interface TenantCostBreakdown {
   heatingConsumptionCents: number
   hotWaterCents: number
   heatingCo2Cents: number
+  /**
+   * Davon Warmwasseranteil der CO2-Kosten (in `heatingCo2Cents` enthalten);
+   * nur bei Aufteilung nach § 9 Abs. 2 HeizKV.
+   */
+  hotWaterCo2Cents?: number
+}
+
+/**
+ * Eigene Bezugsgröße der Warmwasserverteilung (ungerundet). Nur bei
+ * zentraler Warmwasserbereitung mit `hotWaterEnergy` oder
+ * `hotWaterAllocation`.
+ */
+export interface TenantHotWaterBasis {
+  key: 'persons' | 'area' | 'consumption'
+  /** Personen (ohne Angabe 1) × Zeitanteil. */
+  personTime: number
+  /** Fläche (Grundkostenart) × Zeitanteil. */
+  areaTime: number
+  /** Erfasster Warmwasserverbrauch in m³. */
+  warmWaterM3: number
 }
 
 /**
@@ -276,6 +418,8 @@ export interface TenantCalculationResult {
   ownBasis?: TenantAllocationBasis
   /** § 35a EStG; fehlt in Snapshots vor seiner Einführung. */
   section35a?: TenantSection35a
+  /** Warmwasser-Bezugsgröße (ADR-0010); fehlt im bisherigen Verfahren. */
+  hotWaterBasis?: TenantHotWaterBasis
 }
 
 /**

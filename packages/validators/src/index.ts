@@ -25,3 +25,15 @@ export {
   legalRulesForPeriod,
   type LegalRule,
 } from './legal-rules'
+export { co2OpeningPriceIssues } from './co2-price'
+export {
+  ESTIMATE_PREVIOUS_DEVIATION_LIMIT,
+  detectEnergyCarriers,
+  parseCategoryAreaRange,
+  type AreaRange,
+  type EnergyCarrier,
+} from './plausibility'
+export {
+  heatingComplianceIssues,
+  heatingComplianceOutputIssues,
+} from './heating-compliance'

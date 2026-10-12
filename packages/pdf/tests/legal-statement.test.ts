@@ -152,7 +152,11 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     const serialized = text(buildTenantStatement(context))
 
     expect(serialized).toContain('Kosten der Warmwasserbereitung')
-    expect(serialized).toContain('Warmwasser:')
+    // A3: konkreter Rechenweg statt Platzhalter „× Ihre Personen × Zeitfaktor“.
+    expect(serialized).toContain(
+      'Warmwasser nach Personen und Nutzungszeit: 2 Personen × 366/366 Tage = 2,0000 Personenjahre von 5,0000 Personenjahren; 1.200,00 € : 5,0000 = 240,0000 € je Personenjahr × 2,0000',
+    )
+    expect(serialized).not.toContain('Ihre Personen × Zeitfaktor')
     expect(serialized).not.toContain(
       'Eine zentrale Warmwasserbereitung besteht nicht.',
     )
@@ -342,7 +346,7 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     expect(serialized).toContain('nach vorheriger Terminvereinbarung')
     expect(serialized).not.toMatch(/schriftlich/i)
     expect(serialized).toContain(
-      'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten erfolgt die Aufteilung bei Nutzerwechsel nach § 9b HeizKV: Grundkosten nach Kalendertagen, Verbrauchskosten nach dem erfassten Verbrauch bzw. – ohne Zwischenablesung – nach Gradtagszahlen.',
+      'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten werden bei Nutzerwechsel die verbrauchsabhängigen Kosten auf Grundlage der Zwischenablesung und die übrigen Kosten zeitanteilig aufgeteilt (§ 9b Abs. 2 HeizKV). Ist eine Zwischenablesung nicht möglich, werden die gesamten Heizkosten nach Gradtagszahlen oder zeitanteilig aufgeteilt, die Kosten für warmes Wasser zeitanteilig (§ 9b Abs. 3 HeizKV)',
     )
     expect(serialized).toContain(
       'Leerstandszeiten entfallende Kosten trägt der Vermieter',
@@ -362,7 +366,7 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     )
     expect(serialized).toContain('Eingesetzte Energieträger Ihres Heizkreises')
     expect(serialized).toContain(
-      'Heizoel 100 % (Anteil am Energieeinsatz in kWh)',
+      'Heizöl 100 % (Anteil am Energieeinsatz in kWh)',
     )
     // Der Heizkreis-Mittelwert ist kein normierter Durchschnittsnutzer und
     // wird nicht als solcher Vergleich ausgegeben.
@@ -473,7 +477,7 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     const serialized = text(buildTenantStatement(context))
 
     expect(serialized).toContain('€ je kWh × 400,00 kWh')
-    expect(serialized).toContain('400,00 kWh (')
+    expect(serialized).toContain('"400,00 kWh"')
     expect(serialized).not.toContain('400,00 Einheiten')
   })
 
@@ -558,7 +562,7 @@ describe('Gesamtabrechnung – interne Fassung und Fassung für Mieter', () => {
     )
       .map((item) => item.table as { body: unknown[][] } | undefined)
       .find((table) =>
-        JSON.stringify(table ?? {}).includes('= auf Mieter verteilt'),
+        JSON.stringify(table ?? {}).includes('= auf die Mieter verteilt'),
       )!
     const amounts = reconciliation.body.map((row) => {
       const cell = row[1] as { text: string }
@@ -573,7 +577,7 @@ describe('Gesamtabrechnung – interne Fassung und Fassung für Mieter', () => {
     expect(lines.reduce((sum, cents) => sum + cents, 0)).toBe(printedSum)
     expect(printedSum).toBe(tenantTotal)
     expect(JSON.stringify(reconciliation)).toContain(
-      'Leerstandsanteil (trägt der Vermieter)',
+      'Leerstandsanteil (trägt der Vermieter, Aufstellung unten)',
     )
     expect(JSON.stringify(reconciliation)).toContain(
       'CO2-Kosten Vermieteranteil',
@@ -676,7 +680,7 @@ describe('Gesamtabrechnung – interne Fassung und Fassung für Mieter', () => {
       }),
     )
     expect(serialized).toContain('Bezeichnung')
-    expect(serialized).toContain('= auf Mieter verteilt')
+    expect(serialized).toContain('= auf die Mieter verteilt')
   })
 })
 

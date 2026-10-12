@@ -18,6 +18,11 @@ export interface OccupancyContext {
   tenancy?: Readonly<Tenancy>
   days: number
   timeFactor: number
+  /**
+   * § 9b Abs. 3 HeizKV: Faktor für Heizungs-Grundkosten und CO₂-Grundanteil
+   * (Gradtagsanteil statt Zeitanteil). Fehlt er, gilt `timeFactor`.
+   */
+  heatingBaseTimeFactor?: number
   buildingId?: string
   usableArea: number
   heatedArea: number
@@ -64,6 +69,26 @@ export interface RawCircuitResult {
   splitTrace: CircuitHeatingSplitTrace
   /** § 9a Abs. 2 HeizKV: Verteilung ausschließlich nach Fläche. */
   areaOnlySection9a: boolean
+  /** Vorgabe Betriebsstromanteil in Prozent der Brennstoffkosten. */
+  operatingElectricitySharePercent: number
+  /** Warmwasserschlüssel (§ 8 Abs. 1 HeizKV); leer = Personen. */
+  hotWaterKey: 'persons' | 'area' | 'consumption'
+  /** Neues Verfahren (ADR-0010): `hotWaterEnergy` oder `hotWaterAllocation`. */
+  hotWaterExtended: boolean
+  /** Anteil s nach § 9 Abs. 2/3 auf alle Kosten; `null` = Pauschalverfahren. */
+  hotWaterSection9Share: number | null
+  /** Warmwasseranteil am CO2-Mieteranteil (nur § 9-Verfahren). */
+  hotWaterCo2Tenant: number
+  /** Warmwasser je m² × Zeitanteil (Schlüssel `area`/`consumption`). */
+  hotWaterAreaPrice: number
+  /** Warmwasser je m³ (Schlüssel `consumption`). */
+  hotWaterM3Price: number
+  /** CO2-Warmwasseranteil je Personenjahr. */
+  co2HotWaterPricePerPerson: number
+  /** CO2-Warmwasseranteil je m² × Zeitanteil. */
+  co2HotWaterAreaPrice: number
+  /** CO2-Warmwasseranteil je m³. */
+  co2HotWaterM3Price: number
 }
 
 export interface RawCostPosition {
@@ -78,6 +103,8 @@ export interface AggregateFuelResult {
   fullCost: number
   energyKwh: number
   co2Kg: number
+  /** CO₂-Kosten je FIFO-Los (A12); `null`, solange kein Los einen eigenen Preis hat. */
+  co2CostByLots: number | null
   sources: EnergySourceCalculationTrace[]
 }
 

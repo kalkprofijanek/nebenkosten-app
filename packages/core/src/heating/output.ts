@@ -1,5 +1,6 @@
 import type {
   CircuitCalculationResult,
+  CircuitHotWaterDistributionTrace,
   CircuitOperatingElectricityResult,
   HeatingCircuitTrace,
 } from '../contracts'
@@ -47,6 +48,7 @@ export function outputCircuit(
 export function outputCircuitTrace(
   result: RawCircuitResult,
   operatingElectricity: CircuitOperatingElectricityResult,
+  hotWaterDistribution?: CircuitHotWaterDistributionTrace,
 ): HeatingCircuitTrace {
   const fifoConsumptionCostCents = roundCentsHalfAwayFromZero(
     result.fuelConsumption + result.co2Cost,
@@ -73,7 +75,9 @@ export function outputCircuitTrace(
     heatingCircuitId: result.heatingCircuitId,
     energySources: result.energySources,
     co2: result.co2Trace,
-    warmWater: result.warmWaterTrace,
+    warmWater: hotWaterDistribution
+      ? { ...result.warmWaterTrace, distribution: hotWaterDistribution }
+      : result.warmWaterTrace,
     heatingOperatingCostsCents: roundCentsHalfAwayFromZero(
       result.heatingOperating,
     ),
@@ -89,5 +93,9 @@ export function outputCircuitTrace(
       roundingDifferenceCents,
       heatingPoolCents,
     },
+    operatingElectricitySharePercent: roundQuantity(
+      result.operatingElectricitySharePercent,
+      3,
+    ),
   }
 }
