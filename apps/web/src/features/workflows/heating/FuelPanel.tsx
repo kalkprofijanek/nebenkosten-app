@@ -19,6 +19,8 @@ import type { WorkflowSubRouteProps } from '../route-types'
 import type { WorkflowApply } from '../HeatingRoute'
 
 import { FuelSummary } from './FuelSummary'
+import { FuelTaxFields } from './FuelTaxFields'
+import { parseFuelTaxes } from './fuel-taxes'
 
 const UNITS: readonly QuantityUnit[] = ['l', 'kg', 't', 'kWh', 'm3']
 
@@ -106,6 +108,7 @@ export function FuelPanel({
             amountCents: optionalEuro(form, 'amount'),
             description: formOptionalText(form, 'description'),
             receiptReference: formOptionalText(form, 'receiptReference'),
+            taxesAndLevies: parseFuelTaxes(form),
           },
           { createId: () => crypto.randomUUID() },
         ),
@@ -131,6 +134,7 @@ export function FuelPanel({
           amountCents: optionalEuro(form, 'amount'),
           description: formOptionalText(form, 'description'),
           receiptReference: formOptionalText(form, 'receiptReference'),
+          taxesAndLevies: parseFuelTaxes(form),
         }),
       )
     )
@@ -258,6 +262,7 @@ export function FuelPanel({
         />
         <WorkflowField label="Mengenstatus" name="quantityStatus" />
         <WorkflowField label="Mengenhinweis" name="quantityNote" />
+        <FuelTaxFields />
         <button type="submit">Lieferung hinzufügen</button>
       </form>
       <section className="editable-records" aria-labelledby="deliveries-title">
@@ -357,6 +362,10 @@ export function FuelPanel({
                       label="Mengenhinweis bearbeiten"
                       name="quantityNote"
                       defaultValue={delivery.quantityNote ?? ''}
+                    />
+                    <FuelTaxFields
+                      taxes={delivery.taxesAndLevies}
+                      suffix="bearbeiten"
                     />
                     <button type="submit">Lieferung speichern</button>
                   </form>

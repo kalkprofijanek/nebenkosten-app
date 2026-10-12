@@ -8,6 +8,7 @@ import {
   entityIdSchema,
   isoDateSchema,
   moneyCentsSchema,
+  nonNegativeMoneyCentsSchema,
   percentSchema,
   quantitySchema,
 } from '../primitives'
@@ -273,6 +274,31 @@ export type FuelStock = z.infer<typeof fuelStockSchema>
 export const fuelDeliveryQuantityStatusSchema = z.string()
 
 /**
+ * In einer Brennstoff-/Energierechnung ausgewiesene Steuern und Abgaben
+ * (§ 6a Abs. 3 Nr. 1 b HeizKV, ADR-0011). Alle Beträge in Cent und als
+ * Bestandteile des Rechnungsbetrags `FuelDelivery.amountCents` (brutto,
+ * einschließlich Umsatzsteuer); sie werden nicht zusätzlich verteilt.
+ * - `vatCents`/`vatRatePercent`: Umsatzsteuer und ihr Satz (z. B. 19 oder 7),
+ * - `energyTaxCents`: Energiesteuer (Heizöl, Gas) bzw. Stromsteuer,
+ * - `co2LevyCents`: CO₂-Kosten nach BEHG, sofern auf der Rechnung ausgewiesen
+ *   (leer = die berechneten CO₂-Kosten werden ausgewiesen),
+ * - `otherLeviesCents`/`otherLeviesLabel`: sonstige Abgaben und Umlagen
+ *   (z. B. Konzessionsabgabe, Gasspeicherumlage) mit Bezeichnung.
+ * Leer = nicht erfasst (additiv, Schema v5).
+ */
+export const fuelDeliveryTaxesAndLeviesSchema = z.strictObject({
+  vatCents: nonNegativeMoneyCentsSchema.nullish(),
+  vatRatePercent: percentSchema.nullish(),
+  energyTaxCents: nonNegativeMoneyCentsSchema.nullish(),
+  co2LevyCents: nonNegativeMoneyCentsSchema.nullish(),
+  otherLeviesCents: nonNegativeMoneyCentsSchema.nullish(),
+  otherLeviesLabel: z.string().trim().max(200).nullish(),
+})
+export type FuelDeliveryTaxesAndLevies = z.infer<
+  typeof fuelDeliveryTaxesAndLeviesSchema
+>
+
+/**
  * FuelDelivery / Brennstofflieferung (Legacy: `lieferungen[]`).
  */
 export const fuelDeliverySchema = z.strictObject({
@@ -293,5 +319,7 @@ export const fuelDeliverySchema = z.strictObject({
   meterId: entityIdSchema.nullish(),
   /** Herkunftsmarker: aus Kostenart-Beleg konvertiert (Legacy). */
   convertedFromCostCategoryId: entityIdSchema.nullish(),
+  /** Steuern und Abgaben laut Rechnung (§ 6a Abs. 3 Nr. 1 b HeizKV, ADR-0011). */
+  taxesAndLevies: fuelDeliveryTaxesAndLeviesSchema.nullish(),
 })
 export type FuelDelivery = z.infer<typeof fuelDeliverySchema>
