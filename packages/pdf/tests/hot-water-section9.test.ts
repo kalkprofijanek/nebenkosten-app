@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { AppDataFile, HeatingCircuit } from '@nebenkosten/schema'
 import { buildTenantStatement } from '../src/tenant-statement'
+import { buildCombinedCostStatement } from '../src/combined-cost-statement'
 import { co2Table, heatingCompilationTable } from '../src/heating-summary'
 import {
   buildFixtureAppData,
+  buildFixtureCombinedContext,
   buildFixtureTenantStatementContext,
 } from './fixture'
 
@@ -87,7 +89,7 @@ describe('Warmwasser nach §§ 8, 9 HeizKV in der Einzelabrechnung', () => {
       'davon Leerstand (trägt der Vermieter)',
       'Schätzung: 5 % der Brennstoffkosten',
       'kein Zwischenzähler',
-      'Warmwasser nach Fläche (§ 8 Abs. 1 HeizKV): ',
+      'Warmwasser nach Fläche (Ersatzmaßstab ohne Erfassung des Warmwasserverbrauchs): ',
       'davon Warmwasser (20,00 %, nach dem Warmwasserschlüssel)',
     ])
       expect(serialized).toContain(expected)
@@ -108,7 +110,7 @@ describe('Warmwasser nach §§ 8, 9 HeizKV in der Einzelabrechnung', () => {
     )
     const serialized = text(buildTenantStatement(context).content)
     const match =
-      /Warmwasser nach Fläche \(§ 8 Abs\. 1 HeizKV\): ([\d.,]+) € : ([\d.,]+) m² = [\d.,]+ € je m² × ([\d.,]+) m² beheizte Fläche × (\d+)\/(\d+) Tage/u.exec(
+      /Warmwasser nach Fläche \(Ersatzmaßstab ohne Erfassung des Warmwasserverbrauchs\): ([\d.,]+) € : ([\d.,]+) m² = [\d.,]+ € je m² × ([\d.,]+) m² beheizte Fläche × (\d+)\/(\d+) Tage/u.exec(
         serialized,
       )
     expect(match).not.toBeNull()
@@ -126,6 +128,30 @@ describe('Warmwasser nach §§ 8, 9 HeizKV in der Einzelabrechnung', () => {
     expect(serialized).toContain(
       'Q = 32 kWh/m² × 100,00 m² Wohnfläche der versorgten Einheiten = 3.200 kWh',
     )
+    // N3: Begründung der Flächenformel wird gedruckt
+    expect(serialized).toContain(
+      'Begründung: Weder Wärmemenge noch Volumen messbar',
+    )
+  })
+
+  it('weist in der Gesamtabrechnung bei Warmwasser nach Fläche keine Personenjahre aus (N2)', () => {
+    const data = appData(
+      {
+        hotWaterEnergy: {
+          method: 'area_formula',
+          reason: 'Weder Wärmemenge noch Volumen messbar',
+        },
+        hotWaterAllocation: { key: 'area' },
+      },
+      { vacancy: true },
+    )
+    const serialized = text(
+      buildCombinedCostStatement(buildFixtureCombinedContext(data)).content,
+    )
+    expect(serialized).toContain(
+      'Fläche × Nutzungszeit für die Warmwasserkosten nach Fläche',
+    )
+    expect(serialized).not.toContain('0,000 Personenjahre')
   })
 
   it('zeigt beim Verbrauchsschlüssel beide Teile mit Nennern', () => {

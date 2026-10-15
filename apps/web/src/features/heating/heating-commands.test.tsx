@@ -542,6 +542,50 @@ describe('heating commands', () => {
     expect(result.billingData.fuelDeliveries[0]?.amountCents).toBe(11_500)
   })
 
+  it('behält beim Bearbeiten einer Lieferung die nicht im Formular geführten Felder', () => {
+    const withDelivery = addFuelDelivery(
+      createHeatingContext(),
+      {
+        energySourceId: IDS.source,
+        billingPeriodId: IDS.period,
+        date: '2025-03-01',
+        quantity: { value: 50, unit: 'l' },
+        amountCents: 11_900,
+        externalPayment: {
+          confirmed: true,
+          reason: 'Zahlung über Voreigentümer',
+        },
+        quantityManuallySet: true,
+      },
+      dependencies(IDS.delivery),
+    )
+    // Das Formular sendet nur die dort geführten Felder
+    const edited = updateFuelDelivery(withDelivery, IDS.delivery, {
+      energySourceId: IDS.source,
+      billingPeriodId: IDS.period,
+      date: '2025-03-02',
+      quantity: { value: 55, unit: 'l' },
+      amountCents: 11_900,
+    })
+    const delivery = edited.billingData.fuelDeliveries[0]!
+    expect(delivery.date).toBe('2025-03-02')
+    expect(delivery.externalPayment).toEqual({
+      confirmed: true,
+      reason: 'Zahlung über Voreigentümer',
+    })
+    expect(delivery.quantityManuallySet).toBe(true)
+
+    // `null` löscht ausdrücklich
+    const cleared = updateFuelDelivery(edited, IDS.delivery, {
+      energySourceId: IDS.source,
+      billingPeriodId: IDS.period,
+      quantity: { value: 55, unit: 'l' },
+      amountCents: 11_900,
+      externalPayment: null,
+    })
+    expect(cleared.billingData.fuelDeliveries[0]?.externalPayment).toBeNull()
+  })
+
   it('löscht Heizdaten nur ohne abhängige Datensätze', () => {
     const context = createHeatingContext()
     expect(() => deleteHeatingSystem(context, IDS.system)).toThrowError(

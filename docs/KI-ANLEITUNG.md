@@ -43,6 +43,12 @@ und Eigentümerwechsel erstellt:
    `pnpm abrechnung private-data/nk-daten.json --jahr 2025 --out private-data/pdf`
    – Kontrolldifferenz, Heizkreise (25-%-Grenze § 9a Abs. 2 HeizKV),
    Salden, Prüfhinweise und alle PDFs. Die PDFs gemeinsam durchsehen.
+   Felder, die der Legacy-v3-Import nicht kennt (z. B. § 9b-Aufteilung
+   `section9bAllocation`, Steuern und Abgaben `taxesAndLevies`,
+   Klimafaktoren, Warmwasserfelder), setzt ein Overlay-Modul außerhalb des
+   Repositorys: `--overlay private-data/overlay.mjs` mit
+   `export default function (data, { year }) { … }`. Das Ergebnis wird erneut
+   gegen das Dateischema geprüft; die Eingabedatei bleibt unverändert.
 6. Zum Abschluss die Datei in der App importieren, Prüfhinweise bestätigen,
    freigeben und versenden.
 

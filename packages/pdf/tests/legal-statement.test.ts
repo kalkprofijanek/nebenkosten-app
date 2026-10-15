@@ -345,12 +345,9 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     expect(serialized).toContain('§ 556 Abs. 3 BGB')
     expect(serialized).toContain('nach vorheriger Terminvereinbarung')
     expect(serialized).not.toMatch(/schriftlich/i)
-    expect(serialized).toContain(
-      'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten werden bei Nutzerwechsel die verbrauchsabhängigen Kosten auf Grundlage der Zwischenablesung und die übrigen Kosten zeitanteilig aufgeteilt (§ 9b Abs. 2 HeizKV). Ist eine Zwischenablesung nicht möglich, werden die gesamten Heizkosten nach Gradtagszahlen oder zeitanteilig aufgeteilt, die Kosten für warmes Wasser zeitanteilig (§ 9b Abs. 3 HeizKV)',
-    )
-    expect(serialized).toContain(
-      'Leerstandszeiten entfallende Kosten trägt der Vermieter',
-    )
+    // N14: Ganzjahresnutzung ohne Erläuterung zu Teilzeiträumen und § 9b
+    expect(serialized).not.toContain('Bei Ein- oder Auszug im Abrechnungsjahr')
+    expect(serialized).not.toContain('§ 9b Abs. 3 HeizKV')
   })
 
   it('enthält die Verbrauchsinformation nach § 6a HeizKV', () => {

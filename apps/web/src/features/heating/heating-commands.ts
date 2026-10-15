@@ -832,11 +832,30 @@ export function updateFuelDelivery(
   input: AddFuelDeliveryInput,
 ): AppDataFile {
   const file = parseFile(currentFile)
-  requireEntity(
+  const existing = requireEntity(
     file.billingData.fuelDeliveries,
     fuelDeliveryId,
     'Brennstofflieferung',
   )
+  // Felder, die das Bearbeitungsformular nicht verwaltet (Buchungsverknüpfung,
+  // externe Zahlung, Zähler, Herkunfts-Kostenart, manuelle Menge), bleiben
+  // erhalten, solange die Eingabe sie nicht setzt; `null` löscht sie
+  // ausdrücklich. Buchungsverknüpfung und externe
+  // Zahlung schließen sich aus: wird eine davon gesetzt, entfällt die andere.
+  const preserved: Partial<AddFuelDeliveryInput> = {
+    meterId: existing.meterId,
+    convertedFromCostCategoryId: existing.convertedFromCostCategoryId,
+    quantityManuallySet: existing.quantityManuallySet,
+    ...(input.externalPayment == null
+      ? { bookingLink: existing.bookingLink }
+      : {}),
+    ...(input.bookingLink == null
+      ? { externalPayment: existing.externalPayment }
+      : {}),
+  }
+  const merged: Record<string, unknown> = { ...input }
+  for (const [key, value] of Object.entries(preserved))
+    if (merged[key] === undefined && value !== undefined) merged[key] = value
   const withoutCurrent = {
     ...file,
     billingData: {
@@ -846,10 +865,15 @@ export function updateFuelDelivery(
       ),
     },
   }
-  const validated = addFuelDelivery(withoutCurrent, input, {
-    createId: () => fuelDeliveryId,
-  })
-  const replacement = validated.billingData.fuelDeliveries.at(-1)!
+  const validated = addFuelDelivery(
+    withoutCurrent,
+    merged as AddFuelDeliveryInput,
+    { createId: () => fuelDeliveryId },
+  )
+  const added = validated.billingData.fuelDeliveries.at(-1)!
+  const replacement = existing.legacyUnmapped
+    ? { ...added, legacyUnmapped: existing.legacyUnmapped }
+    : added
   return validateResult({
     ...validated,
     billingData: {

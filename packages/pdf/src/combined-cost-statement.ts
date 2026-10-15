@@ -592,7 +592,21 @@ function distributionBasisTable(
       }`,
     ],
   ]
-  if (hotWater)
+  const hotWaterAllocation = circuit.warmWater.allocation
+  // N2: bei Warmwasser nach Fläche die Flächenbasis statt „0,000 Personenjahre“ ausweisen
+  if (hotWater && hotWaterAllocation && hotWaterAllocation.key !== 'persons')
+    rows.push([
+      'Fläche × Nutzungszeit für die Warmwasserkosten nach Fläche',
+      `${formatNumber(hotWaterAllocation.areaTimeDenominator ?? 0, 3)} m²; ${formatEuroCents(hotWaterAllocation.areaCents)} : ${formatNumber(hotWaterAllocation.areaTimeDenominator ?? 0, 3)} = ${formatNumber(
+        (hotWaterAllocation.areaTimeDenominator ?? 0) > 0
+          ? hotWaterAllocation.areaCents /
+              100 /
+              hotWaterAllocation.areaTimeDenominator!
+          : 0,
+        4,
+      )} € je m²`,
+    ])
+  else if (hotWater)
     rows.push([
       'Personenjahre für die Warmwasserkosten (Personen × Nutzungstage ÷ Tage des Abrechnungszeitraums; Leerstand ohne Personen)',
       `${formatNumber(circuit.warmWater.personTimeDenominator, 3)} Personenjahre; ${formatEuroCents(circuit.warmWater.poolCents)} : ${formatNumber(circuit.warmWater.personTimeDenominator, 3)} = ${formatNumber(

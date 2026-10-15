@@ -285,12 +285,15 @@ export function buildTenantStatement(
       ...co2Section(context),
       ...consumptionInformation(context, facts),
       ...section35aContent(context),
-      {
-        text: TIME_FACTOR_EXPLANATION,
-        fontSize: 8,
-        color: MUTED,
-        margin: [0, 0, 0, 8],
-      },
+      // N14: Erläuterung zu Teilzeiträumen und § 9b nur bei Ein- oder Auszug
+      range.partial
+        ? {
+            text: TIME_FACTOR_EXPLANATION,
+            fontSize: 8,
+            color: MUTED,
+            margin: [0, 0, 0, 8],
+          }
+        : { text: '' },
       { text: OBJECTION_NOTICE, margin: [0, 0, 0, 8] },
       bankLine
         ? {
