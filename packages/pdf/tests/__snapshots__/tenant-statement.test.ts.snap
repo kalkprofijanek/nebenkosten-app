@@ -495,15 +495,7 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
       "text": "In den Brennstoff- und Energiekosten sind die gesetzlichen Steuern und Abgaben (Umsatzsteuer, Energie- bzw. Stromsteuer) enthalten; CO2-Kosten nach BEHG sind nicht angefallen. Informationen zu Energieeffizienzmaßnahmen und unabhängiger Energieberatung erhalten Sie bei den Verbraucherzentralen (www.verbraucherzentrale-energieberatung.de) sowie bei Energieagenturen, z. B. der Deutschen Energie-Agentur (www.dena.de). Bei Streitigkeiten können Sie sich an die Universalschlichtungsstelle des Bundes (Zentrum für Schlichtung e. V.), Straßburger Straße 8, 77694 Kehl (www.verbraucher-schlichter.de) wenden. Der Vermieter ist zur Teilnahme an einem Streitbeilegungsverfahren nicht verpflichtet und nimmt daran nicht teil.",
     },
     {
-      "color": "#5a6a78",
-      "fontSize": 8,
-      "margin": [
-        0,
-        0,
-        0,
-        8,
-      ],
-      "text": "Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten werden bei Nutzerwechsel die verbrauchsabhängigen Kosten auf Grundlage der Zwischenablesung und die übrigen Kosten zeitanteilig aufgeteilt (§ 9b Abs. 2 HeizKV). Ist eine Zwischenablesung nicht möglich, werden die gesamten Heizkosten nach Gradtagszahlen oder zeitanteilig aufgeteilt, die Kosten für warmes Wasser zeitanteilig (§ 9b Abs. 3 HeizKV); Maßstab und Rechenweg sind unter „Ihre Verbrauchserfassung“ angegeben. Auf Leerstandszeiten entfallende Kosten trägt der Vermieter.",
+      "text": "",
     },
     {
       "margin": [

@@ -72,9 +72,10 @@ function buildSalutationLine(persons: readonly Person[]): string {
   if (first.salutation === 'Familie' || first.salutation === 'Firma') {
     return `${prefix} ${personDisplayName(first)}`
   }
-  return persons.length > 1
-    ? `Sehr geehrte Damen und Herren`
-    : `${prefix} ${personDisplayName(first)}`
+  // N12: Anrede „Sehr geehrte Frau Nachname“ – ohne Vornamen; ohne Nachnamen neutral
+  if (persons.length > 1 || blank(first.lastName))
+    return 'Sehr geehrte Damen und Herren'
+  return `${prefix} ${first.lastName!.trim()}`
 }
 
 /**

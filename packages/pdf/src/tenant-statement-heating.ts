@@ -3,13 +3,16 @@ import {
   meterReadingConsumption,
   type EnergySourceCalculationTrace,
   type FuelLotCo2Trace,
-  section9bShares,
   type HeatingCircuitTrace,
   type Section9bShare,
 } from '@nebenkosten/core'
 import type { TenantStatementContext } from './contracts'
 import { energyCarrierDisplayName } from './energy-carrier-label'
 import { section9bOwnNote } from './section9b-note'
+import {
+  occupancySection9bShare,
+  section9bBaseFactorText,
+} from './section9b-share'
 import {
   amountCell,
   captureModeFor,
@@ -81,35 +84,6 @@ function replacementSum(
 
 const flexible = (value: number) =>
   value.toLocaleString('de-DE', { maximumFractionDigits: 3 })
-
-/** Anteil nach § 9b Abs. 3 HeizKV dieser Nutzung, falls festgelegt. */
-function section9bShare(
-  context: TenantStatementContext,
-): Section9bShare | undefined {
-  return section9bShares(
-    context.appData.billingData.occupancyPeriods.filter(
-      ({ billingPeriodId }) => billingPeriodId === context.billingPeriod.id,
-    ),
-    context.billingPeriod,
-  ).get(context.occupancyPeriod.id)
-}
-
-/**
- * Faktor der Grundkosten im Rechenweg: „90/365 Tage“ bzw. nach § 9b Abs. 3
- * „450 ‰ ÷ 1.000 ‰“ (bei Teilabdeckung mit dem Zeitanteil der Gruppe).
- */
-function baseFactorText(
-  share: Section9bShare | undefined,
-  timeText: string,
-  periodDays: number,
-): string {
-  if (share?.allocation !== 'degree_days') return timeText
-  const ratio = `${flexible(share.permille)} ‰ ÷ ${flexible(share.groupPermille)} ‰`
-  const groupDays = Math.round(share.groupTimeFactor * periodDays)
-  return groupDays === periodDays
-    ? ratio
-    : `${groupDays}/${periodDays} Tage × ${ratio}`
-}
 
 /**
  * Rechenweg der Aufteilung ohne Zwischenablesung (§ 9b Abs. 3 HeizKV):
@@ -304,8 +278,8 @@ function consumptionCapture(
       : 0
   const reduction = section12Applies(context) ? ' × 85 %' : ''
   const timeText = `${facts.days}/${facts.periodDays} Tage`
-  const share9b = section9bShare(context)
-  const baseText = baseFactorText(share9b, timeText, facts.periodDays)
+  const share9b = occupancySection9bShare(context)
+  const baseText = section9bBaseFactorText(share9b, timeText, facts.periodDays)
   const baseTimeFactor =
     share9b?.baseTimeFactor ?? facts.days / facts.periodDays
   const reading = occupancyPeriod.heatMeterReading
@@ -337,6 +311,10 @@ function consumptionCapture(
   const ownNote = share9b
     ? section9bNote && `Anmerkung: ${section9bNote}`
     : occupancyPeriod.consumptionUnitsEstimateReason?.trim()
+  // N7: aufgeteilte Werte nicht als „Verbrauch laut Erfassung“ bezeichnen
+  const consumptionLabel = share9b
+    ? 'Ihr Verbrauchsanteil (Aufteilung nach § 9b Abs. 3 HeizKV, siehe oben)'
+    : 'Verbrauch laut Erfassung'
   if (estimated) {
     content.push({
       text: estimatedConsumptionNote(
@@ -372,9 +350,7 @@ function consumptionCapture(
     })
     const difference = readingDifference(reading)
     if (difference === null) {
-      lines.push(
-        `Verbrauch laut Erfassung = ${formatNumber(consumption)} ${unit}`,
-      )
+      lines.push(`${consumptionLabel} = ${formatNumber(consumption)} ${unit}`)
     } else {
       lines.push(
         hasReplacement(reading)
@@ -390,9 +366,7 @@ function consumptionCapture(
     // Erläuterung (z. B. Grund und Rechenweg der Aufteilung) immer ausgeben.
     if (ownNote)
       content.push({ text: ownNote, fontSize: 8, margin: [0, 0, 0, 2] })
-    lines.push(
-      `Verbrauch laut Erfassung = ${formatNumber(consumption)} ${unit}`,
-    )
+    lines.push(`${consumptionLabel} = ${formatNumber(consumption)} ${unit}`)
   }
   lines.push(
     split.areaOnlySection9a

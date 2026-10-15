@@ -919,7 +919,11 @@ export function co2Table(
         `${formatPercent(co2.tenantPercent)} / ${formatPercent(co2.landlordPercent)}`,
       ),
     ],
-    ['Mieteranteil (auf Nutzer verteilt)', amountCell(co2.tenantCents)],
+    // N13: der Betrag umfasst auch die auf Leerstände entfallenden Anteile (trägt der Vermieter)
+    [
+      'Mieteranteil nach § 5 CO2KostAufG (verteilt auf alle Nutzungseinheiten einschließlich Leerstand)',
+      amountCell(co2.tenantCents),
+    ],
   ]
   const hotWaterCo2 = circuit.warmWater.costSplit?.co2TenantCents
   if (hotWaterCo2 !== undefined) {

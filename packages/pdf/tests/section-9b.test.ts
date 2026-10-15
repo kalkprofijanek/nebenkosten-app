@@ -58,6 +58,32 @@ describe('Einzelabrechnung – Rechenweg nach § 9b Abs. 3 HeizKV', () => {
     expect(serialized).not.toMatch(/Grundkosten = [^"]+ × 91\/366 Tage/u)
   })
 
+  it('druckt in der Heizkosten-Aufschlüsselung denselben Gradtagsfaktor (N1)', () => {
+    const serialized = statement(changeData('degree_days'))
+    expect(serialized).toMatch(
+      /Grundkosten: [^"]+ m² beheizte Fläche × 450 ‰ ÷ 1\.000 ‰/u,
+    )
+    expect(serialized).not.toMatch(/Grundkosten: [^"]+ × 91\/366 Tage/u)
+  })
+
+  it('bezeichnet aufgeteilte Einheiten nicht als Verbrauch laut Erfassung (N7)', () => {
+    const serialized = statement(changeData('degree_days'))
+    expect(serialized).toContain(
+      'Ihr Verbrauchsanteil (Aufteilung nach § 9b Abs. 3 HeizKV, siehe oben) = ',
+    )
+    expect(serialized).not.toContain('Verbrauch laut Erfassung = ')
+  })
+
+  it('erläutert Teilzeiträume und § 9b nur bei Ein- oder Auszug (N14)', () => {
+    const serialized = statement(changeData('degree_days'))
+    expect(serialized).toContain(
+      'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet.',
+    )
+    expect(serialized).toContain(
+      'Leerstandszeiten entfallende Kosten trägt der Vermieter',
+    )
+  })
+
   it('zeigt bei zeitanteiliger Aufteilung Tage statt Promille', () => {
     const serialized = statement(changeData('time'))
     expect(serialized).toContain(

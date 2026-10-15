@@ -6,6 +6,10 @@ import type {
 import { buildSenderBlock } from './address'
 import type { TenantStatementContext } from './contracts'
 import {
+  occupancySection9bShare,
+  section9bBaseFactorText,
+} from './section9b-share'
+import {
   addDaysIso,
   balanceLabel,
   formatAllocationKeyLabel,
@@ -407,7 +411,14 @@ export function hotWaterCalculationText(
     const fallback = allocation.consumptionFallbackToArea
       ? ' – ersatzweise, da kein Warmwasserverbrauch erfasst ist'
       : ''
-    return `Warmwasser nach Fläche (§ 8 Abs. 1 HeizKV${fallback}): ${areaText}`
+    // N3: § 8 Abs. 1 verlangt 50–70 % nach Verbrauch; die reine Flächenverteilung ist ein Ersatzmaßstab.
+    // Die Begründung der Flächenformel (§ 9 Abs. 2 HeizKV) wird mit ausgegeben.
+    const formula = context.appData.billingData.heatingCircuits.find(
+      ({ id }) => id === circuit.heatingCircuitId,
+    )?.hotWaterEnergy
+    const reason =
+      formula?.method === 'area_formula' ? ` Begründung: ${formula.reason}` : ''
+    return `Warmwasser nach Fläche (Ersatzmaßstab ohne Erfassung des Warmwasserverbrauchs${fallback}): ${areaText}.${reason}`
   }
   const m3 =
     tenant.hotWaterBasis?.warmWaterM3 ??
@@ -448,7 +459,8 @@ export function tenantHeatingTable(
       { text: '', style: 'th' },
     ],
     [
-      `${split.areaOnlySection9a ? 'Heizkosten nach Fläche (§ 9a Abs. 2 HeizKV)' : 'Grundkosten'}: ${formatUnitPrice(basePrice, 'm²')} × ${formatNumber(ownArea)} m² ${baseAreaLabel(split.baseAreaBasis)} × ${facts.days}/${facts.periodDays} Tage${reduction}`,
+      // N1: bei § 9b Abs. 3 nach Gradtagszahlen denselben Faktor wie der Rechenkern drucken
+      `${split.areaOnlySection9a ? 'Heizkosten nach Fläche (§ 9a Abs. 2 HeizKV)' : 'Grundkosten'}: ${formatUnitPrice(basePrice, 'm²')} × ${formatNumber(ownArea)} m² ${baseAreaLabel(split.baseAreaBasis)} × ${section9bBaseFactorText(occupancySection9bShare(context), `${facts.days}/${facts.periodDays} Tage`, facts.periodDays)}${reduction}`,
       amountCell(costBreakdown.heatingBaseCents),
     ],
     [
