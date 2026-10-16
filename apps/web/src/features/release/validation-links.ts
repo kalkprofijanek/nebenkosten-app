@@ -71,8 +71,18 @@ export function validationIssueLink(
     }
 
   if (
+    issue.code.startsWith('heating.meter_reading_series_') &&
+    issue.entity?.type === 'Meter'
+  )
+    return {
+      href: `#/heizkreise?tab=meters&meter=${encodeURIComponent(issue.entity.id)}`,
+      label: 'Ablesungen des Zählers prüfen',
+    }
+
+  if (
     (issue.code === 'heating.meter_reading_mismatch' ||
-      issue.code === 'heating.meter_reading_incomplete') &&
+      issue.code === 'heating.meter_reading_incomplete' ||
+      issue.code.startsWith('heating.meter_reading_series_')) &&
     issue.entity?.type === 'OccupancyPeriod'
   )
     return {
