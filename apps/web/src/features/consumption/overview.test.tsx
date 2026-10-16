@@ -79,9 +79,12 @@ describe('buildConsumptionOverview', () => {
     ])
     // Wie die Freigabeprüfung: eine begründete Schätzung ersetzt 5 → 5.
     expect(overview.rows[1]!.readingMismatch).toBe(false)
-    expect(overview.estimatedShares).toEqual([
-      { buildingId: 'b1', buildingName: 'Haus A', estimatedShare: 1 / 3 },
-    ])
+    expect(overview.estimatedShares).toHaveLength(1)
+    expect(overview.estimatedShares[0]).toMatchObject({
+      buildingId: 'b1',
+      buildingName: 'Haus A',
+    })
+    expect(overview.estimatedShares[0]!.estimatedShare).toBeCloseTo(1 / 3, 5)
 
     const metered = buildConsumptionOverview(
       {
@@ -157,20 +160,31 @@ describe('buildConsumptionOverview', () => {
   })
 
   it('meldet das Überschreiten der 25-%-Grenze nur beim Übergang', () => {
-    const overview = buildConsumptionOverview(consumptionFixture(), 'y')!
-    expect(section9aHint(overview.rows, new Set())).toBeNull()
-    expect(section9aHint(overview.rows, new Set(['o3']))).toContain(
+    const data0 = consumptionFixture()
+    expect(section9aHint(data0, 'y', new Set())).toBeNull()
+    expect(section9aHint(data0, 'y', new Set(['o3']))).toContain(
       'in Haus A 33 % der Fläche geschätzt',
     )
-    const already = buildConsumptionOverview(
-      consumptionFixture({
-        o2: {
-          consumptionUnitsEstimated: true,
-          consumptionUnitsEstimateReason: 'Fiktiv',
-        },
-      }),
-      'y',
-    )!
-    expect(section9aHint(already.rows, new Set(['o3']))).toBeNull()
+    const alreadyData = consumptionFixture({
+      o2: {
+        consumptionUnitsEstimated: true,
+        consumptionUnitsEstimateReason: 'Fiktiv',
+      },
+    })
+    expect(section9aHint(alreadyData, 'y', new Set(['o3']))).toBeNull()
+  })
+
+  it('zählt Leerstand wie die Abrechnung nicht in die Schätzquote (PR-34)', () => {
+    const data = consumptionFixture({
+      o1: { kind: 'vacancy', tenancyId: undefined },
+      o2: {
+        consumptionUnitsEstimated: true,
+        consumptionUnitsEstimateReason: 'Fiktiv',
+      },
+    })
+    // Zwei Mieter-Nutzungen à 50 m², eine davon geschätzt → 50 %, nicht 33 %.
+    const shares = buildConsumptionOverview(data, 'y')!.estimatedShares
+    expect(shares).toHaveLength(1)
+    expect(shares[0]!.estimatedShare).toBeCloseTo(0.5, 5)
   })
 })
