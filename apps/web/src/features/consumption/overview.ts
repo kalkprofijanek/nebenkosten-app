@@ -1,6 +1,8 @@
 import {
   calculateOccupancyDays,
+  createCalculationInput,
   meterReadingTotal,
+  section9aAreaSharePreview,
   SECTION_9A_ESTIMATED_AREA_LIMIT,
   tenantChanges,
 } from '@nebenkosten/core'
@@ -210,53 +212,55 @@ export function buildConsumptionOverview(
     period,
     rows,
     openCount: rows.filter(needsEstimate).length,
-    estimatedShares: estimatedSharesWith(rows),
+    estimatedShares: section9aShares(data, period.id),
   }
 }
 
 /**
- * Geschätzter Flächenanteil je Gebäude wie im Rechenkern (§ 9a Abs. 2
- * HeizKV); `additional` simuliert weitere Schätzungen vor dem Speichern.
+ * Geschätzter Flächenanteil je Gebäude aus dem Rechenkern (§ 9a Abs. 2
+ * HeizKV, `section9aAreaSharePreview`, PR-34): dieselbe Gewichtung wie die
+ * Abrechnung (Leerstand zählt nicht mit). `additional` simuliert weitere
+ * Schätzungen vor dem Speichern. Gebäude mit gemessener Wohnungswärme und
+ * Gebäude ohne Schätzung entfallen.
  */
-export function estimatedSharesWith(
-  rows: readonly ConsumptionRow[],
+export function section9aShares(
+  data: AppDataFile,
+  billingPeriodId: string,
   additional: ReadonlySet<string> = new Set(),
 ): BuildingEstimateShare[] {
-  const shares = new Map<
-    string,
-    { name: string; total: number; estimated: number }
-  >()
-  for (const row of rows) {
-    if (row.buildingId === null || row.meteredCircuit) continue
-    const weight = row.allocationAreaSqm * row.days
-    const entry = shares.get(row.buildingId) ?? {
-      name: row.buildingName,
-      total: 0,
-      estimated: 0,
-    }
-    entry.total += weight
-    if (row.estimated || additional.has(row.occupancy.id))
-      entry.estimated += weight
-    shares.set(row.buildingId, entry)
+  let preview
+  try {
+    preview = section9aAreaSharePreview(
+      createCalculationInput(data, billingPeriodId),
+      new Map([...additional].map((id) => [id, true])),
+    )
+  } catch {
+    return []
   }
-  return [...shares]
-    .filter(([, entry]) => entry.total > 0 && entry.estimated > 0)
-    .map(([buildingId, entry]) => ({
-      buildingId,
-      buildingName: entry.name,
-      estimatedShare: entry.estimated / entry.total,
+  return preview
+    .filter((item) => !item.metered && item.estimatedAreaSharePercent > 0)
+    .map((item) => ({
+      buildingId: item.buildingId,
+      buildingName:
+        data.masterData.buildings.find(({ id }) => id === item.buildingId)
+          ?.name ?? 'ohne Gebäude',
+      estimatedShare: item.estimatedAreaSharePercent / 100,
     }))
 }
 
 /** Hinweistext, wenn Schätzungen die Grenze von § 9a Abs. 2 überschreiten. */
 export function section9aHint(
-  rows: readonly ConsumptionRow[],
+  data: AppDataFile,
+  billingPeriodId: string,
   additional: ReadonlySet<string>,
 ): string | null {
   const before = new Map(
-    estimatedSharesWith(rows).map((share) => [share.buildingId, share]),
+    section9aShares(data, billingPeriodId).map((share) => [
+      share.buildingId,
+      share,
+    ]),
   )
-  const crossed = estimatedSharesWith(rows, additional).filter(
+  const crossed = section9aShares(data, billingPeriodId, additional).filter(
     (share) =>
       share.estimatedShare > ESTIMATED_SHARE_LIMIT &&
       (before.get(share.buildingId)?.estimatedShare ?? 0) <=
