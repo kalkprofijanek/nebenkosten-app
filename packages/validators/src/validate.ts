@@ -18,6 +18,7 @@ import {
 import { withEntityContext } from './entity-context'
 import type { ValidationOptions, ValidationReport } from './types'
 import { co2OpeningPriceIssues } from './co2-price'
+import { energyBalanceIssues } from './energy-balance'
 
 function report(
   id: string,
@@ -109,9 +110,8 @@ export function validateBillingPeriod(
   co2OpeningPriceIssues(parsed.data, period, (value) => issues.push(value))
   heatingComplianceIssues(parsed.data, period, (value) => issues.push(value))
   try {
-    const output = calculateBilling(
-      createCalculationInput(parsed.data, billingPeriodId),
-    )
+    const input = createCalculationInput(parsed.data, billingPeriodId)
+    const output = calculateBilling(input)
     if (Math.abs(output.totals.controlDifferenceCents) > 1)
       issues.push(
         issue(
@@ -149,6 +149,7 @@ export function validateBillingPeriod(
       issues.push(value),
     )
     section9aAreaOnlyIssues(output, (value) => issues.push(value))
+    energyBalanceIssues(input, output, (value) => issues.push(value))
     heatingComplianceOutputIssues(output, (value) => issues.push(value))
     for (const circuit of output.heating.trace.circuits)
       if (Math.abs(circuit.reconciliation.roundingDifferenceCents) > 1)

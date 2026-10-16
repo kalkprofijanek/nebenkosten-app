@@ -34,7 +34,7 @@ Kleinigkeiten; Nr. 4 Fernwärme zurückgestellt.
 | ---------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------- | ------ |
 | [PR-30](PR-30-EIGENTUEMERWECHSEL.md)           | Eigentümerwechsel im Jahr: Erwerberabrechnung, Bestände FIFO, Abschlag-Warnung | –                      | offen  |
 | [PR-31](PR-31-ZAEHLERSTAND-PLAUSIBILITAET.md)  | Zählerstand-Plausibilität (Stellenverlust, Vertauschung, Stillstand, Rücklauf) | PR-27 (Gradtage)       | offen  |
-| [PR-32](PR-32-ENERGIEBILANZ.md)                | Energiebilanz je Heizkreis (Nutzungsgrad, Jahresarbeitszahl)                   | –                      | offen  |
+| [PR-32](PR-32-ENERGIEBILANZ.md)                | Energiebilanz je Heizkreis (Nutzungsgrad, Jahresarbeitszahl)                   | –                      | in PR  |
 | [PR-33](PR-33-MEHRJAHRESVERGLEICH.md)          | Mehrjahresvergleich je Wohnung und Kostenart mit Ausreißern                    | –                      | offen  |
 | [PR-34](PR-34-SCHAETZGRENZE-9A.md)             | § 9a Abs. 2: 25-%-Grenze vor jeder Schätzung anzeigen                          | –                      | offen  |
 | [PR-35](PR-35-A3-FELDER-OBERFLAECHE.md)        | Prüfliste „neue Angaben nach Import“ (§ 9b-Auswahl seit #82 vorhanden)         | –                      | offen  |

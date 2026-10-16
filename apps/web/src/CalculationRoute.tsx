@@ -5,6 +5,7 @@ import {
   validateBillingPeriodCached,
 } from '@nebenkosten/validators'
 import { StatementPreview } from './features/calculation/StatementPreview'
+import { EnergyBalancePanel } from './features/heating/EnergyBalancePanel'
 
 import { runCalculation } from './features/calculation/calculate-preview'
 import { validationIssueLink } from './features/release/validation-links'
@@ -189,6 +190,9 @@ export function CalculationRoute({
               </div>
             ) : null}
           </dl>
+          {billingPeriod ? (
+            <EnergyBalancePanel data={data} period={billingPeriod} />
+          ) : null}
           {controlDifferenceTooLarge ? (
             <section className="calculation-warnings" role="alert">
               <strong>Kontrolldifferenz ist größer als 1 Cent.</strong>
