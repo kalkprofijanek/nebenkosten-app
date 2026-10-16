@@ -1099,6 +1099,70 @@ function estimatedHeatedAreaShare(
   return total > 0 ? estimated / total : 0
 }
 
+/** Vorschau der geschätzten Fläche je Heizkreis (§ 9a Abs. 2 HeizKV, PR-34). */
+export interface Section9aAreaSharePreview {
+  buildingId: string
+  heatingCircuitId: string | null
+  /** Zeitgewichteter Anteil der geschätzten beheizten Fläche in Prozent. */
+  estimatedAreaSharePercent: number
+  limitPercent: number
+  /** Über der Grenze: Verteilung ausschließlich nach Fläche. */
+  areaOnly: boolean
+  /** Wohnungswärme gemessen in kWh: Schätzquote entfällt wie in der Abrechnung. */
+  metered: boolean
+}
+
+/**
+ * Berechnet die Schätzquote je Heizkreis mit derselben Logik wie
+ * `calculateBilling`, ohne die Daten zu ändern. `estimatedOverrides` setzt
+ * probeweise `consumptionUnitsEstimated` je Nutzung (z. B. „wenn ich diese
+ * Wohnung schätze“), damit die Oberfläche vor dem Speichern warnen kann.
+ */
+export function section9aAreaSharePreview(
+  input: CalculationInput,
+  estimatedOverrides: ReadonlyMap<string, boolean> = new Map(),
+): Section9aAreaSharePreview[] {
+  const previewInput: CalculationInput = {
+    ...input,
+    occupancyPeriods: input.occupancyPeriods.map((occupancy) =>
+      estimatedOverrides.has(occupancy.id)
+        ? {
+            ...occupancy,
+            consumptionUnitsEstimated: estimatedOverrides.get(occupancy.id),
+          }
+        : occupancy,
+    ),
+  }
+  const metering = resolveMeteredConsumption(previewInput)
+  const meteredBuildingIds = new Set(
+    metering.ok ? metering.circuits.map(({ buildingId }) => buildingId) : [],
+  )
+  const contexts = buildOccupancyContexts(previewInput)
+  return previewInput.buildings.map((building) => {
+    const circuit = previewInput.heatingCircuits.find(
+      ({ buildingId }) => buildingId === building.id,
+    )
+    // Auch ohne (vollständige) Ablesungen: ein auf kWh-Messung gestellter
+    // Heizkreis verteilt nach gemessener Wärme, nicht nach HKV-Schätzungen.
+    const metered =
+      meteredBuildingIds.has(building.id) ||
+      circuit?.consumptionMode === 'metered_kwh'
+    const share = metered
+      ? 0
+      : estimatedHeatedAreaShare(
+          contexts.filter(({ buildingId }) => buildingId === building.id),
+        )
+    return {
+      buildingId: building.id,
+      heatingCircuitId: circuit?.id ?? null,
+      estimatedAreaSharePercent: roundQuantity(share * 100, 3),
+      limitPercent: SECTION_9A_ESTIMATED_AREA_LIMIT * 100,
+      areaOnly: share > SECTION_9A_ESTIMATED_AREA_LIMIT,
+      metered,
+    }
+  })
+}
+
 function rawTenantShare(
   context: OccupancyContext,
   positions: readonly RawCostPosition[],

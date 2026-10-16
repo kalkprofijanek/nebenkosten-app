@@ -517,7 +517,11 @@ function ConsumptionTableRow({
               type="checkbox"
               aria-label={`geschätzt ${label}`}
               checked={draft.estimated}
-              onChange={(event) => set({ estimated: event.target.checked })}
+              onChange={(event) => {
+                set({ estimated: event.target.checked })
+                // § 9a Abs. 2: Vorschau, ob diese Schätzung die 25-%-Grenze reißt.
+                if (event.target.checked) onEstimate(row)
+              }}
             />
             geschätzt
           </label>
@@ -816,7 +820,7 @@ function ConsumptionTable({
 
   function estimateAll() {
     const ids = estimable.map(({ occupancy }) => occupancy.id)
-    setHint(section9aHint(overview.rows, new Set(ids)))
+    setHint(section9aHint(data, period.id, new Set(ids)))
     run((current) => {
       // Schätzungen nutzen nur gemessene Werte; die Reihenfolge ist egal.
       let next = current
@@ -874,15 +878,13 @@ function ConsumptionTable({
           {hint}
         </p>
       ) : null}
-      {overview.estimatedShares
-        .filter(({ estimatedShare }) => estimatedShare > ESTIMATED_SHARE_LIMIT)
-        .map((share) => (
-          <p key={share.buildingId} className="consumption-note">
-            {share.buildingName}: {Math.round(share.estimatedShare * 100)} % der
-            Fläche geschätzt – Heizkosten werden nach § 9a Abs. 2 HeizKV
-            ausschließlich nach Fläche verteilt.
-          </p>
-        ))}
+      {overview.estimatedShares.map((share) => (
+        <p key={share.buildingId} className="consumption-note">
+          {share.estimatedShare > ESTIMATED_SHARE_LIMIT
+            ? `${share.buildingName}: ${Math.round(share.estimatedShare * 100)} % der Fläche geschätzt – Heizkosten werden nach § 9a Abs. 2 HeizKV ausschließlich nach Fläche verteilt.`
+            : `${share.buildingName}: ${Math.round(share.estimatedShare * 100)} % der Fläche geschätzt (Grenze § 9a Abs. 2 HeizKV: ${Math.round(ESTIMATED_SHARE_LIMIT * 100)} %) – Verteilung nach Verbrauch bleibt erhalten.`}
+        </p>
+      ))}
       <div className="consumption-toolbar">
         <label className="checkbox-field">
           <input
@@ -954,7 +956,11 @@ function ConsumptionTable({
                   onSavePrevious={savePrevious}
                   onEstimate={(row) =>
                     setHint(
-                      section9aHint(overview.rows, new Set([row.occupancy.id])),
+                      section9aHint(
+                        data,
+                        period.id,
+                        new Set([row.occupancy.id]),
+                      ),
                     )
                   }
                 />
