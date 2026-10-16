@@ -18,6 +18,7 @@ import {
 import { withEntityContext } from './entity-context'
 import type { ValidationOptions, ValidationReport } from './types'
 import { co2OpeningPriceIssues } from './co2-price'
+import { meterReadingSeriesIssues } from './meter-reading-series'
 
 function report(
   id: string,
@@ -108,6 +109,7 @@ export function validateBillingPeriod(
   ]
   co2OpeningPriceIssues(parsed.data, period, (value) => issues.push(value))
   heatingComplianceIssues(parsed.data, period, (value) => issues.push(value))
+  meterReadingSeriesIssues(parsed.data, period, (value) => issues.push(value))
   try {
     const output = calculateBilling(
       createCalculationInput(parsed.data, billingPeriodId),

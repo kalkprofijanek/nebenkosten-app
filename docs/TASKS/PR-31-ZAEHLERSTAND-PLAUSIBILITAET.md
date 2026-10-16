@@ -30,3 +30,18 @@ durch Vergleich mehrerer Ablesungen (Jahresende, Januar, März) erkennbar.
 ## Abnahme
 
 Tests mit fiktiven Reihen je Befundtyp, Gradtag-Anteil, keine stille Korrektur.
+
+## Umsetzungsstand
+
+- Core: `assessMeterReadingSeries` (`packages/core/src/heating/meter-reading-series.ts`)
+  mit `digit_drop` (nur bei rund einer Zehnerpotenz Abstand; bei zwei
+  Erklärungen die mit kleinerem Verbrauch), `swapped_columns` (erst ab drei
+  Ablesungen), `decreasing`, `stalled` (Vorgabe zwei Perioden) und
+  `implausible_share` (Gradtagsanteil, Toleranz ± 20 Prozentpunkte). Jeder
+  Befund nennt alternative Werte und Folgeverbrauch; keine Änderung der Daten.
+- Validator: `heating.meter_reading_series_<befund>` für Zählerablesungen
+  (`MeterReading`) und für Stände der Nutzungen derselben Wohnung und
+  Zählernummer über alle Jahre; gemeldet nur bei Bezug zum geprüften Jahr.
+  Sprung zum Zähler bzw. zur Verbrauchszeile.
+- Offen: Befundliste in der Verbrauchsseite mit „übernehmen / als Schätzung /
+  belassen“ und Begründung im Audit.
