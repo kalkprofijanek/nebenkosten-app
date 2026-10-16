@@ -26,3 +26,14 @@ Gesamtabrechnung), `apps/web/src/features/heating`, Tests, diese Datei.
 ## Abnahme
 
 Tests: Öl, Pellets, Gas, Wärmepumpe, Hybrid, fehlende Mengen, Bandgrenzen.
+
+## Umsetzungsstand
+
+- Core: `heatingEnergyBalance` / `heatingEnergyBalanceForPeriod`
+  (`packages/core/src/heating/energy-balance.ts`), Vorjahr desselben Gebäudes.
+- Validator: `heating.energy_balance_low|high`,
+  `heating.energy_quantity_missing`, `heating.calorific_value_missing`.
+- Anzeige: Tabelle „Energiebilanz je Heizkreis“ auf der Berechnungsseite.
+- Offen: Ausweis in der internen Gesamtabrechnung (`packages/pdf`) und
+  Einstellbarkeit der Bänder in der Oberfläche (Kern nimmt Bänder bereits
+  als Parameter).

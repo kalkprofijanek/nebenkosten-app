@@ -26,6 +26,7 @@ export {
   type LegalRule,
 } from './legal-rules'
 export { co2OpeningPriceIssues } from './co2-price'
+export { energyBalanceIssues } from './energy-balance'
 export {
   ESTIMATE_PREVIOUS_DEVIATION_LIMIT,
   detectEnergyCarriers,
