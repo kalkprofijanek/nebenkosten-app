@@ -1,6 +1,6 @@
 # PR-36 – Mitgelieferte Referenzdaten (DWD-Klimafaktoren, Heizspiegel)
 
-Stand: 16. Oktober 2026. Auftrag: Roadmap Phase 2, Punkt 7. Nach #76 und #79.
+Stand: 16. Oktober 2026. Auftrag: Roadmap Phase 2, Punkt 7. Der DWD-Dateiimport ist seit #82 vorhanden.
 
 ## Anlass
 

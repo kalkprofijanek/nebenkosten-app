@@ -1,6 +1,6 @@
 # PR-35 – Restliche Overlay-Felder in der Oberfläche
 
-Stand: 16. Oktober 2026. Auftrag: Roadmap Phase 2, Punkt 6; enthält PR-27 Teil B.
+Stand: 16. Oktober 2026. Auftrag: Roadmap Phase 2, Punkt 6. Die § 9b-Auswahl ist seit #82 vorhanden.
 
 ## Anlass
 
