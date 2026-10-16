@@ -74,3 +74,75 @@ it('zeigt nach Quellenwechsel nur die Bestandswerte der ausgewählten Quelle', (
     'kg',
   )
 })
+
+it('speichert den CO₂-Preis des Anfangsbestands (Lieferjahr)', () => {
+  const STOCK_ID = '3f0c2a7e-1b4d-4c8e-9a6f-2d5b7e1c0a93'
+  const empty = createEmptyAppDataFile()
+  const data: AppDataFile = {
+    ...empty,
+    billingData: {
+      ...empty.billingData,
+      billingPeriods: [
+        {
+          id: 'y',
+          propertyId: 'p',
+          year: 2026,
+          periodStart: '2026-01-01',
+          periodEnd: '2026-12-31',
+          status: 'DRAFT',
+        },
+      ],
+      heatingCircuits: [
+        {
+          id: 'c',
+          buildingId: 'b',
+          billingPeriodId: 'y',
+          heatingSystemId: 'h',
+          hasCentralHotWater: false,
+        },
+      ],
+      energySources: [
+        { id: 'oil', heatingCircuitId: 'c', key: 'oil', name: 'Fiktives Öl' },
+      ],
+      fuelStocks: [
+        {
+          id: STOCK_ID,
+          energySourceId: 'oil',
+          billingPeriodId: 'y',
+          openingQuantity: { value: 100, unit: 'l' },
+          openingCo2PricePerTonCents: 4_500,
+        },
+      ],
+    },
+  }
+  let updater: ((current: AppDataFile) => AppDataFile) | undefined
+  const apply = vi.fn((next: (current: AppDataFile) => AppDataFile) => {
+    updater = next
+    return true
+  })
+  render(
+    <FuelPanel
+      data={data}
+      selection={{
+        ownerCompanyId: null,
+        propertyId: 'p',
+        billingPeriodId: 'y',
+      }}
+      onSelectionChange={vi.fn()}
+      onApply={apply}
+      apply={apply}
+    />,
+  )
+  const field = screen.getByLabelText(
+    'CO₂-Preis des Anfangsbestands in Euro je Tonne (Lieferjahr)',
+  )
+  expect(field).toHaveValue('45,00')
+  fireEvent.change(field, { target: { value: '30,00' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Bestand speichern' }))
+  expect(updater).toBeDefined()
+  const next = updater!(data)
+  expect(next.billingData.fuelStocks[0]).toMatchObject({
+    id: STOCK_ID,
+    openingCo2PricePerTonCents: 3_000,
+  })
+})

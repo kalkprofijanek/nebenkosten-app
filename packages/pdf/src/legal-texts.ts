@@ -16,9 +16,16 @@ export function estimatedConsumptionNote(reason?: string | null): string {
 /** Kompatibler Kurztext ohne Schätzgrund. */
 export const ESTIMATED_CONSUMPTION_NOTE = estimatedConsumptionNote()
 
-/** Erläuterung des Zeitfaktors bei Teilzeiträumen (§ 9b HeizKV). */
+/**
+ * Erläuterung des Zeitfaktors bei Teilzeiträumen (§ 9b HeizKV, Wortlaut
+ * geprüft am 10.10.2026): Abs. 2 – verbrauchsabhängige Kosten nach der
+ * Zwischenablesung, übrige Kosten des Wärmeverbrauchs nach Gradtagszahlen
+ * oder zeitanteilig, übrige Warmwasserkosten zeitanteilig; Abs. 3 – ohne
+ * Zwischenablesung die gesamten Kosten nach diesen Maßstäben. Der im
+ * Einzelfall angewandte Maßstab steht unter „Ihre Verbrauchserfassung“.
+ */
 export const TIME_FACTOR_EXPLANATION =
-  'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten erfolgt die Aufteilung bei Nutzerwechsel nach § 9b HeizKV: Grundkosten nach Kalendertagen, Verbrauchskosten nach dem erfassten Verbrauch bzw. – ohne Zwischenablesung – nach Gradtagszahlen. Auf Leerstandszeiten entfallende Kosten trägt der Vermieter.'
+  'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten werden bei Nutzerwechsel die verbrauchsabhängigen Kosten auf Grundlage der Zwischenablesung und die übrigen Kosten zeitanteilig aufgeteilt (§ 9b Abs. 2 HeizKV). Ist eine Zwischenablesung nicht möglich, werden die gesamten Heizkosten nach Gradtagszahlen oder zeitanteilig aufgeteilt, die Kosten für warmes Wasser zeitanteilig (§ 9b Abs. 3 HeizKV); Maßstab und Rechenweg sind unter „Ihre Verbrauchserfassung“ angegeben. Auf Leerstandszeiten entfallende Kosten trägt der Vermieter.'
 
 /** Hinweis unter der Ergebnistabelle (Rechnen mit ungerundeten Werten). */
 export const ROUNDING_DIFFERENCE_NOTICE =
@@ -103,7 +110,10 @@ export function co2DistributionSentence(
   baseSharePercent: number,
   consumptionSharePercent: number,
   baseAreaBasis: BaseAreaBasis,
+  hotWaterSharePercent?: string,
 ): string {
+  if (hotWaterSharePercent !== undefined)
+    return `Der Mieteranteil wird nach den Schlüsseln für Heizung und Warmwasser getrennt verteilt (§ 7 Abs. 1 CO2KostAufG): der Warmwasseranteil (${hotWaterSharePercent}, § 9 HeizKV) wie die Warmwasserkosten, der Heizungsanteil wie die Heizkosten zu ${baseSharePercent} % nach ${baseAreaDative(baseAreaBasis)} und zu ${consumptionSharePercent} % nach Verbrauch.`
   return `Der Mieteranteil wird wie die Heizkosten zu ${baseSharePercent} % nach ${baseAreaDative(baseAreaBasis)} und zu ${consumptionSharePercent} % nach Verbrauch auf die Nutzer verteilt.`
 }
 
@@ -162,7 +172,7 @@ export function meteringFeesText(amount: string | null): string {
 
 /** § 6a HeizKV: Hinweis auf die Verbraucherschlichtungsstelle. */
 export const DISPUTE_RESOLUTION_NOTICE =
-  'Bei Streitigkeiten können Sie sich an die Allgemeine Verbraucherschlichtungsstelle des Zentrums für Schlichtung e. V., Straßburger Straße 8, 77694 Kehl (www.verbraucher-schlichter.de) wenden. Der Vermieter ist zur Teilnahme an einem Streitbeilegungsverfahren nicht verpflichtet und nimmt daran nicht teil.'
+  'Bei Streitigkeiten können Sie sich an die Universalschlichtungsstelle des Bundes (Zentrum für Schlichtung e. V.), Straßburger Straße 8, 77694 Kehl (www.verbraucher-schlichter.de) wenden. Der Vermieter ist zur Teilnahme an einem Streitbeilegungsverfahren nicht verpflichtet und nimmt daran nicht teil.'
 
 /** § 6a HeizKV: Energieträger mit Anteilen. */
 export const ENERGY_CARRIER_MIX_LABEL =
@@ -211,3 +221,97 @@ export function circuitAverageExplanation(
  */
 export const SECTION_35A_NOTICE =
   'Die Beträge sind Ihr Anteil an den in den Rechnungen enthaltenen Arbeits-, Maschinen- und Fahrtkosten (ohne Material), soweit sie in Ihren Betriebskosten enthalten sind; der Lohnanteil ist je Kostenart angegeben und kann auf Rechnungsangaben oder einer Schätzung beruhen. Ob es sich um haushaltsnahe Dienstleistungen (§ 35a Abs. 2 EStG) oder Handwerkerleistungen (§ 35a Abs. 3 EStG) handelt, richtet sich nach der Art der Leistung. Diese Angaben sind keine Steuerberatung.'
+
+/** § 6a Abs. 3 Nr. 4 HeizKV: Vergleich mit dem normierten Durchschnittsnutzer. */
+export const CONSUMPTION_BENCHMARK_LABEL =
+  'Vergleich mit dem Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizKV)'
+
+/** Klassen der Vergleichswerte (z. B. Heizspiegel) auf Deutsch. */
+export const CONSUMPTION_BENCHMARK_CLASS_LABELS = {
+  low: 'niedrig',
+  medium: 'mittel',
+  elevated: 'erhöht',
+  high: 'zu hoch',
+} as const
+
+export type HotWaterKeyLabel = 'persons' | 'area' | 'consumption'
+
+const HOT_WATER_KEY_TEXT: Readonly<Record<HotWaterKeyLabel, string>> = {
+  persons: 'Warmwasser nach Personen und Nutzungszeit',
+  area: 'Warmwasser nach Fläche und Nutzungszeit',
+  consumption: 'Warmwasser nach Warmwasserverbrauch und Fläche',
+}
+
+/** Ermittlung des Nutzerverbrauchs für den Vergleich (ADR-0004). */
+export function consumptionBenchmarkEnergyShareNotice(
+  hotWaterKey: HotWaterKeyLabel = 'persons',
+): string {
+  return `Heizwärme und Warmwasser sind als Ihr Anteil am Energieeinsatz des Gebäudes nach den Verteilschlüsseln dieser Abrechnung ermittelt (Heizwärme nach Ihrem Verbrauchsanteil, ${HOT_WATER_KEY_TEXT[hotWaterKey]}).`
+}
+
+export const CONSUMPTION_BENCHMARK_ENERGY_SHARE_NOTICE =
+  consumptionBenchmarkEnergyShareNotice()
+
+/** Fußnote zum Vergleich mit dem Durchschnittsnutzer. */
+export function consumptionBenchmarkFootnote(
+  benchmark: {
+    readonly source: string
+    readonly category: string
+    readonly referenceYear: number
+    readonly includesHotWater: boolean
+  },
+  annualization: 'none' | 'degree_days' | 'linear',
+  hotWaterKey: HotWaterKeyLabel = 'persons',
+): string {
+  const scope = benchmark.includesHotWater
+    ? 'Heizung und Warmwasser'
+    : 'nur Heizung'
+  const annual =
+    annualization === 'degree_days'
+      ? ' Ihr Verbrauch ist auf ein Jahr hochgerechnet: Heizwärme nach Gradtagszahlen (VDI 2067), Warmwasser nach Tagen.'
+      : annualization === 'linear'
+        ? ' Ihr Verbrauch ist nach Tagen auf ein Jahr hochgerechnet.'
+        : ''
+  return `Vergleichswerte: ${benchmark.source}, Kategorie „${benchmark.category}“, Bezugsjahr ${benchmark.referenceYear} (${scope}). ${consumptionBenchmarkEnergyShareNotice(hotWaterKey)}${annual} Die Klassengrenzen sind auf Ihre Fläche und Nutzungszeit umgerechnet.`
+}
+
+/** Vorjahresvergleich: witterungsbereinigt mit DWD-Klimafaktoren (ADR-0005). */
+export function previousPeriodWeatherAdjustedText(
+  postalCode: string,
+  previousFactor: string,
+  currentFactor: string,
+): string {
+  return `Witterungsbereinigt mit Klimafaktoren des Deutschen Wetterdienstes (Postleitzahl ${postalCode}, Faktor Vorjahr ${previousFactor}, Abrechnungsjahr ${currentFactor}).`
+}
+
+/** Vorjahresvergleich in kWh: Methode (§ 6a Abs. 3 Satz 2 HeizKV). */
+export const PREVIOUS_PERIOD_ENERGY_METHOD =
+  'Energieverbrauch = Heizwärme (dunkler Balken) + Warmwasser (heller Balken), jeweils als Ihr Anteil am Energieeinsatz des Gebäudes nach den Verteilschlüsseln der jeweiligen Abrechnung.'
+
+/** Vorjahresvergleich in kWh: nur die Heizwärme wird bereinigt. */
+export const PREVIOUS_PERIOD_HOT_WATER_NOT_ADJUSTED =
+  'Bereinigt ist nur die Heizwärme; das Warmwasser hängt nicht von der Witterung ab und ist unbereinigt enthalten.'
+
+/** Vorjahresvergleich in kWh ohne zentrales Warmwasser. */
+export const PREVIOUS_PERIOD_NO_CENTRAL_HOT_WATER =
+  'Das Warmwasser wird nicht über die Heizungsanlage bereitet und ist nicht enthalten.'
+
+/** Vorjahresvergleich in kWh ohne Witterungsbereinigung. */
+export const PREVIOUS_PERIOD_ENERGY_NOT_WEATHER_ADJUSTED =
+  'Darstellung ohne Witterungsbereinigung, weil nicht für beide Jahre ein passender Klimafaktor des Deutschen Wetterdienstes vorliegt.'
+
+/** Vorjahresvergleich nur in Verbrauchseinheiten: Warmwasser fehlt. */
+export function previousPeriodHotWaterMissingText(
+  reason:
+    | 'stored_previous_consumption'
+    | 'previous_calculation_failed'
+    | 'energy_not_determinable',
+): string {
+  const why =
+    reason === 'stored_previous_consumption'
+      ? 'für das Vorjahr nur der übernommene Heizverbrauch vorliegt'
+      : reason === 'previous_calculation_failed'
+        ? 'die Vorjahresabrechnung nicht nachgerechnet werden kann'
+        : 'der Energieeinsatz in kWh oder Ihr Verbrauch für eines der Jahre nicht ermittelbar ist'
+  return `Der Vergleich umfasst nur den erfassten Heizverbrauch; das Warmwasser ist nicht enthalten, weil ${why}.`
+}

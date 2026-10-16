@@ -136,3 +136,66 @@ describe('Klimafaktor für die Witterungsbereinigung (§ 6a Abs. 3 HeizKV)', () 
     expect(find(data, 'heating.climate_factor_previous_missing')).toEqual([])
   })
 })
+
+describe('Vorjahresvergleich ohne Witterungsbereinigung', () => {
+  const CODE = 'heating.previous_period_not_weather_adjusted'
+  const FACTOR_2024: ClimateFactor = {
+    ...FACTOR_2025,
+    factor: 0.95,
+    periodStart: '2024-01-01',
+    periodEnd: '2024-12-31',
+  }
+
+  function withComparison(
+    current: ClimateFactor | null,
+    previous: ClimateFactor | null,
+  ): AppDataFile {
+    const data = withPreviousPeriod(withHeating(current), previous)
+    data.billingData.occupancyPeriods.find(
+      ({ id }) => id === 'occupancy-2024',
+    )!.consumptionUnits = { value: 900, unit: 'einheiten' }
+    return data
+  }
+
+  it('meldet nichts, wenn beide Jahre bereinigt werden können', () => {
+    expect(find(withComparison(FACTOR_2025, FACTOR_2024), CODE)).toEqual([])
+  })
+
+  it('meldet nichts ohne Vorjahresvergleich', () => {
+    expect(find(withHeating(null), CODE)).toEqual([])
+    const noConsumption = withPreviousPeriod(withHeating(null), null)
+    expect(find(noConsumption, CODE)).toEqual([])
+  })
+
+  it('warnt ohne Klimafaktor des Abrechnungsjahres', () => {
+    const [warning] = find(withComparison(null, FACTOR_2024), CODE)
+    expect(warning).toMatchObject({
+      severity: 'warning',
+      entity: { type: 'BillingPeriod', id: 'period-1' },
+    })
+    expect(warning!.detail).toContain('Eine Einzelabrechnung enthält')
+    expect(warning!.detail).toContain('Für 2025 ist kein passender')
+  })
+
+  it('warnt ohne Klimafaktor des Vorjahres', () => {
+    const [warning] = find(withComparison(FACTOR_2025, null), CODE)
+    expect(warning!.detail).toContain('Für das Vorjahr 2024 fehlt')
+  })
+
+  it('warnt beim übernommenen Vorjahresverbrauch ohne Faktor', () => {
+    const data = withHeating(FACTOR_2025)
+    data.billingData.occupancyPeriods[0]!.previousConsumption = {
+      year: 2024,
+      value: 800,
+    }
+    expect(find(data, CODE)).toHaveLength(1)
+    data.billingData.occupancyPeriods[0]!.previousConsumption!.climateFactor = 0.97
+    expect(find(data, CODE)).toEqual([])
+  })
+
+  it('übergeht Nutzungen in Gebäuden ohne Heizkreis', () => {
+    const data = withComparison(null, null)
+    data.billingData.heatingCircuits[0]!.buildingId = 'building-other'
+    expect(find(data, CODE)).toEqual([])
+  })
+})

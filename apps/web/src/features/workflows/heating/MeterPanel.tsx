@@ -388,11 +388,17 @@ export function MeterPanel({
             <h2>Ablesung erfassen</h2>
             <WorkflowField label="Ablesedatum" name="date" type="date" />
             <ReadingBoundaryField />
-            <WorkflowField label="Zählerstand" name="value" required />
+            <WorkflowField
+              label={
+                meter.kind === 'unit_heat' ? 'Zählerstand (kWh)' : 'Zählerstand'
+              }
+              name="value"
+              required
+            />
             <label>
               <span>Ableseeinheit</span>
               <select name="unit" defaultValue="kWh">
-                {UNITS.map((unit) => (
+                {(meter.kind === 'unit_heat' ? ['kWh'] : UNITS).map((unit) => (
                   <option key={unit} value={unit}>
                     {unit}
                   </option>

@@ -40,13 +40,15 @@ HeizKV).
 5. **Folgejahr:** „Kostenarten aus dem Vorjahr übernehmen“ übernimmt das
    Kennzeichen.
 
-## Nicht entschieden (Bauliste Nr. 5, zweiter Teil)
+## Steuern und Abgaben (Bauliste Nr. 5, zweiter Teil)
 
-Steuern und Abgaben (Abs. 3 Nr. 1b) bleiben beim Pauschaltext. Ob die
-Beträge (Umsatzsteuer, Energie-/Stromsteuer, CO₂-Preis nach BEHG) je
-Rechnung zu erfassen sind, ist offen: Der Wortlaut verlangt „Informationen“,
-nicht zwingend Beträge; die Erfassung kostet je Rechnung drei Werte. Vor
-einer Umsetzung entscheidet der Nutzer.
+Entscheidung des Nutzers (10. Oktober 2026): Es bleibt beim Pauschaltext;
+Beträge werden nicht je Rechnung erfasst. Begründung:
+
+Der Wortlaut von Abs. 3 Nr. 1b verlangt „Informationen“ über Steuern,
+Abgaben und Zölle, nicht ausdrücklich Beträge; die Erfassung kostet je
+Rechnung drei Werte (Umsatzsteuer, Energie-/Stromsteuer, CO₂-Preis nach
+BEHG). Rechtlich nicht abschließend geklärt; bei Bedarf neu entscheiden.
 
 ## Tests
 

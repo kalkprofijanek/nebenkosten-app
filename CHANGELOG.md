@@ -4,6 +4,81 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Warmwasseranteil bei Wärmepumpen (ADR-0010 „Wärmepumpen“)**: s = Q ÷
+  erzeugte Wärme statt ÷ Strom-kWh; neue optionale Felder
+  `HeatingCircuit.generatedHeatKwh` (gemessene Wärmemenge am Erzeuger) und
+  `EnergySource.seasonalPerformanceFactor` (Jahresarbeitszahl, 1–8) mit
+  `seasonalPerformanceFactorEstimated`/`seasonalPerformanceFactorReason`
+  (Schätzwert mit Pflichtbegründung), Schema v5 ohne Migration; Rechenweg je
+  Quelle im PDF mit Kennzeichnung der Schätzung; Prüffehler
+  `heating_compliance.heat_pump_heat_output_missing`, Warnung bei geschätzter
+  Jahresarbeitszahl, Fehler ohne Begründung; keine Standard-Jahresarbeitszahl;
+  Eingabe im Heizkreis-Formular,
+- **Steuern und Abgaben (ADR-0011)**: `FuelDelivery.taxesAndLevies`
+  (Umsatzsteuer mit Satz, Energie-/Stromsteuer, CO₂-Kosten BEHG, sonstige
+  Abgaben); Einzelabrechnung weist die enthaltenen Beträge je Art für das
+  Gebäude und den Mieteranteil aus (§ 6a Abs. 3 Nr. 1 b HeizKV), sonst
+  Hinweis mit konkretem CO₂-Betrag; Eingabe an der Lieferung mit
+  Umsatzsteuer-Rechner; Prüfhinweis `heating.taxes_and_levies_missing`,
+- **Warmwasser gesetzeskonform (ADR-0010)**: Wärmemenge nach § 9 Abs. 2
+  HeizKV (Wärmezähler, Volumenformel 2,5 × V × (tw − 10) oder Flächenformel
+  32 × A, Erdgas × 1,11); Anteil gilt nach § 9 Abs. 1 für Brennstoff,
+  Betriebsstrom und Heizungs-Betriebskosten; Verteilung nach § 8 Abs. 1
+  (50–70 % Verbrauch, Rest Fläche) oder ersatzweise nach Fläche; CO₂-Mieteranteil
+  getrennt nach Heizung und Warmwasser; Rechenweg im Mieterblatt; Prüfregeln
+  `heating_compliance.*` für Altverfahren und § 12-Hinweis; Eingabe im
+  Heizkreis-Formular,
+- **§ 9b Abs. 3 HeizKV ohne gemischten Maßstab**: Nutzerwechsel ohne
+  Zwischenablesung werden für die gesamten Heizkosten einheitlich nach
+  Gradtagszahlen oder zeitanteilig aufgeteilt (Warmwasser zeitanteilig);
+  Rechenweg im PDF; Prüfregeln `heating.section9b_*`,
+- **CO₂-Preis je Brennstoff-Los**: Anfangsbestand mit dem CO₂-Preis seines
+  Lieferjahres; Berechnungsgrundlagen nach § 7 Abs. 3 CO2KostAufG im PDF;
+  Prüfhinweis `co2.opening_stock_price_missing`,
+- **§ 6a-Block**: Vorjahresvergleich auf gleichem Zeitraum (Gradtage),
+  Klimafaktor nur bei vollen Jahren, eindeutige Beschriftung gemessen /
+  witterungsbereinigt, Kennzeichnung geschätzter Werte (§ 9a),
+- **Gesamtabrechnung und Rundung**: Verteilungsgrundlagen (Verbrauchssumme,
+  Personenjahre), Leerstandsblock, Klartext statt interner Kennung,
+  sichtbarer Rundungsausgleich,
+- **Prüfung**: Kabel-TV ab 01.07.2024 als Fehler (§ 2 Nr. 15 BetrKV),
+  Heizspiegel-Kategorie gegen Gebäudefläche und Energieträger, Schätzungen
+  ohne Begründung, mit starker Vorjahresabweichung oder über 25 % der Fläche,
+
+- **§ 6a HeizKV in der Einzelabrechnung**: Vergleich mit dem
+  Durchschnittsnutzer (Heizspiegel-Klassen, eigener Wert in kWh je m² und
+  Jahr, Grenzen auf eigene Fläche und Nutzungszeit); Vorjahresvergleich
+  witterungsbereinigt mit DWD-Klimafaktoren und – wenn das Vorjahr im System
+  liegt – als Energieverbrauch in kWh aus Heizwärme und Warmwasser (nur die
+  Heizwärme bereinigt); neue Prüfung `heating.previous_period_not_weather_adjusted`;
+  `heating.consumption_benchmark_missing` je Heizkreis ohne Vergleichswerte,
+- **Eingaben**: Vergleichswerte (Heizspiegel) am Heizkreis, Klimafaktor am
+  Abrechnungsjahr mit Import der DWD-Liste (Postleitzahl aus der
+  Objektanschrift), Klimafaktor Vorjahr beim übernommenen Vorjahresverbrauch,
+  Auswahl „Entgelt für Verbrauchserfassung“ an Heizungs-Kostenarten,
+- **Verbrauchsseite**: Zählertausch erfassen; Aufteilung nach Gradtagszahlen
+  bei Nutzerwechsel ohne Zwischenablesung (mit Pflichtbegründung, § 9b Abs. 3
+  HeizKV); Hinweis „Zwischenablesung veranlassen“ bei Ein- und Auszug;
+  Markierung von Wechseln ohne Zwischenablesung,
+- Einzel- und Gesamtabrechnung: Zählerstände bei Zählertausch je Abschnitt
+  mit Summenzeile,
+- Korrektur: Speichern des Vorjahresverbrauchs verwirft den Klimafaktor des
+  Vorjahres nicht mehr,
+- **Zwischenablesung bei Nutzerwechsel** (§ 9b Abs. 1 HeizKV): Erkennung der
+  Nutzerwechsel je Wohnung im Core; Prüfhinweis
+  `heating.interim_reading_missing`, wenn zum Wechsel kein Ablesestand
+  erfasst ist (ADR-0009). Hinweis bei der Erfassung des Auszugs folgt,
+- `docs/RELEASE-STATUS.md`: Produktionsmigration als abgeschlossen vermerkt,
+- **Zählertausch** im Datenmodell: `heatMeterReading.replacements` mit
+  Tauschtag, Endstand alt und Anfangsstand neu; Verbrauch = Summe der
+  Abschnitte, eine Regel im Core für Prüfung, PDF und Verbrauchsseite; neue
+  Warnung `heating.meter_replacement_invalid` (ADR-0008, Schema v5 additiv).
+  Erfassung in der Oberfläche folgt,
+- **Gradtagszahlen nach VDI 2067** im Core: Anteil eines Zeitraums in
+  Promille und Aufteilung eines Verbrauchs bei Nutzerwechsel ohne
+  Zwischenablesung (§ 9b Abs. 2 HeizKV); der Vergleich mit dem
+  Durchschnittsnutzer rechnet mit Nutzungszeitraum die Heizwärme nach
+  Gradtagen statt linear hoch (ADR-0007). Aufteilung in der Oberfläche folgt,
 - **Entgelte für Verbrauchserfassung** (§ 6a Abs. 3 Nr. 1c HeizKV): neues
   Kennzeichen `CostCategory.meteringFee` hat Vorrang vor der
   Schlagworterkennung; Erkennung im Core statt im PDF; Prüfhinweis

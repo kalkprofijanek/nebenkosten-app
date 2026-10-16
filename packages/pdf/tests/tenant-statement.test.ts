@@ -79,6 +79,21 @@ describe('buildTenantStatement', () => {
     )
   })
 
+  it('bewahrt die vollständige PDF-Dokumentdefinition', () => {
+    const context = buildFixtureTenantStatementContext(buildFixtureAppData())
+    // Der veröffentlichte Snapshot verwendet keine adressähnlichen Muster.
+    context.tenancy.shippingAddressStreet = 'Fiktive Anschrift'
+    const document = buildTenantStatement(context)
+    const footer = document.footer as (
+      currentPage: number,
+      pageCount: number,
+    ) => unknown
+
+    expect({ ...document, footer: footer(1, 3) }).toMatchSnapshot(
+      'complete tenant statement definition',
+    )
+  })
+
   it('setzt die Anrede in den Brieftext statt ins Adressfeld', () => {
     const appData = buildFixtureAppData()
     const context = buildFixtureTenantStatementContext(appData)

@@ -250,9 +250,11 @@ describe('Vorjahresvergleich (§ 6a HeizKV)', () => {
     )
     expect(serialized).toContain('"canvas":[{"type":"rect"')
     expect(serialized).toContain(
-      `Ihr Verbrauch im Vorjahr (${period.year - 1})`,
+      `Ihr Verbrauch im Vorjahr ${period.year - 1} (nicht witterungsbereinigt)`,
     )
-    expect(serialized).toContain(`Ihr Verbrauch (${period.year})`)
+    expect(serialized).toContain(
+      `Ihr Verbrauch ${period.year} (nicht witterungsbereinigt)`,
+    )
     expect(serialized).toContain('"w":200')
     expect(serialized).toContain('"w":80')
     expect(serialized).toContain('ohne Witterungsbereinigung')
@@ -270,7 +272,7 @@ describe('Vorjahresvergleich (§ 6a HeizKV)', () => {
       buildTenantStatement(buildFixtureTenantStatementContext(appData)).content,
     )
     expect(serialized).toContain(
-      `Ihr Verbrauch im Vorjahr (${period.year - 1})`,
+      `Ihr Verbrauch im Vorjahr ${period.year - 1} (nicht witterungsbereinigt)`,
     )
     expect(serialized).toContain(
       'Vorjahreswert: Heizkostenabrechnung des Voreigentümers',

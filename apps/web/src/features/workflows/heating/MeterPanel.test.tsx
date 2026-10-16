@@ -54,6 +54,8 @@ describe('MeterPanel', () => {
   it('wählt ohne Korrekturlink den ersten Zähler', () => {
     render(show())
     expect(meterHeading()).toHaveTextContent('TEST-WMZ-1')
+    expect(screen.getByLabelText('Zählerstand (kWh)')).toBeVisible()
+    expect(screen.getByLabelText('Ableseeinheit')).toHaveValue('kWh')
   })
 
   it('öffnet den Zähler aus einem Korrekturlink und folgt weiteren Links', () => {

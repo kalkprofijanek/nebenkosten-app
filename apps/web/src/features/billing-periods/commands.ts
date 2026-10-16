@@ -1,8 +1,11 @@
-import type {
-  AppDataFile,
-  BillingNotes,
-  CoverLetter,
-  HeatingDefaults,
+import {
+  climateFactorSchema,
+  type AppDataFile,
+  type BillingNotes,
+  type BillingPeriod,
+  type ClimateFactor,
+  type CoverLetter,
+  type HeatingDefaults,
 } from '@nebenkosten/schema'
 import {
   assertValidResult,
@@ -29,6 +32,12 @@ export interface UpdateBillingPeriodInput {
   readonly notes?: BillingNotes
   readonly coverLetter?: CoverLetter
   readonly heatingDefaults?: HeatingDefaults
+  /**
+   * Klimafaktor des DWD (ADR-0005). Fehlt das Feld (oder ist es
+   * `undefined`), bleibt der gespeicherte Faktor erhalten; `null` entfernt
+   * ihn ausdrücklich, ein Objekt setzt ihn neu.
+   */
+  readonly climateFactor?: ClimateFactor | null
 }
 
 function normalizePropertyId(value: unknown): string {
@@ -39,6 +48,21 @@ function normalizePropertyId(value: unknown): string {
       error instanceof Error ? error.message : 'Liegenschaft ist ungültig.',
     )
   }
+}
+
+function nextClimateFactor(
+  current: BillingPeriod['climateFactor'],
+  input: UpdateBillingPeriodInput['climateFactor'],
+): ClimateFactor | undefined {
+  if (input === undefined) return current ?? undefined
+  if (input === null) return undefined
+  const result = climateFactorSchema.safeParse(input)
+  if (!result.success) {
+    throw new BillingPeriodCommandError(
+      'Der Klimafaktor ist ungültig: Postleitzahl (fünf Ziffern), positiver Faktor, Zeitraum und Quelle sind erforderlich.',
+    )
+  }
+  return result.data
 }
 
 function validateYear(value: unknown): number {
@@ -156,23 +180,29 @@ export function updateBillingPeriod(
       `Das Abrechnungsjahr ${year} ist für diese Liegenschaft bereits vorhanden.`,
     )
   }
+  const climateFactor = nextClimateFactor(
+    period.climateFactor,
+    input.climateFactor,
+  )
   const result: AppDataFile = {
     ...data,
     billingData: {
       ...data.billingData,
-      billingPeriods: data.billingData.billingPeriods.map((item) =>
-        item.id === billingPeriodId
-          ? {
-              ...item,
-              year,
-              periodStart: input.periodStart,
-              periodEnd: input.periodEnd,
-              notes: input.notes,
-              coverLetter: input.coverLetter,
-              heatingDefaults: input.heatingDefaults,
-            }
-          : item,
-      ),
+      billingPeriods: data.billingData.billingPeriods.map((item) => {
+        if (item.id !== billingPeriodId) return item
+        const updated: BillingPeriod = {
+          ...item,
+          year,
+          periodStart: input.periodStart,
+          periodEnd: input.periodEnd,
+          notes: input.notes,
+          coverLetter: input.coverLetter,
+          heatingDefaults: input.heatingDefaults,
+          climateFactor,
+        }
+        if (!climateFactor) delete updated.climateFactor
+        return updated
+      }),
     },
   }
   return assertValidResult(result, BillingPeriodCommandError)

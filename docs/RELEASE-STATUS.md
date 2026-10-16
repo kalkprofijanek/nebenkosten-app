@@ -1,6 +1,6 @@
-# Release-Status Version 1.0.0
+# Release-Status
 
-Stand: 9. August 2026. Diese Datei enthält ausschließlich technische Nachweise;
+Stand: 10. Oktober 2026 (Abschnitt Version 1.0.0: 9. August 2026). Diese Datei enthält ausschließlich technische Nachweise;
 lokale produktive Abnahmeberichte bleiben unter `private-data/` und werden
 nicht veröffentlicht.
 
@@ -10,7 +10,7 @@ nicht veröffentlicht.
 | Menschliche Freigabe PR 12        | Erfüllt          | Freigabe vor Merge von PR #28                                  |
 | CI für PR 12                      | Erfüllt          | 15/15 Prüfungen grün                                           |
 | Code- und Security-Review         | Erfüllt          | keine offenen Blocker                                          |
-| Produktionsmigration / Vergleich  | Pausiert         | UI-Lücke wird mit PR 14 korrigiert; danach lokale Wiederholung |
+| Produktionsmigration / Vergleich  | Erfüllt          | Abschluss vom Maintainer bestätigt (10.10.2026), Bericht lokal |
 | Rollback-Weg                      | Erfüllt          | Backup, `before_import`, atomarer `before_restore` und Runbook |
 | Reproduzierbarer statischer Build | Erfüllt in PR 13 | Build, Artefakt-Guard und Browser-Test                         |
 | Repository öffentlich             | Erfüllt          | `kalkprofijanek/nebenkosten-app`                               |
@@ -22,6 +22,11 @@ nicht veröffentlicht.
 Ein offener Punkt darf nicht durch Dokumentation als erfüllt umgedeutet werden.
 Die technische Veröffentlichung von `v1.0.0` ist abgeschlossen. Bei der
 anschließenden lokalen Produktionsabnahme wurde festgestellt, dass vorhandene
-Kostenpositionen und Bankbuchungen nicht vollständig sichtbar waren. Die
-produktive Übernahme bleibt deshalb angehalten, bis PR 14 veröffentlicht und
-mit der lokalen Sicherung erneut geprüft wurde.
+Kostenpositionen und Bankbuchungen nicht vollständig sichtbar waren; die
+produktive Übernahme wurde bis zur Korrektur (PR 14) angehalten.
+
+**Nachtrag 10. Oktober 2026:** Der Maintainer hat bestätigt, dass die
+Produktionsmigration abgeschlossen ist. Der Abnahmebericht liegt
+ausschließlich lokal (`private-data/`) und wird nicht veröffentlicht.
+Aktueller Release-Tag ist `v1.3.0`; Änderungen danach stehen in
+`CHANGELOG.md` unter „Unveröffentlicht“.

@@ -32,6 +32,12 @@ export interface AddCostCategoryInput {
   readonly date?: string
   readonly allocablePercent?: number
   readonly laborSharePercent?: number
+  /**
+   * Entgelt für Verbrauchserfassung und Abrechnung (§ 6a HeizKV, ADR-0006):
+   * `true`/`false` setzt das Kennzeichen, `null` entfernt es (automatische
+   * Erkennung über Schlagworte).
+   */
+  readonly meteringFee?: boolean | null
 }
 
 export interface AddCostEntryInput {
@@ -56,6 +62,7 @@ const CATEGORY_KEYS = [
   'date',
   'allocablePercent',
   'laborSharePercent',
+  'meteringFee',
 ] as const
 const ENTRY_KEYS = [
   'costCategoryId',
@@ -179,6 +186,13 @@ function parseCategoryInput(value: unknown): AddCostCategoryInput {
   const totalAmountCents = optionalInteger(input, 'totalAmountCents')
   const allocablePercent = optionalFiniteNumber(input, 'allocablePercent')
   const laborSharePercent = optionalFiniteNumber(input, 'laborSharePercent')
+  const meteringFee = input.meteringFee
+  if (
+    meteringFee !== undefined &&
+    meteringFee !== null &&
+    typeof meteringFee !== 'boolean'
+  )
+    throw new CostCommandError('Ungültige Eingabe für meteringFee.')
   return {
     billingPeriodId: requiredString(input, 'billingPeriodId'),
     kind: kind as AddCostCategoryInput['kind'],
@@ -196,7 +210,18 @@ function parseCategoryInput(value: unknown): AddCostCategoryInput {
     ...defined('date', optionalString(input, 'date', 10)),
     ...defined('allocablePercent', allocablePercent),
     ...defined('laborSharePercent', laborSharePercent),
+    ...defined('meteringFee', meteringFee),
   }
+}
+
+/** Entfernt ein auf `null` gesetztes Entgelt-Kennzeichen (automatisch). */
+function withoutClearedMeteringFee<T extends { meteringFee?: boolean | null }>(
+  value: T,
+): T {
+  if (value.meteringFee !== null) return value
+  const copy = { ...value }
+  delete copy.meteringFee
+  return copy
 }
 
 function parseEntryInput(value: unknown): AddCostEntryInput {
@@ -351,10 +376,10 @@ export function addCostCategory(
   }
   const category = parseEntity<CostCategory>(
     costCategorySchema,
-    {
+    withoutClearedMeteringFee({
       id: uniqueId(file, createId),
       ...input,
-    },
+    }),
     'Kostenart',
   )
   return validatedFile({
@@ -437,7 +462,7 @@ export function updateCostCategory(
   }
   const replacement = parseEntity<CostCategory>(
     costCategorySchema,
-    { ...current, ...input },
+    withoutClearedMeteringFee({ ...current, ...input }),
     'Kostenart',
   )
   return validatedFile({

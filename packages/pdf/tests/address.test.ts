@@ -96,7 +96,7 @@ describe('buildRecipientBlock', () => {
     const recipient = buildRecipientBlock(tenancy, [person])
     expect(recipient.street).toBe('Musterweg')
     expect(recipient.postalCodeAndCity).toBe('22222 Testort')
-    expect(recipient.salutationLine).toBe('Sehr geehrte Frau Anna Müller')
+    expect(recipient.salutationLine).toBe('Sehr geehrte Frau Müller')
     expect(recipient.nameLines).toEqual(['Anna Müller'])
   })
 

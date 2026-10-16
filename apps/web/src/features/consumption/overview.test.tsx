@@ -2,11 +2,36 @@ import { describe, expect, it } from 'vitest'
 import { consumptionFixture } from './consumption-fixture'
 import {
   buildConsumptionOverview,
+  isOpenOrDeviating,
   needsEstimate,
   section9aHint,
 } from './overview'
 
 describe('buildConsumptionOverview', () => {
+  it('verwendet für Messmodus und Gebäude den Gebäudeoverride der Nutzung', () => {
+    const data = consumptionFixture({
+      o1: { costScope: { kind: 'building', buildingId: 'b2' } },
+    })
+    data.masterData.buildings.push({
+      id: 'b2',
+      propertyId: 'p',
+      name: 'Haus B',
+      mandateRefPrefixes: [],
+    })
+    data.billingData.heatingCircuits.push({
+      id: 'override-circuit',
+      billingPeriodId: 'y',
+      buildingId: 'b2',
+      consumptionMode: 'metered_kwh',
+    } as never)
+    const row = buildConsumptionOverview(data, 'y')!.rows.find(
+      ({ occupancy }) => occupancy.id === 'o1',
+    )!
+    expect(row.buildingId).toBe('b2')
+    expect(row.meteredCircuit).toBe(true)
+    expect(needsEstimate(row)).toBe(false)
+  })
+
   it('ordnet Status, Zählerdifferenz und Schätzung je Mieter zu', () => {
     const overview = buildConsumptionOverview(
       consumptionFixture({
@@ -80,6 +105,55 @@ describe('buildConsumptionOverview', () => {
     )
     expect(metered.openCount).toBe(0)
     expect(metered.estimatedShares).toEqual([])
+  })
+
+  it('markiert Nutzerwechsel ohne Zwischenablesung nur mit Heizkreis', () => {
+    const data = consumptionFixture({
+      o1: { to: '2025-03-31' },
+      o2: {
+        to: '2025-06-30',
+        heatMeterReading: { endValue: 5, endDate: '2025-06-30' },
+      },
+    })
+    data.billingData.occupancyPeriods.push(
+      {
+        id: 'o4',
+        billingPeriodId: 'y',
+        unitId: 'u1',
+        kind: 'vacancy',
+        from: '2025-04-01',
+      },
+      {
+        id: 'o5',
+        billingPeriodId: 'y',
+        unitId: 'u2',
+        tenancyId: 't3',
+        kind: 'tenant',
+        from: '2025-07-01',
+        consumptionUnits: { value: 9, unit: 'einheiten' },
+      },
+    )
+    const unheated = buildConsumptionOverview(data, 'y')!
+    expect(
+      unheated.rows.every((row) => row.missingInterimReadings.length === 0),
+    ).toBe(true)
+
+    data.billingData.heatingCircuits.push({
+      id: 'hc',
+      billingPeriodId: 'y',
+      heatingSystemId: 'hs',
+      buildingId: 'b1',
+      hasCentralHotWater: false,
+    })
+    const rows = buildConsumptionOverview(data, 'y')!.rows
+    const byId = (id: string) =>
+      rows.find(({ occupancy }) => occupancy.id === id)!
+    // Wohnung 1: Mieter → Leerstand ohne Stand; Wohnung 2: Endstand erfasst.
+    expect(byId('o1').missingInterimReadings).toEqual(['2025-04-01'])
+    expect(byId('o2').missingInterimReadings).toEqual([])
+    expect(byId('o5').missingInterimReadings).toEqual([])
+    expect(isOpenOrDeviating(byId('o1'))).toBe(true)
+    expect(isOpenOrDeviating(byId('o2'))).toBe(false)
   })
 
   it('meldet das Überschreiten der 25-%-Grenze nur beim Übergang', () => {

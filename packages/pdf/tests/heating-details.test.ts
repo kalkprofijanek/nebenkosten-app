@@ -347,7 +347,7 @@ describe('Rechtliche Nachbesserungen', () => {
       buildTenantStatement(buildFixtureTenantStatementContext(appData)),
     )
     expect(serialized).toContain(
-      `Ihr Verbrauch im Vorjahr (${period.year - 1})`,
+      `Ihr Verbrauch im Vorjahr ${period.year - 1} (nicht witterungsbereinigt)`,
     )
     expect(serialized).toContain('321,00')
     expect(serialized).not.toContain('Ein Vergleich mit dem Vorjahr ist nicht')

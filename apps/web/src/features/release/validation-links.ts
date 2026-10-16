@@ -80,6 +80,12 @@ export function validationIssueLink(
       label: 'Zählerstände prüfen',
     }
 
+  if (issue.code === 'heating.metering_fee_not_identified')
+    return {
+      href: '#/kosten?tab=categories&kind=heating',
+      label: 'Heizungs-Kostenarten kennzeichnen',
+    }
+
   if (issue.code === 'occupancy.shipping_address_previous')
     return {
       href: `#/nutzer?edit=${encodeURIComponent(issue.entity?.id ?? '')}`,

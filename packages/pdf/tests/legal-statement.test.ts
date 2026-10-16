@@ -152,7 +152,11 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     const serialized = text(buildTenantStatement(context))
 
     expect(serialized).toContain('Kosten der Warmwasserbereitung')
-    expect(serialized).toContain('Warmwasser:')
+    // A3: konkreter Rechenweg statt Platzhalter „× Ihre Personen × Zeitfaktor“.
+    expect(serialized).toContain(
+      'Warmwasser nach Personen und Nutzungszeit: 2 Personen × 366/366 Tage = 2,0000 Personenjahre von 5,0000 Personenjahren; 1.200,00 € : 5,0000 = 240,0000 € je Personenjahr × 2,0000',
+    )
+    expect(serialized).not.toContain('Ihre Personen × Zeitfaktor')
     expect(serialized).not.toContain(
       'Eine zentrale Warmwasserbereitung besteht nicht.',
     )
@@ -341,12 +345,9 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     expect(serialized).toContain('§ 556 Abs. 3 BGB')
     expect(serialized).toContain('nach vorheriger Terminvereinbarung')
     expect(serialized).not.toMatch(/schriftlich/i)
-    expect(serialized).toContain(
-      'Bei Ein- oder Auszug im Abrechnungsjahr werden die Betriebskosten nach Kalendertagen anteilig berechnet. Bei den Heizkosten erfolgt die Aufteilung bei Nutzerwechsel nach § 9b HeizKV: Grundkosten nach Kalendertagen, Verbrauchskosten nach dem erfassten Verbrauch bzw. – ohne Zwischenablesung – nach Gradtagszahlen.',
-    )
-    expect(serialized).toContain(
-      'Leerstandszeiten entfallende Kosten trägt der Vermieter',
-    )
+    // N14: Ganzjahresnutzung ohne Erläuterung zu Teilzeiträumen und § 9b
+    expect(serialized).not.toContain('Bei Ein- oder Auszug im Abrechnungsjahr')
+    expect(serialized).not.toContain('§ 9b Abs. 3 HeizKV')
   })
 
   it('enthält die Verbrauchsinformation nach § 6a HeizKV', () => {
@@ -362,7 +363,7 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     )
     expect(serialized).toContain('Eingesetzte Energieträger Ihres Heizkreises')
     expect(serialized).toContain(
-      'Heizoel 100 % (Anteil am Energieeinsatz in kWh)',
+      'Heizöl 100 % (Anteil am Energieeinsatz in kWh)',
     )
     // Der Heizkreis-Mittelwert ist kein normierter Durchschnittsnutzer und
     // wird nicht als solcher Vergleich ausgegeben.
@@ -378,12 +379,103 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
       'Ein grafischer, witterungsbereinigter Vergleich mit dem vorhergehenden Abrechnungszeitraum ist nicht möglich, weil für diesen Zeitraum keine Verbrauchsdaten vorliegen (Eigentümer- bzw. Abrechnungswechsel).',
     )
     expect(serialized).toContain(
-      'gesetzlichen Steuern und Abgaben (Umsatzsteuer, Energiesteuer, ggf. CO2-Kosten nach BEHG)',
+      'gesetzlichen Steuern und Abgaben (Umsatzsteuer, Energie- bzw. Stromsteuer) sowie CO2-Kosten nach BEHG von 293,04 € (Gebäude gesamt) enthalten.',
+    )
+    expect(serialized).toContain('Universalschlichtungsstelle des Bundes')
+    expect(serialized).not.toContain('Allgemeine Verbraucherschlichtungsstelle')
+    expect(serialized).toContain('nimmt daran nicht teil.')
+  })
+
+  it('zeigt § 6a Abs. 3 Nr. 2 und 3 auch bei reiner Flächenverteilung nach § 9a Abs. 2', () => {
+    const original = buildFixtureTenantStatementContext(
+      buildFixtureAppData('case-12-co2-split'),
+    )
+    const context = {
+      ...original,
+      occupancyPeriod: {
+        ...original.occupancyPeriod,
+        consumptionUnitsEstimated: true,
+        consumptionUnitsEstimateReason: 'Keine verwertbare Verbrauchserfassung',
+      },
+    }
+    const calculation = {
+      ...context.calculation,
+      heating: {
+        ...context.calculation.heating,
+        trace: {
+          ...context.calculation.heating.trace,
+          circuits: context.calculation.heating.trace.circuits.map(
+            (circuit) => ({
+              ...circuit,
+              split: {
+                ...circuit.split,
+                areaOnlySection9a: true,
+                baseSharePercent: 100,
+                consumptionSharePercent: 0,
+                consumptionCents: 0,
+                estimatedAreaSharePercent: 30,
+              },
+            }),
+          ),
+        },
+      },
+    }
+    const serialized = text(buildTenantStatement({ ...context, calculation }))
+
+    expect(serialized).toContain(
+      'Abrechnungs- und Verbrauchsinformationen (§ 6a HeizKV)',
     )
     expect(serialized).toContain(
-      'Allgemeine Verbraucherschlichtungsstelle des Zentrums für Schlichtung e. V., Straßburger Straße 8, 77694 Kehl (www.verbraucher-schlichter.de)',
+      'Verbrauchskosten entfallen (§ 9a Abs. 2 HeizKV)',
     )
-    expect(serialized).toContain('nimmt daran nicht teil.')
+    expect(serialized).toContain('Informationen zu Energieeffizienzmaßnahmen')
+    expect(serialized).toContain('Universalschlichtungsstelle des Bundes')
+  })
+
+  it('verwendet für Wärmemengenzähler durchgehend kWh als Verbrauchseinheit', () => {
+    const original = buildFixtureTenantStatementContext(
+      buildFixtureAppData('case-06-heating-oil-fifo'),
+    )
+    const circuit = original.calculation.heating.trace.circuits[0]!
+    const tenant = original.calculation.tenants.find(
+      ({ id }) => id === original.occupancyPeriod.id,
+    )!
+    const context = {
+      ...original,
+      calculation: {
+        ...original.calculation,
+        meteringTrace: {
+          year: original.billingPeriod.year,
+          billingPeriodId: original.billingPeriod.id,
+          totalKwh: '400',
+          circuits: [
+            {
+              heatingCircuitId: circuit.heatingCircuitId ?? 'circuit',
+              buildingId: circuit.buildingId,
+              totalKwh: '400',
+              occupancies: [],
+            },
+          ],
+        },
+        tenants: original.calculation.tenants.map((item) =>
+          item.id === tenant.id
+            ? {
+                ...item,
+                ownBasis: {
+                  ...item.ownBasis!,
+                  consumption: 400,
+                  consumptionUnit: 'Einheiten' as const,
+                },
+              }
+            : item,
+        ),
+      },
+    }
+    const serialized = text(buildTenantStatement(context))
+
+    expect(serialized).toContain('€ je kWh × 400,00 kWh')
+    expect(serialized).toContain('"400,00 kWh"')
+    expect(serialized).not.toContain('400,00 Einheiten')
   })
 
   it('verzichtet ohne Heizkreis auf Heiz-, CO2- und Verbrauchsangaben', () => {
@@ -467,7 +559,7 @@ describe('Gesamtabrechnung – interne Fassung und Fassung für Mieter', () => {
     )
       .map((item) => item.table as { body: unknown[][] } | undefined)
       .find((table) =>
-        JSON.stringify(table ?? {}).includes('= auf Mieter verteilt'),
+        JSON.stringify(table ?? {}).includes('= auf die Mieter verteilt'),
       )!
     const amounts = reconciliation.body.map((row) => {
       const cell = row[1] as { text: string }
@@ -482,7 +574,7 @@ describe('Gesamtabrechnung – interne Fassung und Fassung für Mieter', () => {
     expect(lines.reduce((sum, cents) => sum + cents, 0)).toBe(printedSum)
     expect(printedSum).toBe(tenantTotal)
     expect(JSON.stringify(reconciliation)).toContain(
-      'Leerstandsanteil (trägt der Vermieter)',
+      'Leerstandsanteil (trägt der Vermieter, Aufstellung unten)',
     )
     expect(JSON.stringify(reconciliation)).toContain(
       'CO2-Kosten Vermieteranteil',
@@ -585,7 +677,7 @@ describe('Gesamtabrechnung – interne Fassung und Fassung für Mieter', () => {
       }),
     )
     expect(serialized).toContain('Bezeichnung')
-    expect(serialized).toContain('= auf Mieter verteilt')
+    expect(serialized).toContain('= auf die Mieter verteilt')
   })
 })
 

@@ -43,17 +43,52 @@ describe('Regelverzeichnis', () => {
     expect(codes('2027-01-01', '2027-12-31')).toContain('remote-reading')
   })
 
-  it('warnt vor Kabel-TV-Kosten nach dem 30.06.2024', () => {
+  it('sperrt Kabel-TV-Kosten in Zeiträumen nach dem 30.06.2024', () => {
     const data = periodData(2025)
     data.billingData.costCategories[0]!.betrkvCategory = '§2 Nr. 15'
     const [issue] = issuesWithPrefix(data)
     expect(issue).toMatchObject({
-      severity: 'warning',
+      severity: 'error',
       code: 'rules.cable_tv_signal',
       area: 'costs',
       entity: { type: 'CostCategory', id: 'category-1' },
     })
     expect(issue!.detail).toContain('§ 2 Nr. 15 BetrKV')
+    expect(issue!.detail).toContain('vollständig nach dem 30.06.2024')
+    expect(validateBillingPeriod(data, 'period-1').canBecomeReady).toBe(false)
+  })
+
+  it('akzeptiert nach dem Stichtag nur einen Umlagegrad von 0 %', () => {
+    const data = periodData(2025)
+    data.billingData.costCategories[0]!.betrkvCategory = '§ 2 Nr. 15 b'
+    data.billingData.costEntries[0]!.allocablePercent = 0
+    expect(issuesWithPrefix(data)).toEqual([])
+  })
+
+  it('verlangt bei Zeiträumen über den Stichtag eine zeitanteilige Abgrenzung', () => {
+    const data = periodData(2024)
+    data.billingData.costCategories[0]!.betrkvCategory = '§2 Nr. 15'
+    const [issue] = issuesWithPrefix(data)
+    expect(issue).toMatchObject({
+      severity: 'error',
+      code: 'rules.cable_tv_signal',
+    })
+    // 01.01.–30.06.2024 = 182 von 366 Tagen.
+    expect(issue!.detail).toContain('182 von 366 Tagen')
+    expect(issue!.detail).toContain('zeitanteilige Abgrenzung')
+
+    data.billingData.costEntries[0]!.allocablePercent = 49.73
+    expect(issuesWithPrefix(data)).toEqual([])
+    data.billingData.costEntries[0]!.allocablePercent = 60
+    expect(issuesWithPrefix(data)).toHaveLength(1)
+  })
+
+  it('nutzt ohne Belege den Umlagegrad der Kostenart', () => {
+    const data = periodData(2024)
+    data.billingData.costCategories[0]!.betrkvCategory = '§2 Nr. 15'
+    data.billingData.costEntries = []
+    data.billingData.costCategories[0]!.allocablePercent = 40
+    expect(issuesWithPrefix(data)).toEqual([])
   })
 
   it('lässt Kabel-TV vor dem Stichtag und nicht umlagefähig verbuchte Kosten in Ruhe', () => {

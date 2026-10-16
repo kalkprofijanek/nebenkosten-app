@@ -195,6 +195,71 @@ describe('updateBillingPeriod', () => {
   })
 })
 
+describe('Klimafaktor am Abrechnungsjahr', () => {
+  const climateFactor = {
+    postalCode: '01234',
+    factor: 1.08,
+    periodStart: '2028-01-01',
+    periodEnd: '2028-12-31',
+    source: 'Deutscher Wetterdienst, Klimafaktoren (Referenz Potsdam)',
+  }
+  const baseInput = {
+    year: 2028,
+    periodStart: '2028-01-01',
+    periodEnd: '2028-12-31',
+  }
+  function periodFile() {
+    return createBillingPeriod(
+      fileWithProperty(),
+      { propertyId: PROPERTY_ID, year: 2028 },
+      { createId: () => PERIOD_ID },
+    )
+  }
+
+  it('setzt, behält, ändert und entfernt den Klimafaktor', () => {
+    const set = updateBillingPeriod(periodFile(), PERIOD_ID, {
+      ...baseInput,
+      climateFactor,
+    })
+    expect(set.billingData.billingPeriods[0]?.climateFactor).toEqual(
+      climateFactor,
+    )
+    const kept = updateBillingPeriod(set, PERIOD_ID, baseInput)
+    expect(kept.billingData.billingPeriods[0]?.climateFactor).toEqual(
+      climateFactor,
+    )
+    const changed = updateBillingPeriod(kept, PERIOD_ID, {
+      ...baseInput,
+      climateFactor: { ...climateFactor, factor: 0.95 },
+    })
+    expect(changed.billingData.billingPeriods[0]?.climateFactor?.factor).toBe(
+      0.95,
+    )
+    const removed = updateBillingPeriod(changed, PERIOD_ID, {
+      ...baseInput,
+      climateFactor: null,
+    })
+    expect(removed.billingData.billingPeriods[0]).not.toHaveProperty(
+      'climateFactor',
+    )
+    expect(appDataFileSchema.safeParse(removed).success).toBe(true)
+  })
+
+  it.each([
+    { postalCode: '1234' },
+    { factor: 0 },
+    { periodEnd: '2027-12-31' },
+    { source: ' ' },
+  ])('weist einen ungültigen Klimafaktor ab (%o)', (change) => {
+    expect(() =>
+      updateBillingPeriod(periodFile(), PERIOD_ID, {
+        ...baseInput,
+        climateFactor: { ...climateFactor, ...change },
+      }),
+    ).toThrowError('Klimafaktor ist ungültig')
+  })
+})
+
 describe('deleteBillingPeriod', () => {
   it('löscht einen noch ungenutzten Zeitraum', () => {
     const source = createBillingPeriod(

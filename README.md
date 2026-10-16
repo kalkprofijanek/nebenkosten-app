@@ -127,17 +127,12 @@ Geplant bzw. sinnvoll (Beiträge willkommen):
   [docs/TODO-HEIZKV-6A.md](docs/TODO-HEIZKV-6A.md).
 
 - **Fernablesung / Messdienst-Import**: Ablesedaten funkauslesbarer Zähler
-  direkt übernehmen; Fernablesbarkeit ist ab 2027 Pflicht, dazu die
-  monatliche Verbrauchsinformation nach § 6a HeizKV.
-- **Zählertausch im Datenmodell**: mehrere Zähler je Nutzung mit Aus- und
-  Einbaustand statt Schätzung.
-- **Vorjahreswerte in der Oberfläche** pflegen (bisher über den Import bzw.
-  den KI-Ablauf; Zählerstände sind unter „Verbrauch“ bereits pflegbar).
-- **Gradtag-Aufteilung bei Nutzerwechsel** in der App selbst berechnen.
-- **Witterungsbereinigung** des Vorjahresvergleichs (Gradtagszahlen des
-  Standorts) und Vergleich mit einem normierten Durchschnittsnutzer.
-- Einheit **kWh** statt „Einheiten“ für Wärmemengenzähler durchgängig.
-- **Erfassungsliste der KI direkt importieren** (CSV → Kostenpositionen).
+  direkt übernehmen. Sind fernablesbare Geräte eingebaut, ist die monatliche
+  Verbrauchsinformation nach § 6a HeizKV bereits seit 2022 zu erteilen; nicht
+  fernablesbare Geräte sind bis 31.12.2026 nachzurüsten (Konzept:
+  [docs/KONZEPT-MONATLICHE-VERBRAUCHSINFORMATION.md](docs/KONZEPT-MONATLICHE-VERBRAUCHSINFORMATION.md)).
+- **Fernwärme**: Treibhausgasemissionen und Primärenergiefaktor des Netzes
+  (§ 6a Abs. 3 Nr. 1a HeizKV).
 - **Versand mit Nachweis** (Serien-E-Mail, Zustelldatum je Mietpartei) und
   Mehrbenutzer-/Mandantenbetrieb.
 

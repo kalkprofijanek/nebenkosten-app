@@ -1,6 +1,8 @@
 import {
   calculateOccupancyDays,
+  meterReadingTotal,
   SECTION_9A_ESTIMATED_AREA_LIMIT,
+  tenantChanges,
 } from '@nebenkosten/core'
 import type {
   AppDataFile,
@@ -14,6 +16,10 @@ import {
   type ConsumptionEstimateResult,
 } from '../occupancies/estimate-consumption'
 import { tenantDisplayName } from '../prepayments/overview'
+import {
+  occupancyReadingUsesKwh,
+  occupancyUsesMeteredKwh,
+} from './capture-mode'
 
 /**
  * `measured`: Wert > 0 aus Ablesung/Messdienst; `estimated`: als geschätzt
@@ -34,6 +40,8 @@ export interface ConsumptionRow {
   /** Fläche wie im Rechenkern (beheizt, sonst Wohnfläche) für § 9a Abs. 2. */
   readonly allocationAreaSqm: number
   readonly reading: HeatMeterReading | undefined
+  /** True only when the entered meter number identifies a unit-heat meter. */
+  readonly readingUsesKwh: boolean
   readonly units: number | null
   readonly estimated: boolean
   readonly estimateReason: string | null
@@ -50,6 +58,12 @@ export interface ConsumptionRow {
   /** Heizkreis rechnet mit Wohnungswärmezählern (kWh); Werte hier unwirksam. */
   readonly meteredCircuit: boolean
   readonly estimate: ConsumptionEstimateResult
+  /**
+   * Nutzerwechsel dieser Nutzung ohne erfasste Zwischenablesung
+   * (`tenantChanges(...).hasInterimReading === false`, § 9b Abs. 1 HeizKV);
+   * erster Tag der neuen Nutzung, nur wenn das Jahr einen Heizkreis hat.
+   */
+  readonly missingInterimReadings: readonly string[]
 }
 
 export interface BuildingEstimateShare {
@@ -71,10 +85,6 @@ export const ESTIMATED_SHARE_LIMIT = SECTION_9A_ESTIMATED_AREA_LIMIT
 
 const collator = new Intl.Collator('de-DE', { numeric: true })
 
-function round3(value: number) {
-  return Math.round(value * 1000) / 1000
-}
-
 function statusOf(units: number | null, estimated: boolean): ConsumptionStatus {
   if (units === null) return 'missing'
   if (estimated) return 'estimated'
@@ -88,6 +98,35 @@ export function needsEstimate(row: ConsumptionRow): boolean {
   )
 }
 
+/** Zeile für den Filter „Nur offene und abweichende Zeilen“. */
+export function isOpenOrDeviating(row: ConsumptionRow): boolean {
+  return (
+    needsEstimate(row) ||
+    row.readingMismatch ||
+    row.missingInterimReadings.length > 0
+  )
+}
+
+/** Wechseltage ohne Zwischenablesung je Nutzung (ADR-0009). */
+function missingInterimReadingsByOccupancy(
+  data: AppDataFile,
+  period: BillingPeriod,
+): Map<string, string[]> {
+  const result = new Map<string, string[]>()
+  if (
+    !data.billingData.heatingCircuits.some(
+      ({ billingPeriodId }) => billingPeriodId === period.id,
+    )
+  )
+    return result
+  for (const change of tenantChanges(data, period)) {
+    if (change.hasInterimReading) continue
+    for (const id of [change.previousOccupancyId, change.nextOccupancyId])
+      result.set(id, [...(result.get(id) ?? []), change.date])
+  }
+  return result
+}
+
 export function buildConsumptionOverview(
   data: AppDataFile,
   billingPeriodId: string,
@@ -96,15 +135,6 @@ export function buildConsumptionOverview(
     ({ id }) => id === billingPeriodId,
   )
   if (!period) return null
-  const meteredBuildings = new Set(
-    data.billingData.heatingCircuits
-      .filter(
-        (circuit) =>
-          circuit.billingPeriodId === period.id &&
-          circuit.consumptionMode === 'metered_kwh',
-      )
-      .map(({ buildingId }) => buildingId),
-  )
   const days = (from?: string | null, to?: string | null) => {
     try {
       return calculateOccupancyDays(
@@ -117,6 +147,7 @@ export function buildConsumptionOverview(
       return 0
     }
   }
+  const interim = missingInterimReadingsByOccupancy(data, period)
   const rows = data.billingData.occupancyPeriods
     .filter(
       (occupancy) =>
@@ -126,15 +157,15 @@ export function buildConsumptionOverview(
       const unit = data.masterData.units.find(
         ({ id }) => id === occupancy.unitId,
       )
-      const buildingId = unit?.buildingId ?? null
+      const buildingId =
+        occupancy.costScope?.kind === 'building'
+          ? occupancy.costScope.buildingId
+          : (unit?.buildingId ?? null)
       const reading = occupancy.heatMeterReading ?? undefined
       const units = occupancy.consumptionUnits?.value ?? null
       const estimated = occupancy.consumptionUnitsEstimated === true
-      const readingDifference =
-        typeof reading?.startValue === 'number' &&
-        typeof reading.endValue === 'number'
-          ? round3(reading.endValue - reading.startValue)
-          : null
+      // Einschließlich Zählertausch (ADR-0008).
+      const readingDifference = meterReadingTotal(reading)
       return {
         occupancy,
         unitLabel: unit?.label || unit?.location || occupancy.unitId,
@@ -155,6 +186,7 @@ export function buildConsumptionOverview(
         estimateReason: occupancy.consumptionUnitsEstimateReason ?? null,
         coldWater: occupancy.coldWater?.value ?? null,
         warmWater: occupancy.warmWater?.value ?? null,
+        readingUsesKwh: occupancyReadingUsesKwh(data, occupancy),
         readingDifference,
         readingMismatch:
           readingDifference !== null &&
@@ -162,8 +194,9 @@ export function buildConsumptionOverview(
           (units === null ||
             Math.abs(readingDifference - units) > METER_READING_TOLERANCE),
         status: statusOf(units, estimated),
-        meteredCircuit: buildingId !== null && meteredBuildings.has(buildingId),
+        meteredCircuit: occupancyUsesMeteredKwh(data, occupancy),
         estimate: explainConsumptionEstimate(data, occupancy.id),
+        missingInterimReadings: interim.get(occupancy.id) ?? [],
       }
     })
     .sort(

@@ -62,8 +62,9 @@ Raumwärme **und** Warmwasser.
   nicht höchstrichterlich geklärt. Verbreitete Praxis der Messdienste ist ein
   Vergleich mit Kennwerten nach Gebäudekategorie; der Heizspiegel ist als
   Quelle nachvollziehbar und öffentlich.
-- **Hochrechnung bei Teilzeitraum:** linear über die Tage. Eine Gewichtung
-  nach Gradtagszahlen folgt mit dem DWD-Import (Bauliste Nr. 2).
+- **Hochrechnung bei Teilzeitraum:** Mit Nutzungszeitraum wird die
+  Heizwärme nach Gradtagszahlen (VDI 2067), das Warmwasser nach Tagen
+  hochgerechnet; ohne Nutzungszeitraum linear (ADR-0007, 10. Oktober 2026).
 - **Dezentrales Warmwasser:** Heizspiegel-Werte enthalten Warmwasser. Ohne
   zentrale Bereitung ist der Vergleich nur mit Werten ohne Warmwasser
   möglich (`includesHotWater: false`); woher diese stammen, ist offen.
@@ -88,3 +89,11 @@ Raumwärme **und** Warmwasser.
   nicht mehr geöffnet werden (strikte Schemaprüfung). Das betrifft nur
   Nutzer, die zu einer älteren Version zurückkehren.
 - Legacy-v3 kennt keine Vergleichswerte; der Import setzt das Feld nicht.
+
+## Umsetzung Teil B (10. Oktober 2026) – offene Annahmen
+
+- Ausgabe im § 6a-Block der Einzelabrechnung; ohne Vergleich (`unavailable`)
+  keine Zeile. Prüfung `heating.consumption_benchmark_missing` je Heizkreis
+  ohne Vergleichswerte.
+- Eingabe am Heizkreis; „aus dem Vorjahr übernehmen“ übernimmt das
+  Bezugsjahr unverändert (Hinweis `…_year_mismatch` bleibt).

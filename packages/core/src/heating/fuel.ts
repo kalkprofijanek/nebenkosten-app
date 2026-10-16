@@ -1,5 +1,9 @@
 import type { EnergySource, FuelDelivery, FuelStock } from '@nebenkosten/schema'
-import type { EnergySourceCalculationTrace, FuelLotTrace } from '../contracts'
+import type {
+  EnergySourceCalculationTrace,
+  FuelLotCo2Trace,
+  FuelLotTrace,
+} from '../contracts'
 import { roundCentsHalfAwayFromZero } from '../rounding'
 
 export interface EnergySourceFuelCalculation {
@@ -7,6 +11,18 @@ export interface EnergySourceFuelCalculation {
   readonly fullCostCentsRaw: number
   readonly energyKwhRaw: number
   readonly co2KgRaw: number
+  /**
+   * CO₂-Kosten in Cent (ungerundet) als Summe je verbrauchtem FIFO-Los
+   * (ADR-0010, A12). `null`, wenn kein Anfangsbestand einen eigenen CO₂-Preis
+   * trägt oder kein Jahrespreis übergeben wurde – dann rechnet der Aufrufer
+   * wie bisher mit Gesamtemissionen × Jahrespreis.
+   */
+  readonly co2CostCentsRaw: number | null
+}
+
+export interface EnergySourceFuelOptions {
+  /** CO₂-Preis des Abrechnungsjahres in Cent je Tonne (Heizkreis, Modus auto). */
+  readonly co2PricePerTonCents?: number | null
 }
 
 interface FuelLot {
@@ -16,6 +32,8 @@ interface FuelLot {
   readonly quantity: number
   readonly valueCents: number
   readonly unit: string | null
+  /** Eigener CO₂-Preis des Loses (nur Anfangsbestand mit Lieferjahrespreis). */
+  readonly co2PricePerTonCents: number | null
 }
 
 function compareStrings(left: string, right: string): number {
@@ -100,11 +118,76 @@ function valueRemainingStock(
   return remainingValueCents
 }
 
+/** Verbrauchte Menge je Los: FIFO, der Restbestand stammt aus den jüngsten Losen. */
+function consumedQuantities(
+  lots: readonly FuelLot[],
+  requestedRemainingQuantity: number,
+): number[] {
+  let remainingToAssign = Math.min(
+    requestedRemainingQuantity,
+    sumQuantity(lots),
+  )
+  const consumed = lots.map(({ quantity }) => quantity)
+  for (let index = lots.length - 1; index >= 0; index -= 1) {
+    if (remainingToAssign <= 0) break
+    const lot = lots[index]!
+    if (lot.quantity <= 0) continue
+    const remainingFromLot = Math.min(remainingToAssign, lot.quantity)
+    consumed[index] = lot.quantity - remainingFromLot
+    remainingToAssign -= remainingFromLot
+  }
+  return consumed
+}
+
+interface LotCo2Result {
+  readonly costCentsRaw: number
+  readonly trace: FuelLotCo2Trace[]
+}
+
+/**
+ * CO₂-Kosten je verbrauchtem Los (ADR-0010, A12): Anfangsbestand mit dem
+ * Preis seines Lieferjahres, alle übrigen Lose mit dem Jahrespreis.
+ * Lieferungen tragen im Schema keinen eigenen CO₂-Preis; sie stammen aus dem
+ * Abrechnungsjahr (§ 10 BEHG: maßgeblich ist das Jahr des Inverkehrbringens).
+ */
+function lotCo2Costs(
+  lots: readonly FuelLot[],
+  consumed: readonly number[],
+  calorificValueKwhPerUnit: number,
+  co2FactorKgPerKwh: number,
+  yearPricePerTonCents: number,
+): LotCo2Result {
+  let costCentsRaw = 0
+  const trace: FuelLotCo2Trace[] = []
+  lots.forEach((lot, index) => {
+    const consumedQuantity = consumed[index] ?? 0
+    if (consumedQuantity <= 0) return
+    const energyKwh = consumedQuantity * calorificValueKwhPerUnit
+    const co2Kg = energyKwh * co2FactorKgPerKwh
+    const ownPrice = lot.co2PricePerTonCents
+    const pricePerTonCents = ownPrice ?? yearPricePerTonCents
+    const lotCostCentsRaw = (co2Kg / 1_000) * pricePerTonCents
+    costCentsRaw += lotCostCentsRaw
+    trace.push({
+      kind: lot.kind,
+      sourceId: lot.sourceId,
+      consumedQuantity: roundQuantity(consumedQuantity),
+      energyKwh: roundQuantity(energyKwh),
+      co2Kg: roundQuantity(co2Kg),
+      pricePerTonCents,
+      priceSource: ownPrice == null ? 'billing_year' : 'opening_stock',
+      costCents: roundCentsHalfAwayFromZero(lotCostCentsRaw),
+    })
+  })
+  return { costCentsRaw, trace }
+}
+
 export function calculateEnergySourceFuel(
   source: Readonly<EnergySource>,
   fuelStocks: readonly Readonly<FuelStock>[],
   fuelDeliveries: readonly Readonly<FuelDelivery>[],
   fallbackCo2Factor = 0,
+  options: EnergySourceFuelOptions = {},
 ): EnergySourceFuelCalculation {
   const stocks = fuelStocks
     .filter(({ energySourceId }) => energySourceId === source.id)
@@ -126,6 +209,7 @@ export function calculateEnergySourceFuel(
       quantity: nonNegative(stock.openingQuantity?.value),
       valueCents: openingValueCents(stock),
       unit: stock.openingQuantity?.unit ?? null,
+      co2PricePerTonCents: stock.openingCo2PricePerTonCents ?? null,
     }))
   const deliveryLots: FuelLot[] = deliveries.map((delivery) => ({
     kind: 'delivery',
@@ -134,6 +218,7 @@ export function calculateEnergySourceFuel(
     quantity: nonNegative(delivery.quantity?.value),
     valueCents: delivery.amountCents ?? 0,
     unit: delivery.quantity?.unit ?? null,
+    co2PricePerTonCents: null,
   }))
   const lots = [...openingLots, ...deliveryLots]
   const remainingUnits = stocks.flatMap(({ remainingQuantity }) =>
@@ -172,11 +257,27 @@ export function calculateEnergySourceFuel(
   )
   const energyKwhRaw = consumedQuantityRaw * calorificValueKwhPerUnit
   const co2KgRaw = energyKwhRaw * co2FactorKgPerKwh
+  // Ohne eigenen Preis eines Loses bleibt es beim bisherigen Verfahren
+  // (Bestandsschutz, ADR-0010 Nr. 6): kein Los-Ausweis, Aufrufer rechnet.
+  const yearPrice = options.co2PricePerTonCents
+  const lotPricing =
+    usesFifo &&
+    yearPrice != null &&
+    lots.some(({ co2PricePerTonCents }) => co2PricePerTonCents != null)
+      ? lotCo2Costs(
+          lots,
+          consumedQuantities(lots, requestedRemainingQuantityRaw),
+          calorificValueKwhPerUnit,
+          co2FactorKgPerKwh,
+          yearPrice,
+        )
+      : null
 
   return {
     fullCostCentsRaw,
     energyKwhRaw,
     co2KgRaw,
+    co2CostCentsRaw: lotPricing?.costCentsRaw ?? null,
     trace: {
       energySourceId: source.id,
       quantityUnit,
@@ -194,6 +295,12 @@ export function calculateEnergySourceFuel(
       energyKwh: roundQuantity(energyKwhRaw),
       co2FactorKgPerKwh,
       co2Kg: roundQuantity(co2KgRaw),
+      ...(lotPricing
+        ? {
+            co2Lots: lotPricing.trace,
+            co2CostCents: roundCentsHalfAwayFromZero(lotPricing.costCentsRaw),
+          }
+        : {}),
     },
   }
 }

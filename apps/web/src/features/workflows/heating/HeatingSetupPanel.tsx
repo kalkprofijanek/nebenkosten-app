@@ -11,6 +11,19 @@ import {
   updateHeatingCircuit,
   updateHeatingSystem,
 } from '../../heating/heating-commands'
+import {
+  readConsumptionBenchmarkForm,
+  type ConsumptionBenchmarkErrors,
+} from '../../heating/consumption-benchmark-form'
+import { ConsumptionBenchmarkFields } from './ConsumptionBenchmarkFields'
+import {
+  SEASONAL_PERFORMANCE_FACTOR_FIELD_NAMES,
+  isElectricityOrHeatPump,
+  readHotWaterForm,
+  type HotWaterErrors,
+} from '../../heating/hot-water-form'
+import { HotWaterFields } from '../../heating/HotWaterFields'
+import { SeasonalPerformanceFactorFields } from '../../heating/SeasonalPerformanceFactorFields'
 import { WorkflowField } from '../form-support'
 import { formOptionalText, formText } from '../form-values'
 import type { WorkflowSubRouteProps } from '../route-types'
@@ -20,12 +33,33 @@ function optionalNumber(form: FormData, name: string) {
   return parseOptionalNumber(formText(form, name)) ?? null
 }
 
+/** Jahresarbeitszahl mit Schätzkennzeichen und Grundlage (ADR-0010). */
+function seasonalPerformanceFactorInput(form: FormData) {
+  const names = SEASONAL_PERFORMANCE_FACTOR_FIELD_NAMES
+  return {
+    seasonalPerformanceFactor: optionalNumber(form, names.value),
+    seasonalPerformanceFactorEstimated: form.has(names.estimated) ? true : null,
+    seasonalPerformanceFactorReason:
+      formOptionalText(form, names.reason) ?? null,
+  }
+}
+
 export function HeatingSetupPanel({
   data,
   selection,
   apply,
 }: WorkflowSubRouteProps & { readonly apply: WorkflowApply }) {
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [createFormKey, setCreateFormKey] = useState(0)
+  const [createBenchmarkErrors, setCreateBenchmarkErrors] =
+    useState<ConsumptionBenchmarkErrors>({})
+  const [editBenchmarkErrors, setEditBenchmarkErrors] =
+    useState<ConsumptionBenchmarkErrors>({})
+  const [createHotWaterErrors, setCreateHotWaterErrors] =
+    useState<HotWaterErrors>({})
+  const [editHotWaterErrors, setEditHotWaterErrors] = useState<HotWaterErrors>(
+    {},
+  )
   const period = data.billingData.billingPeriods.find(
     ({ id }) => id === selection.billingPeriodId,
   )!
@@ -38,10 +72,37 @@ export function HeatingSetupPanel({
   const circuits = data.billingData.heatingCircuits.filter(
     ({ billingPeriodId }) => billingPeriodId === period.id,
   )
+  const previousPeriod = data.billingData.billingPeriods.find(
+    ({ propertyId, year }) =>
+      propertyId === period.propertyId && year === period.year - 1,
+  )
+
+  /** Vergleichswerte des Vorjahres-Heizkreises desselben Gebäudes. */
+  function previousBenchmark(buildingId: string) {
+    if (!previousPeriod) return null
+    return (
+      data.billingData.heatingCircuits.find(
+        (candidate) =>
+          candidate.billingPeriodId === previousPeriod.id &&
+          candidate.buildingId === buildingId,
+      )?.consumptionBenchmark ?? null
+    )
+  }
+
+  function toggleEditing(circuitId: string) {
+    setEditBenchmarkErrors({})
+    setEditHotWaterErrors({})
+    setEditingId(editingId === circuitId ? null : circuitId)
+  }
 
   function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
+    const benchmark = readConsumptionBenchmarkForm(form)
+    setCreateBenchmarkErrors(benchmark.ok ? {} : benchmark.errors)
+    const hotWater = readHotWaterForm(form, form.has('hasCentralHotWater'))
+    setCreateHotWaterErrors(hotWater.ok ? {} : hotWater.errors)
+    if (!benchmark.ok || !hotWater.ok) return
     if (
       apply((current) => {
         const dependencies = { createId: () => crypto.randomUUID() }
@@ -65,6 +126,10 @@ export function HeatingSetupPanel({
             hotWaterSharePercent: hasCentralHotWater
               ? optionalNumber(form, 'hotWaterSharePercent')
               : null,
+            consumptionBenchmark: benchmark.value ?? undefined,
+            hotWaterEnergy: hotWater.hotWaterEnergy,
+            hotWaterAllocation: hotWater.hotWaterAllocation,
+            generatedHeatKwh: hotWater.generatedHeatKwh,
           },
           dependencies,
         )
@@ -81,12 +146,15 @@ export function HeatingSetupPanel({
               'calorificValueKwhPerUnit',
             ),
             co2FactorKgPerKwh: optionalNumber(form, 'co2FactorKgPerKwh'),
+            ...seasonalPerformanceFactorInput(form),
           },
           dependencies,
         )
       })
-    )
+    ) {
       event.currentTarget.reset()
+      setCreateFormKey((key) => key + 1)
+    }
   }
 
   function save(
@@ -99,6 +167,11 @@ export function HeatingSetupPanel({
     const circuit = circuits.find(({ id }) => id === circuitId)!
     const system = systems.find(({ id }) => id === circuit.heatingSystemId)!
     const hasCentralHotWater = form.has('hasCentralHotWater')
+    const benchmark = readConsumptionBenchmarkForm(form)
+    setEditBenchmarkErrors(benchmark.ok ? {} : benchmark.errors)
+    const hotWater = readHotWaterForm(form, hasCentralHotWater)
+    setEditHotWaterErrors(hotWater.ok ? {} : hotWater.errors)
+    if (!benchmark.ok || !hotWater.ok) return
     if (
       apply((current) => {
         let next = updateHeatingSystem(current, system.id, {
@@ -124,6 +197,10 @@ export function HeatingSetupPanel({
               'operatingElectricitySharePercent',
             ),
           },
+          consumptionBenchmark: benchmark.value,
+          hotWaterEnergy: hotWater.hotWaterEnergy,
+          hotWaterAllocation: hotWater.hotWaterAllocation,
+          generatedHeatKwh: hotWater.generatedHeatKwh,
         })
         return updateEnergySource(next, sourceId, {
           heatingCircuitId: circuit.id,
@@ -135,6 +212,7 @@ export function HeatingSetupPanel({
             'calorificValueKwhPerUnit',
           ),
           co2FactorKgPerKwh: optionalNumber(form, 'co2FactorKgPerKwh'),
+          ...seasonalPerformanceFactorInput(form),
         })
       })
     )
@@ -168,6 +246,7 @@ export function HeatingSetupPanel({
           name="calorificValueKwhPerUnit"
         />
         <WorkflowField label="CO₂-Faktor kg je kWh" name="co2FactorKgPerKwh" />
+        <SeasonalPerformanceFactorFields key={`spf-${createFormKey}`} />
         <label className="checkbox-field">
           <input type="checkbox" name="hasCentralHotWater" />
           <span>Zentrale Warmwasserbereitung</span>
@@ -175,6 +254,14 @@ export function HeatingSetupPanel({
         <WorkflowField
           label="Warmwasseranteil in Prozent"
           name="hotWaterSharePercent"
+        />
+        <HotWaterFields
+          key={`hot-water-${createFormKey}`}
+          errors={createHotWaterErrors}
+        />
+        <ConsumptionBenchmarkFields
+          key={createFormKey}
+          errors={createBenchmarkErrors}
         />
         <button type="submit">Heizkreis anlegen</button>
       </form>
@@ -213,11 +300,7 @@ export function HeatingSetupPanel({
                     <button
                       type="button"
                       aria-label={`${title} bearbeiten`}
-                      onClick={() =>
-                        setEditingId(
-                          editingId === circuit.id ? null : circuit.id,
-                        )
-                      }
+                      onClick={() => toggleEditing(circuit.id)}
                     >
                       Bearbeiten
                     </button>
@@ -274,6 +357,16 @@ export function HeatingSetupPanel({
                       name="co2FactorKgPerKwh"
                       defaultValue={source.co2FactorKgPerKwh ?? ''}
                     />
+                    {isElectricityOrHeatPump(
+                      source.sourceType,
+                      source.name,
+                      source.key,
+                    ) ? (
+                      <SeasonalPerformanceFactorFields
+                        source={source}
+                        labelSuffix=" bearbeiten"
+                      />
+                    ) : null}
                     <label className="checkbox-field">
                       <input
                         type="checkbox"
@@ -286,6 +379,13 @@ export function HeatingSetupPanel({
                       label="Warmwasseranteil bearbeiten"
                       name="hotWaterSharePercent"
                       defaultValue={circuit.hotWaterSharePercent ?? ''}
+                    />
+                    <HotWaterFields
+                      energy={circuit.hotWaterEnergy}
+                      allocation={circuit.hotWaterAllocation}
+                      energySourceType={source.sourceType}
+                      generatedHeatKwh={circuit.generatedHeatKwh}
+                      errors={editHotWaterErrors}
                     />
                     <WorkflowField
                       label="Verbrauchskostenanteil"
@@ -306,6 +406,11 @@ export function HeatingSetupPanel({
                         circuit.overrides?.operatingElectricitySharePercent ??
                         ''
                       }
+                    />
+                    <ConsumptionBenchmarkFields
+                      initial={circuit.consumptionBenchmark}
+                      previous={previousBenchmark(circuit.buildingId)}
+                      errors={editBenchmarkErrors}
                     />
                     <button type="submit">Heizkreis speichern</button>
                   </form>

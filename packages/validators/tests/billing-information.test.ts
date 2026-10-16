@@ -72,17 +72,33 @@ const heatPumpInvoice = (patch: Partial<FuelDelivery> = {}): FuelDelivery => ({
 })
 
 describe('§ 6a HeizKV – Durchschnittsnutzer', () => {
-  it('weist auf den fehlenden normierten Vergleich hin', () => {
-    const [warning] = find(
+  it('weist je Heizkreis ohne Vergleichswerte auf den fehlenden Vergleich hin', () => {
+    const [warning, ...rest] = find(
       mixedCircuit([heatPumpInvoice()]),
       'heating.consumption_benchmark_missing',
     )
+    expect(rest).toEqual([])
     expect(warning).toMatchObject({
       severity: 'warning',
       area: 'heating',
-      entity: { type: 'BillingPeriod', id: 'period-1' },
+      entity: { type: 'HeatingCircuit', id: 'circuit-1' },
     })
     expect(warning!.detail).toContain('§ 12 Abs. 1 HeizKV')
+    expect(warning!.detail).toContain('keine Vergleichswerte')
+  })
+
+  it('meldet nichts, wenn Vergleichswerte erfasst sind', () => {
+    const data = mixedCircuit([heatPumpInvoice()])
+    data.billingData.heatingCircuits[0]!.consumptionBenchmark = {
+      source: 'Heizspiegel für Deutschland (co2online)',
+      referenceYear: 2025,
+      category: 'fiktive Kategorie',
+      includesHotWater: false,
+      lowMaxKwhPerSqmYear: 70,
+      mediumMaxKwhPerSqmYear: 130,
+      elevatedMaxKwhPerSqmYear: 200,
+    }
+    expect(find(data, 'heating.consumption_benchmark_missing')).toEqual([])
   })
 
   it('meldet nichts ohne Heizkreis', () => {

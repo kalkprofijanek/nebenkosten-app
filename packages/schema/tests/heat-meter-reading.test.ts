@@ -173,3 +173,45 @@ describe('Zählerstände je Belegung (heatMeterReading)', () => {
     ).toBe(true)
   })
 })
+
+describe('Zählertausch (heatMeterReading.replacements, ADR-0008)', () => {
+  const base = {
+    id: 'occ_1',
+    billingPeriodId: 'bp_1',
+    unitId: 'unit_1',
+    kind: 'tenant' as const,
+  }
+
+  it('ist optional und verlangt Datum und beide Stände', () => {
+    const reading = { meterNumber: 'HZ-0001', startValue: 1, endValue: 2 }
+    expect(
+      occupancyPeriodSchema.safeParse({
+        ...base,
+        heatMeterReading: {
+          ...reading,
+          replacements: [
+            {
+              date: '2025-06-15',
+              removedEndValue: 1.5,
+              installedMeterNumber: 'HZ-0002',
+              installedStartValue: 0,
+            },
+          ],
+        },
+      }).success,
+    ).toBe(true)
+    for (const replacement of [
+      { removedEndValue: 1, installedStartValue: 0 },
+      { date: '2025-06-15', installedStartValue: 0 },
+      { date: '2025-06-15', removedEndValue: 1 },
+      { date: '2025-06-15', removedEndValue: 1, installedStartValue: 0, x: 1 },
+    ])
+      expect(
+        occupancyPeriodSchema.safeParse({
+          ...base,
+          heatMeterReading: { ...reading, replacements: [replacement] },
+        }).success,
+        JSON.stringify(replacement),
+      ).toBe(false)
+  })
+})

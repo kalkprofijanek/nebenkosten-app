@@ -14,6 +14,7 @@ import {
   type HeatingSystem,
   type Quantity,
 } from '@nebenkosten/schema'
+import { isElectricityOrHeatPump } from './hot-water-form'
 
 export interface HeatingCommandDependencies {
   createId: () => string
@@ -321,12 +322,14 @@ export function addHeatingCircuit(
       'Für dieses Gebäude existiert im Abrechnungsjahr bereits ein Heizkreis.',
     )
   }
+  // Mit Wärmemenge nach § 9 Abs. 2 HeizKV ergibt sich der Warmwasseranteil
+  // aus der Wärmemenge (ADR-0010); der Pauschalanteil ist dann optional.
+  const shareRequired = input.hotWaterEnergy == null
   if (
     input.hasCentralHotWater &&
-    (input.hotWaterSharePercent === null ||
-      input.hotWaterSharePercent === undefined ||
-      input.hotWaterSharePercent < 18 ||
-      input.hotWaterSharePercent > 70)
+    (input.hotWaterSharePercent == null
+      ? shareRequired
+      : input.hotWaterSharePercent < 18 || input.hotWaterSharePercent > 70)
   ) {
     throw new HeatingCommandError(
       'invalid-value',
@@ -337,6 +340,17 @@ export function addHeatingCircuit(
     throw new HeatingCommandError(
       'invalid-value',
       'Ein Warmwasseranteil ist nur bei zentraler Warmwasserbereitung zulässig.',
+    )
+  }
+  if (
+    !input.hasCentralHotWater &&
+    (input.hotWaterEnergy != null ||
+      input.hotWaterAllocation != null ||
+      input.generatedHeatKwh != null)
+  ) {
+    throw new HeatingCommandError(
+      'invalid-value',
+      'Wärmemenge, erzeugte Wärme und Verteilung des Warmwassers sind nur bei zentraler Warmwasserbereitung zulässig.',
     )
   }
   const consumption = input.overrides?.consumptionSharePercent
@@ -351,8 +365,13 @@ export function addHeatingCircuit(
       'Verbrauchs- und Grundkostenanteil müssen zusammen 100 Prozent ergeben.',
     )
   }
+  const { hotWaterEnergy, hotWaterAllocation, generatedHeatKwh, ...rest } =
+    input
   const entity = heatingCircuitSchema.parse({
-    ...input,
+    ...rest,
+    ...(hotWaterEnergy ? { hotWaterEnergy } : {}),
+    ...(hotWaterAllocation ? { hotWaterAllocation } : {}),
+    ...(generatedHeatKwh != null ? { generatedHeatKwh } : {}),
     id: newId(file, dependencies),
   })
   return validateResult({
@@ -401,8 +420,54 @@ export function addEnergySource(
       'Der Schlüssel wird in diesem Heizkreis bereits verwendet.',
     )
   }
+  // Jahresarbeitszahl nur für Wärmepumpenstrom (ADR-0010 „Wärmepumpen“).
+  if (
+    input.seasonalPerformanceFactor != null &&
+    !isElectricityOrHeatPump(input.sourceType, input.name, input.key)
+  ) {
+    throw new HeatingCommandError(
+      'invalid-value',
+      'Eine Jahresarbeitszahl ist nur bei Energiequellen mit Strom (Wärmepumpe) zulässig.',
+    )
+  }
+  if (
+    input.seasonalPerformanceFactor != null &&
+    input.seasonalPerformanceFactorEstimated === true &&
+    !input.seasonalPerformanceFactorReason?.trim()
+  ) {
+    throw new HeatingCommandError(
+      'invalid-value',
+      'Bitte die Grundlage der geschätzten Jahresarbeitszahl angeben (z. B. Herstellerangabe oder Planungswert).',
+    )
+  }
+  assertText(
+    input.seasonalPerformanceFactorReason,
+    'Die Grundlage der Jahresarbeitszahl',
+    300,
+  )
+  // Schätzkennzeichen und Begründung nur zusammen mit einer Jahresarbeitszahl.
+  const {
+    seasonalPerformanceFactor,
+    seasonalPerformanceFactorEstimated,
+    seasonalPerformanceFactorReason,
+    ...sourceRest
+  } = input
   const entity = energySourceSchema.parse({
-    ...input,
+    ...sourceRest,
+    ...(seasonalPerformanceFactor != null
+      ? {
+          seasonalPerformanceFactor,
+          ...(seasonalPerformanceFactorEstimated
+            ? { seasonalPerformanceFactorEstimated: true }
+            : {}),
+          ...(seasonalPerformanceFactorReason?.trim()
+            ? {
+                seasonalPerformanceFactorReason:
+                  seasonalPerformanceFactorReason.trim(),
+              }
+            : {}),
+        }
+      : {}),
     id: newId(file, dependencies),
   })
   return validateResult({
@@ -614,6 +679,15 @@ export function updateHeatingSystem(
   })
 }
 
+/**
+ * Ersetzt die Eingabefelder eines Heizkreises. Zählerzuordnung,
+ * Verbrauchsmodus und Legacy-Reste bleiben erhalten. Für die Vergleichswerte
+ * (§ 6a Abs. 3 Nr. 4 HeizKV) gilt: fehlt `consumptionBenchmark` in der
+ * Eingabe (oder ist `undefined`), bleiben die gespeicherten Werte erhalten;
+ * `null` entfernt sie ausdrücklich, ein Objekt setzt sie neu. Dasselbe gilt
+ * für `hotWaterEnergy` und `hotWaterAllocation` (ADR-0010); ohne zentrale
+ * Warmwasserbereitung werden beide entfernt.
+ */
 export function updateHeatingCircuit(
   currentFile: AppDataFile,
   heatingCircuitId: string,
@@ -644,14 +718,39 @@ export function updateHeatingCircuit(
       ),
     },
   }
-  const validated = addHeatingCircuit(withoutCurrent, input, {
-    createId: () => heatingCircuitId,
-  })
+  // Warmwasser-Angaben (ADR-0010) wie die Vergleichswerte: `undefined`
+  // erhält den gespeicherten Wert, `null` entfernt ihn. Ohne zentrale
+  // Warmwasserbereitung entfallen beide.
+  const keep = <T>(
+    value: T | null | undefined,
+    stored: T | null | undefined,
+  ) =>
+    !input.hasCentralHotWater
+      ? undefined
+      : value === undefined
+        ? (stored ?? undefined)
+        : (value ?? undefined)
+  const validated = addHeatingCircuit(
+    withoutCurrent,
+    {
+      ...input,
+      hotWaterEnergy: keep(input.hotWaterEnergy, current.hotWaterEnergy),
+      hotWaterAllocation: keep(
+        input.hotWaterAllocation,
+        current.hotWaterAllocation,
+      ),
+      generatedHeatKwh: keep(input.generatedHeatKwh, current.generatedHeatKwh),
+    },
+    { createId: () => heatingCircuitId },
+  )
   const replacement = {
     ...validated.billingData.heatingCircuits.at(-1)!,
     consumptionMode: current.consumptionMode,
     meterAssignments: current.meterAssignments,
-    consumptionBenchmark: current.consumptionBenchmark,
+    consumptionBenchmark:
+      input.consumptionBenchmark === undefined
+        ? current.consumptionBenchmark
+        : (input.consumptionBenchmark ?? undefined),
     legacyUnmapped: current.legacyUnmapped,
   }
   return validateResult({
@@ -733,11 +832,30 @@ export function updateFuelDelivery(
   input: AddFuelDeliveryInput,
 ): AppDataFile {
   const file = parseFile(currentFile)
-  requireEntity(
+  const existing = requireEntity(
     file.billingData.fuelDeliveries,
     fuelDeliveryId,
     'Brennstofflieferung',
   )
+  // Felder, die das Bearbeitungsformular nicht verwaltet (Buchungsverknüpfung,
+  // externe Zahlung, Zähler, Herkunfts-Kostenart, manuelle Menge), bleiben
+  // erhalten, solange die Eingabe sie nicht setzt; `null` löscht sie
+  // ausdrücklich. Buchungsverknüpfung und externe
+  // Zahlung schließen sich aus: wird eine davon gesetzt, entfällt die andere.
+  const preserved: Partial<AddFuelDeliveryInput> = {
+    meterId: existing.meterId,
+    convertedFromCostCategoryId: existing.convertedFromCostCategoryId,
+    quantityManuallySet: existing.quantityManuallySet,
+    ...(input.externalPayment == null
+      ? { bookingLink: existing.bookingLink }
+      : {}),
+    ...(input.bookingLink == null
+      ? { externalPayment: existing.externalPayment }
+      : {}),
+  }
+  const merged: Record<string, unknown> = { ...input }
+  for (const [key, value] of Object.entries(preserved))
+    if (merged[key] === undefined && value !== undefined) merged[key] = value
   const withoutCurrent = {
     ...file,
     billingData: {
@@ -747,10 +865,15 @@ export function updateFuelDelivery(
       ),
     },
   }
-  const validated = addFuelDelivery(withoutCurrent, input, {
-    createId: () => fuelDeliveryId,
-  })
-  const replacement = validated.billingData.fuelDeliveries.at(-1)!
+  const validated = addFuelDelivery(
+    withoutCurrent,
+    merged as AddFuelDeliveryInput,
+    { createId: () => fuelDeliveryId },
+  )
+  const added = validated.billingData.fuelDeliveries.at(-1)!
+  const replacement = existing.legacyUnmapped
+    ? { ...added, legacyUnmapped: existing.legacyUnmapped }
+    : added
   return validateResult({
     ...validated,
     billingData: {

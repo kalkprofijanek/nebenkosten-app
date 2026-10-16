@@ -6,15 +6,23 @@
  * lokalen Kopie der Daten – siehe docs/KI-ANLEITUNG.md.
  *
  * Aufruf:
- *   pnpm abrechnung <nk-daten.json> [--jahr 2025] [--out <ordner>] [--json <datei>]
+ *   pnpm abrechnung <nk-daten.json> [--jahr 2025] [--out <ordner>] [--json <datei>] [--overlay <modul.mjs>]
  *
  * Ohne --out werden nur Summen, Heizkreise, Salden und Prüfhinweise
  * ausgegeben. Mit --json zusätzlich eine maschinenlesbare Zusammenfassung.
  * Die Eingabedatei wird nie verändert.
+ *
+ * --overlay: Der Legacy-v3-Import setzt die neueren Felder (z. B.
+ * `section9bAllocation`, `hotWaterEnergy`, `taxesAndLevies`) nicht. Ein
+ * Overlay-Modul außerhalb des Repositorys kann sie nach dem Import setzen:
+ * `export default function (data, { year }) { … }` verändert `data` oder gibt
+ * einen neuen Datenstand zurück. Das Ergebnis wird erneut gegen das
+ * Dateischema geprüft.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
-import { basename, join } from 'node:path'
+import { basename, join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { createServer } from 'vite'
 
 const args = process.argv.slice(2)
@@ -33,12 +41,13 @@ const input = args.find(
 )
 if (!input) {
   console.error(
-    'Aufruf: pnpm abrechnung <nk-daten.json> [--jahr 2025] [--out <ordner>] [--json <datei>]',
+    'Aufruf: pnpm abrechnung <nk-daten.json> [--jahr 2025] [--out <ordner>] [--json <datei>] [--overlay <modul.mjs>]',
   )
   process.exit(2)
 }
 const outDir = option('--out')
 const jsonOut = option('--json')
+const overlayPath = option('--overlay')
 const euro = (cents) =>
   (cents / 100).toLocaleString('de-DE', {
     minimumFractionDigits: 2,
@@ -68,13 +77,41 @@ try {
     sourceFileName: basename(input),
     appVersion: 'cli',
   })
-  const data = imported.data
-  const periods = data.billingData.billingPeriods
+  if (!imported.ok) {
+    const errors = (imported.issues ?? []).filter(
+      (issue) => issue.severity === 'error',
+    )
+    console.error(`Import fehlgeschlagen (${imported.reason}):`)
+    for (const issue of errors)
+      console.error(
+        `  ${issue.code}: ${issue.title} [${issue.path?.join('.') ?? ''}]`,
+      )
+    process.exit(1)
+  }
+  let data = imported.data
   const year = Number(
-    option('--jahr') ?? Math.max(...periods.map((period) => period.year)),
+    option('--jahr') ??
+      Math.max(...data.billingData.billingPeriods.map((period) => period.year)),
   )
   if (!Number.isInteger(year))
     throw new Error('--jahr erwartet eine Jahreszahl.')
+  if (overlayPath) {
+    const overlay = await import(pathToFileURL(resolve(overlayPath)).href)
+    if (typeof overlay.default !== 'function')
+      throw new Error('--overlay: Modul braucht eine Default-Funktion.')
+    data = (await overlay.default(data, { year })) ?? data
+    const schema = await load('/packages/schema/src/index.ts')
+    const parsed = schema.appDataFileSchema.safeParse(data)
+    if (!parsed.success) {
+      console.error('Overlay erzeugt ungültige Daten:')
+      for (const issue of parsed.error.issues.slice(0, 20))
+        console.error(`  ${issue.path.join('.')}: ${issue.message}`)
+      process.exit(1)
+    }
+    data = parsed.data
+    console.log(`Overlay angewendet: ${basename(overlayPath)}`)
+  }
+  const periods = data.billingData.billingPeriods
   const period = periods.find((candidate) => candidate.year === year)
   if (!period) throw new Error(`Kein Abrechnungszeitraum ${year} gefunden.`)
 

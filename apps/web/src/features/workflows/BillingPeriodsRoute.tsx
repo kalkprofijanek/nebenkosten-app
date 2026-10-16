@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { postalCodeFromAddress } from '@nebenkosten/core'
 import { parseOptionalNumber } from '../../app/form-parsers'
 import { TableToolbar } from '../../components/TableToolbar'
 import {
@@ -6,6 +7,11 @@ import {
   deleteBillingPeriod,
   updateBillingPeriod,
 } from '../billing-periods/commands'
+import { ClimateFactorFields } from '../billing-periods/ClimateFactorFields'
+import {
+  readClimateFactorForm,
+  type ClimateFactorErrors,
+} from '../billing-periods/climate-factor-form'
 import { WorkflowField } from './form-support'
 import { formOptionalText, formText } from './form-values'
 import type { WorkflowSubRouteProps } from './route-types'
@@ -18,6 +24,7 @@ export function BillingPeriodsRoute({
 }: WorkflowSubRouteProps) {
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
+  const [climateErrors, setClimateErrors] = useState<ClimateFactorErrors>({})
   const [deleteArmed, setDeleteArmed] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -25,6 +32,10 @@ export function BillingPeriodsRoute({
     ({ propertyId }) => propertyId === selection.propertyId,
   )
   const period = periods.find(({ id }) => id === selection.billingPeriodId)
+  const propertyPostalCode = postalCodeFromAddress(
+    data.masterData.properties.find(({ id }) => id === period?.propertyId)
+      ?.address?.postalCodeAndCity,
+  )
   const normalizedSearch = search.trim().toLocaleLowerCase('de-DE')
   const filteredPeriods = periods.filter(
     (item) =>
@@ -95,6 +106,12 @@ export function BillingPeriodsRoute({
     const form = new FormData(event.currentTarget)
     const number = (name: string) =>
       parseOptionalNumber(formText(form, name)) ?? undefined
+    const climate = readClimateFactorForm(form)
+    setClimateErrors(climate.ok ? {} : climate.errors)
+    if (!climate.ok) {
+      setError('Bitte die markierten Angaben zum Klimafaktor prüfen.')
+      return
+    }
     if (
       apply((current) =>
         updateBillingPeriod(current, period.id, {
@@ -126,6 +143,7 @@ export function BillingPeriodsRoute({
               'deviationJustification',
             ),
           },
+          climateFactor: climate.value,
         }),
       )
     )
@@ -284,7 +302,13 @@ export function BillingPeriodsRoute({
               <p className="section-kicker">Aktiver Zeitraum</p>
               <h2 id="period-editor-title">Abrechnungsjahr {period.year}</h2>
             </div>
-            <button type="button" onClick={() => setEditing((value) => !value)}>
+            <button
+              type="button"
+              onClick={() => {
+                setClimateErrors({})
+                setEditing((value) => !value)
+              }}
+            >
               {editing ? 'Bearbeitung schließen' : 'Abrechnungsjahr bearbeiten'}
             </button>
           </div>
@@ -391,6 +415,13 @@ export function BillingPeriodsRoute({
                 defaultValue={
                   period.heatingDefaults?.deviationJustification ?? ''
                 }
+              />
+              <ClimateFactorFields
+                initial={period.climateFactor}
+                suggestedPostalCode={propertyPostalCode}
+                billingPeriodStart={period.periodStart}
+                billingPeriodEnd={period.periodEnd}
+                errors={climateErrors}
               />
               <button type="submit">Änderungen speichern</button>
             </form>

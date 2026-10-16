@@ -542,6 +542,50 @@ describe('heating commands', () => {
     expect(result.billingData.fuelDeliveries[0]?.amountCents).toBe(11_500)
   })
 
+  it('behält beim Bearbeiten einer Lieferung die nicht im Formular geführten Felder', () => {
+    const withDelivery = addFuelDelivery(
+      createHeatingContext(),
+      {
+        energySourceId: IDS.source,
+        billingPeriodId: IDS.period,
+        date: '2025-03-01',
+        quantity: { value: 50, unit: 'l' },
+        amountCents: 11_900,
+        externalPayment: {
+          confirmed: true,
+          reason: 'Zahlung über Voreigentümer',
+        },
+        quantityManuallySet: true,
+      },
+      dependencies(IDS.delivery),
+    )
+    // Das Formular sendet nur die dort geführten Felder
+    const edited = updateFuelDelivery(withDelivery, IDS.delivery, {
+      energySourceId: IDS.source,
+      billingPeriodId: IDS.period,
+      date: '2025-03-02',
+      quantity: { value: 55, unit: 'l' },
+      amountCents: 11_900,
+    })
+    const delivery = edited.billingData.fuelDeliveries[0]!
+    expect(delivery.date).toBe('2025-03-02')
+    expect(delivery.externalPayment).toEqual({
+      confirmed: true,
+      reason: 'Zahlung über Voreigentümer',
+    })
+    expect(delivery.quantityManuallySet).toBe(true)
+
+    // `null` löscht ausdrücklich
+    const cleared = updateFuelDelivery(edited, IDS.delivery, {
+      energySourceId: IDS.source,
+      billingPeriodId: IDS.period,
+      quantity: { value: 55, unit: 'l' },
+      amountCents: 11_900,
+      externalPayment: null,
+    })
+    expect(cleared.billingData.fuelDeliveries[0]?.externalPayment).toBeNull()
+  })
+
   it('löscht Heizdaten nur ohne abhängige Datensätze', () => {
     const context = createHeatingContext()
     expect(() => deleteHeatingSystem(context, IDS.system)).toThrowError(
@@ -613,6 +657,263 @@ describe('Vergleichswerte am Heizkreis (§ 6a Abs. 3 Nr. 4 HeizKV)', () => {
     })
     expect(result.billingData.heatingCircuits[0]?.consumptionBenchmark).toEqual(
       benchmark,
+    )
+  })
+
+  const benchmark = {
+    source: 'Heizspiegel für Deutschland (co2online)',
+    sourceUrl: 'https://example.org/heizspiegel',
+    referenceYear: 2024,
+    category: 'Erdgas, fiktive Kategorie',
+    includesHotWater: true,
+    lowMaxKwhPerSqmYear: 70,
+    mediumMaxKwhPerSqmYear: 130,
+    elevatedMaxKwhPerSqmYear: 200,
+  }
+  const circuitInput = {
+    billingPeriodId: IDS.period,
+    heatingSystemId: IDS.system,
+    buildingId: IDS.building,
+    hasCentralHotWater: false,
+  }
+
+  it('werden gesetzt, geändert und ausdrücklich entfernt', () => {
+    const context = createHeatingContext()
+    const set = updateHeatingCircuit(context, IDS.circuit, {
+      ...circuitInput,
+      consumptionBenchmark: benchmark,
+    })
+    expect(set.billingData.heatingCircuits[0]?.consumptionBenchmark).toEqual(
+      benchmark,
+    )
+    const changed = updateHeatingCircuit(set, IDS.circuit, {
+      ...circuitInput,
+      consumptionBenchmark: { ...benchmark, elevatedMaxKwhPerSqmYear: 210 },
+    })
+    expect(
+      changed.billingData.heatingCircuits[0]?.consumptionBenchmark
+        ?.elevatedMaxKwhPerSqmYear,
+    ).toBe(210)
+    const kept = updateHeatingCircuit(changed, IDS.circuit, {
+      ...circuitInput,
+      consumptionBenchmark: undefined,
+    })
+    expect(
+      kept.billingData.heatingCircuits[0]?.consumptionBenchmark,
+    ).toBeDefined()
+    const removed = updateHeatingCircuit(kept, IDS.circuit, {
+      ...circuitInput,
+      consumptionBenchmark: null,
+    })
+    expect(removed.billingData.heatingCircuits[0]).not.toHaveProperty(
+      'consumptionBenchmark',
+    )
+  })
+
+  it('werden über das Schema geprüft', () => {
+    const context = createHeatingContext()
+    expect(() =>
+      updateHeatingCircuit(context, IDS.circuit, {
+        ...circuitInput,
+        consumptionBenchmark: { ...benchmark, mediumMaxKwhPerSqmYear: 60 },
+      }),
+    ).toThrowError(HeatingCommandError)
+  })
+})
+
+describe('Warmwasser am Heizkreis (§§ 8, 9 HeizKV, ADR-0010)', () => {
+  const hotWaterInput = {
+    billingPeriodId: IDS.period,
+    heatingSystemId: IDS.system,
+    buildingId: IDS.building,
+    hasCentralHotWater: true,
+  }
+  const energy = {
+    method: 'volume_formula' as const,
+    volumeM3: 120,
+    temperatureC: 55,
+    temperatureEstimated: true,
+  }
+
+  it('speichert Wärmemenge und Verteilung ohne Pauschalanteil', () => {
+    const result = updateHeatingCircuit(createHeatingContext(), IDS.circuit, {
+      ...hotWaterInput,
+      hotWaterEnergy: energy,
+      hotWaterAllocation: { key: 'area' },
+    })
+    const circuit = result.billingData.heatingCircuits[0]!
+    expect(circuit.hotWaterEnergy).toEqual(energy)
+    expect(circuit.hotWaterAllocation).toEqual({ key: 'area' })
+    expect(circuit).not.toHaveProperty('hotWaterSharePercent')
+  })
+
+  it('verlangt ohne Wärmemenge weiterhin den Warmwasseranteil', () => {
+    expect(() =>
+      updateHeatingCircuit(createHeatingContext(), IDS.circuit, hotWaterInput),
+    ).toThrowError('Der Warmwasseranteil muss zwischen 18 und 70 Prozent')
+    expect(() =>
+      updateHeatingCircuit(createHeatingContext(), IDS.circuit, {
+        ...hotWaterInput,
+        hotWaterEnergy: { method: 'heat_meter', heatKwh: 1000 },
+        hotWaterSharePercent: 80,
+      }),
+    ).toThrowError(HeatingCommandError)
+  })
+
+  it('erhält, ersetzt und entfernt die Angaben wie die Vergleichswerte', () => {
+    const set = updateHeatingCircuit(createHeatingContext(), IDS.circuit, {
+      ...hotWaterInput,
+      hotWaterEnergy: energy,
+      hotWaterAllocation: { key: 'consumption', consumptionSharePercent: 60 },
+    })
+    const kept = updateHeatingCircuit(set, IDS.circuit, hotWaterInput)
+    expect(kept.billingData.heatingCircuits[0]?.hotWaterEnergy).toEqual(energy)
+    expect(kept.billingData.heatingCircuits[0]?.hotWaterAllocation).toEqual({
+      key: 'consumption',
+      consumptionSharePercent: 60,
+    })
+    const removed = updateHeatingCircuit(kept, IDS.circuit, {
+      ...hotWaterInput,
+      hotWaterSharePercent: 20,
+      hotWaterEnergy: null,
+      hotWaterAllocation: null,
+    })
+    expect(removed.billingData.heatingCircuits[0]).not.toHaveProperty(
+      'hotWaterEnergy',
+    )
+    expect(removed.billingData.heatingCircuits[0]).not.toHaveProperty(
+      'hotWaterAllocation',
+    )
+    const withoutCentral = updateHeatingCircuit(set, IDS.circuit, {
+      ...hotWaterInput,
+      hasCentralHotWater: false,
+    })
+    expect(withoutCentral.billingData.heatingCircuits[0]).not.toHaveProperty(
+      'hotWaterEnergy',
+    )
+  })
+
+  it('lehnt Warmwasser-Angaben ohne zentrale Warmwasserbereitung und ungültige Werte ab', () => {
+    const withSystem = addHeatingSystem(
+      createBaseFile(),
+      { propertyId: IDS.property, name: 'Zentralheizung' },
+      dependencies(IDS.system),
+    )
+    expect(() =>
+      addHeatingCircuit(
+        withSystem,
+        {
+          ...hotWaterInput,
+          hasCentralHotWater: false,
+          hotWaterAllocation: { key: 'area' },
+        },
+        dependencies(IDS.circuit),
+      ),
+    ).toThrowError('nur bei zentraler Warmwasserbereitung')
+    expect(() =>
+      addHeatingCircuit(
+        withSystem,
+        {
+          ...hotWaterInput,
+          hotWaterEnergy: { method: 'area_formula', reason: ' ' },
+        },
+        dependencies(IDS.circuit),
+      ),
+    ).toThrowError(HeatingCommandError)
+    const created = addHeatingCircuit(
+      withSystem,
+      {
+        ...hotWaterInput,
+        hotWaterEnergy: {
+          method: 'area_formula',
+          reason: 'Kein Zähler, Volumen nicht messbar',
+        },
+        hotWaterAllocation: null,
+      },
+      dependencies(IDS.circuit),
+    )
+    expect(created.billingData.heatingCircuits[0]).not.toHaveProperty(
+      'hotWaterAllocation',
+    )
+  })
+})
+
+describe('Wärmepumpe am Heizkreis (ADR-0010 „Wärmepumpen“)', () => {
+  const circuitInput = {
+    billingPeriodId: IDS.period,
+    heatingSystemId: IDS.system,
+    buildingId: IDS.building,
+    hasCentralHotWater: true,
+    hotWaterEnergy: { method: 'heat_meter' as const, heatKwh: 12_800 },
+  }
+
+  it('erhält, setzt und entfernt die erzeugte Wärme', () => {
+    const set = updateHeatingCircuit(createHeatingContext(), IDS.circuit, {
+      ...circuitInput,
+      generatedHeatKwh: 68_800,
+    })
+    expect(set.billingData.heatingCircuits[0]?.generatedHeatKwh).toBe(68_800)
+    const kept = updateHeatingCircuit(set, IDS.circuit, circuitInput)
+    expect(kept.billingData.heatingCircuits[0]?.generatedHeatKwh).toBe(68_800)
+    const removed = updateHeatingCircuit(kept, IDS.circuit, {
+      ...circuitInput,
+      generatedHeatKwh: null,
+    })
+    expect(removed.billingData.heatingCircuits[0]).not.toHaveProperty(
+      'generatedHeatKwh',
+    )
+  })
+
+  it('lässt die Jahresarbeitszahl nur bei Strom zu', () => {
+    const context = createHeatingContext()
+    expect(() =>
+      updateEnergySource(context, IDS.source, {
+        heatingCircuitId: IDS.circuit,
+        key: 'haupt',
+        name: 'Heizöl',
+        sourceType: 'Heizöl',
+        seasonalPerformanceFactor: 3,
+      }),
+    ).toThrowError('Jahresarbeitszahl')
+    const heatPump = updateEnergySource(context, IDS.source, {
+      heatingCircuitId: IDS.circuit,
+      key: 'wp',
+      name: 'Wärmepumpenstrom',
+      sourceType: 'Strom',
+      calorificValueKwhPerUnit: 1,
+      seasonalPerformanceFactor: 3.2,
+    })
+    expect(
+      heatPump.billingData.energySources[0]?.seasonalPerformanceFactor,
+    ).toBe(3.2)
+    const estimate = {
+      heatingCircuitId: IDS.circuit,
+      key: 'wp',
+      name: 'Wärmepumpenstrom',
+      sourceType: 'Strom',
+      seasonalPerformanceFactor: 3,
+      seasonalPerformanceFactorEstimated: true,
+    }
+    expect(() =>
+      updateEnergySource(heatPump, IDS.source, estimate),
+    ).toThrowError('Grundlage der geschätzten Jahresarbeitszahl')
+    const estimated = updateEnergySource(heatPump, IDS.source, {
+      ...estimate,
+      seasonalPerformanceFactorReason: ' Planungswert (fiktiv) ',
+    })
+    expect(estimated.billingData.energySources[0]).toMatchObject({
+      seasonalPerformanceFactorEstimated: true,
+      seasonalPerformanceFactorReason: 'Planungswert (fiktiv)',
+    })
+    const withoutFactor = updateEnergySource(heatPump, IDS.source, {
+      heatingCircuitId: IDS.circuit,
+      key: 'wp',
+      name: 'Wärmepumpenstrom',
+      sourceType: 'Strom',
+      seasonalPerformanceFactor: null,
+    })
+    expect(withoutFactor.billingData.energySources[0]).not.toHaveProperty(
+      'seasonalPerformanceFactor',
     )
   })
 })

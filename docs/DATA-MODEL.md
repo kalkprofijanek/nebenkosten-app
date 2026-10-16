@@ -197,6 +197,11 @@ Neu als eigene Entität (v3 vermischt Einheit, Person und Vertrag im
 | `dispatchDate`                   | IsoDate               | opt                        | `versanddatum_nutzer`                            |
 | `note`                           | string                | opt                        | `bemerkung`                                      |
 
+`HeatMeterReading.replacements` (optional, additiv in Schema v5; ADR-0008):
+Geräte-/Zählertausch mit `date`, `removedEndValue`, `installedMeterNumber`,
+`installedStartValue`, `note`; Verbrauch = Summe der Abschnitte
+(`meterReadingConsumption` im Core).
+
 `HeatMeterReading` (`heatMeterReadingSchema`, strikt, alle Felder
 `nullish`): `meterNumber` (string), `startValue`/`endValue` (endliche Zahl,
 Zählerstand alt/neu), `startDate`/`endDate` (IsoDate, Ablesedatum alt/neu).

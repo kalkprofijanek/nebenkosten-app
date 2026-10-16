@@ -5,3 +5,6 @@ coverage/**
 playwright-report/**
 test-results/**
 pnpm-lock.yaml
+
+# Vitest manages generated snapshots.
+**/__snapshots__/**

@@ -106,3 +106,15 @@ Geprüft an `KF_20250101_20251231.csv`, `…_k.csv` und `….xml` aus
   Dateien mit den neuen Feldern ab (strikte Schemaprüfung).
 - Legacy-v3 (auch der KI-Ablauf mit `vorjahr_*`) kennt keinen Klimafaktor;
   der Import setzt die Felder nicht.
+
+## Umsetzung Teil B (10. Oktober 2026) – offene Annahmen
+
+- DWD-Import: Kopfzeile `KF` nur mit Dezimalpunkt, `KF_k` nur mit Komma;
+  Abweichungen werden abgelehnt. Postleitzahlen mit 4 oder 5 Ziffern.
+- Vorjahresvergleich in kWh (Wärme + Warmwasser, § 6a Abs. 3 Satz 2) nur, wenn
+  das Vorjahr im System liegt; das Vorjahr wird je Einzelabrechnung neu
+  berechnet (ohne Zwischenspeicher). Mehrere Vorjahres-Nutzungen derselben
+  Mietpartei werden addiert; ist eine nicht berechenbar, Einheiten-Grafik.
+- Der Faktor eines Vorjahres im System wird nicht gegen dessen Zeitraum und
+  Postleitzahl geprüft. Neue Warnung `heating.previous_period_not_weather_adjusted`
+  (einmal je Abrechnungsjahr) kann sich mit `…_previous_missing` überschneiden.

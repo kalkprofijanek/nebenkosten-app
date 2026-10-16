@@ -9,6 +9,7 @@ import {
   classifyConsumptionBenchmark,
   compareTenantWithConsumptionBenchmark,
   createCalculationInput,
+  degreeDayShareOfPeriod,
 } from '../src'
 
 /** Fiktive Klassengrenzen; keine Werte einer echten Heizspiegel-Ausgabe. */
@@ -194,6 +195,7 @@ describe('Vergleich mit normiertem Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizK
     expect(result.energyKwh).toBe(result.heatingKwh + result.hotWaterKwh)
     expect(result.areaSqm).toBe(100)
     expect(result.annualized).toBe(false)
+    expect(result.annualization).toBe('none')
     expect(result.kwhPerSqmYear).toBe(
       Math.round((60_000 + (20_000 * 2) / (2 + (2 * 184) / 365)) / 10) / 10,
     )
@@ -205,12 +207,39 @@ describe('Vergleich mit normiertem Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizK
     })
   })
 
+  it('verteilt das Warmwasser nach demselben Schlüssel wie die Kosten (Fläche)', () => {
+    const result = compare(
+      data({ hotWaterAllocation: { key: 'area' } }),
+      'occ-a',
+    )
+    expect(result.status).toBe('compared')
+    if (result.status !== 'compared') return
+    // 20.000 kWh × 100 m² ÷ (100 + 100 × 181/365 Leerstand + 100 × 184/365)
+    expect(result.hotWaterKwh).toBe(10_000)
+    expect(result.energyKwh).toBe(result.heatingKwh + result.hotWaterKwh)
+  })
+
+  it('verteilt das Warmwasser beim Verbrauchsschlüssel nach m³ und Fläche', () => {
+    const file = data({
+      hotWaterAllocation: { key: 'consumption', consumptionSharePercent: 70 },
+    })
+    const occupancies = file.billingData.occupancyPeriods
+    occupancies[0]!.warmWater = { value: 30, unit: 'm3' }
+    occupancies[2]!.warmWater = { value: 10, unit: 'm3' }
+    const result = compare(file, 'occ-a')
+    expect(result.status).toBe('compared')
+    if (result.status !== 'compared') return
+    // 20.000 kWh × (70 % × 30/40 m³ + 30 % × 100/200 m²)
+    expect(result.hotWaterKwh).toBe(13_500)
+  })
+
   it('rechnet bei Teilzeitraum auf ein Jahr hoch und skaliert die Grenzen', () => {
     const result = compare(data(), 'occ-b')
     expect(result.status).toBe('compared')
     if (result.status !== 'compared') return
     const timeFactor = 184 / 365
     expect(result.annualized).toBe(true)
+    expect(result.annualization).toBe('linear')
     expect(result.heatingKwh).toBe(20_000)
     expect(result.kwhPerSqmYear).toBe(
       Math.round(
@@ -221,6 +250,78 @@ describe('Vergleich mit normiertem Durchschnittsnutzer (§ 6a Abs. 3 Nr. 4 HeizK
       ) / 10,
     )
     expect(result.rangeKwh.mediumMax).toBe(Math.round(130 * 100 * timeFactor))
+  })
+
+  it('rechnet mit Nutzungszeitraum die Heizwärme nach Gradtagszahlen hoch', () => {
+    const file = data()
+    const output = calculateBilling(createCalculationInput(file, 'p-2025'))
+    const result = compareTenantWithConsumptionBenchmark(
+      output,
+      'occ-b',
+      file.billingData.heatingCircuits[0],
+      {
+        from: '2025-07-01',
+        to: '2025-12-31',
+        periodStart: '2025-01-01',
+        periodEnd: '2025-12-31',
+      },
+    )
+    expect(result.status).toBe('compared')
+    if (result.status !== 'compared') return
+    // Gradtage 01.07.–31.12.: 40 × 62/92 (Juli, August) + 390 = 416,957 ‰
+    const heatingFactor = ((40 * 62) / 92 + 390) / 1_000
+    const timeFactor = 184 / 365
+    const hotWater = (20_000 * 2 * timeFactor) / (2 + 2 * timeFactor)
+    const annual = 20_000 / heatingFactor + hotWater / timeFactor
+    expect(result.annualization).toBe('degree_days')
+    expect(result.kwhPerSqmYear).toBe(Math.round((annual / 100) * 10) / 10)
+    expect(result.rangeKwh.mediumMax).toBe(
+      Math.round((130 * 100 * (20_000 + hotWater)) / annual),
+    )
+  })
+
+  it('rechnet einen Sommerzeitraum ohne Gradtage linear hoch', () => {
+    const file = data()
+    const occupancy = file.billingData.occupancyPeriods.find(
+      ({ id }) => id === 'occ-b',
+    )!
+    occupancy.from = '2025-06-01'
+    occupancy.to = '2025-08-31'
+    const output = calculateBilling(createCalculationInput(file, 'p-2025'))
+    const usage = {
+      from: '2025-06-01',
+      to: '2025-08-31',
+      periodStart: '2025-01-01',
+      periodEnd: '2025-12-31',
+    }
+    // Sommerblock 40 ‰ > 0: nach Gradtagen
+    expect(degreeDayShareOfPeriod(usage)).toBeCloseTo(0.04, 10)
+    const result = compareTenantWithConsumptionBenchmark(
+      output,
+      'occ-b',
+      file.billingData.heatingCircuits[0],
+      usage,
+    )
+    expect(result).toMatchObject({ annualization: 'degree_days' })
+  })
+
+  it('liefert den Gradtagsanteil des Nutzungszeitraums', () => {
+    expect(
+      degreeDayShareOfPeriod({
+        from: '2025-01-01',
+        to: '2025-03-31',
+        periodStart: '2025-01-01',
+        periodEnd: '2025-12-31',
+      }),
+    ).toBeCloseTo(0.45, 10)
+    expect(
+      degreeDayShareOfPeriod({
+        from: '2025-01-01',
+        to: '2025-12-31',
+        periodStart: '2025-01-01',
+        periodEnd: '2025-12-31',
+      }),
+    ).toBe(1)
   })
 
   it('lässt Warmwasser weg, wenn die Vergleichswerte es nicht enthalten', () => {

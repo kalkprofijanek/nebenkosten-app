@@ -380,4 +380,65 @@ describe('Kosten-Commands', () => {
       ),
     ).toThrow(/ID/i)
   })
+
+  it.each([
+    [true, true],
+    [false, false],
+    [null, undefined],
+    [undefined, undefined],
+  ] as const)(
+    'speichert das Entgelt-Kennzeichen %s beim Anlegen (ADR-0006)',
+    (meteringFee, expected) => {
+      const result = addCostCategory(
+        validFile(),
+        {
+          billingPeriodId: IDS.billingPeriod,
+          kind: 'heating',
+          label: 'Fiktiver Dienstleister',
+          scope: { kind: 'building', buildingId: IDS.building },
+          ...(meteringFee === undefined ? {} : { meteringFee }),
+        },
+        () => IDS.category,
+      )
+      const category = result.billingData.costCategories[0]!
+      expect(category.meteringFee).toBe(expected)
+      if (expected === undefined) expect('meteringFee' in category).toBe(false)
+    },
+  )
+
+  it('setzt und entfernt das Entgelt-Kennzeichen beim Bearbeiten', () => {
+    const base = {
+      kind: 'heating',
+      label: 'Fiktiver Dienstleister',
+      scope: { kind: 'building', buildingId: IDS.building },
+    } as const
+    const source = addCostCategory(
+      validFile(),
+      { billingPeriodId: IDS.billingPeriod, ...base },
+      () => IDS.category,
+    )
+    const flagged = updateCostCategory(source, IDS.category, {
+      ...base,
+      meteringFee: true,
+    })
+    expect(flagged.billingData.costCategories[0]?.meteringFee).toBe(true)
+    const excluded = updateCostCategory(flagged, IDS.category, {
+      ...base,
+      meteringFee: false,
+    })
+    expect(excluded.billingData.costCategories[0]?.meteringFee).toBe(false)
+    const kept = updateCostCategory(excluded, IDS.category, base)
+    expect(kept.billingData.costCategories[0]?.meteringFee).toBe(false)
+    const cleared = updateCostCategory(excluded, IDS.category, {
+      ...base,
+      meteringFee: null,
+    })
+    expect('meteringFee' in cleared.billingData.costCategories[0]!).toBe(false)
+    expect(() =>
+      updateCostCategory(source, IDS.category, {
+        ...base,
+        meteringFee: 'ja',
+      }),
+    ).toThrow('Ungültige Eingabe für meteringFee.')
+  })
 })
