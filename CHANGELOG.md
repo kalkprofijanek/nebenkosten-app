@@ -4,6 +4,12 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **GiroCode bei Nachzahlung (PR-39)**: Die Einzelabrechnung druckt neben
+  der Zahlungsaufforderung einen EPC-QR-Code (EPC069-12, Version 002,
+  UTF-8, Fehlerkorrektur M) mit Empfänger, IBAN, ggf. BIC, Betrag und dem
+  bisherigen Verwendungszweck „NK <Jahr> <Einheit>“. Kein Code bei Guthaben,
+  ausgeglichenem Saldo, ungültiger IBAN/BIC oder fehlendem Empfänger;
+  Berechnung unverändert, keine neue Abhängigkeit (pdfmake-QR),
 - **Warmwasseranteil bei Wärmepumpen (ADR-0010 „Wärmepumpen“)**: s = Q ÷
   erzeugte Wärme statt ÷ Strom-kWh; neue optionale Felder
   `HeatingCircuit.generatedHeatKwh` (gemessene Wärmemenge am Erzeuger) und

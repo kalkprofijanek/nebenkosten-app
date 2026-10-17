@@ -42,6 +42,36 @@ Kleinigkeiten; Nr. 4 Fernwärme zurückgestellt.
 | [PR-37](PR-37-IMPORT-BEISPIELOBJEKT.md)        | Excel/CSV-Import (Mieter, Ablesebögen, Messdienst) und anonymes Beispielobjekt | PR-HEIZKV-IMPORT       | Teil 1 erledigt |
 | [PR-38](PR-38-KURZANLEITUNG-KLEINVERMIETER.md) | Kurzanleitung „Erste Abrechnung in 60 Minuten“                                 | PR-37 (Beispielobjekt) | erledigt        |
 
+## Phase 3 – Schlanke Erweiterungen (Nutzerauftrag 17.10.2026)
+
+Leitlinie: Die App erstellt die Nebenkostenabrechnung zuverlässig; sie wird
+keine vollständige Hausverwaltungssoftware. Stärke bleibt die Kombination
+aus geprüfter Abrechnungsengine und lokalem KI-Agenten.
+
+| Funktion                                          | Entscheidung                        |
+| ------------------------------------------------- | ----------------------------------- |
+| EPC-GiroCode für Nachzahlungen                    | umsetzen (PR-39)                    |
+| Rechnungseingangsordner je Objekt verknüpfen      | umsetzen (PR-40)                    |
+| KI-gestützte Belegauswertung aus diesem Ordner    | vorhandenen Workflow nutzen (PR-41) |
+| Belegprüfung (Kosten ohne Rechnung und umgekehrt) | umsetzen (PR-41)                    |
+| Fristenübersicht mit Kalenderexport               | umsetzen (PR-42)                    |
+| Datenschutz bei der Verarbeitung mit KI           | umsetzen (PR-43)                    |
+| Korrigierte Abrechnungen / Versionsvergleich      | nicht umsetzen                      |
+| Steuerliche Anlage-V-Auswertung                   | nicht umsetzen                      |
+| Eigenständige Belegverwaltung mit Uploadarchiv    | nicht notwendig                     |
+| Neue Datenbank oder Windows-Anwendung             | nicht notwendig                     |
+
+| Task                                                 | Inhalt                                                                  | Abhängigkeit | Status                                       |
+| ---------------------------------------------------- | ----------------------------------------------------------------------- | ------------ | -------------------------------------------- |
+| [PR-39](PR-39-GIROCODE.md)                           | GiroCode (EPC-QR) bei Nachzahlung in der Einzelabrechnung               | –            | in Arbeit (`claude/confident-cannon-t7z4h4`) |
+| [PR-40](PR-40-RECHNUNGSORDNER-JE-OBJEKT.md)          | Bestehenden Rechnungsordner je Objekt verknüpfen (Agent / Ordnerdialog) | PR-43        | offen                                        |
+| [PR-41](PR-41-KI-BELEGWORKFLOW-UND-BELEGPRUEFUNG.md) | KI-Workflow aus dem Objektordner und Belegprüfung                       | PR-40, PR-43 | offen                                        |
+| [PR-42](PR-42-FRISTENUEBERSICHT.md)                  | Fristen nach § 556 Abs. 3 BGB mit `.ics`-Export                         | –            | offen                                        |
+| [PR-43](PR-43-DATENSCHUTZ-KI-VERARBEITUNG.md)        | Datenschutzregeln für KI-Verarbeitung (`docs/DATENSCHUTZ-KI.md`)        | –            | Entwurf                                      |
+
+Reihenfolge: PR-39 → PR-43 (Regeln festlegen) → PR-40 → PR-41; PR-42
+unabhängig.
+
 ## Arbeitsweise
 
 - Ein Task = ein Branch = ein PR; Tests zuerst; Format, Lint, Typecheck,

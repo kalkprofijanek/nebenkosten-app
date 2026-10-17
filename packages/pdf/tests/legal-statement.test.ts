@@ -310,6 +310,45 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     expect(dispatchedText).toContain('Zusatz zur Nachzahlung')
   })
 
+  it('druckt bei Nachzahlung einen GiroCode, bei Guthaben nicht (PR-39)', () => {
+    const original = buildFixtureTenantStatementContext(buildFixtureAppData())
+    const due = text(
+      buildTenantStatement(withTenant(original, { balanceCents: 12_345 })),
+    )
+    expect(due).toContain('"qr":"BCD\\n002\\n1\\nSCT\\n')
+    expect(due).toContain('DE89370400440532013000\\nEUR123.45\\n\\n\\n')
+    expect(due).toContain(
+      `\\nNK ${original.billingPeriod.year} ${original.unit.label}"`,
+    )
+    expect(due).toContain('"eccLevel":"M"')
+    expect(due).toContain('GiroCode: mit der Banking-App scannen')
+
+    for (const balanceCents of [-500, 0]) {
+      const other = text(
+        buildTenantStatement(withTenant(original, { balanceCents })),
+      )
+      expect(other).not.toContain('"qr"')
+    }
+  })
+
+  it('verzichtet ohne gültige IBAN auf den GiroCode (PR-39)', () => {
+    const original = withTenant(
+      buildFixtureTenantStatementContext(buildFixtureAppData()),
+      { balanceCents: 12_345 },
+    )
+    const broken = {
+      ...original,
+      property: {
+        ...original.property,
+        bankAccount: { iban: 'DE00 0000 0000 0000 0000 00' },
+      },
+      ownerCompany: { ...original.ownerCompany, bankAccount: null },
+    }
+    const serialized = text(buildTenantStatement(broken))
+    expect(serialized).toContain('Bitte überweisen Sie den Nachzahlungsbetrag')
+    expect(serialized).not.toContain('"qr"')
+  })
+
   it('erläutert Guthaben und ausgeglichene Abrechnungen', () => {
     const original = buildFixtureTenantStatementContext(buildFixtureAppData())
     const credit = withTenant(original, { balanceCents: -500 })

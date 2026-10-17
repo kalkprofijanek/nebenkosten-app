@@ -4,6 +4,7 @@ import type {
   OperatingPositionTrace,
 } from '@nebenkosten/core'
 import { buildSenderBlock } from './address'
+import { buildEpcPayload } from './epc-girocode'
 import type { TenantStatementContext } from './contracts'
 import {
   occupancySection9bShare,
@@ -30,6 +31,7 @@ import {
 } from './heating-summary'
 import {
   BALANCED_TEXT,
+  GIROCODE_CAPTION,
   additionalPaymentText,
   baseAreaLabel,
   creditText,
@@ -112,18 +114,45 @@ export function paymentContent(context: TenantStatementContext): Content[] {
   const amount = formatEuroCents(Math.abs(tenant.balanceCents))
   const notes = billingPeriod.notes
   if (tenant.balanceCents > 0) {
+    const reference = `NK ${billingPeriod.year} ${unit.label ?? ''}`.trim()
+    const paymentText: Content = {
+      text: additionalPaymentText({
+        amount,
+        dueDate: formatIsoDate(
+          addDaysIso(statementDate(context), PAYMENT_TERM_DAYS),
+        ),
+        iban: sender.iban ? formatIban(sender.iban) : null,
+        reference,
+      }),
+      margin: [0, 0, 0, 4],
+    }
+    // PR-39: GiroCode nur bei Nachzahlung und gültiger Bankverbindung.
+    // Offene Entscheidung E-39-1: Ohne Kontoinhaber gilt der Absendername.
+    const epcPayload = sender.iban
+      ? buildEpcPayload({
+          name: sender.accountHolder ?? sender.nameLines[0] ?? '',
+          iban: sender.iban,
+          bic: sender.bic,
+          amountCents: tenant.balanceCents,
+          remittance: reference,
+        })
+      : null
     return [
-      {
-        text: additionalPaymentText({
-          amount,
-          dueDate: formatIsoDate(
-            addDaysIso(statementDate(context), PAYMENT_TERM_DAYS),
-          ),
-          iban: sender.iban ? formatIban(sender.iban) : null,
-          reference: `NK ${billingPeriod.year} ${unit.label ?? ''}`.trim(),
-        }),
-        margin: [0, 0, 0, 4],
-      },
+      epcPayload
+        ? {
+            columns: [
+              { width: '*', stack: [paymentText] },
+              {
+                width: 'auto',
+                stack: [
+                  { qr: epcPayload, fit: 80, eccLevel: 'M' },
+                  { text: GIROCODE_CAPTION, fontSize: 6, color: MUTED },
+                ],
+                margin: [8, 0, 0, 4],
+              },
+            ],
+          }
+        : paymentText,
       ...(notes?.additionalPayment
         ? [{ text: notes.additionalPayment, margin: [0, 0, 0, 4] } as Content]
         : []),
