@@ -15,6 +15,8 @@ import {
 } from '../../heating/heating-commands'
 import { WorkflowField } from '../form-support'
 import { formOptionalText, formText } from '../form-values'
+import { DeliveryOriginFields, StockValuationFields } from './OriginFields'
+import { readDeliveryOrigin, readStockValuation } from './origin-form'
 import type { WorkflowSubRouteProps } from '../route-types'
 import type { WorkflowApply } from '../HeatingRoute'
 
@@ -32,6 +34,13 @@ function optionalQuantity(form: FormData, name: string, unit: QuantityUnit) {
 function optionalEuro(form: FormData, name: string) {
   const value = formOptionalText(form, name)
   return value === undefined ? undefined : parseEuroCents(value)
+}
+
+/** Leere Auswahl beim Anlegen nicht als `null` speichern. */
+function withoutNull<T extends Record<string, unknown>>(value: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, item]) => item !== null),
+  ) as Partial<T>
 }
 
 export function FuelPanel({
@@ -81,6 +90,7 @@ export function FuelPanel({
       openingPricePerUnitCents: optionalEuro(form, 'openingPricePerUnit'),
       openingCo2PricePerTonCents: optionalEuro(form, 'openingCo2PricePerTon'),
       remainingQuantity: optionalQuantity(form, 'remainingQuantity', unit),
+      ...withoutNull(readStockValuation(form)),
     }
     apply((current) =>
       stock
@@ -109,6 +119,7 @@ export function FuelPanel({
             description: formOptionalText(form, 'description'),
             receiptReference: formOptionalText(form, 'receiptReference'),
             taxesAndLevies: parseFuelTaxes(form),
+            ...withoutNull(readDeliveryOrigin(form)),
           },
           { createId: () => crypto.randomUUID() },
         ),
@@ -135,6 +146,7 @@ export function FuelPanel({
           description: formOptionalText(form, 'description'),
           receiptReference: formOptionalText(form, 'receiptReference'),
           taxesAndLevies: parseFuelTaxes(form),
+          ...readDeliveryOrigin(form),
         }),
       )
     )
@@ -229,6 +241,7 @@ export function FuelPanel({
           name="remainingQuantity"
           defaultValue={stock?.remainingQuantity?.value ?? ''}
         />
+        <StockValuationFields stock={stock} />
         <button type="submit">Bestand speichern</button>
         {stock ? (
           <button type="button" onClick={() => setDeleteId(stock.id)}>
@@ -263,6 +276,7 @@ export function FuelPanel({
         <WorkflowField label="Mengenstatus" name="quantityStatus" />
         <WorkflowField label="Mengenhinweis" name="quantityNote" />
         <FuelTaxFields />
+        <DeliveryOriginFields />
         <button type="submit">Lieferung hinzufügen</button>
       </form>
       <section className="editable-records" aria-labelledby="deliveries-title">
@@ -365,6 +379,10 @@ export function FuelPanel({
                     />
                     <FuelTaxFields
                       taxes={delivery.taxesAndLevies}
+                      suffix="bearbeiten"
+                    />
+                    <DeliveryOriginFields
+                      delivery={delivery}
                       suffix="bearbeiten"
                     />
                     <button type="submit">Lieferung speichern</button>

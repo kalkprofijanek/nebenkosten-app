@@ -103,6 +103,7 @@ function renderRoute(initial: AppDataFile) {
     form,
     onApply,
     climateFactor: () => data.billingData.billingPeriods[0]?.climateFactor,
+    period: () => data.billingData.billingPeriods[0],
   }
 }
 
@@ -231,5 +232,36 @@ describe('Klimafaktor (DWD) am Abrechnungsjahr', () => {
     )
     expect(route.onApply).toHaveBeenCalledTimes(1)
     expect(route.climateFactor()).toBeUndefined()
+  })
+})
+
+describe('Eigentümerwechsel am Abrechnungsjahr (PR-30 Teil 2)', () => {
+  it('speichert den Übergabetag und prüft den Zeitraum', () => {
+    const route = renderRoute(createData())
+    fireEvent.click(route.form.getByLabelText('Objekt in diesem Jahr gekauft'))
+    fireEvent.change(route.form.getByLabelText('Übergabetag'), {
+      target: { value: '2026-02-01' },
+    })
+    fireEvent.click(
+      route.form.getByRole('button', { name: 'Änderungen speichern' }),
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Der Übergabetag muss nach dem Beginn',
+    )
+    expect(route.period()?.ownershipChange).toBeUndefined()
+
+    fireEvent.change(route.form.getByLabelText('Übergabetag'), {
+      target: { value: '2025-04-01' },
+    })
+    fireEvent.change(route.form.getByLabelText('Voreigentümer (nur intern)'), {
+      target: { value: 'Fiktiv' },
+    })
+    fireEvent.click(
+      route.form.getByRole('button', { name: 'Änderungen speichern' }),
+    )
+    expect(route.period()?.ownershipChange).toEqual({
+      transferDate: '2025-04-01',
+      previousOwnerLabel: 'Fiktiv',
+    })
   })
 })

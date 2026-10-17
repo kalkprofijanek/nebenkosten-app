@@ -75,7 +75,15 @@ Migration ohne Datenverlust. Nur fiktive Daten.
 - Neutraler Hinweis mit Übergabetag vor dem Einwendungshinweis, ohne
   Personendaten des Voreigentümers.
 
-### Offen (Teil 2)
+## Umsetzungsstand (Teil 2: Oberfläche)
 
-- Assistent „Objekt im Jahr gekauft“ in der Oberfläche (Übergabetag,
-  Herkunft und Betragsgrundlage je Position, Bestandsbewertung).
+- Abrechnungsjahr: Abschnitt „Eigentümerwechsel“ (Übergabetag innerhalb des
+  Zeitraums, interne Bezeichnung des Voreigentümers). Beim Speichern werden
+  Lieferungen und Belege vor dem Übergabetag als „vom Voreigentümer“
+  gekennzeichnet, sofern noch keine Herkunft gewählt ist
+  (`apps/web/src/features/billing-periods/ownership-change.ts`).
+- Heizkreise → Brennstoff: Auswahl „Betragsgrundlage“ und „Herkunft“ je
+  Lieferung, „Bewertung des Anfangsbestands“ mit Begründung.
+- `updateFuelDelivery` erhält Herkunft und Betragsgrundlage, wenn ein anderer
+  Bearbeitungsweg sie nicht mitschickt.
+- Offen: Herkunft und Betragsgrundlage auch im Formular der Kostenbelege.
