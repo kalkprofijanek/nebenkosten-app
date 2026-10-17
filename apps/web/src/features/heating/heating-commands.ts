@@ -846,6 +846,9 @@ export function updateFuelDelivery(
     meterId: existing.meterId,
     convertedFromCostCategoryId: existing.convertedFromCostCategoryId,
     quantityManuallySet: existing.quantityManuallySet,
+    // PR-30: Herkunft und Betragsgrundlage bleiben ohne ausdrückliche Eingabe.
+    origin: existing.origin,
+    amountBasis: existing.amountBasis,
     ...(input.externalPayment == null
       ? { bookingLink: existing.bookingLink }
       : {}),

@@ -66,10 +66,12 @@ Erwerberabrechnung des Verkäufers. Das Beispielobjekt zeigt einen solchen
 Fall (Übergabe am 1. April).
 
 - Der Übergabetag gehört zum Abrechnungsjahr; die Mieterabrechnung erhält
-  dann einen neutralen Hinweis ohne Angaben zum Verkäufer. Die Eingabe in der
-  Oberfläche folgt mit einem eigenen Assistenten; bis dahin lässt sich der
-  Wert über eine Datei mit dem Feld `ownershipChange` setzen.
-- Für jede übernommene Position festhalten, ob ein **Rechnungsbetrag**,
+  dann einen neutralen Hinweis ohne Angaben zum Verkäufer. Erfasst wird er
+  unter **Abrechnungsjahre → Abrechnungsjahr bearbeiten → Eigentümerwechsel**;
+  beim Speichern werden Lieferungen und Belege vor dem Übergabetag als „vom
+  Voreigentümer“ gekennzeichnet.
+- Für jede übernommene Position (bei Lieferungen unter **Heizkreise**)
+  festhalten, ob ein **Rechnungsbetrag**,
   **gezahlte Abschläge** oder eine **Schätzung** zugrunde liegt. Abschläge und
   Schätzungen meldet die Prüfung, bis die Rechnung vorliegt.
 - **Übernommene Bestände** (z. B. Heizöl im Tank) mit dem belegten

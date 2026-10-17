@@ -12,6 +12,11 @@ import {
   readClimateFactorForm,
   type ClimateFactorErrors,
 } from '../billing-periods/climate-factor-form'
+import { OwnershipChangeFields } from '../billing-periods/OwnershipChangeFields'
+import {
+  applyOwnershipChange,
+  readOwnershipChangeForm,
+} from '../billing-periods/ownership-change'
 import { WorkflowField } from './form-support'
 import { formOptionalText, formText } from './form-values'
 import type { WorkflowSubRouteProps } from './route-types'
@@ -25,6 +30,8 @@ export function BillingPeriodsRoute({
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [climateErrors, setClimateErrors] = useState<ClimateFactorErrors>({})
+  const [ownershipError, setOwnershipError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [deleteArmed, setDeleteArmed] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -112,9 +119,17 @@ export function BillingPeriodsRoute({
       setError('Bitte die markierten Angaben zum Klimafaktor prüfen.')
       return
     }
+    const ownership = readOwnershipChangeForm(form)
+    setOwnershipError(ownership.ok ? null : ownership.error)
+    setNotice(null)
+    if (!ownership.ok) {
+      setError('Bitte die Angaben zum Eigentümerwechsel prüfen.')
+      return
+    }
+    let marked = 0
     if (
-      apply((current) =>
-        updateBillingPeriod(current, period.id, {
+      apply((current) => {
+        const updated = updateBillingPeriod(current, period.id, {
           year: Number(formText(form, 'year')),
           periodStart: formText(form, 'periodStart'),
           periodEnd: formText(form, 'periodEnd'),
@@ -144,10 +159,18 @@ export function BillingPeriodsRoute({
             ),
           },
           climateFactor: climate.value,
-        }),
-      )
-    )
+        })
+        const result = applyOwnershipChange(updated, period.id, ownership.value)
+        marked = result.marked
+        return result.data
+      })
+    ) {
       setEditing(false)
+      if (marked > 0)
+        setNotice(
+          `${marked} ${marked === 1 ? 'Position' : 'Positionen'} vor dem Übergabetag als „vom Voreigentümer“ gekennzeichnet.`,
+        )
+    }
   }
 
   function confirmDelete() {
@@ -162,6 +185,7 @@ export function BillingPeriodsRoute({
   return (
     <>
       {error ? <p role="alert">{error}</p> : null}
+      {notice ? <p role="status">{notice}</p> : null}
       <form noValidate onSubmit={create}>
         <WorkflowField
           label="Abrechnungsjahr"
@@ -422,6 +446,12 @@ export function BillingPeriodsRoute({
                 billingPeriodStart={period.periodStart}
                 billingPeriodEnd={period.periodEnd}
                 errors={climateErrors}
+              />
+              <OwnershipChangeFields
+                initial={period.ownershipChange}
+                periodStart={period.periodStart}
+                periodEnd={period.periodEnd}
+                error={ownershipError}
               />
               <button type="submit">Änderungen speichern</button>
             </form>
