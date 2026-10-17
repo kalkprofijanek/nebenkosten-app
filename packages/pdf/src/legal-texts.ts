@@ -117,6 +117,14 @@ export function co2DistributionSentence(
   return `Der Mieteranteil wird wie die Heizkosten zu ${baseSharePercent} % nach ${baseAreaDative(baseAreaBasis)} und zu ${consumptionSharePercent} % nach Verbrauch auf die Nutzer verteilt.`
 }
 
+/**
+ * Eigentümerwechsel im Abrechnungsjahr (PR-30): neutraler Hinweis ohne
+ * Angaben zur Person des Voreigentümers.
+ */
+export function ownershipChangeNote(transferDate: string): string {
+  return `Das Objekt hat im Abrechnungsjahr den Eigentümer gewechselt (Übergabe am ${transferDate}). Abgerechnet wird das ganze Jahr; die Kosten bis zum Übergabetag beruhen auf der Abrechnung des Voreigentümers und den zugehörigen Belegen.`
+}
+
 /** Einwendungsfrist und Belegeinsicht (§ 556 Abs. 3 BGB, § 259 BGB). */
 export const OBJECTION_NOTICE =
   'Einwendungen gegen diese Abrechnung können Sie bis zum Ablauf des zwölften Monats nach Zugang der Abrechnung geltend machen (§ 556 Abs. 3 BGB). Die Abrechnungsbelege können Sie nach vorheriger Terminvereinbarung einsehen; auf Wunsch übersenden wir Ihnen Kopien.'

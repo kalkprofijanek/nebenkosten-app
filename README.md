@@ -61,6 +61,11 @@ Ohne KI funktioniert alles auch direkt im Browser – praktisch für kleine
 Objekte oder als Kontrollansicht:
 **[App öffnen](https://kalkprofijanek.github.io/nebenkosten-app/)**.
 
+Neu hier? Die Kurzanleitung
+**[Erste Abrechnung in 60 Minuten](docs/ERSTE-ABRECHNUNG.md)** führt mit
+einem [fiktiven Beispielobjekt](docs/beispiel/README.md) durch alle Schritte –
+die Daten bleiben dabei im eigenen Browser.
+
 - Ausschließlich für **Desktop-Browser** gedacht (siehe
   [ADR-0002](docs/DECISIONS/ADR-0002-DESKTOP-ONLY.md)).
 - Alle Daten bleiben **lokal im Browser** (IndexedDB); kein Server, keine

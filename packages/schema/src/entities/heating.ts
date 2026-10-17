@@ -13,7 +13,9 @@ import {
   quantitySchema,
 } from '../primitives'
 import {
+  amountBasisSchema,
   bookingLinkSchema,
+  costOriginSchema,
   externalPaymentSchema,
   legacyUnmappedSchema,
 } from './shared'
@@ -264,6 +266,12 @@ export const fuelStockSchema = z.strictObject({
    * (Preis des Lieferjahres, ADR-0010). Leer = Preis des Abrechnungsjahres.
    */
   openingCo2PricePerTonCents: moneyCentsSchema.nullish(),
+  /**
+   * Bewertung des Anfangsbestands (PR-30): belegter Anschaffungspreis oder
+   * Bewertung des Voreigentümers; Letztere nur mit Begründung.
+   */
+  valuationBasis: z.enum(['acquisition_cost', 'seller_valuation']).nullish(),
+  valuationReason: z.string().trim().min(1).nullish(),
 })
 export type FuelStock = z.infer<typeof fuelStockSchema>
 
@@ -321,5 +329,9 @@ export const fuelDeliverySchema = z.strictObject({
   convertedFromCostCategoryId: entityIdSchema.nullish(),
   /** Steuern und Abgaben laut Rechnung (§ 6a Abs. 3 Nr. 1 b HeizKV, ADR-0011). */
   taxesAndLevies: fuelDeliveryTaxesAndLeviesSchema.nullish(),
+  /** Herkunft bei Eigentümerwechsel (additiv, Schema v5, PR-30). */
+  origin: costOriginSchema.nullish(),
+  /** Rechnung, Abschläge oder Schätzung (additiv, Schema v5, PR-30). */
+  amountBasis: amountBasisSchema.nullish(),
 })
 export type FuelDelivery = z.infer<typeof fuelDeliverySchema>

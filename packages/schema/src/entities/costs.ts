@@ -13,6 +13,8 @@ import {
 } from '../primitives'
 import {
   allocationScopeSchema,
+  amountBasisSchema,
+  costOriginSchema,
   bookingLinkSchema,
   estimateSchema,
   externalPaymentSchema,
@@ -122,5 +124,9 @@ export const costEntrySchema = z.strictObject({
   /** Zuordnung zu einem Zähler (Legacy `_stromzaehler_id`). */
   meterId: entityIdSchema.nullish(),
   estimate: estimateSchema.nullish(),
+  /** Herkunft bei Eigentümerwechsel (additiv, Schema v5, PR-30). */
+  origin: costOriginSchema.nullish(),
+  /** Rechnung, Abschläge oder Schätzung (additiv, Schema v5, PR-30). */
+  amountBasis: amountBasisSchema.nullish(),
 })
 export type CostEntry = z.infer<typeof costEntrySchema>
