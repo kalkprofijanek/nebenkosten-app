@@ -21,6 +21,11 @@ und fertige PDF-Abrechnungen für jede Mietpartei.
 
 ## Empfohlen: mit KI-Agent
 
+In der App selbst steht unter **Übersicht → Mit KI arbeiten** der passende
+Arbeitsauftrag zum Kopieren bereit – für einen KI-Agenten mit lokaler Kopie
+(z. B. Claude Code) oder für eine Chat-KI im Browser; das gewählte
+Abrechnungsjahr wird eingesetzt.
+
 Die meiste Arbeit einer Nebenkostenabrechnung ist nicht das Rechnen, sondern
 das **Zusammentragen und Prüfen**: Rechnungen lesen, Leistungszeiträume
 abgrenzen, Bankbuchungen zuordnen, Zählerstände plausibilisieren,

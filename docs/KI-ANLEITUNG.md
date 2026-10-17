@@ -159,7 +159,43 @@ Heizung;18.06.2025;18.06.2025;18.06.2025;Wartung Heizungsanlage;RE-0815;289,00;1
 Instandhaltung;30.06.2025;30.06.2025;30.06.2025;Austausch Umwälzpumpe;RE-0816;640,50;0;;Muster Heizungsbau;Reparatur, nicht umlagefähig;
 ```
 
+## Auftrag für den KI-Agenten (Copy & Paste)
+
+Für Ablauf 0 mit Claude Code o. Ä. Die App bietet den Text unter
+**Übersicht → Mit KI arbeiten** zum Kopieren an und setzt das gewählte
+Abrechnungsjahr ein; `<DATEI>` ist der Name Ihrer Sicherung.
+
+```text
+Du arbeitest im Repository nebenkosten-app und bereitest die Betriebs- und
+Heizkostenabrechnung für das Abrechnungsjahr <JAHR> vor. Lies zuerst
+AGENTS.md, docs/KI-ANLEITUNG.md und docs/DATENQUELLEN.md.
+
+Meine Datendatei (Sicherung aus der App) und die Belege liegen in
+private-data/. Dieser Ordner wird nie committet; echte Daten verlassen den
+Rechner nicht.
+
+So gehst du vor:
+1. Lege vor jeder Änderung eine Sicherungskopie an. Änderungen schreibst du
+   als kleines Skript mit Kommentar (was, warum, welcher Beleg).
+2. Lies Rechnungen, Kontoauszüge und Ablesebögen aus und nenne für jeden
+   Wert die Quelle. Erfinde keine Werte.
+3. Referenzwerte (Klimafaktor des DWD je Postleitzahl, Heizspiegel-
+   Vergleichswerte, CO₂-Preis) rufst du selbst aus der Originalquelle ab,
+   mit URL bzw. Dateiname und Abrufdatum.
+4. Unplausibles (z. B. rückläufige Zählerstände, Abschläge statt Rechnung,
+   Preissprünge, mehr als 25 % geschätzte Fläche) legst du mir mit Optionen
+   und Empfehlung zur Entscheidung vor, statt es glattzurechnen.
+5. Rechne und prüfe mit
+   pnpm abrechnung private-data/<DATEI>.json --jahr <JAHR> --out private-data/pdf
+   und fasse Kontrolldifferenz, Prüfhinweise, Energiebilanz und Salden
+   zusammen.
+6. Schreibe am Ende eine Übergabe-Notiz (Stand, Entscheidungen, offene
+   Punkte) nach private-data/.
+```
+
 ## Arbeitsanweisung für die KI (Copy & Paste)
+
+Auch diese Anweisung lässt sich unter **Übersicht → Mit KI arbeiten** kopieren.
 
 ```text
 Du unterstützt bei der Vorbereitung einer Betriebs- und Heizkostenabrechnung

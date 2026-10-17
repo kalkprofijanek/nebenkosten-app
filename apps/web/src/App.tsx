@@ -12,6 +12,7 @@ import { APP_RELEASE_LABEL } from './app/version'
 import { workflowProgress } from './app/workflow-progress'
 import { buildWorkspaceContext } from './app/workspace-context'
 import type { WorkspaceState } from './app/workspace-controller'
+import { AiAssistPanel } from './features/ki/AiAssistPanel'
 import { WorkspaceContextBar } from './WorkspaceContextBar'
 
 interface AppProps {
@@ -166,6 +167,15 @@ function Dashboard({
             Jahresabrechnung starten
           </a>
         </section>
+      ) : null}
+      {data ? (
+        <AiAssistPanel
+          year={
+            data.billingData.billingPeriods.find(
+              ({ id }) => id === selection.billingPeriodId,
+            )?.year
+          }
+        />
       ) : null}
       <section className="metric-grid" aria-label="Aktueller Datenstand">
         {[
