@@ -179,6 +179,7 @@ describe('validationIssueLink', () => {
     for (const code of [
       'heating.meter_reading_mismatch',
       'heating.meter_reading_incomplete',
+      'heating.meter_reading_series_digit_drop',
     ])
       expect(
         validationIssueLink(
@@ -188,6 +189,18 @@ describe('validationIssueLink', () => {
         href: '#/verbrauch?occupancy=occ-2',
         label: 'Zählerstände prüfen',
       })
+    expect(
+      validationIssueLink(
+        issue(
+          'heating',
+          { type: 'Meter', id: 'm-1' },
+          'heating.meter_reading_series_stalled',
+        ),
+      ),
+    ).toEqual({
+      href: '#/heizkreise?tab=meters&meter=m-1',
+      label: 'Ablesungen des Zählers prüfen',
+    })
   })
 
   it('führt den Auszugshinweis zur Nutzerbearbeitung', () => {
