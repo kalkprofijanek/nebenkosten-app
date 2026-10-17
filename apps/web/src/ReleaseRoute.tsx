@@ -16,6 +16,7 @@ import { useMemo, useState } from 'react'
 
 import { validationIssueLink } from './features/release/validation-links'
 import { ImportChecklistPanel } from './features/review/ImportChecklistPanel'
+import { YearOverYearPanel } from './features/review/YearOverYearPanel'
 
 interface ReleaseRouteProps {
   readonly data: AppDataFile
@@ -482,6 +483,8 @@ export function ReleaseRoute({
           </>
         ) : null}
       </div>
+
+      <YearOverYearPanel data={data} period={billingPeriod} />
 
       <section aria-labelledby="audit-title">
         <h3 id="audit-title">Freigabehistorie</h3>
