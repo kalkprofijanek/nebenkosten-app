@@ -17,12 +17,14 @@ Rechtsberatung.
    Einzelabrechnungen, die **Energiebilanz je Heizkreis** und die
    Prüfhinweise erscheinen.
 
-   ![Abrechnungsvorschau](medien/06-berechnung.png)
+   ![Abrechnungsvorschau](medien/07-berechnung.png)
 
 4. Unter **Freigabe** die Liste der Hinweise durchgehen. Jeder Hinweis führt
-   mit einem Link zur Stelle, an der er behoben wird.
+   mit einem Link zur Stelle, an der er behoben wird. Das Beispiel ist
+   vollständig erfasst und zeigt keine Hinweise; bei eigenen Daten
+   erscheinen hier die offenen Punkte.
 
-   ![Prüfhinweise](medien/07-freigabe-pruefhinweise.png)
+   ![Prüfung und Freigabe](medien/08-freigabe.png)
 
 So sehen die fertigen PDFs aus:
 [Musterabrechnungen 2025](medien/README.md#musterabrechnungen-2025-pdf). Alle

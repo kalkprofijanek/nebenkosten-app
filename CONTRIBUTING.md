@@ -27,7 +27,8 @@ Commits, Tests, Screenshots oder Logs:
 
 Verwenden Sie erfundene Werte („Beispiel Stadtwerke“, „Mieter Wohnung 1“).
 Screenshots und PDFs für die Dokumentation entstehen ausschließlich aus dem
-fiktiven Beispielobjekt über `pnpm medien`
+fiktiven Beispielobjekt über `pnpm medien`; als Bankverbindung dient dort
+eine IBAN mit der nicht vergebenen Bankleitzahl 00000000
 ([ADR-0012](docs/DECISIONS/ADR-0012-FREIGEGEBENE-MEDIEN.md)).
 Ein automatischer Scan blockiert typische Lecks, ersetzt aber nicht Ihre
 Sorgfalt. Ist doch etwas veröffentlicht worden: sofort melden (siehe

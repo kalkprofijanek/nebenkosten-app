@@ -162,3 +162,15 @@ test('ignores malformed manifest lines and works without a manifest', () => {
     { kind: 'tracked binary file', line: 1, path: 'docs/medien/01-bild.png' },
   ])
 })
+
+test('accepts only fictitious IBANs with the unassigned bank code 00000000', () => {
+  const fictitious = `IBAN: ${'DE50'}${'00000000'}${'0123456789'}`
+  const realistic = `IBAN: ${'DE50'}${'10000000'}${'0123456789'}`
+  assert.deepEqual(findSensitiveContent('docs/beispiel.json', fictitious), [])
+  assert.deepEqual(
+    findSensitiveContent('docs/beispiel.json', realistic).map(
+      ({ kind }) => kind,
+    ),
+    ['German IBAN'],
+  )
+})

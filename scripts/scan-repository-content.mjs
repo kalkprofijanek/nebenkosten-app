@@ -37,7 +37,12 @@ const CONTENT_PATTERNS = Object.freeze([
     kind: 'email address',
     expression: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/giu,
   }),
-  Object.freeze({ kind: 'German IBAN', expression: /\bDE\d{20}\b/gu }),
+  // Bankleitzahl 00000000 ist nicht vergeben; solche IBANs gehören zu keinem
+  // Konto und dienen dem Beispielobjekt (ADR-0012).
+  Object.freeze({
+    kind: 'German IBAN',
+    expression: /\bDE\d{2}(?!0{8})\d{18}\b/gu,
+  }),
   Object.freeze({
     kind: 'access token',
     expression:

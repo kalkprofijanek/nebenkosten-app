@@ -931,9 +931,17 @@ function ConsumptionTable({
                 <th scope="col">Zähler</th>
                 <th scope="col">Stand alt</th>
                 <th scope="col">Stand neu / Differenz</th>
-                <th scope="col">HKV-Verbrauchseinheiten</th>
+                <th scope="col">
+                  HKV-Verbrauchs
+                  <wbr />
+                  einheiten
+                </th>
                 <th scope="col">Wasser m³ kalt / warm</th>
-                <th scope="col">Vorjahresverbrauch</th>
+                <th scope="col">
+                  Vorjahres
+                  <wbr />
+                  verbrauch
+                </th>
                 <th scope="col">Status</th>
               </tr>
             </thead>

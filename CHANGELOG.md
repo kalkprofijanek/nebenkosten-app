@@ -4,15 +4,25 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
-- **Screenshots und Musterabrechnungen (ADR-0012)**: Rundgang in sieben
-  Bildern mit Bedienhinweisen und sechs Muster-PDFs aus dem fiktiven
-  Beispielobjekt unter `docs/medien/`, eingebunden in README, Kurzanleitung
-  und Beispiel-Beschreibung; erzeugt mit `pnpm medien`. Der Privacy-Scan
-  lässt Binärdateien nur dort und nur mit Eintrag in
-  `docs/medien/SHA256SUMS` zu. Beispielobjekt mit lesbaren Wohnungs- und
-  Personennamen, Anschrift und je Kostenart einer Rechnung. `pnpm abrechnung`
-  liest jetzt auch Sicherungen der App (Schema v4/v5), nicht nur
-  `nk-daten.json`,
+- **Screenshots und Musterabrechnungen (ADR-0012, PR-44)**: Rundgang in
+  neun Bildern mit Bedienhinweisen, Vorschau der Einzelabrechnung und des
+  GiroCodes sowie sechs Muster-PDFs aus dem fiktiven Beispielobjekt unter
+  `docs/medien/`, eingebunden in README, Kurzanleitung und
+  Beispiel-Beschreibung; erzeugt mit `pnpm medien`. Der Privacy-Scan lässt
+  Binärdateien nur dort und nur mit Eintrag in `docs/medien/SHA256SUMS` zu
+  und akzeptiert IBANs mit der nicht vergebenen Bankleitzahl 00000000.
+  Beispielobjekt praxisnah und vollständig erfasst (keine Prüfhinweise):
+  Zählerstände mit Zwischenablesung, Warmwasser nach Wärmezähler und m³,
+  Heizspiegel-2026-Vergleichswerte, Klimafaktoren, Vorjahreswerte des
+  Voreigentümers, Messdienst, Schornsteinfeger, Steuern und Abgaben je
+  Lieferung, Anreden, neue Anschriften nach Auszug, Bankverbindung mit
+  Kontoinhaber. `pnpm abrechnung` liest jetzt auch Sicherungen der App
+  (Schema v4/v5), nicht nur `nk-daten.json`,
+- **Korrekturen aus dem Rundgang**: Anrede „Sehr geehrte Familie Familie …“
+  bei Anzeigenamen mit „Familie“ (PDF); Lieferliste unter **Heizkreise →
+  Brennstoffe** mit deutschem Datum, Menge und Betrag statt `2025-02-10` und
+  `3150.00 €`; Verbrauchstabelle passt bei 1440 px ohne horizontales
+  Scrollen,
 - **Mieterliste aus Excel/CSV (PR-37 Teil 2)**: Vorlage „Mieterliste“ zum
   Herunterladen unter **Nutzer**; je Zeile eine Belegung (Wohnung mit Fläche,
   Mieter oder Leerstand, Von/Bis, Personen, Vorauszahlung monatlich, jährlich

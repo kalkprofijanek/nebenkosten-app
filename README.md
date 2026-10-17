@@ -21,14 +21,17 @@ und fertige PDF-Abrechnungen für jede Mietpartei.
 
 ## So sieht es aus
 
-| Abrechnungsvorschau in der App                                          | Einzelabrechnung als PDF                                                                                             |
-| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| ![Abrechnungsvorschau je Wohnung](docs/medien/06-berechnung.png)        | ![Erste Seite einer Einzelabrechnung](docs/medien/08-einzelabrechnung-seite-1.png)                                   |
-| [Rundgang in sieben Bildern mit Bedienhinweisen](docs/medien/README.md) | [Musterabrechnungen 2025 als PDF](docs/medien/README.md#musterabrechnungen-2025-pdf) (Öl, Wärmepumpe, Mieterwechsel) |
+| Abrechnungsvorschau in der App                                        | Einzelabrechnung als PDF                                                                                                       |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| ![Abrechnungsvorschau je Wohnung](docs/medien/07-berechnung.png)      | ![Erste Seite einer Einzelabrechnung](docs/medien/10-einzelabrechnung-seite-1.png)                                             |
+| [Rundgang in neun Bildern mit Bedienhinweisen](docs/medien/README.md) | [Musterabrechnungen 2025 als PDF](docs/medien/README.md#musterabrechnungen-2025-pdf) (Öl, Wärmepumpe, Mieterwechsel, GiroCode) |
 
 Alle Bilder und PDFs stammen aus dem
-[fiktiven Beispielobjekt](docs/beispiel/README.md) – in der App über
-**Daten importieren** in einer Minute selbst nachvollziehbar.
+[fiktiven Beispielobjekt](docs/beispiel/README.md): zwölf Wohnungen,
+Ölheizung und Wärmepumpe, Mieterwechsel mit Zwischenablesung, Objektkauf im
+Jahr, Vergleichswerte aus dem Heizspiegel 2026 – vollständig erfasst, ohne
+einen einzigen Prüfhinweis. In der App über **Daten importieren** in einer
+Minute selbst nachvollziehbar.
 
 ## Empfohlen: mit KI-Agent
 

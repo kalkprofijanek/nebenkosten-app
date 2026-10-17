@@ -32,7 +32,13 @@ verhindert, dass Screenshots oder PDFs mit echten Daten veröffentlicht werden
    (dieselbe Fachlogik wie die App), Screenshots über
    `tests/e2e/medien.spec.ts`. Von Hand eingefügte Bilder sind nicht
    vorgesehen.
-4. **Der E2E-Rundgang läuft auch ohne Aktualisierung** als normaler Test mit
+4. **Fiktive Bankverbindung:** Für den GiroCode braucht das Beispiel eine
+   prüfziffergültige IBAN. Der Scan meldet deutsche IBANs weiterhin, außer
+   mit der Bankleitzahl `00000000`: Sie ist nicht vergeben (Bankleitzahlen
+   beginnen mit 1 bis 8), eine solche IBAN gehört zu keinem Konto, eine
+   Überweisung aus einem gescannten Screenshot wird abgelehnt. Das
+   Beispielobjekt nutzt `DE50 0000 0000 0123 4567 89`.
+5. **Der E2E-Rundgang läuft auch ohne Aktualisierung** als normaler Test mit
    und bricht, wenn sich Oberfläche oder Beispielobjekt so ändern, dass die
    Bilder nicht mehr entstehen.
 
@@ -43,6 +49,8 @@ verhindert, dass Screenshots oder PDFs mit echten Daten veröffentlicht werden
 - `scanRepository` meldet weiterhin `tracked binary file` für jede Binärdatei
   außerhalb von `docs/medien/`, ohne Manifest-Eintrag oder mit abweichendem
   Hash (`tests/privacy/scan-repository-content.test.mjs`).
+- Muster `German IBAN`: `DE\d{2}(?!0{8})\d{18}`; Test für die Ausnahme
+  und für eine IBAN mit vergebener Bankleitzahl.
 - Keine Schema-, Rechen- oder Datenmigration betroffen.
 
 ## Restrisiko

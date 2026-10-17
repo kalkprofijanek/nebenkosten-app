@@ -20,7 +20,7 @@ describe('buildEpcPayload (EPC069-12, Version 002)', () => {
       'SCT',
       'COBADEFFXXX',
       'Muster Verwaltung GmbH',
-      'DE89370400440532013000',
+      IBAN.replaceAll(' ', ''),
       'EUR123.45',
       '',
       '',

@@ -7,12 +7,13 @@
  *
  * Aufruf (nach `pnpm build`): `pnpm medien`
  *
- * Schritte: PDFs über `pnpm abrechnung`, Seite 1 einer Einzelabrechnung als
- * Vorschaubild (braucht `pdftoppm` aus poppler-utils, sonst übersprungen),
- * Screenshots über `tests/e2e/medien.spec.ts`.
+ * Schritte: PDFs über `pnpm abrechnung`, Seite 1 einer Einzelabrechnung und
+ * der GiroCode-Ausschnitt als Bild (braucht `pdftoppm` aus poppler-utils,
+ * sonst übersprungen), Screenshots über `tests/e2e/medien.spec.ts`.
  */
 import { execFileSync, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
+import { existsSync } from 'node:fs'
 import {
   copyFile,
   mkdir,
@@ -29,20 +30,32 @@ const MEDIA = 'docs/medien'
 const SAMPLES = `${MEDIA}/musterabrechnung-2025`
 const EXAMPLE = 'docs/beispiel/beispielobjekt.json'
 
-/** Ausgewählte Fälle: Auszug, Einzug, Wärmepumpe und beide Gesamtfassungen. */
+/**
+ * Ausgewählte Fälle: Guthaben, Auszug mit neuer Anschrift, Einzug,
+ * Wärmepumpe mit Nachzahlung und GiroCode, beide Gesamtfassungen.
+ */
 const SELECTION = [
+  [
+    'Haus_Nord_Whg_1_Erika_Mustermann',
+    'einzelabrechnung-nord-whg1-oelheizung.pdf',
+  ],
   [
     'Haus_Nord_Whg_3_Familie_Musterfrau',
     'einzelabrechnung-nord-whg3-auszug.pdf',
   ],
   ['Haus_Nord_Whg_3_Lena_Exempel', 'einzelabrechnung-nord-whg3-einzug.pdf'],
-  [
-    'Haus_Nord_Whg_1_Erika_Mustermann',
-    'einzelabrechnung-nord-whg1-oelheizung.pdf',
-  ],
-  ['Whg_1_Anna_Probe', 'einzelabrechnung-sued-whg1-waermepumpe.pdf'],
+  ['Whg_2_Tom_Vorlage', 'einzelabrechnung-sued-whg2-waermepumpe.pdf'],
   ['Gesamtabrechnung_Mieter', 'gesamtabrechnung-mieter.pdf'],
   ['Gesamtabrechnung_intern', 'gesamtabrechnung-intern.pdf'],
+]
+
+/** Seite 1 als Vorschau und Ausschnitt Zahlungsaufforderung mit GiroCode. */
+const PREVIEWS = [
+  ['10-einzelabrechnung-seite-1', ['-r', '80']],
+  [
+    '11-girocode',
+    ['-r', '150', '-x', '120', '-y', '823', '-W', '1050', '-H', '440'],
+  ],
 ]
 
 const run = (command, args, env = {}) => {
@@ -73,20 +86,21 @@ try {
     await copyFile(join(work, source), join(SAMPLES, target))
   }
 
-  const preview = spawnSync('pdftoppm', [
-    '-png',
-    '-r',
-    '80',
-    '-f',
-    '1',
-    '-l',
-    '1',
-    '-singlefile',
-    join(SAMPLES, 'einzelabrechnung-nord-whg3-auszug.pdf'),
-    join(MEDIA, '08-einzelabrechnung-seite-1'),
-  ])
-  if (preview.status !== 0)
-    console.warn('pdftoppm nicht verfügbar – Vorschaubild unverändert.')
+  for (const [name, options] of PREVIEWS) {
+    const preview = spawnSync('pdftoppm', [
+      '-png',
+      ...options,
+      '-f',
+      '1',
+      '-l',
+      '1',
+      '-singlefile',
+      join(SAMPLES, 'einzelabrechnung-nord-whg3-auszug.pdf'),
+      join(MEDIA, name),
+    ])
+    if (preview.status !== 0)
+      console.warn(`pdftoppm nicht verfügbar – ${name}.png unverändert.`)
+  }
 
   const status = run(
     'pnpm',
@@ -97,7 +111,8 @@ try {
       'tests/e2e/medien.spec.ts',
       '--reporter=line',
     ],
-    { MEDIEN_AKTUALISIEREN: '1' },
+    // Datumsfelder im Screenshot in deutscher Schreibweise.
+    { MEDIEN_AKTUALISIEREN: '1', LANG: 'de_DE.UTF-8', LANGUAGE: 'de' },
   )
   if (status !== 0) throw new Error('Screenshots fehlgeschlagen.')
 
@@ -109,7 +124,9 @@ try {
     },
   )
     .split('\n')
-    .filter((path) => /\.(png|pdf)$/u.test(path))
+    // Auch gelöschte, noch nicht vorgemerkte Dateien listet git; sie fehlen
+    // im Manifest.
+    .filter((path) => /\.(png|pdf)$/u.test(path) && existsSync(path))
     .sort()
   const lines = []
   for (const path of files) {

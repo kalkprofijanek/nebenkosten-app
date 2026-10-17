@@ -22,6 +22,7 @@ import type { WorkflowApply } from '../HeatingRoute'
 
 import { FuelSummary } from './FuelSummary'
 import { FuelTaxFields } from './FuelTaxFields'
+import { formatCostCents } from '../costs/cost-format'
 import { parseFuelTaxes } from './fuel-taxes'
 
 const UNITS: readonly QuantityUnit[] = ['l', 'kg', 't', 'kWh', 'm3']
@@ -295,15 +296,17 @@ export function FuelPanel({
                 <div className="record-editor__heading">
                   <div>
                     <p className="section-kicker">
-                      {delivery.date ?? 'Ohne Datum'}
+                      {delivery.date
+                        ? delivery.date.split('-').reverse().join('.')
+                        : 'Ohne Datum'}
                     </p>
                     <h3>{title}</h3>
                     <small>
-                      {delivery.quantity?.value ?? '–'}{' '}
+                      {delivery.quantity?.value?.toLocaleString('de-DE') ?? '–'}{' '}
                       {delivery.quantity?.unit ?? ''} ·{' '}
                       {delivery.amountCents == null
                         ? 'ohne Betrag'
-                        : `${(delivery.amountCents / 100).toFixed(2)} €`}
+                        : formatCostCents(delivery.amountCents)}
                     </small>
                   </div>
                   <button

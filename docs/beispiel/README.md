@@ -9,34 +9,27 @@ Ein vollständiges Abrechnungsjahr 2025 zum Ausprobieren: Datei über
 **Daten importieren** (Kopfleiste) laden, die Vorschau bestätigen und danach
 unter **Berechnung** auf „Abrechnung berechnen“ klicken.
 
-| Merkmal           | Inhalt                                                          |
-| ----------------- | --------------------------------------------------------------- |
-| Häuser            | Haus Nord (Heizöl, zentrales Warmwasser), Haus Süd (Wärmepumpe) |
-| Wohnungen         | 12, davon eine ganzjährig und eine ab Oktober leer              |
-| Nutzerwechsel     | Haus Nord, Wohnung 3 zum 1. Juli                                |
-| Eigentümerwechsel | Übergabe am 1. April; Öllieferung im Februar vom Voreigentümer  |
-| Betriebskosten    | Grundsteuer, Wasser, Müll, Allgemeinstrom, Versicherung         |
-| Heizkosten        | Öl nach FIFO mit Anfangsbestand, Wärmepumpenstrom mit JAZ 3,5   |
-| Belege            | je Kostenart eine Rechnung mit Datum und Belegnummer            |
-| Namen, Anschrift  | erfunden („Erika Mustermann“, „Am Musterhof 1“)                 |
+| Merkmal           | Inhalt                                                                                                                                 |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Häuser            | Haus Nord (Altbau, Heizöl, Heizkostenverteiler), Haus Süd (Neubau, Wärmepumpe, Wärmemengenzähler), beide mit zentralem Warmwasser      |
+| Wohnungen         | 12, davon eine ganzjährig und eine ab Oktober leer                                                                                     |
+| Nutzerwechsel     | Haus Nord, Whg. 3 zum 1. Juli und Haus Süd, Whg. 6 zum 1. Oktober (danach Leerstand), jeweils mit Zwischenablesung und neuer Anschrift |
+| Eigentümerwechsel | Übergabe am 1. April; Öllieferung im Februar vom Voreigentümer, Vorjahreswerte aus dessen Abrechnung                                   |
+| Betriebskosten    | 9 Kostenarten nach § 2 BetrKV mit Rechnung und Belegnummer, Lohnanteile nach § 35a EStG                                                |
+| Heizkosten        | Öl nach FIFO mit Anfangsbestand, Wärmepumpenstrom, Wartung, Schornsteinfeger, Messdienst                                               |
+| Warmwasser        | Wärmemenge nach Wärmezähler (§ 9 Abs. 2 HeizKV), Verteilung 70 % nach m³ (§ 8 HeizKV)                                                  |
+| § 6a HeizKV       | Heizspiegel 2026 (echte Klassengrenzen), DWD-Klimafaktor (Beispielwert), Steuern und Abgaben                                           |
+| Bankverbindung    | fiktive IBAN mit nicht vergebener Bankleitzahl 00000000 und Kontoinhaber → GiroCode                                                    |
+| Namen, Anschrift  | erfunden („Erika Mustermann“, „Am Musterhof 1“, PLZ 12345)                                                                             |
 
 Ergebnis ohne eigene Eingaben: [Screenshots und Musterabrechnungen
-(PDF)](../medien/README.md).
+(PDF)](../medien/README.md). Die Prüfung meldet **keinen Fehler, keine
+Warnung und keinen Hinweis**; Kontrolldifferenz 0,00 €, sechs Nachzahlungen
+und sechs Guthaben.
 
-Erwarteter Prüfhinweis: Die Freigabe meldet „IBAN fehlt“ – tragen Sie Ihre
-eigene Bankverbindung unter **Objekte** bzw. **Firmen** ein. Die übrigen
-Warnungen sind gewollt und zeigen, welche Angaben eine echte Abrechnung
-zusätzlich braucht:
-
-| Warnung                                         | Was in einer echten Abrechnung fehlt                          |
-| ----------------------------------------------- | ------------------------------------------------------------- |
-| Vergleich mit Durchschnittsnutzer (§ 6a HeizKV) | Vergleichswerte, z. B. aus dem Heizspiegel                    |
-| Warmwasseranteil pauschal (§ 9 Abs. 2 HeizKV)   | Wärmemenge für Warmwasser (Wärmezähler oder Formel)           |
-| Warmwasser nach Personen (§ 8 Abs. 1 HeizKV)    | Verteilung nach Warmwasserverbrauch und Fläche                |
-| Gemischter Maßstab (§ 9b Abs. 3 HeizKV)         | Zwischenablesung beim Mieterwechsel oder Aufteilungsverfahren |
-| Lieferbeleg fehlt                               | Rechnung der Brennstofflieferung als Beleg                    |
-| Entgelte für Verbrauchserfassung                | Kostenart für Messdienst/Ablesung, falls vorhanden            |
-| CO₂-Preis des Anfangsbestands                   | CO₂-Preis des Lieferjahres für den übernommenen Tankinhalt    |
+Für eine eigene Abrechnung ersetzen Sie mindestens die Bankverbindung
+(**Objekte** bzw. **Firmen**) und den Klimafaktor des Deutschen
+Wetterdienstes für Ihre Postleitzahl ([Datenquellen](../DATENQUELLEN.md)).
 
 Die Datei wird aus `tests/integration/beispielobjekt.test.ts` erzeugt
 (`BEISPIEL_AKTUALISIEREN=1 pnpm test:integration`); der Test stellt sicher,

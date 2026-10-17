@@ -1,45 +1,62 @@
 # So sieht die App aus – Rundgang und Musterabrechnungen
 
 Alle Bilder und PDFs auf dieser Seite stammen aus dem **fiktiven
-Beispielobjekt** ([`docs/beispiel/`](../beispiel/README.md)): zwei Häuser,
-zwölf Wohnungen, Heizöl und Wärmepumpe, ein Nutzerwechsel, Leerstand und ein
-Eigentümerwechsel zum 1. April 2025. Namen wie „Erika Mustermann“ und die
-Anschrift „Am Musterhof 1“ sind erfunden.
+Beispielobjekt** ([`docs/beispiel/`](../beispiel/README.md)): zwei Häuser mit
+zwölf Wohnungen – ein Altbau mit Ölheizung und Heizkostenverteilern, ein
+Neubau mit Wärmepumpe und Wärmemengenzählern –, Mieterwechsel mit
+Zwischenablesung, Leerstand und Kauf des Objekts zum 1. April 2025. Die
+Abrechnung ist vollständig erfasst und besteht die Prüfung **ohne Fehler,
+Warnungen oder Hinweise**.
+
+Namen, Anschriften, Gerätenummern und die Bankverbindung sind erfunden (die
+IBAN nutzt die nicht vergebene Bankleitzahl 00000000; eine Überweisung
+dorthin wird abgelehnt). Echt sind die Rechtsgrundlagen und die
+Vergleichswerte aus dem
+[Heizspiegel für Deutschland 2026](https://www.heizspiegel.de/)
+(Abrechnungsjahr 2025).
 
 Selbst ausprobieren: [App öffnen](https://kalkprofijanek.github.io/nebenkosten-app/)
-→ **Daten importieren** → `beispielobjekt.json`. Die Daten bleiben im eigenen
-Browser.
+→ **Daten importieren** →
+[`beispielobjekt.json`](../beispiel/beispielobjekt.json). Die Daten bleiben im
+eigenen Browser.
 
 ## Musterabrechnungen 2025 (PDF)
 
 So erhält ein Mieter seine Abrechnung – unverändert aus der App erzeugt:
 
-| Datei                                                                                                      | Was der Fall zeigt                                                                                    |
-| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| [Einzelabrechnung Haus Nord, Whg. 1](musterabrechnung-2025/einzelabrechnung-nord-whg1-oelheizung.pdf)      | Ganzjährige Nutzung, Ölheizung mit Brennstoffkonto (FIFO), 70/30-Verteilung, CO₂-Aufteilung, Guthaben |
-| [Einzelabrechnung Haus Nord, Whg. 3 – Auszug](musterabrechnung-2025/einzelabrechnung-nord-whg3-auszug.pdf) | Nutzerwechsel zum 30.06.: Zeitanteil 181/365 Tage, Nachzahlung mit Zahlungsfrist                      |
-| [Einzelabrechnung Haus Nord, Whg. 3 – Einzug](musterabrechnung-2025/einzelabrechnung-nord-whg3-einzug.pdf) | Nachmieter ab 01.07., gleiche Wohnung, eigener Zeitraum                                               |
-| [Einzelabrechnung Haus Süd, Whg. 1](musterabrechnung-2025/einzelabrechnung-sued-whg1-waermepumpe.pdf)      | Wärmepumpe: keine CO₂-Kosten nach BEHG, Guthaben mit Auszahlungstext                                  |
-| [Gesamtabrechnung für Mieter](musterabrechnung-2025/gesamtabrechnung-mieter.pdf)                           | Fassung zur Einsicht für Mieter                                                                       |
-| [Gesamtabrechnung intern](musterabrechnung-2025/gesamtabrechnung-intern.pdf)                               | Kontrollfassung für den Vermieter mit Kontrollsumme (muss 0,00 € sein)                                |
+| Datei                                                                                             | Was der Fall zeigt                                                                                              |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| [Haus Nord, Whg. 1 – Ölheizung](musterabrechnung-2025/einzelabrechnung-nord-whg1-oelheizung.pdf)  | ganzjährige Nutzung, Brennstoffkonto (FIFO), 70/30-Verteilung, Warmwasser nach Zähler, CO₂-Aufteilung, Guthaben |
+| [Haus Nord, Whg. 3 – Auszug](musterabrechnung-2025/einzelabrechnung-nord-whg3-auszug.pdf)         | Auszug zum 30.06. mit Zwischenablesung, Versand an die neue Anschrift, Nachzahlung mit **GiroCode**             |
+| [Haus Nord, Whg. 3 – Einzug](musterabrechnung-2025/einzelabrechnung-nord-whg3-einzug.pdf)         | Nachmieterin ab 01.07., Verwendungszweck „… ab 01.07.“, Vergleich hochgerechnet nach Gradtagszahlen             |
+| [Haus Süd, Whg. 2 – Wärmepumpe](musterabrechnung-2025/einzelabrechnung-sued-whg2-waermepumpe.pdf) | Wärmepumpe mit Wärmemengenzählern, Warmwasser nach Wärmezähler, keine CO₂-Kosten, Nachzahlung mit GiroCode      |
+| [Gesamtabrechnung für Mieter](musterabrechnung-2025/gesamtabrechnung-mieter.pdf)                  | Kostenaufstellung der Abrechnungseinheit für die Mieter                                                         |
+| [Gesamtabrechnung intern](musterabrechnung-2025/gesamtabrechnung-intern.pdf)                      | Kontrollfassung für den Vermieter mit Kontrollsumme (muss 0,00 € sein)                                          |
 
-![Erste Seite einer Einzelabrechnung](08-einzelabrechnung-seite-1.png)
+Jede Einzelabrechnung enthält die Angaben nach § 6a HeizKV:
+Vorjahresvergleich (witterungsbereinigt mit DWD-Klimafaktor, Vorjahreswert
+aus der Abrechnung des Voreigentümers), Einstufung nach dem Heizspiegel,
+Steuern und Abgaben in den Energiekosten, Messdienstentgelte, Hinweis auf
+Verbraucherorganisationen und Schlichtungsstelle; dazu die Aufstellung nach
+§ 35a EStG.
 
-**Lesehinweis:** Das Beispiel ist bewusst nicht „perfekt“. Die Prüfung meldet
-unter anderem fehlende Vergleichswerte nach § 6a HeizKV, einen pauschalen
-Warmwasseranteil statt gemessener Wärmemenge (§ 9 Abs. 2 HeizKV) und
-Nutzerwechsel ohne Zwischenablesung (§ 9b HeizKV). Genau diese Hinweise
-zeigen, welche Angaben eine echte Abrechnung zusätzlich braucht – siehe
-[Rundgang, Schritt 7](#7-freigabe-prüfhinweise-abarbeiten).
+![Erste Seite einer Einzelabrechnung](10-einzelabrechnung-seite-1.png)
 
-## Rundgang in sieben Bildern
+**GiroCode:** Bei einer Nachzahlung steht neben der Zahlungsaufforderung ein
+QR-Code nach EPC-Standard. Der Mieter scannt ihn mit der Banking-App;
+Empfänger, IBAN, Betrag und Verwendungszweck sind dann ausgefüllt. Ohne
+hinterlegten Kontoinhaber druckt die App bewusst keinen Code, weil die Bank
+des Mieters den Empfängernamen seit Oktober 2025 mit dem Konto abgleicht.
+
+![Zahlungsaufforderung mit GiroCode](11-girocode.png)
+
+## Rundgang in neun Bildern
 
 ### 1. Übersicht
 
 ![Übersicht nach dem Import](01-uebersicht.png)
 
-- Oben links **Firma, Objekt, Zeitraum** wählen; alle Seiten beziehen sich
-  darauf.
+- Oben **Firma, Objekt, Zeitraum** wählen; alle Seiten beziehen sich darauf.
 - Die Leiste unter der Überschrift zeigt jederzeit Fehler und Warnungen;
   **Zur Freigabeprüfung** springt zur Liste.
 - **Mit KI arbeiten** kopiert einen fertigen Arbeitsauftrag für einen
@@ -54,54 +71,75 @@ zeigen, welche Angaben eine echte Abrechnung zusätzlich braucht – siehe
 Vor jeder Übernahme zeigt die App, was die Datei enthält. Erst **Geprüften
 Import übernehmen** ersetzt den Arbeitsstand; vorher wird ein
 Wiederherstellungspunkt angelegt. Unterstützt: Sicherungen dieser App und
-`nk-daten.json` der Alt-App.
+`nk-daten.json` der Alt-App. Mieterlisten aus Excel/CSV übernimmt der
+Bereich **Nutzer**.
 
 ### 3. Jahresabrechnung – Belegung prüfen
 
 ![Wohnungen und Belegungen](03-jahresabrechnung-belegung.png)
 
 Der Ablauf **Jahresabrechnung** führt durch acht Schritte. Im Schritt
-„Belegung und Vorauszahlungen“ steht jede Wohnung mit allen Nutzungszeiträumen
-des Jahres; Lücken sind Leerstand und gehen zu Lasten des Vermieters.
-„Geprüft – weiter“ markiert den Schritt, „Später prüfen – weiter“ lässt ihn
-offen.
+„Belegung und Vorauszahlungen“ steht jede Wohnung mit allen
+Nutzungszeiträumen des Jahres; Lücken sind Leerstand und gehen zu Lasten des
+Vermieters. „Geprüft – weiter“ markiert den Schritt, „Später prüfen –
+weiter“ lässt ihn offen.
 
-### 4. Kosten
+### 4. Zählerstände und Verbrauch
 
-![Kostenarten mit Summen](04-kosten.png)
+![Zählerstände je Nutzer](04-verbrauch.png)
+
+Je Nutzer: Gerätenummer, Stand alt und neu mit Datum, daraus der Verbrauch,
+Warmwasser in m³ und der Vorjahresverbrauch mit Quelle. Beim Mieterwechsel
+(Whg. 3) endet der Stand des Vormieters am 30.06. und der Nachmieter beginnt
+am 01.07. mit demselben Wert – das ist die **Zwischenablesung** nach § 9b
+HeizKV. Fehlt ein Wert, schätzt **Schätzen** ihn nach § 9a HeizKV.
+
+### 5. Kosten
+
+![Kostenarten mit Summen](05-kosten.png)
 
 Je Kostenart: Typ, Umlageschlüssel und Summe der Belege. Belege erfassen Sie
 unter **Kostenpositionen** einzeln oder als CSV-Liste aus der KI-Erfassung;
 Kontoauszüge unter **Bankbuchungen** ([CSV-Formate](../BANK-CSV-FORMAT.md)).
-Ohne Beleg nur einen Betrag einzutragen, meldet die Prüfung.
+Messdienstkosten als solche kennzeichnen – die Einzelabrechnung nennt sie
+nach § 6a Abs. 3 HeizKV gesondert.
 
-### 5. Brennstoffe und Bestand
+### 6. Brennstofflieferungen
 
-![Brennstoffkonto mit Anfangsbestand](05-brennstoffe.png)
+![Brennstofflieferungen](06-brennstoffe.png)
 
-Für Öl, Pellets oder Flüssiggas: Anfangsbestand mit Menge und Wert,
-Lieferungen mit Menge und Betrag, Restbestand am Jahresende. Die App bewertet
-den Verbrauch nach FIFO. **Immer die Menge mit erfassen** – ohne Menge sind
-Warmwasseranteil und Energiebilanz nicht prüfbar.
+Für Öl, Pellets oder Flüssiggas: Anfangsbestand, jede Lieferung mit Menge,
+Betrag, Rechnungsnummer sowie Umsatzsteuer, Energiesteuer und CO₂-Kosten
+laut Rechnung, Restbestand am Jahresende. Die App bewertet den Verbrauch nach
+FIFO. **Immer die Menge mit erfassen** – ohne Menge sind Warmwasseranteil
+und Energiebilanz nicht prüfbar.
 
-### 6. Berechnung
+### 7. Berechnung
 
-![Abrechnungsvorschau je Wohnung](06-berechnung.png)
+![Abrechnungsvorschau je Wohnung](07-berechnung.png)
 
 „Abrechnung berechnen“ zeigt Nachzahlungen, Guthaben, Leerstandskosten und
 jede Mietpartei mit Kostenanteil und Vorauszahlungen. **Entwurf öffnen**
 erzeugt die Einzelabrechnung als PDF zur Kontrolle.
 
-### 7. Freigabe: Prüfhinweise abarbeiten
+### 8. Prüfung und Freigabe
 
-![Prüfung und Freigabe](07-freigabe-pruefhinweise.png)
+![Prüfung und Freigabe](08-freigabe.png)
 
-Fehler sperren die Freigabe, Warnungen müssen bestätigt oder behoben werden.
-Jeder Hinweis nennt die Rechtsgrundlage und führt mit **Ergänzen** bzw. einem
-Link direkt zur Eingabestelle. Im Beispiel bleibt gewollt ein Fehler offen:
-„IBAN fehlt“ – tragen Sie Ihre eigene Bankverbindung unter **Objekte** ein.
-Erst nach der Freigabe stehen unter **PDF und Export** die Versand-PDFs
-bereit.
+**Prüfung starten** sperrt den Stand; Fehler blockieren die Freigabe,
+Warnungen müssen bestätigt oder behoben werden. Jeder Hinweis nennt die
+Rechtsgrundlage und führt mit einem Link direkt zur Eingabestelle. Das
+Beispiel ist vollständig erfasst: keine Hinweise, **Für PDF freigeben** ist
+sofort möglich.
+
+### 9. PDF und Export
+
+![PDF und Export](09-pdf-export.png)
+
+Aus dem freigegebenen Rechenstand entstehen die Einzelabrechnungen (einzeln
+oder als ZIP) und die Gesamtabrechnung in zwei Fassungen. Danach unter
+**Freigabe** das Versanddatum eintragen und finalisieren; die Frist nach
+§ 556 Abs. 3 BGB endet für 2025 am 31.12.2026.
 
 ## Bilder und PDFs neu erzeugen
 
