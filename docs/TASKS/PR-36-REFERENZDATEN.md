@@ -28,3 +28,21 @@ Tests, diese Datei.
 
 Lizenz und Quelle der Daten dokumentiert; Tests für Parser und Vorschlag;
 Auswirkung auf die Build-Größe dokumentiert.
+
+## Entscheidung (17. Oktober 2026)
+
+Nutzerentscheidung: Referenzdaten werden **nicht mitgeliefert**, sondern
+verlinkt; im KI-Ablauf ruft der Agent die Werte selbst aus der Originalquelle
+ab (mit Fundstelle und Abrufdatum). Damit entfallen Build-Skript, Lizenzfrage
+der Heizspiegel-Daten (kommerzielle Nutzung nur mit Genehmigung von
+co2online) und die Zunahme der Build-Größe.
+
+## Umsetzungsstand
+
+- `docs/DATENQUELLEN.md`: Quellen für Klimafaktoren (DWD Open Data),
+  Vergleichswerte (Heizspiegel), Gradtagszahlen (in der App), CO₂-Preis
+  (DEHSt), Rechnungsangaben und Rechtsgrundlagen.
+- Oberfläche: Quellenhinweis mit Link unter „Klimafaktor (DWD)“ und
+  „Vergleichswerte (Heizspiegel)“ (`apps/web/src/features/reference-sources.ts`).
+- `docs/KI-ANLEITUNG.md`: Schritt „Referenzwerte selbst abrufen“ und Regel 11
+  der Arbeitsanweisung.

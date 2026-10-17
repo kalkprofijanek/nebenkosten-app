@@ -269,6 +269,7 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 
 - [`docs/BENUTZERHANDBUCH.md`](docs/BENUTZERHANDBUCH.md) – Bedienung für Anwender
 - [`docs/KI-ANLEITUNG.md`](docs/KI-ANLEITUNG.md) – Arbeiten mit Claude/ChatGPT
+- [`docs/DATENQUELLEN.md`](docs/DATENQUELLEN.md) – Klimafaktoren, Heizspiegel, CO₂-Preis und Rechtsgrundlagen (Quellen; im KI-Ablauf ruft der Agent die Werte selbst ab)
 - [`docs/BANK-CSV-FORMAT.md`](docs/BANK-CSV-FORMAT.md) – CSV-Import von Bankbuchungen
 - [`docs/PROJECT.md`](docs/PROJECT.md) – Projektauftrag und Invarianten
 - [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md) – Ziel-Datenmodell
