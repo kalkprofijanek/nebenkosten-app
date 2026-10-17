@@ -20,3 +20,12 @@ Stand: 16. Oktober 2026. Auftrag: Roadmap Phase 2, Punkt 9.
 ## Abnahme
 
 Fachlich gegengelesen; keine echten Daten; Format-Check grün.
+
+## Umsetzungsstand
+
+- `docs/ERSTE-ABRECHNUNG.md`: Beispielobjekt laden, acht Schritte der
+  Jahresabrechnung, Versand und Frist (§ 556 Abs. 3 BGB), „Objekt im Jahr
+  gekauft“ (mit Hinweis, dass der Assistent aus PR-30 Teil 2 noch folgt),
+  typische Fehler, Datensicherung.
+- README: Verweis auf Anleitung und Beispielobjekt.
+- Fachliche Gegenlesung durch den Vermieter steht aus.
