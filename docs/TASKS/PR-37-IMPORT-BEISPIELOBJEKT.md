@@ -37,5 +37,23 @@ Tests je Vorlage; Privacy-Scan grün; Beispielobjekt rechnet ohne Fehler.
   `apps/web/src/features/import/beispielobjekt.test.tsx` (lädt über den
   normalen Import).
 - Beschreibung: `docs/beispiel/README.md`.
-- Offen (Teil 2): Vorlagen CSV/XLSX für Wohnungen/Mieter, Vorauszahlungen,
-  Zählerstände und Kosten mit Import, Vorschau und Fehlerliste.
+
+## Umsetzungsstand (Teil 2: Mieterliste)
+
+- Vorlage „Mieterliste“ (`packages/import-export/src/csv/tenant-list.ts`):
+  Wohnungen mit Fläche und Lage, Mieter oder Leerstand, Von/Bis, Personen und
+  Vorauszahlung (monatlich, jährlich oder keine) in einer CSV; Fehler werden
+  je Zeile gesammelt.
+- Übernahme (`apps/web/src/features/import/tenant-list-import.ts`): Probelauf
+  für die Vorschau, alles oder nichts, Zuordnung vorhandener Wohnungen über
+  die Bezeichnung, Anlage fehlender Wohnungen, keine stille Änderung von
+  Flächen oder Gebäuden, Überschneidungs- und Zeitraumprüfung der
+  bestehenden Belegungs-Commands.
+- Oberfläche: Abschnitt „Mieterliste aus Excel/CSV übernehmen“ auf der Seite
+  **Nutzer** (`TenantListCsvImport.tsx`), auch ohne vorhandene Wohnungen.
+  Zusätzlich freigegebener Pfad für die Einbindung:
+  `apps/web/src/features/workflows/OccupanciesRoute.tsx`.
+- Kosten: bereits über die KI-Erfassungsliste (`parseAiCostCsv`) abgedeckt.
+- Offen (Teil 3): Zählerstände mit Datum aus Ablesebogen/Messdienst-CSV in
+  der Oberfläche (Parser `parseMeterServiceCsv` vorhanden, Prüfung aus PR-31
+  anbinden); XLSX direkt statt CSV.

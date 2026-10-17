@@ -36,6 +36,13 @@ Der Ablauf **Jahresabrechnung** führt durch acht Schritte:
 
 Tipps:
 
+- **Mieterliste aus Excel**: Unter **Nutzer** die Vorlage herunterladen, je
+  Zeile eine Belegung eintragen (Wohnung, Fläche, Mieter, Von/Bis,
+  Vorauszahlung; ohne Mieter = Leerstand), als CSV (Semikolon, UTF-8)
+  speichern und wieder laden. Die App zeigt eine Vorschau und listet Fehler
+  mit Zeilennummer; übernommen wird erst nach Bestätigung, nur wenn alle
+  Zeilen stimmen. Fehlende Wohnungen werden angelegt, Gebäude vorher unter
+  Stammdaten anlegen.
 - **Mengen immer mit erfassen** (Liter, kg, kWh), nicht nur Beträge. Ohne
   Menge kann die App Warmwasseranteil, Energiebilanz und Bestand nicht prüfen.
 - **Zählerstände mit Datum** eingeben. Die App prüft die Reihe über mehrere

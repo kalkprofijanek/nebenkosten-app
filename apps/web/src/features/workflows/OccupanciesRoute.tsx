@@ -10,6 +10,7 @@ import {
 } from '../occupancies/commands'
 import type { InterimReadingDraft } from '../occupancies/interim-reading'
 import { InterimReadingNotice } from '../occupancies/InterimReadingNotice'
+import { TenantListCsvImport } from '../import/TenantListCsvImport'
 import { WorkflowField } from './form-support'
 import { formOptionalText, formText } from './form-values'
 import type { WorkflowSubRouteProps } from './route-types'
@@ -219,9 +220,23 @@ export function OccupanciesRoute({
     }
   }
 
+  const tenantListImport = (
+    <TenantListCsvImport
+      data={data}
+      billingPeriodId={period.id}
+      onApply={apply}
+    />
+  )
+
   if (units.length === 0)
     return (
-      <p role="alert">Für dieses Objekt ist noch keine Einheit vorhanden.</p>
+      <>
+        <p role="alert">
+          Für dieses Objekt ist noch keine Einheit vorhanden. Legen Sie
+          Einheiten unter Stammdaten an oder übernehmen Sie eine Mieterliste.
+        </p>
+        {tenantListImport}
+      </>
     )
 
   return (
@@ -240,6 +255,7 @@ export function OccupanciesRoute({
         saveVacancy={saveVacancy}
         confirmDelete={confirmDelete}
       />
+      {tenantListImport}
       <section aria-labelledby="new-occupancy-title">
         <h2 id="new-occupancy-title">Neue Belegung erfassen</h2>
         <form
