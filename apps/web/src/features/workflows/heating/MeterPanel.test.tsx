@@ -51,6 +51,16 @@ const meterHeading = () =>
   screen.getByRole('heading', { level: 2, name: /TEST-WMZ/ })
 
 describe('MeterPanel', () => {
+  it('bietet den Zählerstand-Import aus CSV an', () => {
+    render(show())
+    expect(
+      screen.getByRole('region', { name: 'Zählerstände importieren' }),
+    ).toBeVisible()
+    expect(
+      screen.getByLabelText('CSV mit Zählerständen auswählen'),
+    ).toBeVisible()
+  })
+
   it('wählt ohne Korrekturlink den ersten Zähler', () => {
     render(show())
     expect(meterHeading()).toHaveTextContent('TEST-WMZ-1')

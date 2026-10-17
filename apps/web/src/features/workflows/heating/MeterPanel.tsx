@@ -17,6 +17,7 @@ import {
   updateMeterReading,
   upsertMeterBillingStatus,
 } from '../../metering/meter-commands'
+import { MeterReadingCsvImport } from '../../import/MeterReadingCsvImport'
 import { WorkflowField } from '../form-support'
 import { formOptionalText, formText } from '../form-values'
 import type { WorkflowSubRouteProps } from '../route-types'
@@ -580,6 +581,12 @@ export function MeterPanel({
       ) : (
         <p>Noch kein Zähler für dieses Objekt angelegt.</p>
       )}
+
+      <MeterReadingCsvImport
+        data={data}
+        billingPeriodId={period.id}
+        onApply={apply}
+      />
 
       {deleteTarget ? (
         <div className="dialog-backdrop" role="presentation">
