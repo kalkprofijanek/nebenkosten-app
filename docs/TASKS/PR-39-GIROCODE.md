@@ -48,7 +48,7 @@ Saldo entfällt er. Die Berechnungslogik bleibt unverändert.
   GiroCode gedruckt. Grund: Seit Oktober 2025 gleichen Banken den
   Empfängernamen mit dem Kontoinhaber ab (Empfängerüberprüfung,
   Verordnung (EU) 2024/886); ein abweichender Name löst beim Mieter eine
-  Warnung aus. Prüfhinweis (Warnung)
+  Warnung aus. Prüfhinweis (Stufe info, blockiert die Freigabe nicht)
   `master_data.account_holder_missing` in `packages/validators`.
 - **E-39-2 = A – Nutzungsbeginn bei Mieterwechsel:** Hat dieselbe Einheit im
   Abrechnungszeitraum einen weiteren Mieter-Nutzungszeitraum und beginnt der

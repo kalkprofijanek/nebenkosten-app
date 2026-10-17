@@ -12,7 +12,10 @@ function releaseReadyData() {
           organizationId: 'org-1',
           name: 'Fiktive Eigentümerin',
           additionalNameLines: [],
-          bankAccount: { iban: ['DE89', '370400440532013000'].join('') },
+          bankAccount: {
+            iban: ['DE89', '370400440532013000'].join(''),
+            accountHolder: 'Fiktive Eigentümerin',
+          },
         },
       ],
       properties: [

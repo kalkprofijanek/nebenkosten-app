@@ -87,11 +87,12 @@ function masterData(data: AppDataFile, period: BillingPeriod, add: Add): void {
       ),
     )
   // PR-39: Ohne Kontoinhaber druckt die Abrechnung keinen GiroCode, weil die
-  // Empfängerüberprüfung der Bank sonst beim Mieter warnt.
+  // Empfängerüberprüfung der Bank sonst beim Mieter warnt. Nur Hinweis: Die
+  // Abrechnung bleibt richtig und die Freigabe wird nicht blockiert.
   else if (blank(bankAccount?.accountHolder))
     add(
       issue(
-        'warning',
+        'info',
         'master_data.account_holder_missing',
         'master_data',
         'Kontoinhaber fehlt – die Abrechnung enthält keinen GiroCode',
