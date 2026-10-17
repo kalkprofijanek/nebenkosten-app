@@ -113,6 +113,19 @@ export const climateFactorSchema = z
   })
 export type ClimateFactor = z.infer<typeof climateFactorSchema>
 
+/**
+ * Eigentümerwechsel im Abrechnungsjahr (PR-30): Der Erwerber rechnet das
+ * ganze Jahr ab; Kosten bis zum Übergabetag stammen oft aus der
+ * Erwerberabrechnung des Voreigentümers. `previousOwnerLabel` ist eine
+ * interne Bezeichnung und erscheint nicht im Mieter-PDF.
+ */
+export const ownershipChangeSchema = z.strictObject({
+  /** Übergabetag (Besitz-, Nutzen- und Lastenübergang). */
+  transferDate: isoDateSchema,
+  previousOwnerLabel: z.string().trim().max(200).nullish(),
+})
+export type OwnershipChange = z.infer<typeof ownershipChangeSchema>
+
 /** BillingPeriod / Abrechnungsjahr (Legacy: `Abrechnung`). */
 export const billingPeriodSchema = z.strictObject({
   legacyUnmapped: legacyUnmappedSchema.nullish(),
@@ -132,5 +145,7 @@ export const billingPeriodSchema = z.strictObject({
   lastModifiedAt: isoTimestampSchema.nullish(),
   /** Klimafaktor für die Witterungsbereinigung (additiv, Schema v5). */
   climateFactor: climateFactorSchema.nullish(),
+  /** Eigentümerwechsel im Abrechnungsjahr (additiv, Schema v5, PR-30). */
+  ownershipChange: ownershipChangeSchema.nullish(),
 })
 export type BillingPeriod = z.infer<typeof billingPeriodSchema>

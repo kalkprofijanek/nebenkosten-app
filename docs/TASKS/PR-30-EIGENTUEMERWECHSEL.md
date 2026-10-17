@@ -37,3 +37,45 @@ Anschaffungspreis.
 
 Tests zuerst: FIFO mit Übernahmelos, Abschlag-Warnung, Preisabweichung,
 Migration ohne Datenverlust. Nur fiktive Daten.
+
+## Umsetzungsstand (Teil 1)
+
+### Schnittstellenänderung (Schema, additiv v5)
+
+- Grund: Erwerberabrechnungen enthalten Abschläge, Schätzungen und
+  Schätzpreise; das war im Datenmodell nicht unterscheidbar.
+- Vertrag (alle Felder optional, `nullish`):
+  - `BillingPeriod.ownershipChange { transferDate, previousOwnerLabel }`
+    (`previousOwnerLabel` nur intern, nie im Mieter-PDF),
+  - `CostEntry.origin` / `FuelDelivery.origin`: `previous_owner | own`
+    (leer = eigene),
+  - `CostEntry.amountBasis` / `FuelDelivery.amountBasis`:
+    `invoice | advance_payments | estimate` (leer = Rechnung),
+  - `FuelStock.valuationBasis`: `acquisition_cost | seller_valuation`,
+    `FuelStock.valuationReason`.
+- Migration: keine Versionsänderung; bestehende v5-Dateien bleiben gültig,
+  ältere Dateien werden wie bisher migriert (neue Felder leer).
+- Rechenkern unverändert: FIFO bewertet den Übernahmebestand mit
+  `openingPricePerUnitCents` wie jeden Anfangsbestand.
+
+### Prüfungen (Validator)
+
+- `heating.energy_amount_not_invoiced`: Energie bzw. Heizkosten nach
+  Abschlägen oder Schätzung.
+- `heating.previous_owner_quantity_missing`: Verkäuferzeitraum (Herkunft
+  Voreigentümer oder Datum vor Übergabe) ohne Menge.
+- `heating.opening_stock_seller_valuation`: Verkäuferbewertung ohne
+  Begründung.
+- `heating.fuel_price_deviation`: Preis je Einheit weicht über 20 % von
+  Folgelieferung, Vorjahr oder Anfangsbestand ab (nur lagerfähige
+  Brennstoffe).
+
+### PDF
+
+- Neutraler Hinweis mit Übergabetag vor dem Einwendungshinweis, ohne
+  Personendaten des Voreigentümers.
+
+### Offen (Teil 2)
+
+- Assistent „Objekt im Jahr gekauft“ in der Oberfläche (Übergabetag,
+  Herkunft und Betragsgrundlage je Position, Bestandsbewertung).
