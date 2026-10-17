@@ -14,6 +14,13 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
   der nachfolgende Mieter den Verwendungszweck „NK <Jahr> <Einheit> ab
   TT.MM.“ (QR-Code und Text);
   Berechnung unverändert, keine neue Abhängigkeit (pdfmake-QR),
+- **Mieterliste aus Excel/CSV (PR-37 Teil 2)**: Vorlage „Mieterliste“ zum
+  Herunterladen unter **Nutzer**; je Zeile eine Belegung (Wohnung mit Fläche,
+  Mieter oder Leerstand, Von/Bis, Personen, Vorauszahlung monatlich, jährlich
+  oder keine). Vorschau mit Probelauf, Fehlerliste mit Zeilennummern, Übernahme
+  nur vollständig; vorhandene Wohnungen werden über die Bezeichnung
+  zugeordnet, fehlende angelegt, abweichende Flächen oder Gebäude nie still
+  überschrieben. Auch nutzbar, solange ein Objekt noch keine Wohnung hat.
 - **Warmwasseranteil bei Wärmepumpen (ADR-0010 „Wärmepumpen“)**: s = Q ÷
   erzeugte Wärme statt ÷ Strom-kWh; neue optionale Felder
   `HeatingCircuit.generatedHeatKwh` (gemessene Wärmemenge am Erzeuger) und
