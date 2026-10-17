@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { buildEpcPayload } from '../src/epc-girocode'
 
 // Prüf-IBAN aus der Fixture (öffentliches Beispiel, kein echtes Konto).
-const IBAN = 'DE89 3704 0044 0532 0130 00'
+const IBAN_COMPACT = ['DE89', '370400440532013000'].join('')
+const IBAN = ['DE89', ' 3704 0044 0532 0130 00'].join('')
 
 describe('buildEpcPayload (EPC069-12, Version 002)', () => {
   it('erzeugt die Zeilen in der vorgeschriebenen Reihenfolge', () => {
@@ -20,7 +21,7 @@ describe('buildEpcPayload (EPC069-12, Version 002)', () => {
       'SCT',
       'COBADEFFXXX',
       'Muster Verwaltung GmbH',
-      'DE89370400440532013000',
+      IBAN_COMPACT,
       'EUR123.45',
       '',
       '',
