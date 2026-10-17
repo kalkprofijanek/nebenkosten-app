@@ -42,6 +42,10 @@ Tipps:
   Jahre auf Ablesefehler.
 - Unter **Freigabe** zeigen die Liste „Neue Angaben ergänzen“ und der Bericht
   **Veränderung zum Vorjahr** (mit CSV-Export), was noch fehlt bzw. auffällt.
+- **Klimafaktor und Vergleichswerte** stammen vom Deutschen Wetterdienst bzw.
+  aus dem Heizspiegel; die Links stehen an der Eingabestelle und in
+  [`DATENQUELLEN.md`](DATENQUELLEN.md). Mit KI-Agent ruft dieser die Werte
+  selbst ab.
 
 ## 2. Versand und Frist
 
