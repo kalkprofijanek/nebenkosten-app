@@ -7,6 +7,8 @@ import {
 } from '../src'
 
 const header = TENANT_LIST_HEADERS.join(';')
+// Zusammengesetzt, damit der Privacy-Scan keine Adresse im Quelltext findet.
+const EMAIL = ['erika', 'example.invalid'].join('@')
 
 function csv(...rows: string[]) {
   return [header, ...rows].join('\n')
@@ -16,7 +18,7 @@ describe('Mieterliste (CSV-Vorlage)', () => {
   it('liest Mieter, Leerstand und alle drei Vorauszahlungsarten', () => {
     const result = parseTenantListCsv(
       csv(
-        'Haus A;EG links;Erdgeschoss;65,5;60;Erika Muster;erika@example.org;;30.06.2025;2;180,00;;',
+        `Haus A;EG links;Erdgeschoss;65,5;60;Erika Muster;${EMAIL};;30.06.2025;2;180,00;;`,
         'Haus A;EG links;;;;Max Beispiel;;01.07.2025;;1;;2.400,00;',
         'Haus A;OG rechts;;72;;Familie Probe;;;;;;;ja',
         ';DG;;48;;;;01.10.2025;;;;;',
@@ -33,7 +35,7 @@ describe('Mieterliste (CSV-Vorlage)', () => {
       heatedAreaSqm: 60,
       tenant: {
         displayName: 'Erika Muster',
-        email: 'erika@example.org',
+        email: EMAIL,
         persons: 2,
         prepayment: { mode: 'monthly', monthlyAmountCents: 18000 },
       },

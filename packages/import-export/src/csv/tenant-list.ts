@@ -61,7 +61,7 @@ export interface TenantListParseResult {
 /** Fiktive Beispielzeilen; keine echten Personen- oder Vertragsdaten. */
 export const TENANT_LIST_TEMPLATE = [
   TENANT_LIST_HEADERS.join(';'),
-  'Haus A;EG links;Erdgeschoss links;65,50;60,00;Erika Muster;erika@example.org;;30.06.2025;2;180,00;;',
+  'Haus A;EG links;Erdgeschoss links;65,50;60,00;Erika Muster;;;30.06.2025;2;180,00;;',
   'Haus A;EG links;;;;Max Beispiel;;01.07.2025;;1;;2.280,00;',
   'Haus A;OG rechts;1. Obergeschoss rechts;72,00;72,00;Familie Probe;;;;3;;;ja',
   'Haus A;DG;Dachgeschoss;48,00;;;;;;;;;',
