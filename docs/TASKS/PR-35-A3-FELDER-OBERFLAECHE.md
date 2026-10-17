@@ -27,3 +27,14 @@ diese Datei. Kein Schemawechsel.
 ## Abnahme
 
 Web-Tests inkl. Sperre und Audit; mindestens 80 % Abdeckung neuer Code.
+
+## Umsetzungsstand
+
+- Punkt 1 (§ 9b-Auswahl je Nutzerwechsel) ist seit #82 in der
+  Verbrauchsseite vorhanden.
+- Punkt 2: Prüfliste „Neue Angaben ergänzen“ auf der Freigabeseite
+  (`apps/web/src/features/review/import-checklist.ts`): Klimafaktor des
+  Jahres, Warmwasser-Wärmemenge nach § 9 Abs. 2 bei zentralem Warmwasser,
+  Vergleichswerte, Steuern/Abgaben je Lieferung und § 9b-Auswahl bei
+  Nutzerwechsel ohne Zwischenablesung – je mit Sprunglink. Ausgeblendet, wenn
+  nichts fehlt oder der Stand schreibgeschützt ist.
