@@ -1,0 +1,942 @@
+{
+  "schemaVersion": 5,
+  "meta": {
+    "appVersion": "characterization-fixture"
+  },
+  "masterData": {
+    "organizations": [
+      {
+        "id": "org-1",
+        "name": "Musterverwaltung"
+      }
+    ],
+    "ownerCompanies": [
+      {
+        "id": "oc-1",
+        "organizationId": "org-1",
+        "name": "Mustermann Immobilien GmbH",
+        "additionalNameLines": []
+      }
+    ],
+    "properties": [
+      {
+        "id": "prop-1",
+        "ownerCompanyId": "oc-1",
+        "address": {
+          "street": "Beispielangabe",
+          "postalCodeAndCity": "00000 Musterstadt"
+        }
+      }
+    ],
+    "buildings": [
+      {
+        "id": "B1",
+        "propertyId": "prop-1",
+        "name": "Haus Nord",
+        "shortName": "HN",
+        "defaultEnergySourceType": "Heizöl",
+        "mandateRefPrefixes": [
+          "HN"
+        ]
+      },
+      {
+        "id": "B2",
+        "propertyId": "prop-1",
+        "name": "Haus Süd",
+        "shortName": "HS",
+        "defaultEnergySourceType": "Wärmepumpe",
+        "mandateRefPrefixes": [
+          "HS"
+        ]
+      }
+    ],
+    "units": [
+      {
+        "id": "u-n1",
+        "propertyId": "prop-1",
+        "buildingId": "B1",
+        "label": "Einheit u-n1",
+        "usableAreaSqm": {
+          "value": 62,
+          "unit": "m2"
+        },
+        "heatedAreaSqm": {
+          "value": 62,
+          "unit": "m2"
+        }
+      },
+      {
+        "id": "u-n2",
+        "propertyId": "prop-1",
+        "buildingId": "B1",
+        "label": "Einheit u-n2",
+        "usableAreaSqm": {
+          "value": 48,
+          "unit": "m2"
+        },
+        "heatedAreaSqm": {
+          "value": 48,
+          "unit": "m2"
+        }
+      },
+      {
+        "id": "u-n3",
+        "propertyId": "prop-1",
+        "buildingId": "B1",
+        "label": "Einheit u-n3",
+        "usableAreaSqm": {
+          "value": 75,
+          "unit": "m2"
+        },
+        "heatedAreaSqm": {
+          "value": 75,
+          "unit": "m2"
+        }
+      },
+      {
+        "id": "u-n4",
+        "propertyId": "prop-1",
+        "buildingId": "B1",
+        "label": "Einheit u-n4",
+        "usableAreaSqm": {
+          "value": 55,
+          "unit": "m2"
+        },
+        "heatedAreaSqm": {
+          "value": 55,
+          "unit": "m2"
+        }
+      },
+      {
+        "id": "u-n5",
+        "propertyId": "prop-1",
+        "buildingId": "B1",
+        "label": "Einheit u-n5",
+        "usableAreaSqm": {
+          "value": 68,
+          "unit": "m2"
+        },
+        "heatedAreaSqm": {
+          "value": 68,
+          "unit": "m2"
+        }
+      },
+      {
+        "id": "u-n6",
+        "propertyId": "prop-1",
+        "buildingId": "B1",
+        "label": "Einheit u-n6",
+        "usableAreaSqm": {
+          "value": 40,
+          "unit": "m2"
+        },
+        "heatedAreaSqm": {
+          "value": 40,
+          "unit": "m2"
+        }
+      },
+      {
+        "id": "u-s1",
+        "propertyId": "prop-1",
+        "buildingId": "B2",
+        "label": "Einheit u-s1",
+        "usableAreaSqm": {
+          "value": 70,
+          "unit": "m2"
+        },
+        "heatedAreaSqm": {
+          "value": 70,
+          "unit": "m2"
+        }
+      },
+      {
+        "id": "u-s2",
+        "propertyId": "prop-1",
+        "buildingId": "B2",
+        "label": "Einheit u-s2",
+        "usableAreaSqm": {
+          "value": 58,
+          "unit": "m2"
+        },
+        "heatedAreaSqm": {
+          "value": 58,
+          "unit": "m2"
+        }
+      },
+      {
+        "id": "u-s3",
+        "propertyId": "prop-1",
+        "buildingId": "B2",
+        "label": "Einheit u-s3",
+        "usableAreaSqm": {
+          "value": 82,
+          "unit": "m2"
+        },
+        "heatedAreaSqm": {
+          "value": 82,
+          "unit": "m2"
+        }
+      },
+      {
+        "id": "u-s4",
+        "propertyId": "prop-1",
+        "buildingId": "B2",
+        "label": "Einheit u-s4",
+        "usableAreaSqm": {
+          "value": 45,
+          "unit": "m2"
+        },
+        "heatedAreaSqm": {
+          "value": 45,
+          "unit": "m2"
+        }
+      },
+      {
+        "id": "u-s5",
+        "propertyId": "prop-1",
+        "buildingId": "B2",
+        "label": "Einheit u-s5",
+        "usableAreaSqm": {
+          "value": 64,
+          "unit": "m2"
+        },
+        "heatedAreaSqm": {
+          "value": 64,
+          "unit": "m2"
+        }
+      },
+      {
+        "id": "u-s6",
+        "propertyId": "prop-1",
+        "buildingId": "B2",
+        "label": "Einheit u-s6",
+        "usableAreaSqm": {
+          "value": 52,
+          "unit": "m2"
+        },
+        "heatedAreaSqm": {
+          "value": 52,
+          "unit": "m2"
+        }
+      }
+    ],
+    "persons": [
+      {
+        "id": "p-n1",
+        "organizationId": "org-1",
+        "displayName": "Mieter N1",
+        "companyOrPrivate": "Privat"
+      },
+      {
+        "id": "p-n2",
+        "organizationId": "org-1",
+        "displayName": "Mieter N2",
+        "companyOrPrivate": "Privat"
+      },
+      {
+        "id": "p-n3",
+        "organizationId": "org-1",
+        "displayName": "Mieter N3",
+        "companyOrPrivate": "Privat"
+      },
+      {
+        "id": "p-n3b",
+        "organizationId": "org-1",
+        "displayName": "Mieter N3B",
+        "companyOrPrivate": "Privat"
+      },
+      {
+        "id": "p-n4",
+        "organizationId": "org-1",
+        "displayName": "Mieter N4",
+        "companyOrPrivate": "Privat"
+      },
+      {
+        "id": "p-n5",
+        "organizationId": "org-1",
+        "displayName": "Mieter N5",
+        "companyOrPrivate": "Privat"
+      },
+      {
+        "id": "p-s1",
+        "organizationId": "org-1",
+        "displayName": "Mieter S1",
+        "companyOrPrivate": "Privat"
+      },
+      {
+        "id": "p-s2",
+        "organizationId": "org-1",
+        "displayName": "Mieter S2",
+        "companyOrPrivate": "Privat"
+      },
+      {
+        "id": "p-s3",
+        "organizationId": "org-1",
+        "displayName": "Mieter S3",
+        "companyOrPrivate": "Privat"
+      },
+      {
+        "id": "p-s4",
+        "organizationId": "org-1",
+        "displayName": "Mieter S4",
+        "companyOrPrivate": "Privat"
+      },
+      {
+        "id": "p-s5",
+        "organizationId": "org-1",
+        "displayName": "Mieter S5",
+        "companyOrPrivate": "Privat"
+      },
+      {
+        "id": "p-s6",
+        "organizationId": "org-1",
+        "displayName": "Mieter S6",
+        "companyOrPrivate": "Privat"
+      }
+    ],
+    "tenancies": [
+      {
+        "id": "ten-n1",
+        "unitId": "u-n1",
+        "personIds": [
+          "p-n1"
+        ],
+        "mandateReference": "HN_N1"
+      },
+      {
+        "id": "ten-n2",
+        "unitId": "u-n2",
+        "personIds": [
+          "p-n2"
+        ],
+        "mandateReference": "HN_N2"
+      },
+      {
+        "id": "ten-n3",
+        "unitId": "u-n3",
+        "personIds": [
+          "p-n3"
+        ],
+        "mandateReference": "HN_N3",
+        "movedOut": "2025-06-30"
+      },
+      {
+        "id": "ten-n3b",
+        "unitId": "u-n3",
+        "personIds": [
+          "p-n3b"
+        ],
+        "mandateReference": "HN_N3B",
+        "movedIn": "2025-07-01"
+      },
+      {
+        "id": "ten-n4",
+        "unitId": "u-n4",
+        "personIds": [
+          "p-n4"
+        ],
+        "mandateReference": "HN_N4"
+      },
+      {
+        "id": "ten-n5",
+        "unitId": "u-n5",
+        "personIds": [
+          "p-n5"
+        ],
+        "mandateReference": "HN_N5"
+      },
+      {
+        "id": "ten-s1",
+        "unitId": "u-s1",
+        "personIds": [
+          "p-s1"
+        ],
+        "mandateReference": "HS_S1"
+      },
+      {
+        "id": "ten-s2",
+        "unitId": "u-s2",
+        "personIds": [
+          "p-s2"
+        ],
+        "mandateReference": "HS_S2"
+      },
+      {
+        "id": "ten-s3",
+        "unitId": "u-s3",
+        "personIds": [
+          "p-s3"
+        ],
+        "mandateReference": "HS_S3"
+      },
+      {
+        "id": "ten-s4",
+        "unitId": "u-s4",
+        "personIds": [
+          "p-s4"
+        ],
+        "mandateReference": "HS_S4"
+      },
+      {
+        "id": "ten-s5",
+        "unitId": "u-s5",
+        "personIds": [
+          "p-s5"
+        ],
+        "mandateReference": "HS_S5"
+      },
+      {
+        "id": "ten-s6",
+        "unitId": "u-s6",
+        "personIds": [
+          "p-s6"
+        ],
+        "mandateReference": "HS_S6",
+        "movedOut": "2025-09-30"
+      }
+    ],
+    "allocationRules": [],
+    "heatingSystems": [
+      {
+        "id": "hs-1",
+        "propertyId": "prop-1",
+        "name": "Heizanlage"
+      }
+    ],
+    "meters": []
+  },
+  "billingData": {
+    "billingPeriods": [
+      {
+        "id": "bp-1",
+        "propertyId": "prop-1",
+        "year": 2025,
+        "periodStart": "2025-01-01",
+        "periodEnd": "2025-12-31",
+        "status": "DRAFT",
+        "heatingDefaults": {
+          "consumptionSharePercent": 70,
+          "baseSharePercent": 30,
+          "baseCostAreaBasis": "heated_area",
+          "operatingElectricitySharePercent": 5
+        },
+        "ownershipChange": {
+          "transferDate": "2025-04-01",
+          "previousOwnerLabel": "Voreigentümer (fiktiv)"
+        }
+      }
+    ],
+    "occupancyPeriods": [
+      {
+        "id": "op-n1",
+        "billingPeriodId": "bp-1",
+        "unitId": "u-n1",
+        "tenancyId": "ten-n1",
+        "kind": "tenant",
+        "persons": {
+          "value": 2,
+          "unit": "personen"
+        },
+        "consumptionUnits": {
+          "value": 820,
+          "unit": "einheiten"
+        }
+      },
+      {
+        "id": "op-n2",
+        "billingPeriodId": "bp-1",
+        "unitId": "u-n2",
+        "tenancyId": "ten-n2",
+        "kind": "tenant",
+        "persons": {
+          "value": 1,
+          "unit": "personen"
+        },
+        "consumptionUnits": {
+          "value": 640,
+          "unit": "einheiten"
+        }
+      },
+      {
+        "id": "op-n3",
+        "billingPeriodId": "bp-1",
+        "unitId": "u-n3",
+        "tenancyId": "ten-n3",
+        "kind": "tenant",
+        "to": "2025-06-30",
+        "persons": {
+          "value": 3,
+          "unit": "personen"
+        },
+        "consumptionUnits": {
+          "value": 1010,
+          "unit": "einheiten"
+        }
+      },
+      {
+        "id": "op-n3b",
+        "billingPeriodId": "bp-1",
+        "unitId": "u-n3",
+        "tenancyId": "ten-n3b",
+        "kind": "tenant",
+        "from": "2025-07-01",
+        "persons": {
+          "value": 2,
+          "unit": "personen"
+        },
+        "consumptionUnits": {
+          "value": 470,
+          "unit": "einheiten"
+        }
+      },
+      {
+        "id": "op-n4",
+        "billingPeriodId": "bp-1",
+        "unitId": "u-n4",
+        "tenancyId": "ten-n4",
+        "kind": "tenant",
+        "persons": {
+          "value": 2,
+          "unit": "personen"
+        },
+        "consumptionUnits": {
+          "value": 700,
+          "unit": "einheiten"
+        }
+      },
+      {
+        "id": "op-n5",
+        "billingPeriodId": "bp-1",
+        "unitId": "u-n5",
+        "tenancyId": "ten-n5",
+        "kind": "tenant",
+        "persons": {
+          "value": 2,
+          "unit": "personen"
+        },
+        "consumptionUnits": {
+          "value": 900,
+          "unit": "einheiten"
+        }
+      },
+      {
+        "id": "op-n6",
+        "billingPeriodId": "bp-1",
+        "unitId": "u-n6",
+        "tenancyId": null,
+        "kind": "vacancy",
+        "consumptionUnits": {
+          "value": 60,
+          "unit": "einheiten"
+        }
+      },
+      {
+        "id": "op-s1",
+        "billingPeriodId": "bp-1",
+        "unitId": "u-s1",
+        "tenancyId": "ten-s1",
+        "kind": "tenant",
+        "persons": {
+          "value": 2,
+          "unit": "personen"
+        },
+        "consumptionUnits": {
+          "value": 900,
+          "unit": "einheiten"
+        }
+      },
+      {
+        "id": "op-s2",
+        "billingPeriodId": "bp-1",
+        "unitId": "u-s2",
+        "tenancyId": "ten-s2",
+        "kind": "tenant",
+        "persons": {
+          "value": 1,
+          "unit": "personen"
+        },
+        "consumptionUnits": {
+          "value": 700,
+          "unit": "einheiten"
+        }
+      },
+      {
+        "id": "op-s3",
+        "billingPeriodId": "bp-1",
+        "unitId": "u-s3",
+        "tenancyId": "ten-s3",
+        "kind": "tenant",
+        "persons": {
+          "value": 4,
+          "unit": "personen"
+        },
+        "consumptionUnits": {
+          "value": 1150,
+          "unit": "einheiten"
+        }
+      },
+      {
+        "id": "op-s4",
+        "billingPeriodId": "bp-1",
+        "unitId": "u-s4",
+        "tenancyId": "ten-s4",
+        "kind": "tenant",
+        "persons": {
+          "value": 1,
+          "unit": "personen"
+        },
+        "consumptionUnits": {
+          "value": 520,
+          "unit": "einheiten"
+        }
+      },
+      {
+        "id": "op-s5",
+        "billingPeriodId": "bp-1",
+        "unitId": "u-s5",
+        "tenancyId": "ten-s5",
+        "kind": "tenant",
+        "persons": {
+          "value": 2,
+          "unit": "personen"
+        },
+        "consumptionUnits": {
+          "value": 830,
+          "unit": "einheiten"
+        }
+      },
+      {
+        "id": "op-s6",
+        "billingPeriodId": "bp-1",
+        "unitId": "u-s6",
+        "tenancyId": "ten-s6",
+        "kind": "tenant",
+        "to": "2025-09-30",
+        "persons": {
+          "value": 2,
+          "unit": "personen"
+        },
+        "consumptionUnits": {
+          "value": 690,
+          "unit": "einheiten"
+        }
+      },
+      {
+        "id": "op-s6v",
+        "billingPeriodId": "bp-1",
+        "unitId": "u-s6",
+        "tenancyId": null,
+        "kind": "vacancy",
+        "from": "2025-10-01",
+        "consumptionUnits": {
+          "value": 40,
+          "unit": "einheiten"
+        }
+      }
+    ],
+    "prepayments": [
+      {
+        "id": "pp-n1",
+        "occupancyPeriodId": "op-n1",
+        "mode": "monthly",
+        "monthlyAmountCents": 22000
+      },
+      {
+        "id": "pp-n2",
+        "occupancyPeriodId": "op-n2",
+        "mode": "monthly",
+        "monthlyAmountCents": 17000
+      },
+      {
+        "id": "pp-n3",
+        "occupancyPeriodId": "op-n3",
+        "mode": "monthly",
+        "monthlyAmountCents": 26000
+      },
+      {
+        "id": "pp-n3b",
+        "occupancyPeriodId": "op-n3b",
+        "mode": "monthly",
+        "monthlyAmountCents": 25000
+      },
+      {
+        "id": "pp-n4",
+        "occupancyPeriodId": "op-n4",
+        "mode": "monthly",
+        "monthlyAmountCents": 19000
+      },
+      {
+        "id": "pp-n5",
+        "occupancyPeriodId": "op-n5",
+        "mode": "monthly",
+        "monthlyAmountCents": 23000
+      },
+      {
+        "id": "pp-n6",
+        "occupancyPeriodId": "op-n6",
+        "mode": "none_agreed"
+      },
+      {
+        "id": "pp-s1",
+        "occupancyPeriodId": "op-s1",
+        "mode": "monthly",
+        "monthlyAmountCents": 20000
+      },
+      {
+        "id": "pp-s2",
+        "occupancyPeriodId": "op-s2",
+        "mode": "monthly",
+        "monthlyAmountCents": 17000
+      },
+      {
+        "id": "pp-s3",
+        "occupancyPeriodId": "op-s3",
+        "mode": "monthly",
+        "monthlyAmountCents": 26000
+      },
+      {
+        "id": "pp-s4",
+        "occupancyPeriodId": "op-s4",
+        "mode": "monthly",
+        "monthlyAmountCents": 14000
+      },
+      {
+        "id": "pp-s5",
+        "occupancyPeriodId": "op-s5",
+        "mode": "monthly",
+        "monthlyAmountCents": 19000
+      },
+      {
+        "id": "pp-s6",
+        "occupancyPeriodId": "op-s6",
+        "mode": "monthly",
+        "monthlyAmountCents": 16000
+      },
+      {
+        "id": "pp-s6v",
+        "occupancyPeriodId": "op-s6v",
+        "mode": "none_agreed"
+      }
+    ],
+    "costCategories": [
+      {
+        "id": "k-grundsteuer",
+        "billingPeriodId": "bp-1",
+        "kind": "operating",
+        "label": "Grundsteuer",
+        "statementText": "Grundsteuer",
+        "betrkvCategory": "§2 Nr. 1",
+        "allocationKey": "usable_area",
+        "scope": {
+          "kind": "property"
+        },
+        "totalAmountCents": 240000
+      },
+      {
+        "id": "k-wasser",
+        "billingPeriodId": "bp-1",
+        "kind": "water",
+        "label": "Wasser und Abwasser",
+        "statementText": "Wasserversorgung und Entwässerung",
+        "betrkvCategory": "§2 Nr. 2",
+        "allocationKey": "usable_area",
+        "scope": {
+          "kind": "property"
+        },
+        "totalAmountCents": 560000
+      },
+      {
+        "id": "k-muell",
+        "billingPeriodId": "bp-1",
+        "kind": "operating",
+        "label": "Müllbeseitigung",
+        "statementText": "Müllbeseitigung",
+        "betrkvCategory": "§2 Nr. 8",
+        "allocationKey": "residential_units",
+        "scope": {
+          "kind": "property"
+        },
+        "totalAmountCents": 216000
+      },
+      {
+        "id": "k-strom",
+        "billingPeriodId": "bp-1",
+        "kind": "operating",
+        "label": "Allgemeinstrom",
+        "statementText": "Beleuchtung",
+        "betrkvCategory": "§2 Nr. 11",
+        "allocationKey": "usable_area",
+        "scope": {
+          "kind": "property"
+        },
+        "totalAmountCents": 120000,
+        "isOperatingElectricitySource": true
+      },
+      {
+        "id": "k-versicherung",
+        "billingPeriodId": "bp-1",
+        "kind": "operating",
+        "label": "Gebäudeversicherung",
+        "statementText": "Sach- und Haftpflichtversicherung",
+        "betrkvCategory": "§2 Nr. 13",
+        "allocationKey": "usable_area",
+        "scope": {
+          "kind": "property"
+        },
+        "totalAmountCents": 300000
+      },
+      {
+        "id": "k-wartung",
+        "billingPeriodId": "bp-1",
+        "kind": "heating",
+        "label": "Wartung Heizung",
+        "statementText": "Wartung der Heizungsanlage",
+        "betrkvCategory": "§2 Nr. 4a",
+        "allocationKey": "heated_area",
+        "scope": {
+          "kind": "building",
+          "buildingId": "B1"
+        },
+        "totalAmountCents": 48000,
+        "laborSharePercent": 80
+      }
+    ],
+    "costEntries": [],
+    "bankBookings": [],
+    "heatingCircuits": [
+      {
+        "id": "hc-B1",
+        "billingPeriodId": "bp-1",
+        "heatingSystemId": "hs-1",
+        "buildingId": "B1",
+        "co2": {
+          "mode": "auto",
+          "co2PricePerTonCents": 5500
+        },
+        "hasCentralHotWater": true,
+        "hotWaterSharePercent": 25
+      },
+      {
+        "id": "hc-B2",
+        "billingPeriodId": "bp-1",
+        "heatingSystemId": "hs-1",
+        "buildingId": "B2",
+        "co2": {
+          "mode": "auto",
+          "co2FactorKgPerKwh": 0,
+          "co2PricePerTonCents": 5500
+        },
+        "hasCentralHotWater": false
+      }
+    ],
+    "energySources": [
+      {
+        "id": "es-B1-haupt",
+        "heatingCircuitId": "hc-B1",
+        "key": "haupt",
+        "name": "Heizöl",
+        "sourceType": "Heizöl",
+        "calorificValueKwhPerUnit": 10,
+        "co2FactorKgPerKwh": 0.266
+      },
+      {
+        "id": "es-B2-wp",
+        "heatingCircuitId": "hc-B2",
+        "key": "wp",
+        "name": "Wärmepumpe",
+        "sourceType": "Wärmepumpenstrom",
+        "calorificValueKwhPerUnit": 1,
+        "co2FactorKgPerKwh": 0,
+        "seasonalPerformanceFactor": 3.5,
+        "seasonalPerformanceFactorEstimated": true,
+        "seasonalPerformanceFactorReason": "Herstellerangabe (fiktiv)"
+      }
+    ],
+    "fuelStocks": [
+      {
+        "id": "fs-B1-haupt",
+        "energySourceId": "es-B1-haupt",
+        "billingPeriodId": "bp-1",
+        "openingQuantity": {
+          "value": 3000,
+          "unit": "l"
+        },
+        "openingValueCents": 300000,
+        "remainingQuantity": {
+          "value": 2500,
+          "unit": "l"
+        },
+        "valuationBasis": "acquisition_cost"
+      },
+      {
+        "id": "fs-B2-wp",
+        "energySourceId": "es-B2-wp",
+        "billingPeriodId": "bp-1",
+        "openingQuantity": {
+          "value": 0,
+          "unit": "kWh"
+        },
+        "openingValueCents": 0,
+        "remainingQuantity": {
+          "value": 0,
+          "unit": "kWh"
+        }
+      }
+    ],
+    "fuelDeliveries": [
+      {
+        "id": "fd-B1-haupt-0",
+        "energySourceId": "es-B1-haupt",
+        "billingPeriodId": "bp-1",
+        "date": "2025-02-10",
+        "quantity": {
+          "value": 3000,
+          "unit": "l"
+        },
+        "amountCents": 315000,
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "previous_owner",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "fd-B1-haupt-1",
+        "energySourceId": "es-B1-haupt",
+        "billingPeriodId": "bp-1",
+        "date": "2025-10-20",
+        "quantity": {
+          "value": 4000,
+          "unit": "l"
+        },
+        "amountCents": 412000,
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        }
+      },
+      {
+        "id": "fd-B2-wp-0",
+        "energySourceId": "es-B2-wp",
+        "billingPeriodId": "bp-1",
+        "date": "2025-12-31",
+        "quantity": {
+          "value": 14000,
+          "unit": "kWh"
+        },
+        "amountCents": 420000,
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        }
+      }
+    ],
+    "meterReadings": [],
+    "meterBillingStatuses": [],
+    "calculationRuns": [],
+    "calculationResults": [],
+    "documents": [],
+    "auditEvents": []
+  }
+}
