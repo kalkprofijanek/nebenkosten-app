@@ -61,13 +61,13 @@ aus geprüfter Abrechnungsengine und lokalem KI-Agenten.
 | Eigenständige Belegverwaltung mit Uploadarchiv    | nicht notwendig                     |
 | Neue Datenbank oder Windows-Anwendung             | nicht notwendig                     |
 
-| Task                                                 | Inhalt                                                                  | Abhängigkeit | Status                                       |
-| ---------------------------------------------------- | ----------------------------------------------------------------------- | ------------ | -------------------------------------------- |
-| [PR-39](PR-39-GIROCODE.md)                           | GiroCode (EPC-QR) bei Nachzahlung in der Einzelabrechnung               | –            | in Arbeit (`claude/confident-cannon-t7z4h4`) |
-| [PR-40](PR-40-RECHNUNGSORDNER-JE-OBJEKT.md)          | Bestehenden Rechnungsordner je Objekt verknüpfen (Agent / Ordnerdialog) | PR-43        | offen                                        |
-| [PR-41](PR-41-KI-BELEGWORKFLOW-UND-BELEGPRUEFUNG.md) | KI-Workflow aus dem Objektordner und Belegprüfung                       | PR-40, PR-43 | offen                                        |
-| [PR-42](PR-42-FRISTENUEBERSICHT.md)                  | Fristen nach § 556 Abs. 3 BGB mit `.ics`-Export                         | –            | offen                                        |
-| [PR-43](PR-43-DATENSCHUTZ-KI-VERARBEITUNG.md)        | Datenschutzregeln für KI-Verarbeitung (`docs/DATENSCHUTZ-KI.md`)        | –            | Entwurf                                      |
+| Task                                                 | Inhalt                                                                       | Abhängigkeit | Status                                       |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------- | ------------ | -------------------------------------------- |
+| [PR-39](PR-39-GIROCODE.md)                           | GiroCode (EPC-QR) bei Nachzahlung; E-39-1/-2 entschieden (A/A)               | –            | in Arbeit (`claude/confident-cannon-t7z4h4`) |
+| [PR-40](PR-40-RECHNUNGSORDNER-JE-OBJEKT.md)          | Bestehenden Rechnungsordner je Objekt verknüpfen (Agent / Ordnerdialog)      | PR-43        | offen                                        |
+| [PR-41](PR-41-KI-BELEGWORKFLOW-UND-BELEGPRUEFUNG.md) | KI-Workflow aus dem Objektordner und Belegprüfung                            | PR-40, PR-43 | offen                                        |
+| [PR-42](PR-42-FRISTENUEBERSICHT.md)                  | Fristen nach § 556 Abs. 3 BGB mit `.ics`-Export                              | –            | offen                                        |
+| [PR-43](PR-43-DATENSCHUTZ-KI-VERARBEITUNG.md)        | Datenschutz bei KI (`docs/DATENSCHUTZ-KI.md`); Nutzer entscheidet je Schritt | –            | Entwurf                                      |
 
 Reihenfolge: PR-39 → PR-43 (Regeln festlegen) → PR-40 → PR-41; PR-42
 unabhängig.

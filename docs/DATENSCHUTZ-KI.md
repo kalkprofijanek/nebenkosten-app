@@ -5,6 +5,24 @@ wie die App und der KI-Workflow (`docs/KI-ANLEITUNG.md`) so eingesetzt
 werden, dass möglichst wenige personenbezogene Daten die eigene
 Umgebung verlassen.
 
+## Grundsatz: Sie entscheiden
+
+Die App und der KI-Workflow schreiben Ihnen nicht vor, welche Daten Sie
+mit welcher KI verarbeiten. Diese Seite gibt **Empfehlungen**; die
+Entscheidung treffen Sie für jeden Schritt selbst:
+
+- Die Browser-App überträgt nichts. Ein KI-Agent erhält nur, was Sie ihm
+  ausdrücklich freigeben (Ordner, Datei, Belegart).
+- Der Agent fragt vor dem ersten Zugriff auf einen Rechnungsordner bzw.
+  eine neue Belegart (z. B. Kontoauszüge, Ablesebögen) nach und bietet,
+  wo sinnvoll, eine reduzierte oder pseudonymisierte Variante an. Sie
+  wählen; der Agent dokumentiert die Wahl in der Übergabe-Notiz.
+- Nichts wird automatisch gesperrt, was Sie bewusst verarbeiten wollen –
+  mit einer Ausnahme: Echte Daten gelangen nie in das öffentliche
+  Repository (Abschnitt 3 Nr. 4).
+
+Der Maintainer nutzt einen Geschäftstarif mit Auftragsverarbeitungsvertrag.
+
 ## 1. Rollen und Rechtsgrundlage
 
 | Beteiligter                            | Rolle (DSGVO)                                                                                   |
@@ -23,7 +41,7 @@ Standardvertragsklauseln) und passende technische Maßnahmen voraus.
 
 ## 2. Welche Daten sieht die KI?
 
-| Quelle                                         | Personenbezug zu Mietern                            | Regel                                                                |
+| Quelle                                         | Personenbezug zu Mietern                            | Empfehlung                                                           |
 | ---------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
 | Versorger-, Versicherungs-, Handwerkerrechnung | meist keiner (Objektbezug)                          | darf verarbeitet werden                                              |
 | Messdienstabrechnung, Ablesebögen              | ja (Verbrauch je Wohnung, ggf. Namen)               | nur mit AVV; Namen möglichst durch Einheitskürzel ersetzen           |
@@ -34,7 +52,7 @@ Standardvertragsklauseln) und passende technische Maßnahmen voraus.
 Grundsatz Datenminimierung (Art. 5 Abs. 1 lit. c): Gib der KI nur, was für
 den konkreten Schritt nötig ist.
 
-## 3. Regeln für lokale Agenten (Claude Code, Codex)
+## 3. Empfehlungen für lokale Agenten (Claude Code, Codex)
 
 1. **Nur lokal mit echten Daten arbeiten.** Cloud-Sitzungen (z. B. Claude
    Code im Web) klonen das öffentliche Repository in einen fremden
@@ -48,9 +66,15 @@ den konkreten Schritt nötig ist.
 4. **Nichts Echtes ins Repository.** `private-data/` ist ignoriert. Ordner-
    pfade, Objektkürzel, Mieternamen und Beträge gehören weder in Code,
    Tests, Commits, Issues noch PR-Texte (AGENTS.md Regel 5).
-5. **Geschäftstarif nutzen.** Eingaben dürfen nicht zum Training verwendet
-   werden; AVV abschließen; Aufbewahrungs- und Löscheinstellungen des
+5. **Geschäftstarif nutzen.** Eingaben werden nicht zum Training
+   verwendet; AVV abschließen; Aufbewahrungs- und Löscheinstellungen des
    Anbieters prüfen und dokumentieren.
+6. **Freigabe je Schritt.** Der Agent verarbeitet nur, was Sie in der
+   jeweiligen Sitzung freigegeben haben, und fragt bei neuen Ordnern oder
+   Belegarten nach (siehe Grundsatz).
+
+Nr. 4 ist eine verbindliche Projektregel; alle übrigen Punkte sind
+Empfehlungen.
 
 ## 4. Ordnerverknüpfung je Objekt (PR-40)
 
@@ -84,5 +108,5 @@ Je Abrechnungsjahr:
 
 ## 6. Offene Punkte
 
-Siehe `docs/TASKS/PR-43-DATENSCHUTZ-KI-VERARBEITUNG.md` (E-43-1 bis
+Siehe `docs/TASKS/PR-43-DATENSCHUTZ-KI-VERARBEITUNG.md` (E-43-2,
 E-43-3).

@@ -29,14 +29,20 @@ Maintainer und für andere private Vermieter. Ergebnis ist
 
 `docs/`, `README.md` (Verweis).
 
+## Entscheidungen (Nutzer, 17.10.2026)
+
+- **E-43-1:** Produktiv wird ein Geschäftstarif genutzt. Grundsatz: Der
+  Nutzer entscheidet stets selbst, was verarbeitet wird. Dokumentation und
+  Workflow geben Empfehlungen und fragen nach, sperren aber nichts – außer
+  der Veröffentlichung echter Daten im Repository (AGENTS.md Regel 5).
+- Echte Objektkürzel und Ordnerpfade bleiben außerhalb des Repositorys;
+  Beispiele verwenden ausschließlich Platzhalter (`Objekt-A`, `Objekt-B`).
+
 ## Offene Entscheidungen
 
-- **E-43-1:** Welcher Tarif/Anbieter wird produktiv genutzt (Verbraucher-
-  oder Geschäftstarif, AVV vorhanden)? Bestimmt, ob echte Belege überhaupt
-  an den Dienst gehen dürfen.
-- **E-43-2:** Sollen Kontoauszüge vor der KI-Vorkontierung automatisch
-  pseudonymisiert werden (Mieternamen → Einheitskürzel)? Wäre ein
-  eigenes lokales Skript.
+- **E-43-2:** Optionales lokales Skript, das Kontoauszüge vor der
+  KI-Vorkontierung pseudonymisiert (Mieternamen → Einheitskürzel) – als
+  Angebot, das der Nutzer je Lauf wählt, nicht als Pflicht.
 - **E-43-3:** Technische Sperre zusätzlich zur Dokumentation, z. B. Hook,
   der Commits mit Pfaden aus `private-data/objekt-ordner.json` blockiert.
 - Rechtliche Einschätzungen im Entwurf sind keine Rechtsberatung und vor

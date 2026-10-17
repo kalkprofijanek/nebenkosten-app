@@ -202,53 +202,13 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
       "text": "Aufgrund der Berechnung mit ungerundeten Einzelwerten können Rundungsdifferenzen von wenigen Cent auftreten.",
     },
     {
-      "columns": [
-        {
-          "stack": [
-            {
-              "margin": [
-                0,
-                0,
-                0,
-                4,
-              ],
-              "text": "Bitte überweisen Sie den Nachzahlungsbetrag von 120,00 € bis zum 14.02.2026 auf das Konto IBAN DE89 3704 0044 0532 0130 00, Verwendungszweck „NK 2024 Einheit u1“.",
-            },
-          ],
-          "width": "*",
-        },
-        {
-          "margin": [
-            8,
-            0,
-            0,
-            4,
-          ],
-          "stack": [
-            {
-              "eccLevel": "M",
-              "fit": 80,
-              "qr": "BCD
-002
-1
-SCT
-COBADEFFXXX
-Mustermann Immobilien GmbH
-DE89370400440532013000
-EUR120.00
-
-
-NK 2024 Einheit u1",
-            },
-            {
-              "color": "#5a6a78",
-              "fontSize": 6,
-              "text": "GiroCode: mit der Banking-App scannen",
-            },
-          ],
-          "width": "auto",
-        },
+      "margin": [
+        0,
+        0,
+        0,
+        4,
       ],
+      "text": "Bitte überweisen Sie den Nachzahlungsbetrag von 120,00 € bis zum 14.02.2026 auf das Konto IBAN DE89 3704 0044 0532 0130 00, Verwendungszweck „NK 2024 Einheit u1“.",
     },
     {
       "margin": [

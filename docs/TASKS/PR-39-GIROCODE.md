@@ -28,7 +28,8 @@ Saldo entfällt er. Die Berechnungslogik bleibt unverändert.
 
 ## Freigegebene Pfade
 
-`packages/pdf/`, `CHANGELOG.md`, `docs/TASKS/`.
+`packages/pdf/`, `packages/validators/` (Prüfhinweis Kontoinhaber),
+`CHANGELOG.md`, `docs/TASKS/`.
 
 ## Tests
 
@@ -40,17 +41,22 @@ Saldo entfällt er. Die Berechnungslogik bleibt unverändert.
 - Manuell: PDF aus der Fixture gerendert, QR-Code mit einem Decoder
   zurückgelesen – Inhalt identisch mit den Nutzdaten.
 
-## Offene Entscheidungen
+## Entscheidungen (Nutzer, 17.10.2026)
 
-- **E-39-1 Empfängername ohne Kontoinhaber:** Derzeit gilt ersatzweise der
-  erste Namenszeile des Absenders (Eigentümergesellschaft). Seit Oktober 2025
-  gleichen Banken bei Überweisungen den Empfängernamen ab
-  (Empfängerüberprüfung, Verordnung (EU) 2024/886). Weicht der Name vom
-  Kontoinhaber ab, erhält der Mieter eine Warnung. Alternative: ohne
-  hinterlegten Kontoinhaber keinen Code drucken bzw. Prüfhinweis ausgeben.
-- **E-39-2 Eindeutigkeit des Verwendungszwecks:** „NK <Jahr> <Einheit>“ ist
-  bei Mieterwechsel im Jahr für Vor- und Nachmieter gleich. Zur
-  Zahlungszuordnung ggf. Mietername oder Nutzungsbeginn ergänzen (ändert
-  auch den bisherigen Fließtext, daher nicht stillschweigend umgesetzt).
+- **E-39-1 = A – kein Ersatzname:** Ohne hinterlegten Kontoinhaber des
+  maßgeblichen Kontos (Objektkonto vor Konto der Gesellschaft) wird kein
+  GiroCode gedruckt. Grund: Seit Oktober 2025 gleichen Banken den
+  Empfängernamen mit dem Kontoinhaber ab (Empfängerüberprüfung,
+  Verordnung (EU) 2024/886); ein abweichender Name löst beim Mieter eine
+  Warnung aus. Prüfhinweis (Warnung)
+  `master_data.account_holder_missing` in `packages/validators`.
+- **E-39-2 = A – Nutzungsbeginn bei Mieterwechsel:** Hat dieselbe Einheit im
+  Abrechnungszeitraum einen weiteren Mieter-Nutzungszeitraum und beginnt der
+  eigene Zeitraum nach dem Periodenbeginn, lautet der Verwendungszweck
+  „NK <Jahr> <Einheit> ab TT.MM.“ – im QR-Code und im Fließtext. Vormieter
+  und Einzug nach Leerstand bleiben bei „NK <Jahr> <Einheit>“.
+
+## Offen
+
 - **E-39-3 Abschaltbarkeit:** Optionaler Schalter je Abrechnungszeitraum,
-  falls ein Vermieter keinen QR-Code wünscht.
+  falls ein Vermieter keinen QR-Code wünscht (derzeit nicht geplant).

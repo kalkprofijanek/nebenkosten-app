@@ -10,6 +10,7 @@ import {
   scopeLabel,
 } from '../src/heating-summary'
 import { addDaysIso, formatQuantityUnit, formatUnitPrice } from '../src/format'
+import { paymentReference } from '../src/tenant-statement-tables'
 import {
   buildFixtureAppData,
   buildFixtureCombinedContext,
@@ -310,13 +311,30 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     expect(dispatchedText).toContain('Zusatz zur Nachzahlung')
   })
 
+  function withAccountHolder(context: TenantContext): TenantContext {
+    return {
+      ...context,
+      property: {
+        ...context.property,
+        bankAccount: {
+          iban: ['DE89', '370400440532013000'].join(''),
+          accountHolder: 'Mustermann Immobilien GmbH',
+        },
+      },
+    }
+  }
+
   it('druckt bei Nachzahlung einen GiroCode, bei Guthaben nicht (PR-39)', () => {
-    const original = buildFixtureTenantStatementContext(buildFixtureAppData())
+    const original = withAccountHolder(
+      buildFixtureTenantStatementContext(buildFixtureAppData()),
+    )
     const due = text(
       buildTenantStatement(withTenant(original, { balanceCents: 12_345 })),
     )
     expect(due).toContain('"qr":"BCD\\n002\\n1\\nSCT\\n')
-    expect(due).toContain('DE89370400440532013000\\nEUR123.45\\n\\n\\n')
+    expect(due).toContain(
+      'Mustermann Immobilien GmbH\\nDE89370400440532013000\\nEUR123.45\\n\\n\\n',
+    )
     expect(due).toContain(
       `\\nNK ${original.billingPeriod.year} ${original.unit.label}"`,
     )
@@ -331,22 +349,80 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     }
   })
 
-  it('verzichtet ohne gültige IBAN auf den GiroCode (PR-39)', () => {
-    const original = withTenant(
+  it('verzichtet ohne Kontoinhaber oder gültige IBAN auf den GiroCode (PR-39)', () => {
+    const due = withTenant(
       buildFixtureTenantStatementContext(buildFixtureAppData()),
       { balanceCents: 12_345 },
     )
+    // Fixture: IBAN vorhanden, aber kein Kontoinhaber – kein Ersatzname.
+    const withoutHolder = text(buildTenantStatement(due))
+    expect(withoutHolder).toContain(
+      'Bitte überweisen Sie den Nachzahlungsbetrag',
+    )
+    expect(withoutHolder).not.toContain('"qr"')
+
+    const holder = withAccountHolder(due)
     const broken = {
-      ...original,
+      ...holder,
       property: {
-        ...original.property,
-        bankAccount: { iban: 'DE00 0000 0000 0000 0000 00' },
+        ...holder.property,
+        bankAccount: {
+          iban: 'DE00 0000 0000 0000 0000 00',
+          accountHolder: 'Mustermann Immobilien GmbH',
+        },
       },
-      ownerCompany: { ...original.ownerCompany, bankAccount: null },
+      ownerCompany: { ...holder.ownerCompany, bankAccount: null },
     }
-    const serialized = text(buildTenantStatement(broken))
-    expect(serialized).toContain('Bitte überweisen Sie den Nachzahlungsbetrag')
-    expect(serialized).not.toContain('"qr"')
+    expect(text(buildTenantStatement(broken))).not.toContain('"qr"')
+  })
+
+  it('ergänzt den Verwendungszweck nur beim nachfolgenden Mieter um den Nutzungsbeginn (PR-39)', () => {
+    const original = buildFixtureTenantStatementContext(buildFixtureAppData())
+    const { occupancyPeriod, billingPeriod, unit } = original
+    const base = `NK ${billingPeriod.year} ${unit.label}`
+    const predecessor = {
+      ...occupancyPeriod,
+      id: 'occupancy-predecessor',
+      from: billingPeriod.periodStart,
+      to: `${billingPeriod.year}-06-30`,
+    }
+    const successor = {
+      ...occupancyPeriod,
+      from: `${billingPeriod.year}-07-01`,
+    }
+    const changed = (
+      own: typeof occupancyPeriod,
+      others: (typeof occupancyPeriod)[],
+    ): TenantContext => ({
+      ...original,
+      occupancyPeriod: own,
+      appData: {
+        ...original.appData,
+        billingData: {
+          ...original.appData.billingData,
+          occupancyPeriods: [own, ...others],
+        },
+      },
+    })
+
+    expect(paymentReference(changed(successor, [predecessor]))).toBe(
+      `${base} ab 01.07.`,
+    )
+    expect(paymentReference(changed(predecessor, [successor]))).toBe(base)
+    // Einzug nach Leerstand ist kein Mieterwechsel.
+    expect(
+      paymentReference(
+        changed(successor, [{ ...predecessor, kind: 'vacancy' }]),
+      ),
+    ).toBe(base)
+    expect(paymentReference(changed(successor, []))).toBe(base)
+
+    const serialized = text(
+      buildTenantStatement(
+        withTenant(changed(successor, [predecessor]), { balanceCents: 100 }),
+      ),
+    )
+    expect(serialized).toContain(`Verwendungszweck „${base} ab 01.07.“`)
   })
 
   it('erläutert Guthaben und ausgeglichene Abrechnungen', () => {
