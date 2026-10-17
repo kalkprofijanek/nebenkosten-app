@@ -69,7 +69,15 @@ function buildSalutationLine(persons: readonly Person[]): string {
   if (!first?.salutation) return 'Sehr geehrte Damen und Herren'
   const prefix =
     salutationLines[first.salutation] ?? 'Sehr geehrte Damen und Herren'
-  if (first.salutation === 'Familie' || first.salutation === 'Firma') {
+  if (first.salutation === 'Familie') {
+    // „Familie“ steht bereits in der Anrede; ein Anzeigename „Familie Muster“
+    // darf sie nicht verdoppeln.
+    const name = blank(first.lastName)
+      ? personDisplayName(first).replace(/^Familie\s+/u, '')
+      : first.lastName!.trim()
+    return `${prefix} ${name}`
+  }
+  if (first.salutation === 'Firma') {
     return `${prefix} ${personDisplayName(first)}`
   }
   // N12: Anrede „Sehr geehrte Frau Nachname“ – ohne Vornamen; ohne Nachnamen neutral

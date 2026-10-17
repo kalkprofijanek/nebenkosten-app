@@ -2086,7 +2086,7 @@ h1 {
 }
 
 .main-content .consumption-table input[type='date'] {
-  width: 8.6rem;
+  width: 8.2rem;
 }
 
 .consumption-reading {
@@ -2116,8 +2116,14 @@ h1 {
 }
 
 .consumption-status-cell {
-  min-width: 10rem;
+  min-width: 9rem;
   max-width: 13rem;
+}
+
+/* Vorjahresspalte: Quelle und Klimafaktor umbrechen statt die Tabelle zu
+   verbreitern, damit der Status bei 1440 px sichtbar bleibt. */
+.consumption-table td:nth-child(7) {
+  max-width: 9.5rem;
 }
 
 .consumption-table th[scope='row'] {
