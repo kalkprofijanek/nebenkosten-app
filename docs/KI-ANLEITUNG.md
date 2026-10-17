@@ -49,7 +49,12 @@ und Eigentümerwechsel erstellt:
    Repositorys: `--overlay private-data/overlay.mjs` mit
    `export default function (data, { year }) { … }`. Das Ergebnis wird erneut
    gegen das Dateischema geprüft; die Eingabedatei bleibt unverändert.
-6. Zum Abschluss die Datei in der App importieren, Prüfhinweise bestätigen,
+6. **Referenzwerte selbst abrufen:** Klimafaktor je Postleitzahl (DWD),
+   Vergleichswerte (Heizspiegel), CO₂-Preis und Rechtsgrundlagen holt der
+   Agent selbst aus den Quellen in [`DATENQUELLEN.md`](DATENQUELLEN.md) – mit
+   URL bzw. Dateiname und Abrufdatum je Wert – und legt sie zur Bestätigung
+   vor. Die App selbst lädt nichts aus dem Netz.
+7. Zum Abschluss die Datei in der App importieren, Prüfhinweise bestätigen,
    freigeben und versenden.
 
 Bewährt hat sich, den Agenten am Ende jeder Sitzung eine **Übergabe-Notiz**
@@ -190,4 +195,9 @@ Regeln:
    (Summe brutto, Summe umlagefähig).
 10. Du gibst keine abschließende Rechtsauskunft. Weise auf Punkte hin, die
     der Abrechnende rechtlich prüfen sollte.
+11. Referenzwerte (Klimafaktor des DWD je Postleitzahl, Heizspiegel-
+    Vergleichswerte, CO₂-Preis) rufst du selbst aus der Originalquelle ab
+    (docs/DATENQUELLEN.md). Gib für jeden Wert URL bzw. Dateiname und
+    Abrufdatum an. Findest du den Wert nicht eindeutig, schätze ihn nicht,
+    sondern benenne ihn als "Rueckfrage".
 ```

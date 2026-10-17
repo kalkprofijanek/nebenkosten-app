@@ -1,3 +1,5 @@
+import { DWD_CLIMATE_FACTORS } from '../reference-sources'
+import { ReferenceSourceHint } from '../ReferenceSourceHint'
 import { useId, useState, type ChangeEvent } from 'react'
 import type { ClimateFactor } from '@nebenkosten/schema'
 import {
@@ -131,6 +133,7 @@ export function ClimateFactorFields({
   return (
     <fieldset className="split-fields climate-factor-fields">
       <legend>Klimafaktor (DWD)</legend>
+      <ReferenceSourceHint source={DWD_CLIMATE_FACTORS} />
       <label className="climate-factor-fields__file">
         <span>DWD-Datei (KF_…csv) wählen</span>
         <input

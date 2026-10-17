@@ -1,3 +1,5 @@
+import { HEIZSPIEGEL } from '../../reference-sources'
+import { ReferenceSourceHint } from '../../ReferenceSourceHint'
 import { useId, useState } from 'react'
 import type { ConsumptionBenchmark } from '@nebenkosten/schema'
 import {
@@ -90,6 +92,7 @@ export function ConsumptionBenchmarkFields({
   return (
     <fieldset className="split-fields benchmark-fields">
       <legend>Vergleichswerte (Heizspiegel)</legend>
+      <ReferenceSourceHint source={HEIZSPIEGEL} />
       {draft === null ? (
         <>
           <p className="form-section__empty">
