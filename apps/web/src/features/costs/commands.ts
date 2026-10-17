@@ -5,9 +5,11 @@ import {
   uuidSchema,
   type AppDataFile,
   type BillingPeriod,
+  type AmountBasis,
   type BookingLink,
   type CostCategory,
   type CostEntry,
+  type CostOrigin,
   type ExternalPayment,
 } from '@nebenkosten/schema'
 
@@ -49,6 +51,10 @@ export interface AddCostEntryInput {
   readonly allocablePercent?: number
   readonly bookingLink?: BookingLink
   readonly externalPayment?: ExternalPayment
+  /** PR-30: Herkunft; `null` entfernt ein gesetztes Kennzeichen. */
+  readonly origin?: CostOrigin | null
+  /** PR-30: Betragsgrundlage; `null` entfernt ein gesetztes Kennzeichen. */
+  readonly amountBasis?: AmountBasis | null
 }
 
 const CATEGORY_KEYS = [
@@ -73,6 +79,8 @@ const ENTRY_KEYS = [
   'allocablePercent',
   'bookingLink',
   'externalPayment',
+  'origin',
+  'amountBasis',
 ] as const
 const MAX_LABEL_LENGTH = 200
 const MAX_TEXT_LENGTH = 2_000
@@ -128,6 +136,31 @@ function optionalString(
   if (typeof value !== 'string' || value.length > maxLength)
     throw new CostCommandError(`Ungültige Eingabe für ${key}.`)
   return value
+}
+
+/** Auswahlwert; leer bzw. `null` = Kennzeichen entfernen. */
+function optionalChoice<T extends string>(
+  record: Record<string, unknown>,
+  key: string,
+  allowed: readonly T[],
+): T | null | undefined {
+  const value = record[key]
+  if (value === undefined) return undefined
+  if (value === null || value === '') return null
+  if (
+    typeof value !== 'string' ||
+    !(allowed as readonly string[]).includes(value)
+  )
+    throw new CostCommandError(`Ungültige Eingabe für ${key}.`)
+  return value as T
+}
+
+/** `null`-Kennzeichen nicht speichern, sondern entfernen. */
+function withoutClearedFlags<T extends Record<string, unknown>>(entry: T): T {
+  const result = { ...entry }
+  for (const key of ['origin', 'amountBasis'])
+    if (result[key] === null) delete result[key]
+  return result
 }
 
 function optionalFiniteNumber(
@@ -292,6 +325,18 @@ function parseEntryInput(value: unknown): AddCostEntryInput {
     ),
     ...defined('bookingLink', bookingLink),
     ...defined('externalPayment', externalPayment),
+    ...defined(
+      'origin',
+      optionalChoice(input, 'origin', ['previous_owner', 'own'] as const),
+    ),
+    ...defined(
+      'amountBasis',
+      optionalChoice(input, 'amountBasis', [
+        'invoice',
+        'advance_payments',
+        'estimate',
+      ] as const),
+    ),
   }
 }
 
@@ -417,10 +462,10 @@ export function addCostEntry(
     )
   const entry = parseEntity<CostEntry>(
     costEntrySchema,
-    {
+    withoutClearedFlags({
       id: uniqueId(file, createId),
       ...input,
-    },
+    }),
     'Kostenbuchung',
   )
   return validatedFile({
@@ -507,7 +552,7 @@ export function updateCostEntry(
   }
   const replacement = parseEntity<CostEntry>(
     costEntrySchema,
-    { ...current, ...input },
+    withoutClearedFlags({ ...current, ...input }),
     'Kostenposition',
   )
   return validatedFile({
