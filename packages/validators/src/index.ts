@@ -42,3 +42,11 @@ export {
   heatingComplianceIssues,
   heatingComplianceOutputIssues,
 } from './heating-compliance'
+export {
+  checkReceiptFolder,
+  parseReceiptFolderMapping,
+  type ReceiptFolderCheckInput,
+  type ReceiptFolderCheckResult,
+  type ReceiptSource,
+  type ReceiptSourceKind,
+} from './receipt-folder'

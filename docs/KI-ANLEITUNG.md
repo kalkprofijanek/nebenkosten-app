@@ -33,6 +33,13 @@ und Eigentümerwechsel erstellt:
 2. Den Agenten (z. B. **Claude Code**) die Belege lesen lassen: Rechnungen,
    Kontoauszüge, Ablesebögen, Fotos, Mails. Für jeden übernommenen Wert nennt
    er die Quelle.
+   Liegen die Rechnungen in einem Ordner je Objekt, ordnen Sie ihn einmal in
+   `private-data/objekt-ordner.json` zu (siehe
+   [`BELEGPRUEFUNG.md`](BELEGPRUEFUNG.md)). Der Agent liest nur die Ordner,
+   die Sie freigeben, bestimmt das Abrechnungsjahr aus dem
+   **Leistungszeitraum** (nicht aus Rechnungsdatum oder Ordner) und trägt den
+   Dateinamen als Belegnummer ein. `pnpm belegpruefung … --jahr 2025` zeigt
+   danach Kosten ohne Rechnung und Rechnungen ohne Kostenposition.
 3. **Vor jeder Änderung eine Sicherungskopie**; Änderungen als kleines Skript
    mit Kommentar (was, warum, welcher Beleg), damit sie nachvollziehbar und
    wiederholbar sind. Keine Handänderung ohne Beleg.

@@ -4,6 +4,16 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Belegprüfung gegen den Rechnungsordner je Objekt (PR-40/41)**:
+  `pnpm belegpruefung <datendatei> --jahr <Jahr>` liest den bestehenden
+  Rechnungsordner aus der privaten Zuordnung
+  `private-data/objekt-ordner.json` und meldet Kosten ohne Belegangabe,
+  nicht gefundene Belege, Mehrfachverwendung und Dateien ohne
+  Kostenposition. Verknüpfung über das vorhandene Feld
+  „Belegnummer/Dateiname“ (keine Schemaänderung); Abrechnungsjahr nach
+  Leistungszeitraum, daher Dateien ohne Kostenposition jahresunabhängig;
+  nur lesend. Reine Prüflogik `checkReceiptFolder` in
+  `packages/validators`; Anleitung `docs/BELEGPRUEFUNG.md`,
 - **GiroCode bei Nachzahlung (PR-39)**: Die Einzelabrechnung druckt neben
   der Zahlungsaufforderung einen EPC-QR-Code (EPC069-12, Version 002,
   UTF-8, Fehlerkorrektur M) mit Kontoinhaber, IBAN, ggf. BIC, Betrag und
