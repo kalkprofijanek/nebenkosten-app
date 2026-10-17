@@ -28,3 +28,16 @@ Die Sanitisation ersetzte nicht nur Kontaktdaten, sondern auch Seed-, Zuordnungs
 - Das Repository ist öffentlich. Nach Angabe des Maintainers sind die Bedingungen aus Entscheidung 5 erfüllt (Bestätigung durch GitHub Support, bestandene Historienprüfung).
 - Entscheidungen 1 bis 4 und die Konsequenzen gelten unverändert weiter.
 - Für Beiträge Dritter gilt zusätzlich: Pull Requests aus Forks dürfen keine Inhalte aus alten, bereinigten Commits oder PR-Refs wieder einführen.
+
+## Nachtrag 2026-10-17: Gebäudekürzel
+
+- Die Gebäudekürzel und Mandatspräfixe in `legacy/index.html`
+  (Gebäudetabelle und Grundsteuerhinweis) sind nach Entscheidung des
+  Maintainers als **bekannt öffentlich, ohne Personenbezug** eingestuft.
+  Sie bleiben in `legacy/index.html` (Entscheidung 3) und in der Historie;
+  es erfolgt kein erneuter History-Rewrite.
+- Aus dem Masterplan wurden die Dateinamen der Referenzunterlagen mit
+  Objekt- und Gebäudekürzeln durch Platzhalter ersetzt.
+- Neue Inhalte (Code, Tests, Dokumentation, Beispiele, Commits, PR-Texte)
+  verwenden weiterhin ausschließlich Platzhalter wie `Objekt-A`; echte
+  Kürzel und Ordnerpfade bleiben lokal (`docs/DATENSCHUTZ-KI.md`).
