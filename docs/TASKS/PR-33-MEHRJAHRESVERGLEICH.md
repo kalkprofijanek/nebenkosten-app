@@ -26,3 +26,17 @@ diese Datei.
 ## Abnahme
 
 Tests mit fiktiven Jahren, Nutzerwechsel, Leerstand, Witterungsbereinigung.
+
+## Umsetzungsstand
+
+- Core: `compareYears` / `yearOverYearReport`
+  (`packages/core/src/comparison/year-over-year.ts`) mit Kostenarten
+  (Zuordnung über Bezeichnung/BetrKV), Brennstoff je Heizkreis, Heizkosten je
+  kWh, witterungsbereinigtem Energieeinsatz (Klimafaktor des Jahres) und
+  Wohnungen (Nutzerwechsel, Leerstandstage). Grenzen ± 25 % / ± 40 % als
+  Parameter.
+- Web: Panel „Veränderung zum Vorjahr“ auf der Freigabeseite, Filter „Nur
+  auffällige Positionen“, CSV-Export mit leerer Spalte „Erklärung“.
+- Offen: internes PDF (`packages/pdf`) und Import einer
+  Vorjahres-Summentabelle (`packages/import-export`) für Vorjahre, die nicht im
+  System liegen.
