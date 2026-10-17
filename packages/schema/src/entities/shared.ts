@@ -333,3 +333,23 @@ export const fileAttachmentSchema = z
     }
   })
 export type FileAttachment = z.infer<typeof fileAttachmentSchema>
+
+/**
+ * Herkunft einer Kostenposition bzw. Lieferung bei Eigentümerwechsel
+ * (PR-30): aus der Abrechnung des Voreigentümers übernommen oder eigene.
+ * Leer = eigene (additiv, Schema v5).
+ */
+export const costOriginSchema = z.enum(['previous_owner', 'own'])
+export type CostOrigin = z.infer<typeof costOriginSchema>
+
+/**
+ * Grundlage eines Betrags (PR-30): Rechnung, gezahlte Abschläge oder
+ * Schätzung. Abschläge und Schätzungen sind für Energie nicht abrechenbar,
+ * solange keine Rechnung vorliegt. Leer = Rechnung (additiv, Schema v5).
+ */
+export const amountBasisSchema = z.enum([
+  'invoice',
+  'advance_payments',
+  'estimate',
+])
+export type AmountBasis = z.infer<typeof amountBasisSchema>

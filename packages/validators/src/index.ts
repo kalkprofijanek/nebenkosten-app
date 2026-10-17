@@ -26,6 +26,10 @@ export {
   type LegalRule,
 } from './legal-rules'
 export { co2OpeningPriceIssues } from './co2-price'
+export {
+  ownershipChangeIssues,
+  PRICE_DEVIATION_LIMIT,
+} from './ownership-change'
 export { energyBalanceIssues } from './energy-balance'
 export {
   ESTIMATE_PREVIOUS_DEVIATION_LIMIT,

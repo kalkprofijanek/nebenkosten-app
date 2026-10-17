@@ -15,6 +15,7 @@ import {
   PROPERTY_DATA_HEADING,
   TIME_FACTOR_EXPLANATION,
   estimatedConsumptionNote,
+  ownershipChangeNote,
 } from './legal-texts'
 import {
   circuitTraceFor,
@@ -294,6 +295,19 @@ export function buildTenantStatement(
             margin: [0, 0, 0, 8],
           }
         : { text: '' },
+      // PR-30: nur bei Eigentümerwechsel, sonst bleibt das Dokument unverändert.
+      ...(context.billingPeriod.ownershipChange
+        ? [
+            {
+              text: ownershipChangeNote(
+                formatIsoDate(
+                  context.billingPeriod.ownershipChange.transferDate,
+                ),
+              ),
+              margin: [0, 0, 0, 8],
+            } as Content,
+          ]
+        : []),
       { text: OBJECTION_NOTICE, margin: [0, 0, 0, 8] },
       bankLine
         ? {
