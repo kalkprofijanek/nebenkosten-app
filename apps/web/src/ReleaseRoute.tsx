@@ -15,6 +15,7 @@ import {
 import { useMemo, useState } from 'react'
 
 import { validationIssueLink } from './features/release/validation-links'
+import { ImportChecklistPanel } from './features/review/ImportChecklistPanel'
 import { YearOverYearPanel } from './features/review/YearOverYearPanel'
 
 interface ReleaseRouteProps {
@@ -296,6 +297,10 @@ export function ReleaseRoute({
         </p>
       ) : null}
       {readOnly ? <p>Dieser Abrechnungsstand ist schreibgeschützt.</p> : null}
+
+      {readOnly ? null : (
+        <ImportChecklistPanel data={data} period={billingPeriod} />
+      )}
 
       {!hasCurrentCalculation &&
       (billingPeriod.status === 'DRAFT' ||
