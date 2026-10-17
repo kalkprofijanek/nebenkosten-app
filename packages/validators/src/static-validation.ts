@@ -65,7 +65,11 @@ function masterData(data: AppDataFile, period: BillingPeriod, add: Add): void {
         { entity: { type: 'Property', id: property?.id ?? period.propertyId } },
       ),
     )
-  const iban = property?.bankAccount?.iban || owner?.bankAccount?.iban
+  // Wie die PDF-Absenderzeile: Objektkonto vor Konto der Gesellschaft.
+  const bankAccount = blank(property?.bankAccount?.iban)
+    ? owner?.bankAccount
+    : property?.bankAccount
+  const iban = bankAccount?.iban
   if (blank(iban))
     add(
       issue('error', 'master_data.iban_missing', 'master_data', 'IBAN fehlt', {
@@ -79,6 +83,19 @@ function masterData(data: AppDataFile, period: BillingPeriod, add: Add): void {
         'master_data.iban_invalid',
         'master_data',
         'IBAN ist ungültig',
+        { entity: { type: 'Property', id: property?.id ?? period.propertyId } },
+      ),
+    )
+  // PR-39: Ohne Kontoinhaber druckt die Abrechnung keinen GiroCode, weil die
+  // Empfängerüberprüfung der Bank sonst beim Mieter warnt. Nur Hinweis: Die
+  // Abrechnung bleibt richtig und die Freigabe wird nicht blockiert.
+  else if (blank(bankAccount?.accountHolder))
+    add(
+      issue(
+        'info',
+        'master_data.account_holder_missing',
+        'master_data',
+        'Kontoinhaber fehlt – die Abrechnung enthält keinen GiroCode',
         { entity: { type: 'Property', id: property?.id ?? period.propertyId } },
       ),
     )

@@ -4,6 +4,7 @@ import type {
   OperatingPositionTrace,
 } from '@nebenkosten/core'
 import { buildSenderBlock } from './address'
+import { buildEpcPayload } from './epc-girocode'
 import type { TenantStatementContext } from './contracts'
 import {
   occupancySection9bShare,
@@ -30,6 +31,7 @@ import {
 } from './heating-summary'
 import {
   BALANCED_TEXT,
+  GIROCODE_CAPTION,
   additionalPaymentText,
   baseAreaLabel,
   creditText,
@@ -38,6 +40,7 @@ import {
   circuitTraceFor,
   consumptionUnitFor,
   heatingTotalCents,
+  occupancyRange,
   resolvedBuildingId,
   tenantResult,
   type TenantFacts,
@@ -105,25 +108,75 @@ function statementDate(context: TenantStatementContext): string {
   )
 }
 
+/**
+ * Verwendungszweck „NK <Jahr> <Einheit>“. Bei Mieterwechsel im Jahr erhält
+ * der nachfolgende Mieter zusätzlich den Nutzungsbeginn, damit Zahlungen
+ * eindeutig zuzuordnen sind (PR-39, E-39-2).
+ */
+export function paymentReference(context: TenantStatementContext): string {
+  const { appData, billingPeriod, occupancyPeriod, unit } = context
+  const base = `NK ${billingPeriod.year} ${unit.label ?? ''}`.trim()
+  const { from } = occupancyRange(context)
+  const tenantChange =
+    from > billingPeriod.periodStart &&
+    appData.billingData.occupancyPeriods.some(
+      (other) =>
+        other.id !== occupancyPeriod.id &&
+        other.kind === 'tenant' &&
+        other.billingPeriodId === occupancyPeriod.billingPeriodId &&
+        other.unitId === occupancyPeriod.unitId,
+    )
+  return tenantChange ? `${base} ab ${formatIsoDate(from).slice(0, 6)}` : base
+}
+
 export function paymentContent(context: TenantStatementContext): Content[] {
   const tenant = tenantResult(context)
-  const { billingPeriod, unit } = context
+  const { billingPeriod } = context
   const sender = buildSenderBlock(context.ownerCompany, context.property)
   const amount = formatEuroCents(Math.abs(tenant.balanceCents))
   const notes = billingPeriod.notes
   if (tenant.balanceCents > 0) {
+    const reference = paymentReference(context)
+    const paymentText: Content = {
+      text: additionalPaymentText({
+        amount,
+        dueDate: formatIsoDate(
+          addDaysIso(statementDate(context), PAYMENT_TERM_DAYS),
+        ),
+        iban: sender.iban ? formatIban(sender.iban) : null,
+        reference,
+      }),
+      margin: [0, 0, 0, 4],
+    }
+    // PR-39: GiroCode nur bei Nachzahlung, gültiger Bankverbindung und
+    // hinterlegtem Kontoinhaber (E-39-1: kein Ersatzname, damit die
+    // Empfängerüberprüfung der Bank nicht warnt).
+    const epcPayload =
+      sender.iban && sender.accountHolder
+        ? buildEpcPayload({
+            name: sender.accountHolder,
+            iban: sender.iban,
+            bic: sender.bic,
+            amountCents: tenant.balanceCents,
+            remittance: reference,
+          })
+        : null
     return [
-      {
-        text: additionalPaymentText({
-          amount,
-          dueDate: formatIsoDate(
-            addDaysIso(statementDate(context), PAYMENT_TERM_DAYS),
-          ),
-          iban: sender.iban ? formatIban(sender.iban) : null,
-          reference: `NK ${billingPeriod.year} ${unit.label ?? ''}`.trim(),
-        }),
-        margin: [0, 0, 0, 4],
-      },
+      epcPayload
+        ? {
+            columns: [
+              { width: '*', stack: [paymentText] },
+              {
+                width: 'auto',
+                stack: [
+                  { qr: epcPayload, fit: 80, eccLevel: 'M' },
+                  { text: GIROCODE_CAPTION, fontSize: 6, color: MUTED },
+                ],
+                margin: [8, 0, 0, 4],
+              },
+            ],
+          }
+        : paymentText,
       ...(notes?.additionalPayment
         ? [{ text: notes.additionalPayment, margin: [0, 0, 0, 4] } as Content]
         : []),

@@ -74,6 +74,8 @@ verarbeitet sie im Sinne der DSGVO **als Verantwortlicher**.
   Kontoauszüge bei Bedarf (Mietereingänge) oder lassen Sie diese Zeilen weg.
 - Geben Sie **niemals** die vollständige JSON-Sicherung an eine KI, wenn eine
   Teilinformation reicht.
+- Regeln für lokale Agenten, Ordnerverknüpfung und eine Checkliste stehen
+  in [`DATENSCHUTZ-KI.md`](DATENSCHUTZ-KI.md).
 - Dies ist keine Rechtsberatung. Klären Sie die Anforderungen für Ihren Fall.
 
 ## Ablauf A: Eingangsrechnungen auslesen

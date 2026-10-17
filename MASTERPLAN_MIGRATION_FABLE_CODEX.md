@@ -67,12 +67,10 @@ Diese Verzeichnisse müssen vollständig in `.gitignore` stehen.
 Die vorhandenen Referenzunterlagen, beispielsweise:
 
 ```text
-Beschreibung TT-2-3.pdf
+Beschreibung <Objekt>.pdf
 Allgemeine Beschreibung.pdf
-TT 1-3EnEV 16.pdf
-TT-LL8-10-Energie- Energieausweis_GEG.pdf
-TT-LL12-16-Energie- Energieausweis_GEG.pdf
-VA TT-LL18-22_Energieausweis_EnEV_2013.pdf
+<Objekt> Energieausweis_EnEV.pdf
+<Objekt>-<Gebäude>-Energie- Energieausweis_GEG.pdf
 ```
 
 bleiben lokal unter `private-data/documents/`. Für automatisierte Tests dürfen daraus nur vollständig anonymisierte, fachlich erforderliche Testwerte in separate Fixtures übernommen werden.

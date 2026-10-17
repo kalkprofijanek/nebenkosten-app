@@ -4,6 +4,17 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **GiroCode bei Nachzahlung (PR-39)**: Die Einzelabrechnung druckt neben
+  der Zahlungsaufforderung einen EPC-QR-Code (EPC069-12, Version 002,
+  UTF-8, Fehlerkorrektur M) mit Kontoinhaber, IBAN, ggf. BIC, Betrag und
+  Verwendungszweck. Kein Code bei Guthaben, ausgeglichenem Saldo,
+  ungültiger IBAN/BIC oder fehlendem Kontoinhaber (kein Ersatzname wegen
+  der Empfängerüberprüfung der Banken); neuer Hinweis
+  `master_data.account_holder_missing` (Stufe info, blockiert die Freigabe
+  nicht). Bei Mieterwechsel im Jahr erhält
+  der nachfolgende Mieter den Verwendungszweck „NK <Jahr> <Einheit> ab
+  TT.MM.“ (QR-Code und Text);
+  Berechnung unverändert, keine neue Abhängigkeit (pdfmake-QR),
 - **Mieterliste aus Excel/CSV (PR-37 Teil 2)**: Vorlage „Mieterliste“ zum
   Herunterladen unter **Nutzer**; je Zeile eine Belegung (Wohnung mit Fläche,
   Mieter oder Leerstand, Von/Bis, Personen, Vorauszahlung monatlich, jährlich
