@@ -287,6 +287,8 @@ describe('validateBillingPeriod', () => {
       iban: ['DE89', '370400440532013000'].join(''),
     }
     expect(codes(data)).toContain('master_data.account_holder_missing')
+    // Hinweis, keine Warnung: blockiert die Freigabe nicht.
+    expect(validateBillingPeriod(data, 'period-1').canBecomeReady).toBe(true)
 
     const propertyAccount = validData()
     propertyAccount.masterData.properties[0]!.bankAccount = {

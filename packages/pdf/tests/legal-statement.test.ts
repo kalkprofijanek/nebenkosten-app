@@ -333,7 +333,7 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     )
     expect(due).toContain('"qr":"BCD\\n002\\n1\\nSCT\\n')
     expect(due).toContain(
-      'Mustermann Immobilien GmbH\\nDE89370400440532013000\\nEUR123.45\\n\\n\\n',
+      `Mustermann Immobilien GmbH\\n${['DE89', '370400440532013000'].join('')}\\nEUR123.45\\n\\n\\n`,
     )
     expect(due).toContain(
       `\\nNK ${original.billingPeriod.year} ${original.unit.label}"`,

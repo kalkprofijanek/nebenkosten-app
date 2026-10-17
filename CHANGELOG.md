@@ -23,6 +23,17 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
   Brennstoffe** mit deutschem Datum, Menge und Betrag statt `2025-02-10` und
   `3150.00 €`; Verbrauchstabelle passt bei 1440 px ohne horizontales
   Scrollen,
+- **GiroCode bei Nachzahlung (PR-39)**: Die Einzelabrechnung druckt neben
+  der Zahlungsaufforderung einen EPC-QR-Code (EPC069-12, Version 002,
+  UTF-8, Fehlerkorrektur M) mit Kontoinhaber, IBAN, ggf. BIC, Betrag und
+  Verwendungszweck. Kein Code bei Guthaben, ausgeglichenem Saldo,
+  ungültiger IBAN/BIC oder fehlendem Kontoinhaber (kein Ersatzname wegen
+  der Empfängerüberprüfung der Banken); neuer Hinweis
+  `master_data.account_holder_missing` (Stufe info, blockiert die Freigabe
+  nicht). Bei Mieterwechsel im Jahr erhält
+  der nachfolgende Mieter den Verwendungszweck „NK <Jahr> <Einheit> ab
+  TT.MM.“ (QR-Code und Text);
+  Berechnung unverändert, keine neue Abhängigkeit (pdfmake-QR),
 - **Mieterliste aus Excel/CSV (PR-37 Teil 2)**: Vorlage „Mieterliste“ zum
   Herunterladen unter **Nutzer**; je Zeile eine Belegung (Wohnung mit Fläche,
   Mieter oder Leerstand, Von/Bis, Personen, Vorauszahlung monatlich, jährlich
@@ -30,16 +41,6 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
   nur vollständig; vorhandene Wohnungen werden über die Bezeichnung
   zugeordnet, fehlende angelegt, abweichende Flächen oder Gebäude nie still
   überschrieben. Auch nutzbar, solange ein Objekt noch keine Wohnung hat.
-- **GiroCode bei Nachzahlung (PR-39)**: Die Einzelabrechnung druckt neben
-  der Zahlungsaufforderung einen EPC-QR-Code (EPC069-12, Version 002,
-  UTF-8, Fehlerkorrektur M) mit Kontoinhaber, IBAN, ggf. BIC, Betrag und
-  Verwendungszweck. Kein Code bei Guthaben, ausgeglichenem Saldo,
-  ungültiger IBAN/BIC oder fehlendem Kontoinhaber (kein Ersatzname wegen
-  der Empfängerüberprüfung der Banken); neue Warnung
-  `master_data.account_holder_missing`. Bei Mieterwechsel im Jahr erhält
-  der nachfolgende Mieter den Verwendungszweck „NK <Jahr> <Einheit> ab
-  TT.MM.“ (QR-Code und Text);
-  Berechnung unverändert, keine neue Abhängigkeit (pdfmake-QR),
 - **Warmwasseranteil bei Wärmepumpen (ADR-0010 „Wärmepumpen“)**: s = Q ÷
   erzeugte Wärme statt ÷ Strom-kWh; neue optionale Felder
   `HeatingCircuit.generatedHeatKwh` (gemessene Wärmemenge am Erzeuger) und
