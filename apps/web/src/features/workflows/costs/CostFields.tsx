@@ -187,6 +187,22 @@ export function CostEntryFields({
         defaultValue={entry?.allocablePercent ?? ''}
       />
       <label>
+        <span>Betragsgrundlage</span>
+        <select name="amountBasis" defaultValue={entry?.amountBasis ?? ''}>
+          <option value="">Nicht angegeben</option>
+          <option value="invoice">Rechnung</option>
+          <option value="advance_payments">Gezahlte Abschläge</option>
+          <option value="estimate">Schätzung</option>
+        </select>
+      </label>
+      <label>
+        <span>Herkunft</span>
+        <select name="origin" defaultValue={entry?.origin ?? ''}>
+          <option value="">Eigene</option>
+          <option value="previous_owner">Vom Voreigentümer übernommen</option>
+        </select>
+      </label>
+      <label>
         <span>Zahlungsnachweis</span>
         <select
           name="paymentKind"

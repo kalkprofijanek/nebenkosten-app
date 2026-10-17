@@ -86,4 +86,6 @@ Migration ohne Datenverlust. Nur fiktive Daten.
   Lieferung, „Bewertung des Anfangsbestands“ mit Begründung.
 - `updateFuelDelivery` erhält Herkunft und Betragsgrundlage, wenn ein anderer
   Bearbeitungsweg sie nicht mitschickt.
-- Offen: Herkunft und Betragsgrundlage auch im Formular der Kostenbelege.
+- Kosten → Belege: Auswahl „Betragsgrundlage“ und „Herkunft“ je Beleg; eine
+  leere Auswahl entfernt das Kennzeichen, Formulare ohne diese Felder lassen
+  es unverändert.

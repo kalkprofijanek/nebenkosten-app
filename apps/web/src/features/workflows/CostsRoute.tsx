@@ -86,6 +86,11 @@ function entryInput(form: FormData) {
     amountCents: parseEuroCents(formText(form, 'amount')),
     receiptReference: formOptionalText(form, 'receiptReference'),
     allocablePercent: optionalPercent(form, 'allocablePercent'),
+    // PR-30: leere Auswahl entfernt ein gesetztes Kennzeichen.
+    ...(form.has('origin') ? { origin: formText(form, 'origin') || null } : {}),
+    ...(form.has('amountBasis')
+      ? { amountBasis: formText(form, 'amountBasis') || null }
+      : {}),
     ...(paymentKind === 'booking' && bankBookingId
       ? { bookingLink: { bankBookingId } }
       : {}),
