@@ -4,6 +4,15 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Screenshots und Musterabrechnungen (ADR-0012)**: Rundgang in sieben
+  Bildern mit Bedienhinweisen und sechs Muster-PDFs aus dem fiktiven
+  Beispielobjekt unter `docs/medien/`, eingebunden in README, Kurzanleitung
+  und Beispiel-Beschreibung; erzeugt mit `pnpm medien`. Der Privacy-Scan
+  lässt Binärdateien nur dort und nur mit Eintrag in
+  `docs/medien/SHA256SUMS` zu. Beispielobjekt mit lesbaren Wohnungs- und
+  Personennamen, Anschrift und je Kostenart einer Rechnung. `pnpm abrechnung`
+  liest jetzt auch Sicherungen der App (Schema v4/v5), nicht nur
+  `nk-daten.json`,
 - **Warmwasseranteil bei Wärmepumpen (ADR-0010 „Wärmepumpen“)**: s = Q ÷
   erzeugte Wärme statt ÷ Strom-kWh; neue optionale Felder
   `HeatingCircuit.generatedHeatKwh` (gemessene Wärmemenge am Erzeuger) und

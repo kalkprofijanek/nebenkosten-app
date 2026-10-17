@@ -19,6 +19,17 @@ und fertige PDF-Abrechnungen für jede Mietpartei.
 
 **Aktuelle Version: 1.3.0 · Schema v5**
 
+## So sieht es aus
+
+| Abrechnungsvorschau in der App                                          | Einzelabrechnung als PDF                                                                                             |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| ![Abrechnungsvorschau je Wohnung](docs/medien/06-berechnung.png)        | ![Erste Seite einer Einzelabrechnung](docs/medien/08-einzelabrechnung-seite-1.png)                                   |
+| [Rundgang in sieben Bildern mit Bedienhinweisen](docs/medien/README.md) | [Musterabrechnungen 2025 als PDF](docs/medien/README.md#musterabrechnungen-2025-pdf) (Öl, Wärmepumpe, Mieterwechsel) |
+
+Alle Bilder und PDFs stammen aus dem
+[fiktiven Beispielobjekt](docs/beispiel/README.md) – in der App über
+**Daten importieren** in einer Minute selbst nachvollziehbar.
+
 ## Empfohlen: mit KI-Agent
 
 In der App selbst steht unter **Übersicht → Mit KI arbeiten** der passende
@@ -150,6 +161,17 @@ Geplant bzw. sinnvoll (Beiträge willkommen):
 
 ## Mitmachen
 
+Am meisten hilft, wer die App mit einer eigenen Abrechnung vergleicht –
+Programmierkenntnisse sind dafür nicht nötig:
+
+- **Musterabrechnung gegenlesen:** Stimmt der Aufbau einer
+  [Musterabrechnung](docs/medien/README.md#musterabrechnungen-2025-pdf) mit
+  Ihrer Praxis bzw. der BetrKV/HeizKV überein? Abweichungen bitte als
+  „Fachfrage“ mit Fundstelle melden.
+- **Erste Abrechnung ausprobieren:** Der
+  [Rundgang](docs/medien/README.md) und die
+  [Kurzanleitung](docs/ERSTE-ABRECHNUNG.md) zeigen den Ablauf; wo Sie hängen
+  bleiben, ist ein Hinweis für uns.
 - **Fehler, Fachfragen, Wünsche:**
   [Issue eröffnen](https://github.com/kalkprofijanek/nebenkosten-app/issues/new/choose)
   – bitte **niemals echte Mieter-, Bank- oder Belegdaten** anhängen.
@@ -273,6 +295,7 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 ## Dokumentation
 
 - [`docs/BENUTZERHANDBUCH.md`](docs/BENUTZERHANDBUCH.md) – Bedienung für Anwender
+- [`docs/medien/README.md`](docs/medien/README.md) – Rundgang mit Screenshots und Musterabrechnungen (PDF)
 - [`docs/KI-ANLEITUNG.md`](docs/KI-ANLEITUNG.md) – Arbeiten mit Claude/ChatGPT
 - [`docs/DATENQUELLEN.md`](docs/DATENQUELLEN.md) – Klimafaktoren, Heizspiegel, CO₂-Preis und Rechtsgrundlagen (Quellen; im KI-Ablauf ruft der Agent die Werte selbst ab)
 - [`docs/BANK-CSV-FORMAT.md`](docs/BANK-CSV-FORMAT.md) – CSV-Import von Bankbuchungen

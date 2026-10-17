@@ -9,6 +9,9 @@ willkommen – als Fehlermeldung, Fachfrage, Verbesserungsvorschlag oder Code.
   [Issue-Vorlagen](https://github.com/kalkprofijanek/nebenkosten-app/issues/new/choose).
 - **Fachfragen** (Umlage, HeizKV, CO₂-Aufteilung, Rundung): Vorlage
   „Fachfrage“. Fachliche Hinweise mit Normbezug sind besonders wertvoll.
+- **Musterabrechnung gegenlesen**: Die
+  [Musterabrechnungen](docs/medien/README.md#musterabrechnungen-2025-pdf)
+  mit der eigenen Praxis vergleichen und Abweichungen mit Fundstelle melden.
 - **Bankformate**: Wenn der CSV-Import Ihrer Bank nicht funktioniert, melden
   Sie die Kopfzeile des Exports (nur die Spaltennamen, keine Buchungen).
 
@@ -23,6 +26,9 @@ Commits, Tests, Screenshots oder Logs:
 - JSON-Sicherungen oder `nk-daten.json`.
 
 Verwenden Sie erfundene Werte („Beispiel Stadtwerke“, „Mieter Wohnung 1“).
+Screenshots und PDFs für die Dokumentation entstehen ausschließlich aus dem
+fiktiven Beispielobjekt über `pnpm medien`
+([ADR-0012](docs/DECISIONS/ADR-0012-FREIGEGEBENE-MEDIEN.md)).
 Ein automatischer Scan blockiert typische Lecks, ersetzt aber nicht Ihre
 Sorgfalt. Ist doch etwas veröffentlicht worden: sofort melden (siehe
 [`SECURITY.md`](SECURITY.md)).

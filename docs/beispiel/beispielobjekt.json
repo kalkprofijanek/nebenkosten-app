@@ -15,7 +15,11 @@
         "id": "oc-1",
         "organizationId": "org-1",
         "name": "Mustermann Immobilien GmbH",
-        "additionalNameLines": []
+        "additionalNameLines": [],
+        "address": {
+          "street": "Am Musterhof 1",
+          "postalCodeAndCity": "12345 Musterstadt"
+        }
       }
     ],
     "properties": [
@@ -23,8 +27,8 @@
         "id": "prop-1",
         "ownerCompanyId": "oc-1",
         "address": {
-          "street": "Beispielangabe",
-          "postalCodeAndCity": "00000 Musterstadt"
+          "street": "Am Musterhof 1",
+          "postalCodeAndCity": "12345 Musterstadt"
         }
       }
     ],
@@ -55,7 +59,7 @@
         "id": "u-n1",
         "propertyId": "prop-1",
         "buildingId": "B1",
-        "label": "Einheit u-n1",
+        "label": "Haus Nord · Whg. 1",
         "usableAreaSqm": {
           "value": 62,
           "unit": "m2"
@@ -69,7 +73,7 @@
         "id": "u-n2",
         "propertyId": "prop-1",
         "buildingId": "B1",
-        "label": "Einheit u-n2",
+        "label": "Haus Nord · Whg. 2",
         "usableAreaSqm": {
           "value": 48,
           "unit": "m2"
@@ -83,7 +87,7 @@
         "id": "u-n3",
         "propertyId": "prop-1",
         "buildingId": "B1",
-        "label": "Einheit u-n3",
+        "label": "Haus Nord · Whg. 3",
         "usableAreaSqm": {
           "value": 75,
           "unit": "m2"
@@ -97,7 +101,7 @@
         "id": "u-n4",
         "propertyId": "prop-1",
         "buildingId": "B1",
-        "label": "Einheit u-n4",
+        "label": "Haus Nord · Whg. 4",
         "usableAreaSqm": {
           "value": 55,
           "unit": "m2"
@@ -111,7 +115,7 @@
         "id": "u-n5",
         "propertyId": "prop-1",
         "buildingId": "B1",
-        "label": "Einheit u-n5",
+        "label": "Haus Nord · Whg. 5",
         "usableAreaSqm": {
           "value": 68,
           "unit": "m2"
@@ -125,7 +129,7 @@
         "id": "u-n6",
         "propertyId": "prop-1",
         "buildingId": "B1",
-        "label": "Einheit u-n6",
+        "label": "Haus Nord · Whg. 6",
         "usableAreaSqm": {
           "value": 40,
           "unit": "m2"
@@ -139,7 +143,7 @@
         "id": "u-s1",
         "propertyId": "prop-1",
         "buildingId": "B2",
-        "label": "Einheit u-s1",
+        "label": "Haus Süd · Whg. 1",
         "usableAreaSqm": {
           "value": 70,
           "unit": "m2"
@@ -153,7 +157,7 @@
         "id": "u-s2",
         "propertyId": "prop-1",
         "buildingId": "B2",
-        "label": "Einheit u-s2",
+        "label": "Haus Süd · Whg. 2",
         "usableAreaSqm": {
           "value": 58,
           "unit": "m2"
@@ -167,7 +171,7 @@
         "id": "u-s3",
         "propertyId": "prop-1",
         "buildingId": "B2",
-        "label": "Einheit u-s3",
+        "label": "Haus Süd · Whg. 3",
         "usableAreaSqm": {
           "value": 82,
           "unit": "m2"
@@ -181,7 +185,7 @@
         "id": "u-s4",
         "propertyId": "prop-1",
         "buildingId": "B2",
-        "label": "Einheit u-s4",
+        "label": "Haus Süd · Whg. 4",
         "usableAreaSqm": {
           "value": 45,
           "unit": "m2"
@@ -195,7 +199,7 @@
         "id": "u-s5",
         "propertyId": "prop-1",
         "buildingId": "B2",
-        "label": "Einheit u-s5",
+        "label": "Haus Süd · Whg. 5",
         "usableAreaSqm": {
           "value": 64,
           "unit": "m2"
@@ -209,7 +213,7 @@
         "id": "u-s6",
         "propertyId": "prop-1",
         "buildingId": "B2",
-        "label": "Einheit u-s6",
+        "label": "Haus Süd · Whg. 6",
         "usableAreaSqm": {
           "value": 52,
           "unit": "m2"
@@ -224,73 +228,73 @@
       {
         "id": "p-n1",
         "organizationId": "org-1",
-        "displayName": "Mieter N1",
+        "displayName": "Erika Mustermann",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-n2",
         "organizationId": "org-1",
-        "displayName": "Mieter N2",
+        "displayName": "Max Beispiel",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-n3",
         "organizationId": "org-1",
-        "displayName": "Mieter N3",
+        "displayName": "Familie Musterfrau",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-n3b",
         "organizationId": "org-1",
-        "displayName": "Mieter N3B",
+        "displayName": "Lena Exempel",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-n4",
         "organizationId": "org-1",
-        "displayName": "Mieter N4",
+        "displayName": "Paul Platzhalter",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-n5",
         "organizationId": "org-1",
-        "displayName": "Mieter N5",
+        "displayName": "Familie Muster",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-s1",
         "organizationId": "org-1",
-        "displayName": "Mieter S1",
+        "displayName": "Anna Probe",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-s2",
         "organizationId": "org-1",
-        "displayName": "Mieter S2",
+        "displayName": "Tom Vorlage",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-s3",
         "organizationId": "org-1",
-        "displayName": "Mieter S3",
+        "displayName": "Familie Fiktiv",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-s4",
         "organizationId": "org-1",
-        "displayName": "Mieter S4",
+        "displayName": "Ida Testfall",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-s5",
         "organizationId": "org-1",
-        "displayName": "Mieter S5",
+        "displayName": "Ben Entwurf",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-s6",
         "organizationId": "org-1",
-        "displayName": "Mieter S6",
+        "displayName": "Mia Modell",
         "companyOrPrivate": "Privat"
       }
     ],
@@ -801,7 +805,92 @@
         "laborSharePercent": 80
       }
     ],
-    "costEntries": [],
+    "costEntries": [
+      {
+        "id": "ce-grundsteuer",
+        "costCategoryId": "k-grundsteuer",
+        "date": "2025-02-15",
+        "description": "Grundsteuerbescheid Stadt Musterstadt",
+        "amountCents": 240000,
+        "receiptReference": "Beleg 2025-001",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-wasser",
+        "costCategoryId": "k-wasser",
+        "date": "2025-12-31",
+        "description": "Jahresrechnung Beispiel Stadtwerke",
+        "amountCents": 560000,
+        "receiptReference": "Beleg 2025-002",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-muell",
+        "costCategoryId": "k-muell",
+        "date": "2025-01-31",
+        "description": "Abfallgebührenbescheid Musterkreis",
+        "amountCents": 216000,
+        "receiptReference": "Beleg 2025-003",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-strom",
+        "costCategoryId": "k-strom",
+        "date": "2025-12-31",
+        "description": "Jahresrechnung Allgemeinstrom",
+        "amountCents": 120000,
+        "receiptReference": "Beleg 2025-004",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-versicherung",
+        "costCategoryId": "k-versicherung",
+        "date": "2025-01-10",
+        "description": "Beitragsrechnung Musterversicherung",
+        "amountCents": 300000,
+        "receiptReference": "Beleg 2025-005",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-wartung",
+        "costCategoryId": "k-wartung",
+        "date": "2025-09-18",
+        "description": "Wartung Ölkessel, Musterheizungsbau",
+        "amountCents": 48000,
+        "receiptReference": "Beleg 2025-006",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      }
+    ],
     "bankBookings": [],
     "heatingCircuits": [
       {

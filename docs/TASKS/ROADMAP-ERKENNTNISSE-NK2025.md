@@ -41,6 +41,7 @@ Kleinigkeiten; Nr. 4 Fernwärme zurückgestellt.
 | [PR-36](PR-36-REFERENZDATEN.md)                | DWD-Klimafaktoren und Heizspiegel als mitgelieferte Tabellen                   | –                      | in PR           |
 | [PR-37](PR-37-IMPORT-BEISPIELOBJEKT.md)        | Excel/CSV-Import (Mieter, Ablesebögen, Messdienst) und anonymes Beispielobjekt | PR-HEIZKV-IMPORT       | Teil 1 erledigt |
 | [PR-38](PR-38-KURZANLEITUNG-KLEINVERMIETER.md) | Kurzanleitung „Erste Abrechnung in 60 Minuten“                                 | PR-37 (Beispielobjekt) | erledigt        |
+| [PR-39](PR-39-MEDIEN-MUSTERABRECHNUNG.md)      | Screenshots, Bedienhinweise und Musterabrechnungen (ADR-0012)                  | PR-37, PR-38           | in PR           |
 
 ## Arbeitsweise
 

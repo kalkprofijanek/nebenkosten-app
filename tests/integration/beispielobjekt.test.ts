@@ -243,9 +243,71 @@ const SCENARIO: Scenario = {
   ],
 }
 
+/** Lesbare, frei erfundene Namen für Musterabrechnungen und Screenshots. */
+const PERSONS: Readonly<Record<string, string>> = {
+  'p-n1': 'Erika Mustermann',
+  'p-n2': 'Max Beispiel',
+  'p-n3': 'Familie Musterfrau',
+  'p-n3b': 'Lena Exempel',
+  'p-n4': 'Paul Platzhalter',
+  'p-n5': 'Familie Muster',
+  'p-s1': 'Anna Probe',
+  'p-s2': 'Tom Vorlage',
+  'p-s3': 'Familie Fiktiv',
+  'p-s4': 'Ida Testfall',
+  'p-s5': 'Ben Entwurf',
+  'p-s6': 'Mia Modell',
+}
+
+/** Rechnungen je Kostenart (fiktive Versorger), Summe = Kostenart. */
+const INVOICES: Readonly<Record<string, readonly [string, string]>> = {
+  'k-grundsteuer': ['2025-02-15', 'Grundsteuerbescheid Stadt Musterstadt'],
+  'k-wasser': ['2025-12-31', 'Jahresrechnung Beispiel Stadtwerke'],
+  'k-muell': ['2025-01-31', 'Abfallgebührenbescheid Musterkreis'],
+  'k-strom': ['2025-12-31', 'Jahresrechnung Allgemeinstrom'],
+  'k-versicherung': ['2025-01-10', 'Beitragsrechnung Musterversicherung'],
+  'k-wartung': ['2025-09-18', 'Wartung Ölkessel, Musterheizungsbau'],
+}
+
 function buildExample(): AppDataFile {
   const data = buildAppDataFile(SCENARIO)
   const period = data.billingData.billingPeriods[0]!
+  const address = {
+    street: 'Am Musterhof 1',
+    postalCodeAndCity: '12345 Musterstadt',
+  }
+  for (const property of data.masterData.properties) property.address = address
+  for (const company of data.masterData.ownerCompanies)
+    company.address = address
+  for (const unit of data.masterData.units) {
+    const building = data.masterData.buildings.find(
+      ({ id }) => id === unit.buildingId,
+    )
+    unit.label = `${building?.name ?? 'Haus'} · Whg. ${unit.id.slice(3)}`
+  }
+  for (const person of data.masterData.persons)
+    person.displayName = PERSONS[person.id] ?? person.displayName
+  let receipt = 0
+  for (const category of data.billingData.costCategories) {
+    const invoice = INVOICES[category.id]
+    if (!invoice || category.totalAmountCents == null) continue
+    receipt += 1
+    data.billingData.costEntries.push({
+      id: `ce-${category.id.slice(2)}`,
+      costCategoryId: category.id,
+      date: invoice[0],
+      description: invoice[1],
+      amountCents: category.totalAmountCents,
+      receiptReference: `Beleg 2025-${String(receipt).padStart(3, '0')}`,
+      externalPayment: {
+        confirmed: true,
+        reason:
+          'Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)',
+      },
+      origin: 'own',
+      amountBasis: 'invoice',
+    })
+  }
   // Eigentümerwechsel zum 1. April: erste Öllieferung aus der Zeit des
   // Voreigentümers mit Rechnung und Menge.
   period.ownershipChange = {
