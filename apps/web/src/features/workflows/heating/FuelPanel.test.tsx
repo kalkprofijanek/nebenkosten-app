@@ -146,3 +146,65 @@ it('speichert den CO₂-Preis des Anfangsbestands (Lieferjahr)', () => {
     openingCo2PricePerTonCents: 3_000,
   })
 })
+
+it('zeigt Lieferungen mit deutschem Datum, Menge und Betrag', () => {
+  const empty = createEmptyAppDataFile()
+  const data: AppDataFile = {
+    ...empty,
+    billingData: {
+      ...empty.billingData,
+      billingPeriods: [
+        {
+          id: 'y',
+          propertyId: 'p',
+          year: 2025,
+          periodStart: '2025-01-01',
+          periodEnd: '2025-12-31',
+          status: 'DRAFT',
+        },
+      ],
+      heatingCircuits: [
+        {
+          id: 'c',
+          buildingId: 'b',
+          billingPeriodId: 'y',
+          heatingSystemId: 'h',
+          hasCentralHotWater: false,
+        },
+      ],
+      energySources: [
+        { id: 'oil', heatingCircuitId: 'c', key: 'oil', name: 'Fiktives Öl' },
+      ],
+      fuelDeliveries: [
+        {
+          id: 'd1',
+          energySourceId: 'oil',
+          billingPeriodId: 'y',
+          date: '2025-02-10',
+          quantity: { value: 2500, unit: 'l' },
+          amountCents: 260_000,
+          description: 'Fiktive Öllieferung',
+        },
+      ],
+    },
+  }
+  const apply = vi.fn(() => true)
+  render(
+    <FuelPanel
+      data={data}
+      selection={{
+        ownerCompanyId: null,
+        propertyId: 'p',
+        billingPeriodId: 'y',
+      }}
+      onSelectionChange={vi.fn()}
+      onApply={apply}
+      apply={apply}
+    />,
+  )
+  const card = screen
+    .getByRole('heading', { name: 'Fiktive Öllieferung' })
+    .closest('article')!
+  expect(card).toHaveTextContent('10.02.2025')
+  expect(card).toHaveTextContent(/2\.500 l · 2\.600,00\s€/u)
+})

@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { test } from 'node:test'
 
 import {
   findForbiddenLockfileSources,
   findSensitiveContent,
   isScannablePath,
+  parseReleasedMediaManifest,
   scanRepository,
 } from '../../scripts/scan-repository-content.mjs'
 
@@ -107,4 +109,68 @@ test('fails closed when a binary file is part of the repository candidates', () 
   assert.deepEqual(disguisedBinaryFindings, [
     { kind: 'tracked binary file', line: 1, path: 'evidence.data' },
   ])
+})
+
+test('allows binary media only in docs/medien with a matching manifest hash', () => {
+  const image = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01])
+  const hash = createHash('sha256').update(image).digest('hex')
+  const files = new Map([
+    ['docs/medien/SHA256SUMS', Buffer.from(`${hash}  01-bild.png\n`)],
+    ['docs/medien/01-bild.png', image],
+    ['docs/medien/02-neu.png', image],
+    ['docs/medien/03-geaendert.png', Buffer.from([0x00, 0x02])],
+    ['docs/anderswo/01-bild.png', image],
+  ])
+  files.set(
+    'docs/medien/SHA256SUMS',
+    Buffer.from(
+      [
+        `${hash}  01-bild.png`,
+        `${hash}  03-geaendert.png`,
+        `${hash}  ../anderswo/01-bild.png`,
+        '',
+      ].join('\n'),
+    ),
+  )
+  const findings = scanRepository('.', {
+    candidatePaths: [...files.keys()],
+    readContent: (path) => files.get(path),
+  })
+
+  assert.deepEqual(
+    findings.map(({ path }) => path),
+    [
+      'docs/medien/02-neu.png',
+      'docs/medien/03-geaendert.png',
+      'docs/anderswo/01-bild.png',
+    ],
+  )
+  assert.ok(findings.every(({ kind }) => kind === 'tracked binary file'))
+})
+
+test('ignores malformed manifest lines and works without a manifest', () => {
+  const manifest = parseReleasedMediaManifest(
+    ['kein hash  datei.png', `${'a'.repeat(64)} einfach.png`, ''].join('\n'),
+  )
+  assert.equal(manifest.size, 0)
+
+  const findings = scanRepository('.', {
+    candidatePaths: ['docs/medien/01-bild.png'],
+    readContent: () => Buffer.from([0x00]),
+  })
+  assert.deepEqual(findings, [
+    { kind: 'tracked binary file', line: 1, path: 'docs/medien/01-bild.png' },
+  ])
+})
+
+test('accepts only fictitious IBANs with the unassigned bank code 00000000', () => {
+  const fictitious = `IBAN: ${'DE50'}${'00000000'}${'0123456789'}`
+  const realistic = `IBAN: ${'DE50'}${'10000000'}${'0123456789'}`
+  assert.deepEqual(findSensitiveContent('docs/beispiel.json', fictitious), [])
+  assert.deepEqual(
+    findSensitiveContent('docs/beispiel.json', realistic).map(
+      ({ kind }) => kind,
+    ),
+    ['German IBAN'],
+  )
 })

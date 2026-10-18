@@ -141,6 +141,28 @@ describe('buildRecipientBlock', () => {
     )
   })
 
+  it('verdoppelt „Familie“ nicht, wenn der Anzeigename es schon enthält', () => {
+    const withLastName: Person = {
+      ...person,
+      salutation: 'Familie',
+      lastName: 'Muster',
+      displayName: 'Familie Muster',
+    }
+    expect(buildRecipientBlock(tenancy, [withLastName]).salutationLine).toBe(
+      'Sehr geehrte Familie Muster',
+    )
+    const displayNameOnly: Person = {
+      ...person,
+      salutation: 'Familie',
+      firstName: undefined,
+      lastName: undefined,
+      displayName: 'Familie Muster',
+    }
+    expect(buildRecipientBlock(tenancy, [displayNameOnly]).salutationLine).toBe(
+      'Sehr geehrte Familie Muster',
+    )
+  })
+
   it('fällt ohne Anrede auf eine neutrale Zeile zurück und markiert fehlende Personen als "Unbekannt"', () => {
     const withoutSalutation: Person = { ...person, salutation: undefined }
     expect(
