@@ -261,6 +261,11 @@ function ownUnits(
       return `${formatNumber(facts.basis.heatedAreaSqm)} m²${timeSuffix}`
     case 'residential_units':
       return `1 WE${timeSuffix}`
+    // Zählerwert des eigenen Nutzungszeitraums, daher ohne Zeitanteil.
+    case 'water_consumption':
+      return facts.basis.waterM3 == null
+        ? '–'
+        : `${formatNumber(facts.basis.waterM3)} m³`
     case 'consumption_units':
       return facts.basis.consumptionUnit === 'Einheiten'
         ? `${formatNumber(facts.basis.consumption)} Einheiten`

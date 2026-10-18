@@ -72,6 +72,23 @@ describe('Einzelabrechnung – formelle Vollständigkeit', () => {
     expect(serialized).toContain('nach Wohnfläche')
   })
 
+  it('weist Wasserkosten nach Wasserverbrauch mit m³ aus (ADR-0013)', () => {
+    const appData = buildFixtureAppData('case-03-vacancy')
+    const category = appData.billingData.costCategories[0]!
+    category.kind = 'water'
+    category.allocationKey = 'water_consumption'
+    const [tenant, vacancy] = appData.billingData.occupancyPeriods
+    tenant!.coldWater = { value: 30, unit: 'm3' }
+    tenant!.warmWater = { value: 10, unit: 'm3' }
+    vacancy!.coldWater = { value: 10, unit: 'm3' }
+    const serialized = text(
+      buildTenantStatement(buildFixtureTenantStatementContext(appData)),
+    )
+    expect(serialized).toContain('nach Wasserverbrauch')
+    expect(serialized).toMatch(/50(,00)? m³/u)
+    expect(serialized).toMatch(/"40(,00)? m³"/u)
+  })
+
   it('weist bei Teilzeiträumen die Nutzungstage in den eigenen Einheiten aus', () => {
     const appData = buildFixtureAppData('case-02-tenant-change')
     const context = buildFixtureTenantStatementContext(appData)

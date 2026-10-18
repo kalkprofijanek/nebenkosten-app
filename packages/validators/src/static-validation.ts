@@ -467,6 +467,7 @@ function costs(data: AppDataFile, period: BillingPeriod, add: Add): void {
           ),
         )
     }
+    waterConsumptionIssues(data, period, category, add)
     const match = previousCategories.find(
       (old) =>
         (category.standardKey && old.standardKey === category.standardKey) ||
@@ -500,6 +501,56 @@ function costs(data: AppDataFile, period: BillingPeriod, add: Add): void {
       )
     for (const entry of entries) documents(entry, data, add)
   }
+}
+
+/** Wasserkosten und Wohnungswasserzähler (§ 556a Abs. 1 Satz 2 BGB, ADR-0013). */
+function waterConsumptionIssues(
+  data: AppDataFile,
+  period: BillingPeriod,
+  category: AppDataFile['billingData']['costCategories'][number],
+  add: Add,
+): void {
+  const rows = periodOccupancies(data, period.id).filter((row) =>
+    category.scope ? occupancyMatchesScope(data, row, category.scope) : true,
+  )
+  if (rows.length === 0) return
+  const entity = { type: 'CostCategory', id: category.id }
+  const allMetered = rows.every((row) => row.coldWater?.value != null)
+  if (category.allocationKey === 'water_consumption') {
+    if (!allMetered)
+      add(
+        issue(
+          'error',
+          'costs.water_consumption_missing',
+          'costs',
+          'Wasserverbrauch fehlt',
+          {
+            entity,
+            detail: `${category.label}: Die Kostenart wird nach Wasserverbrauch verteilt, aber nicht für jede Nutzung ist ein Kaltwasserwert (m³) erfasst. Bitte die Werte unter „Verbrauch“ eintragen, auch für Leerstände.`,
+          },
+        ),
+      )
+    return
+  }
+  if (
+    category.kind === 'water' &&
+    allMetered &&
+    (category.allocationKey === 'usable_area' ||
+      category.allocationKey === 'heated_area' ||
+      category.allocationKey === 'residential_units')
+  )
+    add(
+      issue(
+        'warning',
+        'costs.water_meter_not_used',
+        'costs',
+        'Wasserkosten nicht nach Verbrauch umgelegt',
+        {
+          entity,
+          detail: `${category.label}: Für alle Nutzungen ist der Kaltwasserverbrauch erfasst, die Kosten werden aber nach Fläche bzw. Wohneinheiten verteilt. Ist der Verbrauch erfasst, sind verbrauchsabhängige Betriebskosten nach § 556a Abs. 1 Satz 2 BGB nach Verbrauch umzulegen; Umlageschlüssel „Wasserverbrauch“ wählen. Hinweis, keine Rechtsberatung.`,
+        },
+      ),
+    )
 }
 
 function documents(

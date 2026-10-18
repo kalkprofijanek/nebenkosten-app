@@ -28,6 +28,8 @@ import {
  * `heated_area` = m² beheizte Fläche (`m2_nf_hzg`),
  * `consumption_units` = HKV-Verbrauchseinheiten (`einheiten`),
  * `residential_units` = je Wohneinheit (`we_anzahl`),
+ * `water_consumption` = gemessener Wasserverbrauch, Kalt- plus Warmwasser in
+ *   m³ je Nutzung (§ 556a Abs. 1 Satz 2 BGB; additiv, Schema v5, ADR-0013),
  * `direct` = direkte Zuordnung ohne automatische Verteilung (`direkt`).
  */
 export const allocationKeySchema = z.enum([
@@ -35,6 +37,7 @@ export const allocationKeySchema = z.enum([
   'heated_area',
   'consumption_units',
   'residential_units',
+  'water_consumption',
   'direct',
 ])
 export type AllocationKey = z.infer<typeof allocationKeySchema>

@@ -4,6 +4,13 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Wasser nach Zähler (ADR-0013, PR-45)**: neuer Umlageschlüssel
+  `water_consumption` „Wasserverbrauch (m³)“ (additiv, Schema v5): Kalt- plus
+  Warmwasser je Nutzung, Leerstand im Nenner (trägt der Vermieter), ohne
+  Zeitfaktor; Nenner „m³“ und eigene m³ in der Einzelabrechnung. Prüfung:
+  Fehler `costs.water_consumption_missing` ohne Kaltwasserwert, Warnung
+  `costs.water_meter_not_used`, wenn Zählerwerte vorliegen, Wasserkosten aber
+  nach Fläche oder Wohneinheiten verteilt werden (§ 556a Abs. 1 Satz 2 BGB),
 - **Screenshots und Musterabrechnungen (ADR-0012, PR-44)**: Rundgang in
   neun Bildern mit Bedienhinweisen, Vorschau der Einzelabrechnung und des
   GiroCodes sowie sechs Muster-PDFs aus dem fiktiven Beispielobjekt unter

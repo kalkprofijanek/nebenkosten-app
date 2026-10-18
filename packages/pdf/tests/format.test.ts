@@ -36,6 +36,9 @@ describe('format', () => {
   it('mappt Umlageschlüssel auf lesbare Labels und fällt sonst auf den Rohwert zurück', () => {
     expect(formatAllocationKeyLabel('usable_area')).toBe('nach Wohnfläche')
     expect(formatAllocationKeyLabel('direct')).toBe('direkt zugeordnet')
+    expect(formatAllocationKeyLabel('water_consumption')).toBe(
+      'nach Wasserverbrauch',
+    )
     expect(formatAllocationKeyLabel(null)).toBe('–')
     expect(formatAllocationKeyLabel('custom_key')).toBe('custom_key')
   })

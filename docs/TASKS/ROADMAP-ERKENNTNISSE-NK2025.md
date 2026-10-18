@@ -30,18 +30,18 @@ Kleinigkeiten; Nr. 4 Fernwärme zurückgestellt.
 
 ## Phase 2 – Neue Punkte aus der Abrechnung 2025 (Nutzerauftrag 16.10.2026)
 
-| Task                                           | Inhalt                                                                         | Abhängigkeit           | Status          |
-| ---------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------- | --------------- |
-| [PR-30](PR-30-EIGENTUEMERWECHSEL.md)           | Eigentümerwechsel im Jahr: Erwerberabrechnung, Bestände FIFO, Abschlag-Warnung | –                      | erledigt        |
-| [PR-31](PR-31-ZAEHLERSTAND-PLAUSIBILITAET.md)  | Zählerstand-Plausibilität (Stellenverlust, Vertauschung, Stillstand, Rücklauf) | PR-27 (Gradtage)       | erledigt        |
-| [PR-32](PR-32-ENERGIEBILANZ.md)                | Energiebilanz je Heizkreis (Nutzungsgrad, Jahresarbeitszahl)                   | –                      | erledigt        |
-| [PR-33](PR-33-MEHRJAHRESVERGLEICH.md)          | Mehrjahresvergleich je Wohnung und Kostenart mit Ausreißern                    | –                      | erledigt        |
-| [PR-34](PR-34-SCHAETZGRENZE-9A.md)             | § 9a Abs. 2: 25-%-Grenze vor jeder Schätzung anzeigen                          | –                      | erledigt        |
-| [PR-35](PR-35-A3-FELDER-OBERFLAECHE.md)        | Prüfliste „neue Angaben nach Import“ (§ 9b-Auswahl seit #82 vorhanden)         | –                      | erledigt        |
-| [PR-36](PR-36-REFERENZDATEN.md)                | DWD-Klimafaktoren und Heizspiegel als mitgelieferte Tabellen                   | –                      | erledigt        |
-| [PR-37](PR-37-IMPORT-BEISPIELOBJEKT.md)        | Excel/CSV-Import (Mieter, Ablesebögen, Messdienst) und anonymes Beispielobjekt | PR-HEIZKV-IMPORT       | Teil 2 in PR    |
-| [PR-38](PR-38-KURZANLEITUNG-KLEINVERMIETER.md) | Kurzanleitung „Erste Abrechnung in 60 Minuten“                                 | PR-37 (Beispielobjekt) | erledigt        |
-| [PR-44](PR-44-MEDIEN-MUSTERABRECHNUNG.md)      | Screenshots, Bedienhinweise und Musterabrechnungen (ADR-0012)                  | PR-37, PR-38           | in PR           |
+| Task                                           | Inhalt                                                                         | Abhängigkeit           | Status       |
+| ---------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------- | ------------ |
+| [PR-30](PR-30-EIGENTUEMERWECHSEL.md)           | Eigentümerwechsel im Jahr: Erwerberabrechnung, Bestände FIFO, Abschlag-Warnung | –                      | erledigt     |
+| [PR-31](PR-31-ZAEHLERSTAND-PLAUSIBILITAET.md)  | Zählerstand-Plausibilität (Stellenverlust, Vertauschung, Stillstand, Rücklauf) | PR-27 (Gradtage)       | erledigt     |
+| [PR-32](PR-32-ENERGIEBILANZ.md)                | Energiebilanz je Heizkreis (Nutzungsgrad, Jahresarbeitszahl)                   | –                      | erledigt     |
+| [PR-33](PR-33-MEHRJAHRESVERGLEICH.md)          | Mehrjahresvergleich je Wohnung und Kostenart mit Ausreißern                    | –                      | erledigt     |
+| [PR-34](PR-34-SCHAETZGRENZE-9A.md)             | § 9a Abs. 2: 25-%-Grenze vor jeder Schätzung anzeigen                          | –                      | erledigt     |
+| [PR-35](PR-35-A3-FELDER-OBERFLAECHE.md)        | Prüfliste „neue Angaben nach Import“ (§ 9b-Auswahl seit #82 vorhanden)         | –                      | erledigt     |
+| [PR-36](PR-36-REFERENZDATEN.md)                | DWD-Klimafaktoren und Heizspiegel als mitgelieferte Tabellen                   | –                      | erledigt     |
+| [PR-37](PR-37-IMPORT-BEISPIELOBJEKT.md)        | Excel/CSV-Import (Mieter, Ablesebögen, Messdienst) und anonymes Beispielobjekt | PR-HEIZKV-IMPORT       | Teil 2 in PR |
+| [PR-38](PR-38-KURZANLEITUNG-KLEINVERMIETER.md) | Kurzanleitung „Erste Abrechnung in 60 Minuten“                                 | PR-37 (Beispielobjekt) | erledigt     |
+| [PR-44](PR-44-MEDIEN-MUSTERABRECHNUNG.md)      | Screenshots, Bedienhinweise und Musterabrechnungen (ADR-0012)                  | PR-37, PR-38           | erledigt     |
 
 ## Phase 3 – Schlanke Erweiterungen (Nutzerauftrag 17.10.2026)
 
@@ -69,6 +69,7 @@ aus geprüfter Abrechnungsengine und lokalem KI-Agenten.
 | [PR-41](PR-41-KI-BELEGWORKFLOW-UND-BELEGPRUEFUNG.md) | KI-Workflow aus dem Objektordner und Belegprüfung                            | PR-40, PR-43 | offen                                        |
 | [PR-42](PR-42-FRISTENUEBERSICHT.md)                  | Fristen nach § 556 Abs. 3 BGB mit `.ics`-Export                              | –            | offen                                        |
 | [PR-43](PR-43-DATENSCHUTZ-KI-VERARBEITUNG.md)        | Datenschutz bei KI (`docs/DATENSCHUTZ-KI.md`); Nutzer entscheidet je Schritt | –            | Entwurf                                      |
+| [PR-45](PR-45-WASSER-NACH-ZAEHLER.md)                | Umlageschlüssel „Wasserverbrauch“ (§ 556a Abs. 1 Satz 2 BGB, ADR-0013)       | –            | in PR                                        |
 
 Reihenfolge: PR-39 → PR-43 (Regeln festlegen) → PR-40 → PR-41; PR-42
 unabhängig.
