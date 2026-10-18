@@ -371,7 +371,7 @@ const LOCATIONS = [
 /**
  * Ablesung je Nutzung: Gerätenummer, Stand alt/neu (Heizkostenverteiler in
  * Haus Nord zum Stichtag auf 0, Wärmemengenzähler in Haus Süd fortlaufend in
- * kWh), Warmwasser in m³ und Vorjahresverbrauch laut Abrechnung 2024 des
+ * kWh), Warm- und Kaltwasser in m³ und Vorjahresverbrauch laut Abrechnung 2024 des
  * Voreigentümers. Beim Nutzerwechsel liegt eine Zwischenablesung vor.
  */
 const READINGS: Readonly<
@@ -382,6 +382,7 @@ const READINGS: Readonly<
       start: number
       end: number
       warmWaterM3: number
+      coldWaterM3: number
       previous?: number
     }
   >
@@ -391,6 +392,7 @@ const READINGS: Readonly<
     start: 0,
     end: 820,
     warmWaterM3: 26,
+    coldWaterM3: 50,
     previous: 870,
   },
   n2: {
@@ -398,6 +400,7 @@ const READINGS: Readonly<
     start: 0,
     end: 640,
     warmWaterM3: 14,
+    coldWaterM3: 27,
     previous: 610,
   },
   n3: {
@@ -405,14 +408,22 @@ const READINGS: Readonly<
     start: 0,
     end: 1_010,
     warmWaterM3: 19,
+    coldWaterM3: 38,
     previous: 2_050,
   },
-  n3b: { meter: '61 204 313', start: 1_010, end: 1_480, warmWaterM3: 12 },
+  n3b: {
+    meter: '61 204 313',
+    start: 1_010,
+    end: 1_480,
+    warmWaterM3: 12,
+    coldWaterM3: 24,
+  },
   n4: {
     meter: '61 204 314',
     start: 0,
     end: 700,
     warmWaterM3: 25,
+    coldWaterM3: 48,
     previous: 760,
   },
   n5: {
@@ -420,14 +431,22 @@ const READINGS: Readonly<
     start: 0,
     end: 900,
     warmWaterM3: 28,
+    coldWaterM3: 52,
     previous: 950,
   },
-  n6: { meter: '61 204 316', start: 0, end: 60, warmWaterM3: 0 },
+  n6: {
+    meter: '61 204 316',
+    start: 0,
+    end: 60,
+    warmWaterM3: 0,
+    coldWaterM3: 2,
+  },
   s1: {
     meter: '7 120 401',
     start: 18_420,
     end: 22_170,
     warmWaterM3: 27,
+    coldWaterM3: 51,
     previous: 4_300,
   },
   s2: {
@@ -435,6 +454,7 @@ const READINGS: Readonly<
     start: 14_960,
     end: 17_960,
     warmWaterM3: 13,
+    coldWaterM3: 26,
     previous: 3_350,
   },
   s3: {
@@ -442,6 +462,7 @@ const READINGS: Readonly<
     start: 23_310,
     end: 27_960,
     warmWaterM3: 48,
+    coldWaterM3: 92,
     previous: 5_200,
   },
   s4: {
@@ -449,6 +470,7 @@ const READINGS: Readonly<
     start: 10_880,
     end: 13_030,
     warmWaterM3: 11,
+    coldWaterM3: 22,
     previous: 2_200,
   },
   s5: {
@@ -456,6 +478,7 @@ const READINGS: Readonly<
     start: 16_740,
     end: 20_140,
     warmWaterM3: 24,
+    coldWaterM3: 46,
     previous: 3_900,
   },
   s6: {
@@ -463,9 +486,16 @@ const READINGS: Readonly<
     start: 12_050,
     end: 14_300,
     warmWaterM3: 18,
+    coldWaterM3: 36,
     previous: 3_100,
   },
-  s6v: { meter: '7 120 406', start: 14_300, end: 14_800, warmWaterM3: 0 },
+  s6v: {
+    meter: '7 120 406',
+    start: 14_300,
+    end: 14_800,
+    warmWaterM3: 0,
+    coldWaterM3: 1,
+  },
 }
 
 /** Rechnungen je Kostenart (fiktive Versorger und Dienstleister). */
@@ -632,6 +662,7 @@ function buildExample(): AppDataFile {
       endDate: occupancy.to ?? period.periodEnd,
     }
     occupancy.warmWater = { value: reading.warmWaterM3, unit: 'm3' }
+    occupancy.coldWater = { value: reading.coldWaterM3, unit: 'm3' }
     if (reading.previous != null)
       occupancy.previousConsumption = {
         year: 2024,
@@ -658,6 +689,8 @@ function buildExample(): AppDataFile {
 
   for (const category of data.billingData.costCategories) {
     category.standardKey = category.id.slice(2)
+    // Wohnungswasserzähler: Umlage nach Verbrauch (§ 556a Abs. 1 Satz 2 BGB).
+    if (category.id === 'k-wasser') category.allocationKey = 'water_consumption'
     if (category.id.startsWith('k-messdienst')) category.meteringFee = true
   }
   // Ausgezogene Mieter erhalten die Abrechnung an die neue Anschrift.

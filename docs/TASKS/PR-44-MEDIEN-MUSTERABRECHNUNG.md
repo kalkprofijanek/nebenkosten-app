@@ -53,10 +53,8 @@ Behoben:
 
 Offen (nicht in diesem PR):
 
-- **Wasser nach Zähler**: Die App kennt keinen Umlageschlüssel nach
-  Kaltwasserverbrauch (m³). Sind Wohnungswasserzähler eingebaut, verlangt
-  § 556a Abs. 1 Satz 2 BGB die Umlage nach Verbrauch. Das Beispiel erfasst
-  deshalb nur Warmwasser-m³ (für § 8 HeizKV) und verteilt Wasser nach
-  Fläche. Offene Entscheidung: neuer Schlüssel `cold_water` mit Migration.
+- **Wasser nach Zähler**: erledigt mit [PR-45](PR-45-WASSER-NACH-ZAEHLER.md)
+  (Schlüssel `water_consumption`, ADR-0013); das Beispiel verteilt Wasser
+  seitdem nach Verbrauch.
 - **Firma-Anrede**: „Sehr geehrte Damen und Herren Beispiel GmbH“ (bisher
   so getestet) wirkt ungewohnt; Vorschlag „Sehr geehrte Damen und Herren“.

@@ -24,14 +24,14 @@ eigenen Browser.
 
 So erhält ein Mieter seine Abrechnung – unverändert aus der App erzeugt:
 
-| Datei                                                                                             | Was der Fall zeigt                                                                                              |
-| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| [Haus Nord, Whg. 1 – Ölheizung](musterabrechnung-2025/einzelabrechnung-nord-whg1-oelheizung.pdf)  | ganzjährige Nutzung, Brennstoffkonto (FIFO), 70/30-Verteilung, Warmwasser nach Zähler, CO₂-Aufteilung, Guthaben |
-| [Haus Nord, Whg. 3 – Auszug](musterabrechnung-2025/einzelabrechnung-nord-whg3-auszug.pdf)         | Auszug zum 30.06. mit Zwischenablesung, Versand an die neue Anschrift, Nachzahlung mit **GiroCode**             |
-| [Haus Nord, Whg. 3 – Einzug](musterabrechnung-2025/einzelabrechnung-nord-whg3-einzug.pdf)         | Nachmieterin ab 01.07., Verwendungszweck „… ab 01.07.“, Vergleich hochgerechnet nach Gradtagszahlen             |
-| [Haus Süd, Whg. 2 – Wärmepumpe](musterabrechnung-2025/einzelabrechnung-sued-whg2-waermepumpe.pdf) | Wärmepumpe mit Wärmemengenzählern, Warmwasser nach Wärmezähler, keine CO₂-Kosten, Nachzahlung mit GiroCode      |
-| [Gesamtabrechnung für Mieter](musterabrechnung-2025/gesamtabrechnung-mieter.pdf)                  | Kostenaufstellung der Abrechnungseinheit für die Mieter                                                         |
-| [Gesamtabrechnung intern](musterabrechnung-2025/gesamtabrechnung-intern.pdf)                      | Kontrollfassung für den Vermieter mit Kontrollsumme (muss 0,00 € sein)                                          |
+| Datei                                                                                             | Was der Fall zeigt                                                                                                                          |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Haus Nord, Whg. 1 – Ölheizung](musterabrechnung-2025/einzelabrechnung-nord-whg1-oelheizung.pdf)  | ganzjährige Nutzung, Brennstoffkonto (FIFO), 70/30-Verteilung, Warmwasser nach Zähler, Wasser nach Verbrauch (m³), CO₂-Aufteilung, Guthaben |
+| [Haus Nord, Whg. 3 – Auszug](musterabrechnung-2025/einzelabrechnung-nord-whg3-auszug.pdf)         | Auszug zum 30.06. mit Zwischenablesung, Versand an die neue Anschrift, Nachzahlung mit **GiroCode**                                         |
+| [Haus Nord, Whg. 3 – Einzug](musterabrechnung-2025/einzelabrechnung-nord-whg3-einzug.pdf)         | Nachmieterin ab 01.07., Verwendungszweck „… ab 01.07.“, Vergleich hochgerechnet nach Gradtagszahlen                                         |
+| [Haus Süd, Whg. 5 – Wärmepumpe](musterabrechnung-2025/einzelabrechnung-sued-whg5-waermepumpe.pdf) | Wärmepumpe mit Wärmemengenzählern, Warmwasser nach Wärmezähler, keine CO₂-Kosten, Nachzahlung mit GiroCode                                  |
+| [Gesamtabrechnung für Mieter](musterabrechnung-2025/gesamtabrechnung-mieter.pdf)                  | Kostenaufstellung der Abrechnungseinheit für die Mieter                                                                                     |
+| [Gesamtabrechnung intern](musterabrechnung-2025/gesamtabrechnung-intern.pdf)                      | Kontrollfassung für den Vermieter mit Kontrollsumme (muss 0,00 € sein)                                                                      |
 
 Jede Einzelabrechnung enthält die Angaben nach § 6a HeizKV:
 Vorjahresvergleich (witterungsbereinigt mit DWD-Klimafaktor, Vorjahreswert

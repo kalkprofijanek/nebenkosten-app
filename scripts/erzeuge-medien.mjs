@@ -44,7 +44,7 @@ const SELECTION = [
     'einzelabrechnung-nord-whg3-auszug.pdf',
   ],
   ['Haus_Nord_Whg_3_Lena_Exempel', 'einzelabrechnung-nord-whg3-einzug.pdf'],
-  ['Whg_2_Tom_Vorlage', 'einzelabrechnung-sued-whg2-waermepumpe.pdf'],
+  ['Whg_5_Ben_Entwurf', 'einzelabrechnung-sued-whg5-waermepumpe.pdf'],
   ['Gesamtabrechnung_Mieter', 'gesamtabrechnung-mieter.pdf'],
   ['Gesamtabrechnung_intern', 'gesamtabrechnung-intern.pdf'],
 ]

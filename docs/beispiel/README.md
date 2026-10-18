@@ -18,14 +18,15 @@ unter **Berechnung** auf „Abrechnung berechnen“ klicken.
 | Betriebskosten    | 9 Kostenarten nach § 2 BetrKV mit Rechnung und Belegnummer, Lohnanteile nach § 35a EStG                                                |
 | Heizkosten        | Öl nach FIFO mit Anfangsbestand, Wärmepumpenstrom, Wartung, Schornsteinfeger, Messdienst                                               |
 | Warmwasser        | Wärmemenge nach Wärmezähler (§ 9 Abs. 2 HeizKV), Verteilung 70 % nach m³ (§ 8 HeizKV)                                                  |
+| Wasser            | Wohnungswasserzähler (Kalt- und Warmwasser), Wasser und Abwasser nach Verbrauch in m³ (§ 556a Abs. 1 Satz 2 BGB)                       |
 | § 6a HeizKV       | Heizspiegel 2026 (echte Klassengrenzen), DWD-Klimafaktor (Beispielwert), Steuern und Abgaben                                           |
 | Bankverbindung    | fiktive IBAN mit nicht vergebener Bankleitzahl 00000000 und Kontoinhaber → GiroCode                                                    |
 | Namen, Anschrift  | erfunden („Erika Mustermann“, „Am Musterhof 1“, PLZ 12345)                                                                             |
 
 Ergebnis ohne eigene Eingaben: [Screenshots und Musterabrechnungen
 (PDF)](../medien/README.md). Die Prüfung meldet **keinen Fehler, keine
-Warnung und keinen Hinweis**; Kontrolldifferenz 0,00 €, sechs Nachzahlungen
-und sechs Guthaben.
+Warnung und keinen Hinweis**; Kontrolldifferenz 0,00 €, acht Nachzahlungen
+und vier Guthaben.
 
 Für eine eigene Abrechnung ersetzen Sie mindestens die Bankverbindung
 (**Objekte** bzw. **Firmen**) und den Klimafaktor des Deutschen
