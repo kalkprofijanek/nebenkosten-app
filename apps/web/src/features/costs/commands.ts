@@ -25,6 +25,7 @@ export interface AddCostCategoryInput {
     | 'heated_area'
     | 'consumption_units'
     | 'residential_units'
+    | 'water_consumption'
     | 'direct'
   readonly scope?:
     | { readonly kind: 'property' }
@@ -204,6 +205,7 @@ function parseCategoryInput(value: unknown): AddCostCategoryInput {
       'heated_area',
       'consumption_units',
       'residential_units',
+      'water_consumption',
       'direct',
     ].includes(String(allocationKey))
   )

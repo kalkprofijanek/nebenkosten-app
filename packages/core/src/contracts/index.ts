@@ -423,6 +423,8 @@ export interface TenantAllocationBasis {
   /** Verbrauch für die Heizkostenverteilung (gemessene kWh oder Einheiten). */
   consumption: number
   consumptionUnit: 'kWh' | 'Einheiten'
+  /** Kalt- plus Warmwasser in m³ (Schlüssel `water_consumption`, ADR-0013). */
+  waterM3?: number
 }
 
 /** Lohnanteil einer Kostenart, der auf diesen Nutzer entfällt (§ 35a EStG). */
@@ -486,7 +488,7 @@ export interface OperatingPositionTrace {
   distribution: 'key' | 'heating_pool' | 'direct' | 'not_allocable'
   /** Gesamteinheiten des Schlüssels (zeitgewichtet), `null` ohne Schlüssel. */
   denominator: number | null
-  denominatorUnit: 'm²' | 'Einheiten' | 'kWh' | 'WE' | null
+  denominatorUnit: 'm²' | 'Einheiten' | 'kWh' | 'WE' | 'm³' | null
   /** Auf Leerstand/nicht vermietete Anteile entfallender Betrag (Vermieter). */
   vacancyCents: number
 }

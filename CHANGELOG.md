@@ -4,6 +4,13 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Wasser nach Zähler (ADR-0013, PR-45)**: neuer Umlageschlüssel
+  `water_consumption` „Wasserverbrauch (m³)“ (additiv, Schema v5): Kalt- plus
+  Warmwasser je Nutzung, Leerstand im Nenner (trägt der Vermieter), ohne
+  Zeitfaktor; Nenner „m³“ und eigene m³ in der Einzelabrechnung. Prüfung:
+  Fehler `costs.water_consumption_missing` ohne Kaltwasserwert, Warnung
+  `costs.water_meter_not_used`, wenn Zählerwerte vorliegen, Wasserkosten aber
+  nach Fläche oder Wohneinheiten verteilt werden (§ 556a Abs. 1 Satz 2 BGB),
 - **GiroCode bei Nachzahlung (PR-39)**: Die Einzelabrechnung druckt neben
   der Zahlungsaufforderung einen EPC-QR-Code (EPC069-12, Version 002,
   UTF-8, Fehlerkorrektur M) mit Kontoinhaber, IBAN, ggf. BIC, Betrag und

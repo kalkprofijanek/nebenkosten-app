@@ -59,6 +59,7 @@ export function CostCategoryFields({
           <option value="heated_area">Beheizte Fläche</option>
           <option value="consumption_units">Verbrauchseinheiten</option>
           <option value="residential_units">Wohneinheiten</option>
+          <option value="water_consumption">Wasserverbrauch (m³)</option>
           <option value="direct">Direkte Zuordnung</option>
         </select>
       </label>
