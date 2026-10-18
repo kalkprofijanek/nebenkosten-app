@@ -15,7 +15,16 @@
         "id": "oc-1",
         "organizationId": "org-1",
         "name": "Mustermann Immobilien GmbH",
-        "additionalNameLines": []
+        "additionalNameLines": [],
+        "address": {
+          "street": "Am Musterhof 1",
+          "postalCodeAndCity": "12345 Musterstadt"
+        },
+        "bankAccount": {
+          "iban": "DE50000000000123456789",
+          "accountHolder": "Mustermann Immobilien GmbH",
+          "bankName": "Beispielbank (fiktiv)"
+        }
       }
     ],
     "properties": [
@@ -23,8 +32,13 @@
         "id": "prop-1",
         "ownerCompanyId": "oc-1",
         "address": {
-          "street": "Beispielangabe",
-          "postalCodeAndCity": "00000 Musterstadt"
+          "street": "Am Musterhof 1",
+          "postalCodeAndCity": "12345 Musterstadt"
+        },
+        "bankAccount": {
+          "iban": "DE50000000000123456789",
+          "accountHolder": "Mustermann Immobilien GmbH",
+          "bankName": "Beispielbank (fiktiv)"
         }
       }
     ],
@@ -55,7 +69,8 @@
         "id": "u-n1",
         "propertyId": "prop-1",
         "buildingId": "B1",
-        "label": "Einheit u-n1",
+        "label": "Haus Nord · Whg. 1",
+        "location": "EG links",
         "usableAreaSqm": {
           "value": 62,
           "unit": "m2"
@@ -69,7 +84,8 @@
         "id": "u-n2",
         "propertyId": "prop-1",
         "buildingId": "B1",
-        "label": "Einheit u-n2",
+        "label": "Haus Nord · Whg. 2",
+        "location": "EG rechts",
         "usableAreaSqm": {
           "value": 48,
           "unit": "m2"
@@ -83,7 +99,8 @@
         "id": "u-n3",
         "propertyId": "prop-1",
         "buildingId": "B1",
-        "label": "Einheit u-n3",
+        "label": "Haus Nord · Whg. 3",
+        "location": "1. OG links",
         "usableAreaSqm": {
           "value": 75,
           "unit": "m2"
@@ -97,7 +114,8 @@
         "id": "u-n4",
         "propertyId": "prop-1",
         "buildingId": "B1",
-        "label": "Einheit u-n4",
+        "label": "Haus Nord · Whg. 4",
+        "location": "1. OG rechts",
         "usableAreaSqm": {
           "value": 55,
           "unit": "m2"
@@ -111,7 +129,8 @@
         "id": "u-n5",
         "propertyId": "prop-1",
         "buildingId": "B1",
-        "label": "Einheit u-n5",
+        "label": "Haus Nord · Whg. 5",
+        "location": "2. OG links",
         "usableAreaSqm": {
           "value": 68,
           "unit": "m2"
@@ -125,7 +144,8 @@
         "id": "u-n6",
         "propertyId": "prop-1",
         "buildingId": "B1",
-        "label": "Einheit u-n6",
+        "label": "Haus Nord · Whg. 6",
+        "location": "Dachgeschoss",
         "usableAreaSqm": {
           "value": 40,
           "unit": "m2"
@@ -139,7 +159,8 @@
         "id": "u-s1",
         "propertyId": "prop-1",
         "buildingId": "B2",
-        "label": "Einheit u-s1",
+        "label": "Haus Süd · Whg. 1",
+        "location": "EG links",
         "usableAreaSqm": {
           "value": 70,
           "unit": "m2"
@@ -153,7 +174,8 @@
         "id": "u-s2",
         "propertyId": "prop-1",
         "buildingId": "B2",
-        "label": "Einheit u-s2",
+        "label": "Haus Süd · Whg. 2",
+        "location": "EG rechts",
         "usableAreaSqm": {
           "value": 58,
           "unit": "m2"
@@ -167,7 +189,8 @@
         "id": "u-s3",
         "propertyId": "prop-1",
         "buildingId": "B2",
-        "label": "Einheit u-s3",
+        "label": "Haus Süd · Whg. 3",
+        "location": "1. OG links",
         "usableAreaSqm": {
           "value": 82,
           "unit": "m2"
@@ -181,7 +204,8 @@
         "id": "u-s4",
         "propertyId": "prop-1",
         "buildingId": "B2",
-        "label": "Einheit u-s4",
+        "label": "Haus Süd · Whg. 4",
+        "location": "1. OG rechts",
         "usableAreaSqm": {
           "value": 45,
           "unit": "m2"
@@ -195,7 +219,8 @@
         "id": "u-s5",
         "propertyId": "prop-1",
         "buildingId": "B2",
-        "label": "Einheit u-s5",
+        "label": "Haus Süd · Whg. 5",
+        "location": "2. OG links",
         "usableAreaSqm": {
           "value": 64,
           "unit": "m2"
@@ -209,7 +234,8 @@
         "id": "u-s6",
         "propertyId": "prop-1",
         "buildingId": "B2",
-        "label": "Einheit u-s6",
+        "label": "Haus Süd · Whg. 6",
+        "location": "Dachgeschoss",
         "usableAreaSqm": {
           "value": 52,
           "unit": "m2"
@@ -224,73 +250,109 @@
       {
         "id": "p-n1",
         "organizationId": "org-1",
-        "displayName": "Mieter N1",
+        "salutation": "Frau",
+        "firstName": "Erika",
+        "lastName": "Mustermann",
+        "displayName": "Erika Mustermann",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-n2",
         "organizationId": "org-1",
-        "displayName": "Mieter N2",
+        "salutation": "Herr",
+        "firstName": "Max",
+        "lastName": "Beispiel",
+        "displayName": "Max Beispiel",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-n3",
         "organizationId": "org-1",
-        "displayName": "Mieter N3",
+        "salutation": "Familie",
+        "firstName": null,
+        "lastName": "Musterfrau",
+        "displayName": "Familie Musterfrau",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-n3b",
         "organizationId": "org-1",
-        "displayName": "Mieter N3B",
+        "salutation": "Frau",
+        "firstName": "Lena",
+        "lastName": "Exempel",
+        "displayName": "Lena Exempel",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-n4",
         "organizationId": "org-1",
-        "displayName": "Mieter N4",
+        "salutation": "Herr",
+        "firstName": "Paul",
+        "lastName": "Platzhalter",
+        "displayName": "Paul Platzhalter",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-n5",
         "organizationId": "org-1",
-        "displayName": "Mieter N5",
+        "salutation": "Familie",
+        "firstName": null,
+        "lastName": "Muster",
+        "displayName": "Familie Muster",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-s1",
         "organizationId": "org-1",
-        "displayName": "Mieter S1",
+        "salutation": "Frau",
+        "firstName": "Anna",
+        "lastName": "Probe",
+        "displayName": "Anna Probe",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-s2",
         "organizationId": "org-1",
-        "displayName": "Mieter S2",
+        "salutation": "Herr",
+        "firstName": "Tom",
+        "lastName": "Vorlage",
+        "displayName": "Tom Vorlage",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-s3",
         "organizationId": "org-1",
-        "displayName": "Mieter S3",
+        "salutation": "Familie",
+        "firstName": null,
+        "lastName": "Fiktiv",
+        "displayName": "Familie Fiktiv",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-s4",
         "organizationId": "org-1",
-        "displayName": "Mieter S4",
+        "salutation": "Frau",
+        "firstName": "Ida",
+        "lastName": "Testfall",
+        "displayName": "Ida Testfall",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-s5",
         "organizationId": "org-1",
-        "displayName": "Mieter S5",
+        "salutation": "Herr",
+        "firstName": "Ben",
+        "lastName": "Entwurf",
+        "displayName": "Ben Entwurf",
         "companyOrPrivate": "Privat"
       },
       {
         "id": "p-s6",
         "organizationId": "org-1",
-        "displayName": "Mieter S6",
+        "salutation": "Frau",
+        "firstName": "Mia",
+        "lastName": "Modell",
+        "displayName": "Mia Modell",
         "companyOrPrivate": "Privat"
       }
     ],
@@ -318,7 +380,9 @@
           "p-n3"
         ],
         "mandateReference": "HN_N3",
-        "movedOut": "2025-06-30"
+        "movedOut": "2025-06-30",
+        "shippingAddressStreet": "Am Lindenhof 4",
+        "shippingAddressPostalCodeAndCity": "23456 Beispielstadt"
       },
       {
         "id": "ten-n3b",
@@ -392,7 +456,9 @@
           "p-s6"
         ],
         "mandateReference": "HS_S6",
-        "movedOut": "2025-09-30"
+        "movedOut": "2025-09-30",
+        "shippingAddressStreet": "Am Kirchberg 12",
+        "shippingAddressPostalCodeAndCity": "12345 Musterstadt"
       }
     ],
     "allocationRules": [],
@@ -420,6 +486,13 @@
           "baseCostAreaBasis": "heated_area",
           "operatingElectricitySharePercent": 5
         },
+        "climateFactor": {
+          "postalCode": "12345",
+          "factor": 1.08,
+          "periodStart": "2025-01-01",
+          "periodEnd": "2025-12-31",
+          "source": "DWD, Klimafaktoren (Beispielwert für die fiktive PLZ 12345)"
+        },
         "ownershipChange": {
           "transferDate": "2025-04-01",
           "previousOwnerLabel": "Voreigentümer (fiktiv)"
@@ -440,6 +513,23 @@
         "consumptionUnits": {
           "value": 820,
           "unit": "einheiten"
+        },
+        "heatMeterReading": {
+          "meterNumber": "61 204 311",
+          "startValue": 0,
+          "startDate": "2025-01-01",
+          "endValue": 820,
+          "endDate": "2025-12-31"
+        },
+        "previousConsumption": {
+          "year": 2024,
+          "value": 870,
+          "source": "Abrechnung 2024 des Voreigentümers",
+          "climateFactor": 1.12
+        },
+        "warmWater": {
+          "value": 26,
+          "unit": "m3"
         }
       },
       {
@@ -455,6 +545,23 @@
         "consumptionUnits": {
           "value": 640,
           "unit": "einheiten"
+        },
+        "heatMeterReading": {
+          "meterNumber": "61 204 312",
+          "startValue": 0,
+          "startDate": "2025-01-01",
+          "endValue": 640,
+          "endDate": "2025-12-31"
+        },
+        "previousConsumption": {
+          "year": 2024,
+          "value": 610,
+          "source": "Abrechnung 2024 des Voreigentümers",
+          "climateFactor": 1.12
+        },
+        "warmWater": {
+          "value": 14,
+          "unit": "m3"
         }
       },
       {
@@ -471,6 +578,23 @@
         "consumptionUnits": {
           "value": 1010,
           "unit": "einheiten"
+        },
+        "heatMeterReading": {
+          "meterNumber": "61 204 313",
+          "startValue": 0,
+          "startDate": "2025-01-01",
+          "endValue": 1010,
+          "endDate": "2025-06-30"
+        },
+        "previousConsumption": {
+          "year": 2024,
+          "value": 2050,
+          "source": "Abrechnung 2024 des Voreigentümers",
+          "climateFactor": 1.12
+        },
+        "warmWater": {
+          "value": 19,
+          "unit": "m3"
         }
       },
       {
@@ -487,6 +611,17 @@
         "consumptionUnits": {
           "value": 470,
           "unit": "einheiten"
+        },
+        "heatMeterReading": {
+          "meterNumber": "61 204 313",
+          "startValue": 1010,
+          "startDate": "2025-07-01",
+          "endValue": 1480,
+          "endDate": "2025-12-31"
+        },
+        "warmWater": {
+          "value": 12,
+          "unit": "m3"
         }
       },
       {
@@ -502,6 +637,23 @@
         "consumptionUnits": {
           "value": 700,
           "unit": "einheiten"
+        },
+        "heatMeterReading": {
+          "meterNumber": "61 204 314",
+          "startValue": 0,
+          "startDate": "2025-01-01",
+          "endValue": 700,
+          "endDate": "2025-12-31"
+        },
+        "previousConsumption": {
+          "year": 2024,
+          "value": 760,
+          "source": "Abrechnung 2024 des Voreigentümers",
+          "climateFactor": 1.12
+        },
+        "warmWater": {
+          "value": 25,
+          "unit": "m3"
         }
       },
       {
@@ -517,6 +669,23 @@
         "consumptionUnits": {
           "value": 900,
           "unit": "einheiten"
+        },
+        "heatMeterReading": {
+          "meterNumber": "61 204 315",
+          "startValue": 0,
+          "startDate": "2025-01-01",
+          "endValue": 900,
+          "endDate": "2025-12-31"
+        },
+        "previousConsumption": {
+          "year": 2024,
+          "value": 950,
+          "source": "Abrechnung 2024 des Voreigentümers",
+          "climateFactor": 1.12
+        },
+        "warmWater": {
+          "value": 28,
+          "unit": "m3"
         }
       },
       {
@@ -528,6 +697,17 @@
         "consumptionUnits": {
           "value": 60,
           "unit": "einheiten"
+        },
+        "heatMeterReading": {
+          "meterNumber": "61 204 316",
+          "startValue": 0,
+          "startDate": "2025-01-01",
+          "endValue": 60,
+          "endDate": "2025-12-31"
+        },
+        "warmWater": {
+          "value": 0,
+          "unit": "m3"
         }
       },
       {
@@ -541,8 +721,25 @@
           "unit": "personen"
         },
         "consumptionUnits": {
-          "value": 900,
+          "value": 3750,
           "unit": "einheiten"
+        },
+        "heatMeterReading": {
+          "meterNumber": "7 120 401",
+          "startValue": 18420,
+          "startDate": "2025-01-01",
+          "endValue": 22170,
+          "endDate": "2025-12-31"
+        },
+        "previousConsumption": {
+          "year": 2024,
+          "value": 4300,
+          "source": "Abrechnung 2024 des Voreigentümers",
+          "climateFactor": 1.12
+        },
+        "warmWater": {
+          "value": 27,
+          "unit": "m3"
         }
       },
       {
@@ -556,8 +753,25 @@
           "unit": "personen"
         },
         "consumptionUnits": {
-          "value": 700,
+          "value": 3000,
           "unit": "einheiten"
+        },
+        "heatMeterReading": {
+          "meterNumber": "7 120 402",
+          "startValue": 14960,
+          "startDate": "2025-01-01",
+          "endValue": 17960,
+          "endDate": "2025-12-31"
+        },
+        "previousConsumption": {
+          "year": 2024,
+          "value": 3350,
+          "source": "Abrechnung 2024 des Voreigentümers",
+          "climateFactor": 1.12
+        },
+        "warmWater": {
+          "value": 13,
+          "unit": "m3"
         }
       },
       {
@@ -571,8 +785,25 @@
           "unit": "personen"
         },
         "consumptionUnits": {
-          "value": 1150,
+          "value": 4650,
           "unit": "einheiten"
+        },
+        "heatMeterReading": {
+          "meterNumber": "7 120 403",
+          "startValue": 23310,
+          "startDate": "2025-01-01",
+          "endValue": 27960,
+          "endDate": "2025-12-31"
+        },
+        "previousConsumption": {
+          "year": 2024,
+          "value": 5200,
+          "source": "Abrechnung 2024 des Voreigentümers",
+          "climateFactor": 1.12
+        },
+        "warmWater": {
+          "value": 48,
+          "unit": "m3"
         }
       },
       {
@@ -586,8 +817,25 @@
           "unit": "personen"
         },
         "consumptionUnits": {
-          "value": 520,
+          "value": 2150,
           "unit": "einheiten"
+        },
+        "heatMeterReading": {
+          "meterNumber": "7 120 404",
+          "startValue": 10880,
+          "startDate": "2025-01-01",
+          "endValue": 13030,
+          "endDate": "2025-12-31"
+        },
+        "previousConsumption": {
+          "year": 2024,
+          "value": 2200,
+          "source": "Abrechnung 2024 des Voreigentümers",
+          "climateFactor": 1.12
+        },
+        "warmWater": {
+          "value": 11,
+          "unit": "m3"
         }
       },
       {
@@ -601,8 +849,25 @@
           "unit": "personen"
         },
         "consumptionUnits": {
-          "value": 830,
+          "value": 3400,
           "unit": "einheiten"
+        },
+        "heatMeterReading": {
+          "meterNumber": "7 120 405",
+          "startValue": 16740,
+          "startDate": "2025-01-01",
+          "endValue": 20140,
+          "endDate": "2025-12-31"
+        },
+        "previousConsumption": {
+          "year": 2024,
+          "value": 3900,
+          "source": "Abrechnung 2024 des Voreigentümers",
+          "climateFactor": 1.12
+        },
+        "warmWater": {
+          "value": 24,
+          "unit": "m3"
         }
       },
       {
@@ -617,8 +882,25 @@
           "unit": "personen"
         },
         "consumptionUnits": {
-          "value": 690,
+          "value": 2250,
           "unit": "einheiten"
+        },
+        "heatMeterReading": {
+          "meterNumber": "7 120 406",
+          "startValue": 12050,
+          "startDate": "2025-01-01",
+          "endValue": 14300,
+          "endDate": "2025-09-30"
+        },
+        "previousConsumption": {
+          "year": 2024,
+          "value": 3100,
+          "source": "Abrechnung 2024 des Voreigentümers",
+          "climateFactor": 1.12
+        },
+        "warmWater": {
+          "value": 18,
+          "unit": "m3"
         }
       },
       {
@@ -629,8 +911,19 @@
         "kind": "vacancy",
         "from": "2025-10-01",
         "consumptionUnits": {
-          "value": 40,
+          "value": 500,
           "unit": "einheiten"
+        },
+        "heatMeterReading": {
+          "meterNumber": "7 120 406",
+          "startValue": 14300,
+          "startDate": "2025-10-01",
+          "endValue": 14800,
+          "endDate": "2025-12-31"
+        },
+        "warmWater": {
+          "value": 0,
+          "unit": "m3"
         }
       }
     ],
@@ -639,37 +932,37 @@
         "id": "pp-n1",
         "occupancyPeriodId": "op-n1",
         "mode": "monthly",
-        "monthlyAmountCents": 22000
+        "monthlyAmountCents": 25000
       },
       {
         "id": "pp-n2",
         "occupancyPeriodId": "op-n2",
         "mode": "monthly",
-        "monthlyAmountCents": 17000
+        "monthlyAmountCents": 18000
       },
       {
         "id": "pp-n3",
         "occupancyPeriodId": "op-n3",
         "mode": "monthly",
-        "monthlyAmountCents": 26000
+        "monthlyAmountCents": 34000
       },
       {
         "id": "pp-n3b",
         "occupancyPeriodId": "op-n3b",
         "mode": "monthly",
-        "monthlyAmountCents": 25000
+        "monthlyAmountCents": 27000
       },
       {
         "id": "pp-n4",
         "occupancyPeriodId": "op-n4",
         "mode": "monthly",
-        "monthlyAmountCents": 19000
+        "monthlyAmountCents": 22500
       },
       {
         "id": "pp-n5",
         "occupancyPeriodId": "op-n5",
         "mode": "monthly",
-        "monthlyAmountCents": 23000
+        "monthlyAmountCents": 25500
       },
       {
         "id": "pp-n6",
@@ -680,37 +973,37 @@
         "id": "pp-s1",
         "occupancyPeriodId": "op-s1",
         "mode": "monthly",
-        "monthlyAmountCents": 20000
+        "monthlyAmountCents": 22500
       },
       {
         "id": "pp-s2",
         "occupancyPeriodId": "op-s2",
         "mode": "monthly",
-        "monthlyAmountCents": 17000
+        "monthlyAmountCents": 17500
       },
       {
         "id": "pp-s3",
         "occupancyPeriodId": "op-s3",
         "mode": "monthly",
-        "monthlyAmountCents": 26000
+        "monthlyAmountCents": 26500
       },
       {
         "id": "pp-s4",
         "occupancyPeriodId": "op-s4",
         "mode": "monthly",
-        "monthlyAmountCents": 14000
+        "monthlyAmountCents": 15000
       },
       {
         "id": "pp-s5",
         "occupancyPeriodId": "op-s5",
         "mode": "monthly",
-        "monthlyAmountCents": 19000
+        "monthlyAmountCents": 19500
       },
       {
         "id": "pp-s6",
         "occupancyPeriodId": "op-s6",
         "mode": "monthly",
-        "monthlyAmountCents": 16000
+        "monthlyAmountCents": 17000
       },
       {
         "id": "pp-s6v",
@@ -722,6 +1015,7 @@
       {
         "id": "k-grundsteuer",
         "billingPeriodId": "bp-1",
+        "standardKey": "grundsteuer",
         "kind": "operating",
         "label": "Grundsteuer",
         "statementText": "Grundsteuer",
@@ -730,11 +1024,12 @@
         "scope": {
           "kind": "property"
         },
-        "totalAmountCents": 240000
+        "totalAmountCents": 295000
       },
       {
         "id": "k-wasser",
         "billingPeriodId": "bp-1",
+        "standardKey": "wasser",
         "kind": "water",
         "label": "Wasser und Abwasser",
         "statementText": "Wasserversorgung und Entwässerung",
@@ -743,11 +1038,12 @@
         "scope": {
           "kind": "property"
         },
-        "totalAmountCents": 560000
+        "totalAmountCents": 618000
       },
       {
         "id": "k-muell",
         "billingPeriodId": "bp-1",
+        "standardKey": "muell",
         "kind": "operating",
         "label": "Müllbeseitigung",
         "statementText": "Müllbeseitigung",
@@ -756,11 +1052,56 @@
         "scope": {
           "kind": "property"
         },
-        "totalAmountCents": 216000
+        "totalAmountCents": 228000
+      },
+      {
+        "id": "k-strasse",
+        "billingPeriodId": "bp-1",
+        "standardKey": "strasse",
+        "kind": "operating",
+        "label": "Straßenreinigung",
+        "statementText": "Straßenreinigung",
+        "betrkvCategory": "§2 Nr. 8",
+        "allocationKey": "usable_area",
+        "scope": {
+          "kind": "property"
+        },
+        "totalAmountCents": 41000
+      },
+      {
+        "id": "k-reinigung",
+        "billingPeriodId": "bp-1",
+        "standardKey": "reinigung",
+        "kind": "operating",
+        "label": "Treppenhausreinigung",
+        "statementText": "Gebäudereinigung",
+        "betrkvCategory": "§2 Nr. 9",
+        "allocationKey": "usable_area",
+        "scope": {
+          "kind": "property"
+        },
+        "totalAmountCents": 252000,
+        "laborSharePercent": 90
+      },
+      {
+        "id": "k-garten",
+        "billingPeriodId": "bp-1",
+        "standardKey": "garten",
+        "kind": "operating",
+        "label": "Gartenpflege",
+        "statementText": "Gartenpflege",
+        "betrkvCategory": "§2 Nr. 10",
+        "allocationKey": "usable_area",
+        "scope": {
+          "kind": "property"
+        },
+        "totalAmountCents": 118000,
+        "laborSharePercent": 80
       },
       {
         "id": "k-strom",
         "billingPeriodId": "bp-1",
+        "standardKey": "strom",
         "kind": "operating",
         "label": "Allgemeinstrom",
         "statementText": "Beleuchtung",
@@ -769,12 +1110,13 @@
         "scope": {
           "kind": "property"
         },
-        "totalAmountCents": 120000,
+        "totalAmountCents": 124000,
         "isOperatingElectricitySource": true
       },
       {
         "id": "k-versicherung",
         "billingPeriodId": "bp-1",
+        "standardKey": "versicherung",
         "kind": "operating",
         "label": "Gebäudeversicherung",
         "statementText": "Sach- und Haftpflichtversicherung",
@@ -783,13 +1125,29 @@
         "scope": {
           "kind": "property"
         },
-        "totalAmountCents": 300000
+        "totalAmountCents": 324000
       },
       {
-        "id": "k-wartung",
+        "id": "k-hauswart",
         "billingPeriodId": "bp-1",
+        "standardKey": "hauswart",
+        "kind": "operating",
+        "label": "Hauswart",
+        "statementText": "Hauswart",
+        "betrkvCategory": "§2 Nr. 14",
+        "allocationKey": "usable_area",
+        "scope": {
+          "kind": "property"
+        },
+        "totalAmountCents": 192000,
+        "laborSharePercent": 100
+      },
+      {
+        "id": "k-wartung-n",
+        "billingPeriodId": "bp-1",
+        "standardKey": "wartung-n",
         "kind": "heating",
-        "label": "Wartung Heizung",
+        "label": "Wartung Ölkessel",
         "statementText": "Wartung der Heizungsanlage",
         "betrkvCategory": "§2 Nr. 4a",
         "allocationKey": "heated_area",
@@ -799,9 +1157,270 @@
         },
         "totalAmountCents": 48000,
         "laborSharePercent": 80
+      },
+      {
+        "id": "k-schornstein-n",
+        "billingPeriodId": "bp-1",
+        "standardKey": "schornstein-n",
+        "kind": "heating",
+        "label": "Schornsteinfeger",
+        "statementText": "Immissionsmessung und Feuerstättenschau",
+        "betrkvCategory": "§2 Nr. 4a",
+        "allocationKey": "heated_area",
+        "scope": {
+          "kind": "building",
+          "buildingId": "B1"
+        },
+        "totalAmountCents": 16800,
+        "laborSharePercent": 100
+      },
+      {
+        "id": "k-messdienst-n",
+        "billingPeriodId": "bp-1",
+        "standardKey": "messdienst-n",
+        "kind": "heating",
+        "label": "Messdienst Haus Nord",
+        "statementText": "Verbrauchserfassung und Abrechnung (Messdienst)",
+        "betrkvCategory": "§2 Nr. 4a",
+        "allocationKey": "heated_area",
+        "scope": {
+          "kind": "building",
+          "buildingId": "B1"
+        },
+        "totalAmountCents": 61200,
+        "meteringFee": true
+      },
+      {
+        "id": "k-wartung-s",
+        "billingPeriodId": "bp-1",
+        "standardKey": "wartung-s",
+        "kind": "heating",
+        "label": "Wartung Wärmepumpe",
+        "statementText": "Wartung der Wärmepumpe",
+        "betrkvCategory": "§2 Nr. 4a",
+        "allocationKey": "heated_area",
+        "scope": {
+          "kind": "building",
+          "buildingId": "B2"
+        },
+        "totalAmountCents": 39000,
+        "laborSharePercent": 70
+      },
+      {
+        "id": "k-messdienst-s",
+        "billingPeriodId": "bp-1",
+        "standardKey": "messdienst-s",
+        "kind": "heating",
+        "label": "Messdienst Haus Süd",
+        "statementText": "Verbrauchserfassung und Abrechnung (Messdienst)",
+        "betrkvCategory": "§2 Nr. 4a",
+        "allocationKey": "heated_area",
+        "scope": {
+          "kind": "building",
+          "buildingId": "B2"
+        },
+        "totalAmountCents": 49800,
+        "meteringFee": true
       }
     ],
-    "costEntries": [],
+    "costEntries": [
+      {
+        "id": "ce-grundsteuer",
+        "costCategoryId": "k-grundsteuer",
+        "date": "2025-02-15",
+        "description": "Grundsteuerbescheid 2025, Stadt Musterstadt",
+        "amountCents": 295000,
+        "receiptReference": "Beleg 2025-001",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-wasser",
+        "costCategoryId": "k-wasser",
+        "date": "2026-01-28",
+        "description": "Jahresrechnung 2025, Beispiel Stadtwerke",
+        "amountCents": 618000,
+        "receiptReference": "Beleg 2025-002",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-muell",
+        "costCategoryId": "k-muell",
+        "date": "2025-01-31",
+        "description": "Abfallgebührenbescheid 2025, Musterkreis",
+        "amountCents": 228000,
+        "receiptReference": "Beleg 2025-003",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-strasse",
+        "costCategoryId": "k-strasse",
+        "date": "2025-02-15",
+        "description": "Straßenreinigungsgebühr 2025, Stadt Musterstadt",
+        "amountCents": 41000,
+        "receiptReference": "Beleg 2025-004",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-reinigung",
+        "costCategoryId": "k-reinigung",
+        "date": "2025-12-31",
+        "description": "Jahresrechnung Treppenhausreinigung, Glanz & Co. (fiktiv)",
+        "amountCents": 252000,
+        "receiptReference": "Beleg 2025-005",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-garten",
+        "costCategoryId": "k-garten",
+        "date": "2025-11-30",
+        "description": "Gartenpflege 2025, Grünwerk Beispiel (fiktiv)",
+        "amountCents": 118000,
+        "receiptReference": "Beleg 2025-006",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-strom",
+        "costCategoryId": "k-strom",
+        "date": "2026-01-20",
+        "description": "Jahresrechnung Allgemeinstrom 2025, Beispiel Stadtwerke",
+        "amountCents": 124000,
+        "receiptReference": "Beleg 2025-007",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-versicherung",
+        "costCategoryId": "k-versicherung",
+        "date": "2025-01-10",
+        "description": "Beitragsrechnung 2025, Musterversicherung",
+        "amountCents": 324000,
+        "receiptReference": "Beleg 2025-008",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-hauswart",
+        "costCategoryId": "k-hauswart",
+        "date": "2025-12-31",
+        "description": "Hauswartvertrag 2025, Jahresabrechnung",
+        "amountCents": 192000,
+        "receiptReference": "Beleg 2025-009",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-wartung-n",
+        "costCategoryId": "k-wartung-n",
+        "date": "2025-09-18",
+        "description": "Wartung Ölkessel, Musterheizungsbau (fiktiv)",
+        "amountCents": 48000,
+        "receiptReference": "Beleg 2025-010",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-schornstein-n",
+        "costCategoryId": "k-schornstein-n",
+        "date": "2025-10-07",
+        "description": "Immissionsmessung, Bezirksschornsteinfeger",
+        "amountCents": 16800,
+        "receiptReference": "Beleg 2025-011",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-messdienst-n",
+        "costCategoryId": "k-messdienst-n",
+        "date": "2026-02-12",
+        "description": "Heizkostenabrechnung 2025, Beispiel Messdienst",
+        "amountCents": 61200,
+        "receiptReference": "Beleg 2025-012",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-wartung-s",
+        "costCategoryId": "k-wartung-s",
+        "date": "2025-05-22",
+        "description": "Wartung Wärmepumpe, Musterheizungsbau (fiktiv)",
+        "amountCents": 39000,
+        "receiptReference": "Beleg 2025-013",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      },
+      {
+        "id": "ce-messdienst-s",
+        "costCategoryId": "k-messdienst-s",
+        "date": "2026-02-12",
+        "description": "Heizkostenabrechnung 2025, Beispiel Messdienst",
+        "amountCents": 49800,
+        "receiptReference": "Beleg 2025-014",
+        "externalPayment": {
+          "confirmed": true,
+          "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
+      }
+    ],
     "bankBookings": [],
     "heatingCircuits": [
       {
@@ -814,7 +1433,24 @@
           "co2PricePerTonCents": 5500
         },
         "hasCentralHotWater": true,
-        "hotWaterSharePercent": 25
+        "consumptionBenchmark": {
+          "source": "Heizspiegel für Deutschland 2026 (co2online)",
+          "sourceUrl": "https://www.heizspiegel.de/",
+          "referenceYear": 2025,
+          "category": "Heizöl, Gebäude 250–500 m², Baujahr bis 2001",
+          "includesHotWater": true,
+          "lowMaxKwhPerSqmYear": 61,
+          "mediumMaxKwhPerSqmYear": 95,
+          "elevatedMaxKwhPerSqmYear": 154
+        },
+        "hotWaterEnergy": {
+          "method": "heat_meter",
+          "heatKwh": 8300
+        },
+        "hotWaterAllocation": {
+          "key": "consumption",
+          "consumptionSharePercent": 70
+        }
       },
       {
         "id": "hc-B2",
@@ -826,7 +1462,26 @@
           "co2FactorKgPerKwh": 0,
           "co2PricePerTonCents": 5500
         },
-        "hasCentralHotWater": false
+        "hasCentralHotWater": true,
+        "consumptionBenchmark": {
+          "source": "Heizspiegel für Deutschland 2026 (co2online)",
+          "sourceUrl": "https://www.heizspiegel.de/",
+          "referenceYear": 2025,
+          "category": "Wärmepumpe, Gebäude 250–500 m², Baujahr ab 2002",
+          "includesHotWater": true,
+          "lowMaxKwhPerSqmYear": 10,
+          "mediumMaxKwhPerSqmYear": 17,
+          "elevatedMaxKwhPerSqmYear": 40
+        },
+        "hotWaterEnergy": {
+          "method": "heat_meter",
+          "heatKwh": 4900
+        },
+        "hotWaterAllocation": {
+          "key": "consumption",
+          "consumptionSharePercent": 70
+        },
+        "generatedHeatKwh": 24800
       }
     ],
     "energySources": [
@@ -846,10 +1501,7 @@
         "name": "Wärmepumpe",
         "sourceType": "Wärmepumpenstrom",
         "calorificValueKwhPerUnit": 1,
-        "co2FactorKgPerKwh": 0,
-        "seasonalPerformanceFactor": 3.5,
-        "seasonalPerformanceFactorEstimated": true,
-        "seasonalPerformanceFactorReason": "Herstellerangabe (fiktiv)"
+        "co2FactorKgPerKwh": 0
       }
     ],
     "fuelStocks": [
@@ -858,14 +1510,15 @@
         "energySourceId": "es-B1-haupt",
         "billingPeriodId": "bp-1",
         "openingQuantity": {
+          "value": 2800,
+          "unit": "l"
+        },
+        "openingValueCents": 282800,
+        "remainingQuantity": {
           "value": 3000,
           "unit": "l"
         },
-        "openingValueCents": 300000,
-        "remainingQuantity": {
-          "value": 2500,
-          "unit": "l"
-        },
+        "openingCo2PricePerTonCents": 4500,
         "valuationBasis": "acquisition_cost"
       },
       {
@@ -890,13 +1543,21 @@
         "billingPeriodId": "bp-1",
         "date": "2025-02-10",
         "quantity": {
-          "value": 3000,
+          "value": 2500,
           "unit": "l"
         },
-        "amountCents": 315000,
+        "amountCents": 260000,
+        "description": "Heizöl EL schwefelarm, 2.500 l",
+        "receiptReference": "Rechnung 2025-0217, Mineralöl Beispiel (fiktiv)",
         "externalPayment": {
           "confirmed": true,
           "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
+        },
+        "taxesAndLevies": {
+          "vatCents": 41513,
+          "vatRatePercent": 19,
+          "energyTaxCents": 15338,
+          "co2LevyCents": 36575
         },
         "origin": "previous_owner",
         "amountBasis": "invoice"
@@ -907,14 +1568,24 @@
         "billingPeriodId": "bp-1",
         "date": "2025-10-20",
         "quantity": {
-          "value": 4000,
+          "value": 2300,
           "unit": "l"
         },
-        "amountCents": 412000,
+        "amountCents": 218500,
+        "description": "Heizöl EL schwefelarm, 2.300 l",
+        "receiptReference": "Rechnung 2025-1188, Mineralöl Beispiel (fiktiv)",
         "externalPayment": {
           "confirmed": true,
           "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
-        }
+        },
+        "taxesAndLevies": {
+          "vatCents": 34887,
+          "vatRatePercent": 19,
+          "energyTaxCents": 14111,
+          "co2LevyCents": 33649
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
       },
       {
         "id": "fd-B2-wp-0",
@@ -922,14 +1593,24 @@
         "billingPeriodId": "bp-1",
         "date": "2025-12-31",
         "quantity": {
-          "value": 14000,
+          "value": 6900,
           "unit": "kWh"
         },
-        "amountCents": 420000,
+        "amountCents": 186300,
+        "description": "Wärmepumpentarif, 6.900 kWh",
+        "receiptReference": "Jahresrechnung Wärmepumpenstrom 2025, Beispiel Stadtwerke",
         "externalPayment": {
           "confirmed": true,
           "reason": "Beispielobjekt: Zahlung ohne importierte Kontoumsätze (fiktiv)"
-        }
+        },
+        "taxesAndLevies": {
+          "vatCents": 29745,
+          "vatRatePercent": 19,
+          "energyTaxCents": 14145,
+          "co2LevyCents": null
+        },
+        "origin": "own",
+        "amountBasis": "invoice"
       }
     ],
     "meterReadings": [],

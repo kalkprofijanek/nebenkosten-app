@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * Abrechnung ohne Browser: Import (Legacy v3), Berechnung, fachliche Prüfung
+ * Abrechnung ohne Browser: Import (App-Sicherung v4/v5 oder Legacy v3), Berechnung, fachliche Prüfung
  * und PDF-Erzeugung mit genau derselben Fachlogik wie die App. Gedacht für
  * die Arbeit mit einem KI-Coding-Agenten (z. B. Claude Code) auf einer
  * lokalen Kopie der Daten – siehe docs/KI-ANLEITUNG.md.
  *
  * Aufruf:
- *   pnpm abrechnung <nk-daten.json> [--jahr 2025] [--out <ordner>] [--json <datei>] [--overlay <modul.mjs>]
+ *   pnpm abrechnung <nk-daten.json | sicherung.json> [--jahr 2025] [--out <ordner>] [--json <datei>] [--overlay <modul.mjs>]
  *
  * Ohne --out werden nur Summen, Heizkreise, Salden und Prüfhinweise
  * ausgegeben. Mit --json zusätzlich eine maschinenlesbare Zusammenfassung.
@@ -73,10 +73,22 @@ try {
     '/apps/web/src/features/prepayments/statement-with-adjustment.ts',
   )
 
-  const imported = await io.importLegacyV3Bytes(await readFile(input), {
-    sourceFileName: basename(input),
-    appVersion: 'cli',
-  })
+  const bytes = await readFile(input)
+  // Sicherungen aus der App (Schema v4/v5, z. B. docs/beispiel/
+  // beispielobjekt.json) direkt lesen, Alt-App-Dateien (v3) importieren.
+  const imported = await io
+    .decodeSupportedAppDataBytes(bytes)
+    .then(({ data }) => ({ ok: true, data }))
+    .catch((error) => {
+      if (error?.code !== 'unsupported_schema_version') {
+        console.error(`Datei nicht lesbar (${error?.code ?? error}).`)
+        process.exit(1)
+      }
+      return io.importLegacyV3Bytes(bytes, {
+        sourceFileName: basename(input),
+        appVersion: 'cli',
+      })
+    })
   if (!imported.ok) {
     const errors = (imported.issues ?? []).filter(
       (issue) => issue.severity === 'error',
