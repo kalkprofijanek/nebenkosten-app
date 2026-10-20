@@ -19,8 +19,8 @@
     "@nebenkosten/validators": "workspace:*",
     "jszip": "3.10.2",
     "pdfmake": "0.3.11",
-    "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
     "@types/pdfmake": "0.3.3"
