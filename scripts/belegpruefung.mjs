@@ -182,7 +182,7 @@ try {
       result.duplicates.length +
       result.unreferencedFiles.length
     console.log(
-      `${files.length} Dateien im Ordner, ${result.matched.length} Belege zugeordnet.`,
+      `${files.length} ${files.length === 1 ? 'Datei' : 'Dateien'} im Ordner, ${result.matched.length} ${result.matched.length === 1 ? 'Beleg' : 'Belege'} zugeordnet.`,
     )
     const section = (title, lines) => {
       if (lines.length === 0) return
