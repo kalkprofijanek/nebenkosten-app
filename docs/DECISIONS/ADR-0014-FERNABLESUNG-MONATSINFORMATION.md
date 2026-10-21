@@ -60,6 +60,24 @@ Auslesesoftware; Versand gemischt (E-Mail mit Zustimmung, sonst Brief).
    - Dateien mit der neuen Zählerart lassen sich mit älteren App-Versionen
      nicht öffnen (wie bei früheren additiven v5-Feldern).
 
+7. **Schritt 2 – Rechenvertrag** (`packages/core/src/monthly-information`,
+   `calculateMonthlyConsumptionInformation(data, { propertyId, month })`):
+   - Monatsverbrauch = Monatsendstand(M) − Monatsendstand(M−1); mehrere
+     Zähler einer Einheit werden summiert; fehlender Stand, negativer
+     Verbrauch oder abweichende Stände am selben Tag → „nicht erhoben“ mit
+     Grund (kein Glattrechnen). Bei gleichem Abstand zum Monatsende gilt die
+     frühere Ablesung; `start_of_day` zählt als Stand des Vortags.
+   - Vormonat und Vorjahresmonat werden dem **eigenen Mietverhältnis**
+     zugeordnet (nicht der Einheit), damit keine Verbräuche von Vormietern
+     erscheinen; Teilmonate werden mit Zeitraum ausgewiesen.
+   - Mehrere Nutzungen im Monat: Anteil = Teilzeitraum ÷ ganzer Monat
+     (Heizung nach Gradtagen, Warmwasser nach Tagen); Überschneidungen
+     werden gemeldet.
+   - Warmwasser nur bei zentraler Warmwasserbereitung; kWh = 2,5 × m³ ×
+     (tw − 10).
+   - Mehrere Abrechnungszeiträume im Monat: der zuerst beginnende, mit
+     Hinweis. Annahmen werden im Ergebnis ausgewiesen (`assumptions`).
+
 ## Begründung der Einstufung
 
 - Warnung statt Fehler bei fehlender Fernablesbarkeit: Die Abrechnung bleibt
@@ -80,6 +98,8 @@ Auslesesoftware; Versand gemischt (E-Mail mit Zustimmung, sonst Brief).
   Gradtagszahlen; bei Vergleichswerten mit Warmwasser nur Näherung.
 - **E-46-4:** Warmwassertemperatur ohne Angabe am Heizkreis: 60 °C,
   gekennzeichnet als Schätzwert.
+- **E-46-5:** Toleranz ±3 Tage für den Monatsendstand; Gültigkeit der
+  Zähler (`validFrom`/`validTo`) wird noch nicht geprüft.
 - **E-46-2:** Ab Schritt 3: fehlende Monatsinformation im Zeitraum als
   Warnung (Vorschlag) oder Fehler?
 
