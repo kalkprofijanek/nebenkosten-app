@@ -36,6 +36,11 @@ function progressFixture(): AppDataFile {
   }
 }
 
+// Die Monatsinformation ist eine monatliche Aufgabe, kein Jahresschritt.
+const yearSteps = appRoutes
+  .slice(1)
+  .filter(({ path }) => path !== '/monatsinformation')
+
 describe('workflowProgress', () => {
   it('führt für jede Route nach der Übersicht genau einen Status', () => {
     const progress = workflowProgress(progressFixture(), {
@@ -45,9 +50,9 @@ describe('workflowProgress', () => {
     })
 
     expect(progress.steps.map(({ path }) => path)).toEqual(
-      appRoutes.slice(1).map(({ path }) => path),
+      yearSteps.map(({ path }) => path),
     )
-    expect(progress.total).toBe(appRoutes.length - 1)
+    expect(progress.total).toBe(yearSteps.length)
     expect(progress.completed).toBe(3)
   })
 
@@ -59,7 +64,7 @@ describe('workflowProgress', () => {
       billingPeriodId: null,
     })
 
-    expect(progress.steps).toHaveLength(appRoutes.length - 1)
+    expect(progress.steps).toHaveLength(yearSteps.length)
     expect(progress.steps.every(({ status }) => status === 'open')).toBe(true)
   })
 })

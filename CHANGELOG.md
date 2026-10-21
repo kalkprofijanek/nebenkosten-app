@@ -4,6 +4,17 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Monatsinformation, Schritt 2 (ADR-0014, PR-46)**: Wohnungs-Warmwasserzähler
+  (`unit_hot_water`, m³) mit Zuordnung am Heizkreis
+  (`HeatingCircuit.hotWaterMeterAssignments`, additiv, Schema v5); CSV-Import
+  der Monatsendstände mit Vorschau (`planMonthlyMeterReadings`: Zuordnung über
+  Zählernummer, Einheit, Dubletten, Konflikte, fallende Stände; Übernahme nur
+  ohne Probleme und nicht in gesperrte Abrechnungsjahre); Rechenkern
+  `calculateMonthlyConsumptionInformation` (Monatsverbrauch je Mieter,
+  Vormonat/Vorjahresmonat des eigenen Mietverhältnisses, Durchschnittsnutzer
+  aus der Heizspiegel-Mitte „mittel“, Warmwasser m³ → kWh mit 60 °C als
+  gekennzeichnetem Schätzwert); neue Seite **Monatsinformation**. Fix:
+  Bearbeiten eines Heizkreises behält die Warmwasserzuordnungen,
 - **Fernablesbarkeit und Monatsinformation, Schritt 1 (ADR-0014, PR-46)**:
   Regelverzeichnis korrigiert – die monatliche Verbrauchsinformation gilt
   bei fernablesbaren Geräten seit 01.01.2022 (`monthly-consumption-information`),
