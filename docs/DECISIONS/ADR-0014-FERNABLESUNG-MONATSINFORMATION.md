@@ -74,7 +74,8 @@ Auslesesoftware; Versand gemischt (E-Mail mit Zustimmung, sonst Brief).
 - **E-46-1:** Teilweise Fernablesbarkeit (Tausch über mehrere Wochen) wird
   nicht abgebildet; `since` ist das Datum, ab dem **alle** Geräte umgerüstet
   sind.
-- **E-46-3:** Durchschnittsnutzer = Mitte der Heizspiegel-Klasse „mittel“
+- **E-46-3 (entschieden 21.10.2026):** Durchschnittsnutzer = Mitte der
+  Heizspiegel-Klasse „mittel“
   ((Grenze niedrig + Grenze mittel) ÷ 2, kWh/m²·a), monatlich nach
   Gradtagszahlen; bei Vergleichswerten mit Warmwasser nur Näherung.
 - **E-46-4:** Warmwassertemperatur ohne Angabe am Heizkreis: 60 °C,
