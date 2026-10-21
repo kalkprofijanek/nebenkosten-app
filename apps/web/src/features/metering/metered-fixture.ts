@@ -127,3 +127,50 @@ export function createMeteredFixture(): AppDataFile {
     },
   }
 }
+
+/**
+ * Fictional variant with central hot water, a second flat and two
+ * flat hot-water meters (m³) for the hot-water assignment tests.
+ */
+export function createHotWaterFixture(hasCentralHotWater = true): AppDataFile {
+  const source = createMeteredFixture()
+  return {
+    ...source,
+    masterData: {
+      ...source.masterData,
+      units: [
+        ...source.masterData.units,
+        {
+          id: meteringId(40),
+          propertyId: meteringId(3),
+          buildingId: meteringId(4),
+          label: 'Wohnung 2',
+          heatedAreaSqm: { value: 60, unit: 'm2' },
+        },
+      ],
+      meters: [
+        ...source.masterData.meters,
+        {
+          id: meteringId(41),
+          propertyId: meteringId(3),
+          kind: 'unit_hot_water',
+          meterNumber: 'TEST-WW-1',
+        },
+        {
+          id: meteringId(42),
+          propertyId: meteringId(3),
+          kind: 'unit_hot_water',
+          meterNumber: 'TEST-WW-2',
+        },
+      ],
+    },
+    billingData: {
+      ...source.billingData,
+      heatingCircuits: source.billingData.heatingCircuits.map((circuit) => ({
+        ...circuit,
+        hasCentralHotWater,
+        ...(hasCentralHotWater ? { hotWaterSharePercent: 30 } : {}),
+      })),
+    },
+  }
+}
