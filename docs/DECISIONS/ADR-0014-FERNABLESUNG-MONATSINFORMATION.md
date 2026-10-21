@@ -96,7 +96,8 @@ Auslesesoftware; Versand gemischt (E-Mail mit Zustimmung, sonst Brief).
   Heizspiegel-Klasse „mittel“
   ((Grenze niedrig + Grenze mittel) ÷ 2, kWh/m²·a), monatlich nach
   Gradtagszahlen; bei Vergleichswerten mit Warmwasser nur Näherung.
-- **E-46-4:** Warmwassertemperatur ohne Angabe am Heizkreis: 60 °C,
+- **E-46-4 (entschieden 21.10.2026):** Warmwassertemperatur ohne Angabe
+  am Heizkreis: 60 °C,
   gekennzeichnet als Schätzwert.
 - **E-46-5:** Toleranz ±3 Tage für den Monatsendstand; Gültigkeit der
   Zähler (`validFrom`/`validTo`) wird noch nicht geprüft.
