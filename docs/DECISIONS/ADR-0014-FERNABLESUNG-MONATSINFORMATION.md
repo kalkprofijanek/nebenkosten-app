@@ -50,6 +50,15 @@ Auslesesoftware; Versand gemischt (E-Mail mit Zustimmung, sonst Brief).
      auf die Monatsinformation für Heizung bzw. Heizung und Warmwasser.
    - Der bisherige allgemeine Hinweis `rules.remote_reading` entfällt.
 5. **Oberfläche:** zwei optionale Felder im Objekt-Formular.
+6. **Schritt 2 – Schnittstelle (additiv, Schema v5, keine Migration):**
+   - neue Zählerart `unit_hot_water` (Wohnungs-Warmwasserzähler, m³),
+   - `HeatingCircuit.hotWaterMeterAssignments` (`{ meterId, unitId }[]`)
+     analog zu `meterAssignments` der Wohnungs-Wärmemengenzähler,
+   - Monatsendstände als `MeterReading` (`source: 'imported'`) ohne
+     `billingPeriodId`; Monatsendstand = Ablesung am nächsten zum
+     Monatsletzten innerhalb von ±3 Tagen.
+   - Dateien mit der neuen Zählerart lassen sich mit älteren App-Versionen
+     nicht öffnen (wie bei früheren additiven v5-Feldern).
 
 ## Begründung der Einstufung
 
@@ -65,6 +74,11 @@ Auslesesoftware; Versand gemischt (E-Mail mit Zustimmung, sonst Brief).
 - **E-46-1:** Teilweise Fernablesbarkeit (Tausch über mehrere Wochen) wird
   nicht abgebildet; `since` ist das Datum, ab dem **alle** Geräte umgerüstet
   sind.
+- **E-46-3:** Durchschnittsnutzer = Mitte der Heizspiegel-Klasse „mittel“
+  ((Grenze niedrig + Grenze mittel) ÷ 2, kWh/m²·a), monatlich nach
+  Gradtagszahlen; bei Vergleichswerten mit Warmwasser nur Näherung.
+- **E-46-4:** Warmwassertemperatur ohne Angabe am Heizkreis: 60 °C,
+  gekennzeichnet als Schätzwert.
 - **E-46-2:** Ab Schritt 3: fehlende Monatsinformation im Zeitraum als
   Warnung (Vorschlag) oder Fehler?
 
