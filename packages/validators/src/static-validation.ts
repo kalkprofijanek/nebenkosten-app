@@ -23,6 +23,7 @@ import {
   wholeYear,
 } from './helpers'
 import { section9bIssues } from './section-9b'
+import { remoteReadingIssues } from './remote-reading'
 import { issue } from './issues'
 import { legalRule, legalRulesForPeriod } from './legal-rules'
 import { ambiguousCostEntries, heatingInformation } from './billing-information'
@@ -1369,20 +1370,7 @@ function legalRules(data: AppDataFile, period: BillingPeriod, add: Add): void {
       )
     }
   }
-  if (
-    codes.has('remote-reading') &&
-    data.billingData.heatingCircuits.some(
-      ({ billingPeriodId }) => billingPeriodId === period.id,
-    )
-  ) {
-    const rule = legalRule('remote-reading')
-    add(
-      issue('info', 'rules.remote_reading', 'heating', rule.title, {
-        entity: { type: 'BillingPeriod', id: period.id },
-        detail: `${rule.summary} (${rule.norm})`,
-      }),
-    )
-  }
+  remoteReadingIssues(data, period, codes, add)
 }
 
 const euroFormatter = new Intl.NumberFormat('de-DE', {

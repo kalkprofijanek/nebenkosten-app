@@ -1,7 +1,9 @@
 # Konzept: Monatliche Verbrauchsinformation (§ 6a Abs. 1 und 2 HeizKV)
 
-Stand: 10. Oktober 2026. Status: **Entscheidungsvorlage, nicht umgesetzt.**
-Auftrag des Nutzers: nur Konzept, nicht bauen.
+Stand: 10. Oktober 2026. Status: **entschieden am 21.10.2026 – Option B**
+(App erstellt die Monatsinformation), siehe
+[ADR-0014](DECISIONS/ADR-0014-FERNABLESUNG-MONATSINFORMATION.md) und
+`docs/TASKS/PR-46-MONATSINFORMATION.md`. E0 (Regeltext) ist umgesetzt.
 
 ## 1. Rechtslage (Wortlaut geprüft am 10.10.2026, gesetze-im-internet.de)
 
@@ -51,11 +53,11 @@ Brunata, Minol, Kalo u. a.) betrieben. Diese bieten die Monatsinformation
 regelmäßig als Portal/App-Leistung an, oft gegen Entgelt (dann umlagefähig
 als Kosten der Verbrauchserfassung, prüfen).
 
-| Option | Inhalt | Aufwand App | Laufender Aufwand Vermieter | Risiko |
-|---|---|---|---|---|
-| **A – Messdienst liefert, App dokumentiert** | Je Objekt erfassen: fernablesbar ja/nein seit wann, Anbieter der Monatsinformation, Kanal, Beginn; Prüfhinweise; Hinweis in der Jahresabrechnung | gering (Schema + Prüfung + Maske) | gering: einmal je Objekt einrichten, Messdienst-Nachweis ablegen | Inhalt liegt beim Messdienst; Vermieter muss Vollständigkeit (Abs. 2 Nr. 1–3) einmal prüfen |
-| **B – App erstellt selbst** | Monatswerte importieren, kWh umrechnen, Vergleiche bilden, PDF je Mieter erzeugen, Versand protokollieren | hoch (Import je Messdienstformat, Rechenkern, PDF, Versandlog) | hoch: **jeden Monat** Import, Prüfung, Versand an alle Mieter | Fehler in der kWh-Umrechnung; Versandnachweis; Pflege der Formate |
-| **C – Hybrid** | A als Standard; B nur für Objekte ohne Portal des Messdienstes | mittel bis hoch | je Objekt verschieden | wie B für die Ausnahmeobjekte |
+| Option                                       | Inhalt                                                                                                                                           | Aufwand App                                                    | Laufender Aufwand Vermieter                                      | Risiko                                                                                      |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **A – Messdienst liefert, App dokumentiert** | Je Objekt erfassen: fernablesbar ja/nein seit wann, Anbieter der Monatsinformation, Kanal, Beginn; Prüfhinweise; Hinweis in der Jahresabrechnung | gering (Schema + Prüfung + Maske)                              | gering: einmal je Objekt einrichten, Messdienst-Nachweis ablegen | Inhalt liegt beim Messdienst; Vermieter muss Vollständigkeit (Abs. 2 Nr. 1–3) einmal prüfen |
+| **B – App erstellt selbst**                  | Monatswerte importieren, kWh umrechnen, Vergleiche bilden, PDF je Mieter erzeugen, Versand protokollieren                                        | hoch (Import je Messdienstformat, Rechenkern, PDF, Versandlog) | hoch: **jeden Monat** Import, Prüfung, Versand an alle Mieter    | Fehler in der kWh-Umrechnung; Versandnachweis; Pflege der Formate                           |
+| **C – Hybrid**                               | A als Standard; B nur für Objekte ohne Portal des Messdienstes                                                                                   | mittel bis hoch                                                | je Objekt verschieden                                            | wie B für die Ausnahmeobjekte                                                               |
 
 **Empfehlung: Option A.** Begründung:
 
@@ -96,10 +98,10 @@ als Kosten der Verbrauchserfassung, prüfen).
 
 - **Schema (additiv):** am Objekt bzw. Heizkreis
   `remoteReading: { status: 'none' | 'partial' | 'complete', since?: date,
-  exemptionReason?: string }` und
+exemptionReason?: string }` und
   `monthlyInformation: { provider: string, channel: 'portal' | 'app' |
-  'email' | 'letter', since: date, coversHotWater: boolean, evidence?:
-  attachment }`.
+'email' | 'letter', since: date, coversHotWater: boolean, evidence?:
+attachment }`.
 - **Prüfung je Abrechnungsjahr:**
   - fernablesbar, aber keine Monatsinformation hinterlegt → **Fehler**
     (Kürzung 3 % nach § 12 Abs. 1 Satz 3),
@@ -114,13 +116,13 @@ als Kosten der Verbrauchserfassung, prüfen).
 
 ## 6. Entscheidungen des Nutzers
 
-| Nr. | Frage | Vorschlag |
-|---|---|---|
-| E0 | Regeltext `remote-reading` sofort korrigieren (Pflicht seit 2022 bei vorhandener Fernablesung; 2027 nur Nachrüstfrist)? | **Ja**, kleiner eigener PR |
-| E1 | Option A, B oder C? | **A** |
-| E2 | Bestandsaufnahme: Welche Objekte haben heute fernablesbare Geräte, welcher Messdienst, gibt es ein Mieterportal/App? | vom Nutzer zu liefern; bestimmt, ob die Pflicht **bereits jetzt** läuft |
-| E3 | Werden Entgelte für die Monatsinformation umgelegt? | rechtlich prüfen lassen; Kennzeichnung als Messdienstentgelt (ADR-0006) möglich |
-| E4 | Ausnahme nach § 5 Abs. 3 Satz 2 (technisch unmöglich / unbillige Härte) für einzelne Objekte? | nur mit schriftlicher Begründung erfassen |
+| Nr. | Frage                                                                                                                   | Vorschlag                                                                       |
+| --- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| E0  | Regeltext `remote-reading` sofort korrigieren (Pflicht seit 2022 bei vorhandener Fernablesung; 2027 nur Nachrüstfrist)? | **Ja**, kleiner eigener PR                                                      |
+| E1  | Option A, B oder C?                                                                                                     | **A**                                                                           |
+| E2  | Bestandsaufnahme: Welche Objekte haben heute fernablesbare Geräte, welcher Messdienst, gibt es ein Mieterportal/App?    | vom Nutzer zu liefern; bestimmt, ob die Pflicht **bereits jetzt** läuft         |
+| E3  | Werden Entgelte für die Monatsinformation umgelegt?                                                                     | rechtlich prüfen lassen; Kennzeichnung als Messdienstentgelt (ADR-0006) möglich |
+| E4  | Ausnahme nach § 5 Abs. 3 Satz 2 (technisch unmöglich / unbillige Härte) für einzelne Objekte?                           | nur mit schriftlicher Begründung erfassen                                       |
 
 ## 7. Priorität und nächste Schritte
 

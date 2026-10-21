@@ -65,11 +65,12 @@ aus geprüfter Abrechnungsengine und lokalem KI-Agenten.
 | Task                                                 | Inhalt                                                                       | Abhängigkeit | Status                                       |
 | ---------------------------------------------------- | ---------------------------------------------------------------------------- | ------------ | -------------------------------------------- |
 | [PR-39](PR-39-GIROCODE.md)                           | GiroCode (EPC-QR) bei Nachzahlung; E-39-1/-2 entschieden (A/A)               | –            | erledigt (#100)                              |
-| [PR-40](PR-40-RECHNUNGSORDNER-JE-OBJEKT.md)          | Rechnungsordner je Objekt verknüpfen, nur zur Prüfung (Agentenweg)           | PR-43        | in Arbeit (`claude/confident-cannon-t7z4h4`) |
-| [PR-41](PR-41-KI-BELEGWORKFLOW-UND-BELEGPRUEFUNG.md) | KI-Workflow aus dem Objektordner und Belegprüfung                            | PR-40, PR-43 | Belegprüfung mit PR-40                       |
+| [PR-40](PR-40-RECHNUNGSORDNER-JE-OBJEKT.md)          | Rechnungsordner je Objekt verknüpfen, nur zur Prüfung (Agentenweg)           | PR-43        | erledigt (#105)                              |
+| [PR-41](PR-41-KI-BELEGWORKFLOW-UND-BELEGPRUEFUNG.md) | KI-Workflow aus dem Objektordner und Belegprüfung                            | PR-40, PR-43 | Belegprüfung erledigt (#105)                 |
 | [PR-42](PR-42-FRISTENUEBERSICHT.md)                  | Fristen nach § 556 Abs. 3 BGB mit `.ics`-Export                              | –            | verworfen                                    |
 | [PR-43](PR-43-DATENSCHUTZ-KI-VERARBEITUNG.md)        | Datenschutz bei KI (`docs/DATENSCHUTZ-KI.md`); Nutzer entscheidet je Schritt | –            | Entwurf                                      |
 | [PR-45](PR-45-WASSER-NACH-ZAEHLER.md)                | Umlageschlüssel „Wasserverbrauch“ (§ 556a Abs. 1 Satz 2 BGB, ADR-0013)       | –            | in PR                                        |
+| [PR-46](PR-46-MONATSINFORMATION.md)                  | Monatliche Verbrauchsinformation § 6a HeizKV (ADR-0014), Schritt 1 von 3     | –            | in Arbeit (`claude/confident-cannon-t7z4h4`) |
 
 Reihenfolge: PR-39 → PR-43 (Regeln festlegen) → PR-40 → PR-41. PR-42
 verworfen (Nutzer, 21.10.2026).
