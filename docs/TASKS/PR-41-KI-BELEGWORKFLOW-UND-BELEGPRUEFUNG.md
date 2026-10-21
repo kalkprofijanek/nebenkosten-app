@@ -34,10 +34,15 @@ Belegarchiv, keine eigene Belegverwaltung.
   Unplausibles). Rechnen ausschließlich in der Fachlogik.
 - Originaldateien werden nie verschoben, umbenannt oder verändert.
 
+## Umsetzungsstand
+
+- Belegprüfung (Punkt 2) mit PR-40 umgesetzt: `pnpm belegpruefung`,
+  Verknüpfung über `receiptReference` (E-41-1 entschieden, siehe PR-40).
+- Anleitung (Punkt 3) in `docs/KI-ANLEITUNG.md` Ablauf 0 ergänzt.
+- Offen: Arbeitsanweisung für den Agenten zur Ordnerverarbeitung
+  (Erfassungsliste mit Dateiname als Quelle) präzisieren.
+
 ## Offene Entscheidungen
 
-- **E-41-1:** Verknüpfung Beleg ↔ Kostenposition über das vorhandene
-  Belegnummer-/Beschreibungsfeld oder ein neues optionales Feld
-  `sourceFile` (wäre Schemaänderung mit Migration, ADR nötig)?
 - **E-41-2:** Abgleich nur auf Dateiebene oder zusätzlich Betrag
   (Agent liest Betrag aus PDF und vergleicht mit Kostenposition)?

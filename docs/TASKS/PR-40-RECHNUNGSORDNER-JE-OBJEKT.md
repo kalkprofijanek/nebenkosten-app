@@ -28,34 +28,50 @@ Beispielstruktur (fiktiv):
 Firefox und Safari unterstützen den Ordnerdialog nicht; dort bleibt der
 Agenten-Weg bzw. die bisherige Erfassung.
 
-## Vorschlag Vertrag (vor Umsetzung abzustimmen)
+## Entscheidungen (Nutzer, 17.10.2026)
 
-- Private Zuordnungsdatei (nur Agentenweg):
+- **E-40-1:** Der Ordner dient **nur der Prüfung**. Keine Dateiansicht und
+  kein Belegarchiv in der App.
+- **E-40-2:** Das Abrechnungsjahr ergibt sich aus dem **Leistungszeitraum**,
+  weil Rechnungen oft erst später eingehen. Keine Unterordner je Jahr
+  vorgegeben; Dateien ohne Kostenposition werden jahresunabhängig gelistet.
+- **E-41-1:** Verknüpfung über das vorhandene Feld `receiptReference`
+  („Belegnummer/Dateiname“) – keine Schemaänderung, keine Migration.
+
+## Vertrag (umgesetzt, Agentenweg)
+
+- Private Zuordnungsdatei `private-data/objekt-ordner.json`:
   `{ "version": 1, "objects": [{ "propertyId": "…", "invoiceFolder": "…" }] }`
-  – Schlüssel ist die `propertyId` der Datendatei, kein Objektname.
-- Browser: eigener IndexedDB-Speicher `local-settings`, getrennt von
-  `AppDataFile`. **Nicht** Teil von Datensicherung, Export oder Schema
-  (keine Schemaänderung, keine Migration).
-- Die App liest nur Dateinamen, Größe und Änderungsdatum; PDF-Inhalte
-  verarbeitet ausschließlich der Agent (PR-41).
+  – Schlüssel ist die `propertyId` der Datendatei, kein Objektname;
+  relative Pfade gelten relativ zur Zuordnungsdatei.
+- `packages/validators`: `parseReceiptFolderMapping(value)` und
+  `checkReceiptFolder(data, { billingPeriodId, files })` – rein, ohne
+  Dateizugriff. Ergebnis: `matched`, `withoutReference` (Schätzungen
+  ausgenommen), `notFound`, `duplicates`, `unreferencedFiles`.
+- Abgleich ohne Groß-/Kleinschreibung über Pfad, Dateiname oder Dateiname
+  ohne Endung; Kostenpositionen und Brennstofflieferungen.
+- Skript `pnpm belegpruefung <datendatei> [--jahr] [--zuordnung] [--json]`:
+  liest Ordner rekursiv (ohne System-/Sperrdateien), nur lesend.
+- Anleitung `docs/BELEGPRUEFUNG.md`, Verweis in `docs/KI-ANLEITUNG.md`.
 
-## Freigegebene Pfade (vorläufig)
+## Zurückgestellt: Browser-Ordnerdialog
 
-`apps/web/src/features/` (neues Feature `invoice-folder`), `docs/`,
-`scripts/`, `.gitignore`.
+Weil der Ordner nur der Prüfung dient und die Prüfung lokal über das
+Skript läuft, wird der Ordnerdialog in der Browser-App (File System Access
+API, nur Edge/Chrome, Freigabe je Sitzung) vorerst nicht gebaut. Er wäre
+ein eigener PR: Ordner-Handle nur in IndexedDB, nicht in Datensicherung,
+Export oder Schema.
+
+## Freigegebene Pfade
+
+`packages/validators/`, `scripts/belegpruefung.mjs`, `package.json`
+(Skripteintrag), `docs/`, `CHANGELOG.md`.
 
 ## Tests / Abnahme
 
-- Unit: Lesen/Validieren der Zuordnungsdatei, unbekannte `propertyId`,
-  fehlender Ordner, fehlende Leseberechtigung.
-- Web: Ordnerfreigabe mit gemocktem `showDirectoryPicker`, Fallback-Hinweis
-  ohne API-Unterstützung, Handle wird nicht exportiert.
-- Datenschutz: Repository-Prüfung, dass keine Pfade/Objektkürzel
-  committet werden.
-
-## Offene Entscheidungen
-
-- **E-40-1:** Ordnerauflistung in der App überhaupt anzeigen oder nur für
-  die Belegprüfung (PR-41) nutzen?
-- **E-40-2:** Unterordner je Jahr (`Rechnungseingang\2025\`) vorgeben oder
-  Jahr aus Rechnungsdatum/Leistungszeitraum ableiten?
+- Unit (`packages/validators/tests/receipt-folder.test.ts`): Zuordnungsdatei
+  gültig/ungültig, Abgleich über Pfad/Name/Name ohne Endung, fehlende
+  Angabe, nicht gefunden, Mehrfachverwendung, Schätzung ausgenommen,
+  Brennstofflieferungen, andere Zeiträume, unbekannter Zeitraum.
+- Manuell: Skript mit fiktiven Daten und Testordner (Unterordner,
+  `.DS_Store`, `~$`-Sperrdatei) ausgeführt.

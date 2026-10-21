@@ -4,6 +4,16 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Belegprüfung gegen den Rechnungsordner je Objekt (PR-40/41)**:
+  `pnpm belegpruefung <datendatei> --jahr <Jahr>` liest den bestehenden
+  Rechnungsordner aus der privaten Zuordnung
+  `private-data/objekt-ordner.json` und meldet Kosten ohne Belegangabe,
+  nicht gefundene Belege, Mehrfachverwendung und Dateien ohne
+  Kostenposition. Verknüpfung über das vorhandene Feld
+  „Belegnummer/Dateiname“ (keine Schemaänderung); Abrechnungsjahr nach
+  Leistungszeitraum, daher Dateien ohne Kostenposition jahresunabhängig;
+  nur lesend. Reine Prüflogik `checkReceiptFolder` in
+  `packages/validators`; Anleitung `docs/BELEGPRUEFUNG.md`,
 - **Wasser nach Zähler (ADR-0013, PR-45)**: neuer Umlageschlüssel
   `water_consumption` „Wasserverbrauch (m³)“ (additiv, Schema v5): Kalt- plus
   Warmwasser je Nutzung, Leerstand im Nenner (trägt der Vermieter), ohne
