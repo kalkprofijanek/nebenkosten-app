@@ -2072,7 +2072,7 @@ h1 {
 }
 
 .main-content .consumption-table input.consumption-number {
-  width: 6.5rem;
+  width: 5.75rem;
   text-align: right;
 }
 
@@ -2082,11 +2082,11 @@ h1 {
 }
 
 .main-content .consumption-table input.consumption-meter {
-  width: 6.5rem;
+  width: 6rem;
 }
 
 .main-content .consumption-table input[type='date'] {
-  width: 8.6rem;
+  width: 7.7rem;
 }
 
 .consumption-reading {
@@ -2116,8 +2116,19 @@ h1 {
 }
 
 .consumption-status-cell {
-  min-width: 10rem;
+  min-width: 7.5rem;
   max-width: 13rem;
+}
+
+/* Vorjahres- und Nutzerspalte umbrechen statt die Tabelle zu verbreitern,
+   damit der Status bei 1440 px auch mit breiteren Systemschriften (z. B.
+   DejaVu Sans, Segoe UI) ohne Scrollen sichtbar bleibt. */
+.consumption-table td:nth-child(7) {
+  max-width: 8.5rem;
+}
+
+.consumption-table th[scope='row'] {
+  max-width: 9.5rem;
 }
 
 .consumption-table th[scope='row'] {

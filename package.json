@@ -11,6 +11,7 @@
     "lint": "eslint . --max-warnings 0",
     "abrechnung": "node scripts/abrechnung.mjs",
     "belegpruefung": "node scripts/belegpruefung.mjs",
+    "medien": "node scripts/erzeuge-medien.mjs",
     "typecheck": "tsc -p tsconfig.tests.json --noEmit && pnpm -r --if-present typecheck",
     "test:architecture": "node --test tests/architecture/**/*.test.mjs",
     "test:repository": "node --test tests/repository/**/*.test.mjs",

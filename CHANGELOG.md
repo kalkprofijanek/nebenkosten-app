@@ -14,6 +14,32 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
   Leistungszeitraum, daher Dateien ohne Kostenposition jahresunabhängig;
   nur lesend. Reine Prüflogik `checkReceiptFolder` in
   `packages/validators`; Anleitung `docs/BELEGPRUEFUNG.md`,
+- **Wasser nach Zähler (ADR-0013, PR-45)**: neuer Umlageschlüssel
+  `water_consumption` „Wasserverbrauch (m³)“ (additiv, Schema v5): Kalt- plus
+  Warmwasser je Nutzung, Leerstand im Nenner (trägt der Vermieter), ohne
+  Zeitfaktor; Nenner „m³“ und eigene m³ in der Einzelabrechnung. Prüfung:
+  Fehler `costs.water_consumption_missing` ohne Kaltwasserwert, Warnung
+  `costs.water_meter_not_used`, wenn Zählerwerte vorliegen, Wasserkosten aber
+  nach Fläche oder Wohneinheiten verteilt werden (§ 556a Abs. 1 Satz 2 BGB),
+- **Screenshots und Musterabrechnungen (ADR-0012, PR-44)**: Rundgang in
+  neun Bildern mit Bedienhinweisen, Vorschau der Einzelabrechnung und des
+  GiroCodes sowie sechs Muster-PDFs aus dem fiktiven Beispielobjekt unter
+  `docs/medien/`, eingebunden in README, Kurzanleitung und
+  Beispiel-Beschreibung; erzeugt mit `pnpm medien`. Der Privacy-Scan lässt
+  Binärdateien nur dort und nur mit Eintrag in `docs/medien/SHA256SUMS` zu
+  und akzeptiert IBANs mit der nicht vergebenen Bankleitzahl 00000000.
+  Beispielobjekt praxisnah und vollständig erfasst (keine Prüfhinweise):
+  Zählerstände mit Zwischenablesung, Warmwasser nach Wärmezähler und m³,
+  Heizspiegel-2026-Vergleichswerte, Klimafaktoren, Vorjahreswerte des
+  Voreigentümers, Messdienst, Schornsteinfeger, Steuern und Abgaben je
+  Lieferung, Anreden, neue Anschriften nach Auszug, Bankverbindung mit
+  Kontoinhaber. `pnpm abrechnung` liest jetzt auch Sicherungen der App
+  (Schema v4/v5), nicht nur `nk-daten.json`,
+- **Korrekturen aus dem Rundgang**: Anrede „Sehr geehrte Familie Familie …“
+  bei Anzeigenamen mit „Familie“ (PDF); Lieferliste unter **Heizkreise →
+  Brennstoffe** mit deutschem Datum, Menge und Betrag statt `2025-02-10` und
+  `3150.00 €`; Verbrauchstabelle passt bei 1440 px ohne horizontales
+  Scrollen,
 - **GiroCode bei Nachzahlung (PR-39)**: Die Einzelabrechnung druckt neben
   der Zahlungsaufforderung einen EPC-QR-Code (EPC069-12, Version 002,
   UTF-8, Fehlerkorrektur M) mit Kontoinhaber, IBAN, ggf. BIC, Betrag und

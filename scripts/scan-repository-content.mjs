@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { dirname, extname, posix, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -16,6 +17,14 @@ const BINARY_EXTENSIONS = new Set([
   '.webp',
   '.zip',
 ])
+/**
+ * Freigegebene Bilder und Muster-PDFs aus dem fiktiven Beispielobjekt
+ * (ADR-0012). Eine Binärdatei ist nur hier zulässig und nur, wenn ihr
+ * SHA-256 im Manifest steht; jede neue oder geänderte Datei braucht damit
+ * einen sichtbaren Manifest-Eintrag im Review.
+ */
+const RELEASED_MEDIA_DIRECTORY = 'docs/medien/'
+const RELEASED_MEDIA_MANIFEST = `${RELEASED_MEDIA_DIRECTORY}SHA256SUMS`
 const PLACEHOLDER_VALUES = Object.freeze([
   'example',
   'fixture-only',
@@ -28,7 +37,12 @@ const CONTENT_PATTERNS = Object.freeze([
     kind: 'email address',
     expression: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/giu,
   }),
-  Object.freeze({ kind: 'German IBAN', expression: /\bDE\d{20}\b/gu }),
+  // Bankleitzahl 00000000 ist nicht vergeben; solche IBANs gehören zu keinem
+  // Konto und dienen dem Beispielobjekt (ADR-0012).
+  Object.freeze({
+    kind: 'German IBAN',
+    expression: /\bDE\d{2}(?!0{8})\d{18}\b/gu,
+  }),
   Object.freeze({
     kind: 'access token',
     expression:
@@ -207,6 +221,25 @@ export function findForbiddenLockfileSources(content) {
   return Object.freeze(forbiddenLines)
 }
 
+export function parseReleasedMediaManifest(content) {
+  const released = new Map()
+  for (const line of content.split(/\r?\n/u)) {
+    const match = /^([0-9a-f]{64}) {2}([^\s].*)$/u.exec(line)
+    if (match) released.set(`${RELEASED_MEDIA_DIRECTORY}${match[2]}`, match[1])
+  }
+  return released
+}
+
+function isReleasedMedia(relativePath, content, released) {
+  const normalizedPath = relativePath.replaceAll('\\', '/')
+  if (!normalizedPath.startsWith(RELEASED_MEDIA_DIRECTORY)) return false
+  const expected = released.get(normalizedPath)
+  return (
+    expected !== undefined &&
+    createHash('sha256').update(content).digest('hex') === expected
+  )
+}
+
 function listCandidatePaths(repositoryRoot) {
   return execFileSync(
     'git',
@@ -226,6 +259,11 @@ export function scanRepository(
   } = {},
 ) {
   const findings = []
+  const released = candidatePaths.includes(RELEASED_MEDIA_MANIFEST)
+    ? parseReleasedMediaManifest(
+        readContent(RELEASED_MEDIA_MANIFEST).toString('utf8'),
+      )
+    : new Map()
 
   for (const relativePath of candidatePaths) {
     if (relativePath === 'pnpm-lock.yaml') {
@@ -243,6 +281,8 @@ export function scanRepository(
     }
 
     if (BINARY_EXTENSIONS.has(extname(relativePath).toLowerCase())) {
+      if (isReleasedMedia(relativePath, readContent(relativePath), released))
+        continue
       findings.push(
         Object.freeze({
           kind: 'tracked binary file',

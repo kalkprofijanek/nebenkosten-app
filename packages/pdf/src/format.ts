@@ -43,6 +43,7 @@ const allocationKeyLabels: Readonly<Record<string, string>> = {
   heated_area: 'nach beheizter Fläche',
   consumption_units: 'nach Verbrauchseinheiten',
   residential_units: 'je Wohneinheit',
+  water_consumption: 'nach Wasserverbrauch',
   direct: 'direkt zugeordnet',
 }
 

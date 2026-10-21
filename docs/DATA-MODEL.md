@@ -177,25 +177,25 @@ Neu als eigene Entität (v3 vermischt Einheit, Person und Vertrag im
 
 ### 3.8 OccupancyPeriod / Nutzungszeitraum (`occupancyPeriodSchema`)
 
-| Feld                             | Typ                   | P/opt                      | Legacy                                           |
-| -------------------------------- | --------------------- | -------------------------- | ------------------------------------------------ |
-| `id`                             | EntityId              | P                          | — (neu)                                          |
-| `billingPeriodId`, `unitId`      | EntityId              | P                          | Position im Baum                                 |
-| `tenancyId`                      | EntityId              | opt (`null` bei Leerstand) | `Nutzer.id`                                      |
-| `kind`                           | `tenant` \| `vacancy` | P                          | `istLeerstand()`-Disjunktion                     |
-| `legacyActiveFlag`               | string                | opt                        | `aktiv` (Anzeige-Ampel, ohne Rechenwirkung)      |
-| `displayOrder`                   | int                   | opt                        | `nr`                                             |
-| `from`, `to`                     | IsoDate               | opt                        | `eingezogen`, `ausgezogen` (auf Periode bezogen) |
-| `persons`                        | Quantity(personen)    | opt                        | `personen`                                       |
-| `consumptionUnits`               | Quantity(einheiten)   | opt                        | `einheiten`                                      |
-| `consumptionUnitsEstimated`      | boolean               | opt                        | `einheiten_geschaetzt`                           |
-| `consumptionUnitsEstimateReason` | string                | opt                        | `einheiten_schatz_grund`                         |
+| Feld                             | Typ                   | P/opt                      | Legacy                                                                       |
+| -------------------------------- | --------------------- | -------------------------- | ---------------------------------------------------------------------------- |
+| `id`                             | EntityId              | P                          | — (neu)                                                                      |
+| `billingPeriodId`, `unitId`      | EntityId              | P                          | Position im Baum                                                             |
+| `tenancyId`                      | EntityId              | opt (`null` bei Leerstand) | `Nutzer.id`                                                                  |
+| `kind`                           | `tenant` \| `vacancy` | P                          | `istLeerstand()`-Disjunktion                                                 |
+| `legacyActiveFlag`               | string                | opt                        | `aktiv` (Anzeige-Ampel, ohne Rechenwirkung)                                  |
+| `displayOrder`                   | int                   | opt                        | `nr`                                                                         |
+| `from`, `to`                     | IsoDate               | opt                        | `eingezogen`, `ausgezogen` (auf Periode bezogen)                             |
+| `persons`                        | Quantity(personen)    | opt                        | `personen`                                                                   |
+| `consumptionUnits`               | Quantity(einheiten)   | opt                        | `einheiten`                                                                  |
+| `consumptionUnitsEstimated`      | boolean               | opt                        | `einheiten_geschaetzt`                                                       |
+| `consumptionUnitsEstimateReason` | string                | opt                        | `einheiten_schatz_grund`                                                     |
 | `heatMeterReading`               | HeatMeterReading      | opt (ab 1.2.1)             | `wmz_nr`, `wmz_stand_alt`, `wmz_datum_alt`, `wmz_stand_neu`, `wmz_datum_neu` |
-| `applySection12Reduction`        | boolean               | opt                        | `kuerzung12_anwenden` (§ 12 HeizKV)              |
-| `costScope`, `propertyTaxScope`  | AllocationScope       | opt                        | `kosten_scope`, `grundsteuer_key`                |
-| `coldWater`, `warmWater`         | Quantity(m3)          | opt                        | `kaltwasser_m3`, `wasser_m3`                     |
-| `dispatchDate`                   | IsoDate               | opt                        | `versanddatum_nutzer`                            |
-| `note`                           | string                | opt                        | `bemerkung`                                      |
+| `applySection12Reduction`        | boolean               | opt                        | `kuerzung12_anwenden` (§ 12 HeizKV)                                          |
+| `costScope`, `propertyTaxScope`  | AllocationScope       | opt                        | `kosten_scope`, `grundsteuer_key`                                            |
+| `coldWater`, `warmWater`         | Quantity(m3)          | opt                        | `kaltwasser_m3`, `wasser_m3`                                                 |
+| `dispatchDate`                   | IsoDate               | opt                        | `versanddatum_nutzer`                                                        |
+| `note`                           | string                | opt                        | `bemerkung`                                                                  |
 
 `HeatMeterReading.replacements` (optional, additiv in Schema v5; ADR-0008):
 Geräte-/Zählertausch mit `date`, `removedEndValue`, `installedMeterNumber`,
@@ -231,7 +231,6 @@ bleiben gültig, daher bleibt `schemaVersion` 5 (keine Migration nötig).
 | `coverLetter`                | {active, text}                                                    | opt   | `anschreiben`                                |
 | `lastModifiedAt`             | IsoTimestamp                                                      | opt   | `_ts` (ms-Epoch → ISO)                       |
 
-
 `BillingPeriod.climateFactor` (`climateFactorSchema`, strikt, optional,
 additiv in Schema v5; ADR-0005): DWD-Klimafaktor für die Witterungsbereinigung
 des Vorperiodenvergleichs – `postalCode` (fünfstellig), `factor` (> 0),
@@ -263,7 +262,10 @@ Vorjahres, wenn das Vorjahr nicht im System liegt.
 
 Umlageschlüssel (`allocationKeySchema`): `usable_area` (`m2_nf`),
 `heated_area` (`m2_nf_hzg`), `consumption_units` (`einheiten`),
-`residential_units` (`we_anzahl`), `direct` (`direkt`).
+`residential_units` (`we_anzahl`), `water_consumption` (Kalt- plus
+Warmwasser in m³ je Nutzung aus `OccupancyPeriod.coldWater`/`warmWater`,
+Leerstand im Nenner, ohne Zeitfaktor; additiv in Schema v5, kein
+Legacy-Gegenstück, ADR-0013), `direct` (`direkt`).
 
 `CostCategory.meteringFee` (optional, boolesch, additiv in Schema v5;
 ADR-0006): Entgelt für Verbrauchserfassung und Abrechnung (§ 6a Abs. 3 Nr. 1c

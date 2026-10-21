@@ -117,6 +117,8 @@ function buildOccupancyContexts(input: CalculationInput): OccupancyContext[] {
         quantityValue(unit.heatedAreaSqm) || quantityValue(unit.usableAreaSqm),
       persons: quantityValue(occupancy.persons),
       consumptionUnits: quantityValue(occupancy.consumptionUnits),
+      waterM3:
+        quantityValue(occupancy.coldWater) + quantityValue(occupancy.warmWater),
     }
   })
   return withSection9bBaseFactors<OccupancyContext>(
@@ -166,6 +168,8 @@ function buildAllocationBasis(
         sum.consumptionUnits +
         (context.occupancy.kind === 'vacancy' ? 0 : context.consumptionUnits),
       residentialUnits: sum.residentialUnits + context.timeFactor,
+      // Leerstand zählt mit; seinen Anteil trägt der Vermieter (ADR-0013).
+      waterM3: sum.waterM3 + context.waterM3,
     }),
     {
       usableArea: 0,
@@ -173,6 +177,7 @@ function buildAllocationBasis(
       persons: 0,
       consumptionUnits: 0,
       residentialUnits: 0,
+      waterM3: 0,
     },
   )
   if (scope && scope.kind !== 'property') return calculated
@@ -201,6 +206,7 @@ function buildAllocationBasis(
       quantityValue(totals?.residentialUnitCount) > 0
         ? quantityValue(totals?.residentialUnitCount)
         : calculated.residentialUnits,
+    waterM3: calculated.waterM3,
   }
 }
 
@@ -299,6 +305,11 @@ function costShare(
         ? (position.effectiveAmount / position.basis.residentialUnits) *
             context.timeFactor
         : 0
+    // Ohne Zeitfaktor: Der Zählerwert gilt für den Nutzungszeitraum.
+    case 'water_consumption':
+      return position.basis.waterM3
+        ? (position.effectiveAmount / position.basis.waterM3) * context.waterM3
+        : 0
     case 'direct':
     case null:
     case undefined:
@@ -336,6 +347,11 @@ function positionDenominator(
       return {
         denominator: roundQuantity(basis.residentialUnits, 3),
         denominatorUnit: 'WE',
+      }
+    case 'water_consumption':
+      return {
+        denominator: roundQuantity(basis.waterM3, 3),
+        denominatorUnit: 'm³',
       }
     default:
       return { denominator: null, denominatorUnit: null }
@@ -442,6 +458,7 @@ function tenantAllocationBasis(
       3,
     ),
     consumptionUnit: metered ? 'kWh' : 'Einheiten',
+    waterM3: roundQuantity(context.waterM3, 3),
   }
 }
 
