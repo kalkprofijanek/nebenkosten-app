@@ -1,6 +1,8 @@
 # PR-42 – Fristenübersicht mit Kalenderexport
 
-Stand: 17. Oktober 2026. Auftrag: Roadmap Phase 3, Punkt 5.
+Stand: 21. Oktober 2026. **Verworfen:** Der Nutzer hat am 21.10.2026
+entschieden, die Fristenübersicht nicht umzusetzen. Die Datei bleibt als
+Konzept erhalten.
 
 ## Ziel
 

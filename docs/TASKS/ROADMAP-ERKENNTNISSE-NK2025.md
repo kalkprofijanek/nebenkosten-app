@@ -55,7 +55,7 @@ aus geprüfter Abrechnungsengine und lokalem KI-Agenten.
 | Rechnungseingangsordner je Objekt verknüpfen      | umsetzen (PR-40)                    |
 | KI-gestützte Belegauswertung aus diesem Ordner    | vorhandenen Workflow nutzen (PR-41) |
 | Belegprüfung (Kosten ohne Rechnung und umgekehrt) | umsetzen (PR-41)                    |
-| Fristenübersicht mit Kalenderexport               | umsetzen (PR-42)                    |
+| Fristenübersicht mit Kalenderexport               | nicht umsetzen (Nutzer, 21.10.2026) |
 | Datenschutz bei der Verarbeitung mit KI           | umsetzen (PR-43)                    |
 | Korrigierte Abrechnungen / Versionsvergleich      | nicht umsetzen                      |
 | Steuerliche Anlage-V-Auswertung                   | nicht umsetzen                      |
@@ -67,12 +67,12 @@ aus geprüfter Abrechnungsengine und lokalem KI-Agenten.
 | [PR-39](PR-39-GIROCODE.md)                           | GiroCode (EPC-QR) bei Nachzahlung; E-39-1/-2 entschieden (A/A)               | –            | erledigt (#100)                              |
 | [PR-40](PR-40-RECHNUNGSORDNER-JE-OBJEKT.md)          | Rechnungsordner je Objekt verknüpfen, nur zur Prüfung (Agentenweg)           | PR-43        | in Arbeit (`claude/confident-cannon-t7z4h4`) |
 | [PR-41](PR-41-KI-BELEGWORKFLOW-UND-BELEGPRUEFUNG.md) | KI-Workflow aus dem Objektordner und Belegprüfung                            | PR-40, PR-43 | Belegprüfung mit PR-40                       |
-| [PR-42](PR-42-FRISTENUEBERSICHT.md)                  | Fristen nach § 556 Abs. 3 BGB mit `.ics`-Export                              | –            | offen                                        |
+| [PR-42](PR-42-FRISTENUEBERSICHT.md)                  | Fristen nach § 556 Abs. 3 BGB mit `.ics`-Export                              | –            | verworfen                                    |
 | [PR-43](PR-43-DATENSCHUTZ-KI-VERARBEITUNG.md)        | Datenschutz bei KI (`docs/DATENSCHUTZ-KI.md`); Nutzer entscheidet je Schritt | –            | Entwurf                                      |
 | [PR-45](PR-45-WASSER-NACH-ZAEHLER.md)                | Umlageschlüssel „Wasserverbrauch“ (§ 556a Abs. 1 Satz 2 BGB, ADR-0013)       | –            | in PR                                        |
 
-Reihenfolge: PR-39 → PR-43 (Regeln festlegen) → PR-40 → PR-41; PR-42
-unabhängig.
+Reihenfolge: PR-39 → PR-43 (Regeln festlegen) → PR-40 → PR-41. PR-42
+verworfen (Nutzer, 21.10.2026).
 
 ## Arbeitsweise
 
