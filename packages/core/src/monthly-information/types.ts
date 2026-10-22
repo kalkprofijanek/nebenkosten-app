@@ -76,7 +76,7 @@ export interface MonthlyHotWaterInformation {
   heatingCircuitId: string
   /** Mittlere Warmwassertemperatur tw in °C für 2,5 × V × (tw − 10). */
   temperatureC: number
-  /** tw geschätzt oder Standardannahme (offene Annahme, siehe `assumptions`). */
+  /** tw geschätzt oder Standardannahme (Schätzwert, siehe `assumptions`). */
   temperatureEstimated: boolean
   current: MonthlyHotWaterValue
   previousMonth: MonthlyHotWaterValue
@@ -98,7 +98,7 @@ export type MonthlyAverageUserComparison =
       status: 'compared'
       /**
        * Durchschnitt = Mitte der Klasse „mittel“ des Heizspiegels
-       * (OFFENE ANNAHME E-46-3).
+       * (E-46-3, entschieden 21.10.2026).
        */
       method: 'heizspiegel_medium_midpoint'
       /**

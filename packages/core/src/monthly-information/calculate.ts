@@ -16,7 +16,7 @@
  * - Vergleiche: Vormonat und Vorjahresmonat derselben Nutzung (gleiches
  *   Mietverhältnis), „nicht erhoben“, soweit nicht ermittelbar.
  * - Durchschnittsnutzer: Mitte der Heizspiegel-Klasse „mittel“ ×
- *   Fläche × Gradtagsanteil (OFFENE ANNAHME E-46-3).
+ *   Fläche × Gradtagsanteil (E-46-3, entschieden 21.10.2026).
  */
 import type {
   AppDataFile,
@@ -575,12 +575,12 @@ export function calculateMonthlyConsumptionInformation(
     result.assumptions.push({
       code: 'E-46-3',
       detail:
-        'Durchschnittsnutzer = Mitte der Heizspiegel-Klasse „mittel“ ((niedrig + mittel) ÷ 2 kWh/m²·a) × Fläche × Gradtagsanteil; fachlich noch nicht entschieden.',
+        'Durchschnittsnutzer: Mitte der Heizspiegel-Klasse „mittel“ ((Grenze niedrig + Grenze mittel) ÷ 2, in kWh je m² und Jahr) × Wohnfläche, auf den Monat verteilt nach Gradtagszahlen.',
     })
   if (defaultTemperatureUsed)
     result.assumptions.push({
       code: 'hot_water_temperature',
-      detail: `Keine Warmwassertemperatur nach § 9 Abs. 2 HeizKV erfasst; angenommen tw = ${DEFAULT_HOT_WATER_TEMPERATURE_C} °C.`,
+      detail: `Warmwassertemperatur nicht gemessen; geschätzt ${DEFAULT_HOT_WATER_TEMPERATURE_C} °C (Umrechnung nach § 9 Abs. 2 HeizKV).`,
     })
   return result
 }
