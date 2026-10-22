@@ -198,6 +198,72 @@ describe('Regelverzeichnis', () => {
   })
 })
 
+describe('Versandprotokoll der Monatsinformation (E-46-2)', () => {
+  function remoteData() {
+    const data = periodData(2025)
+    data.billingData.heatingCircuits.push({
+      id: 'circuit-1',
+      billingPeriodId: 'period-1',
+      heatingSystemId: 'system-1',
+      buildingId: 'building-1',
+      hasCentralHotWater: false,
+    })
+    data.masterData.properties[0]!.remoteReading = { since: '2025-10-15' }
+    return data
+  }
+  function dispatched(month: string) {
+    return {
+      id: `dispatch-${month}`,
+      propertyId: 'property-1',
+      month,
+      dispatchedOn: '2026-01-05',
+      entries: [],
+    }
+  }
+  const missing = (data: AppDataFile) =>
+    issuesWithPrefix(data).find(
+      ({ code }) => code === 'rules.monthly_information_missing',
+    )
+
+  it('warnt für jeden Monat ab Fernablesbarkeit ohne Versandprotokoll', () => {
+    const issue = missing(remoteData())
+    expect(issue).toMatchObject({ severity: 'warning', area: 'heating' })
+    // Oktober (ab 15.10.) bis Dezember 2025.
+    expect(issue!.detail).toContain('10/2025, 11/2025, 12/2025')
+    expect(issue!.detail).toContain('§ 12 Abs. 1')
+
+    const partly = remoteData()
+    partly.billingData.monthlyInformationDispatches = [
+      dispatched('2025-10'),
+      dispatched('2025-12'),
+    ]
+    expect(missing(partly)!.detail).toContain('11/2025')
+    expect(missing(partly)!.detail).not.toContain('10/2025')
+  })
+
+  it('schweigt, wenn alle Monate protokolliert oder keine Geräte fernablesbar sind', () => {
+    const complete = remoteData()
+    complete.billingData.monthlyInformationDispatches = [
+      dispatched('2025-10'),
+      dispatched('2025-11'),
+      dispatched('2025-12'),
+    ]
+    expect(missing(complete)).toBeUndefined()
+
+    const other = remoteData()
+    other.billingData.monthlyInformationDispatches = [
+      { ...dispatched('2025-10'), propertyId: 'property-other' },
+      dispatched('2025-11'),
+      dispatched('2025-12'),
+    ]
+    expect(missing(other)!.detail).toContain('10/2025')
+
+    const notRemote = remoteData()
+    delete notRemote.masterData.properties[0]!.remoteReading
+    expect(missing(notRemote)).toBeUndefined()
+  })
+})
+
 describe('Prüfhinweis-Codes', () => {
   it('entsprechen dem Schema-Muster', async () => {
     const { validationIssueSchema } = await import('@nebenkosten/schema')

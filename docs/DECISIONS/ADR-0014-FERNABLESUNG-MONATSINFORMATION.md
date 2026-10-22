@@ -78,6 +78,18 @@ Auslesesoftware; Versand gemischt (E-Mail mit Zustimmung, sonst Brief).
    - Mehrere Abrechnungszeiträume im Monat: der zuerst beginnende, mit
      Hinweis. Annahmen werden im Ergebnis ausgewiesen (`assumptions`).
 
+8. **Schritt 3 – Schnittstelle (additiv, Schema v5, keine Migration):**
+   - `Tenancy.monthlyInformationDelivery { channel: 'email' | 'letter',
+emailConsentDate }`; E-Mail nur mit Datum der Zustimmung, ohne Angabe
+     gilt Brief.
+   - `billingData.monthlyInformationDispatches` (optional): je Objekt und
+     Monat `{ id, propertyId, month: 'JJJJ-MM', dispatchedOn, entries[] }`,
+     Eintrag je Mietverhältnis mit `channel`, `status: 'sent' | 'not_sent'`
+     und Begründung.
+   - Prüfung `rules.monthly_information_missing` (**Warnung**, E-46-2): je
+     Monat ab Fernablesbarkeit im Abrechnungszeitraum ohne Versandprotokoll
+     des Objekts.
+
 ## Begründung der Einstufung
 
 - Warnung statt Fehler bei fehlender Fernablesbarkeit: Die Abrechnung bleibt
