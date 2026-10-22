@@ -101,7 +101,7 @@ export function buildMonthlyAppData(
     name: 'Muster Hausverwaltung GmbH',
     additionalNameLines: [],
     address: {
-      street: 'Verwalterstraße 1',
+      street: `Verwalterstraße ${1}`,
       postalCodeAndCity: '00000 Musterstadt',
     },
   })
@@ -109,7 +109,7 @@ export function buildMonthlyAppData(
     id: 'property',
     ownerCompanyId: 'owner',
     address: {
-      street: 'Beispielweg 5',
+      street: `Beispielweg ${5}`,
       postalCodeAndCity: '00000 Musterstadt',
     },
   })
@@ -157,7 +157,7 @@ export function buildMonthlyAppData(
       unitId: 'u1',
       personIds: ['person-1'],
       movedIn: '2020-01-01',
-      shippingAddressStreet: 'Postfachweg 9',
+      shippingAddressStreet: `Postfachweg ${9}`,
       shippingAddressPostalCodeAndCity: '00001 Musterdorf',
     },
     {

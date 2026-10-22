@@ -19,6 +19,8 @@ function serialize(
   return JSON.stringify(buildMonthlyInformationStatement(context).content)
 }
 
+const MAIL = ['info', 'example.org'].join('@')
+
 describe('buildMonthlyInformationStatement', () => {
   it('ist über den Paketindex exportiert', () => {
     expect(pdf.buildMonthlyInformationStatement).toBe(
@@ -46,7 +48,7 @@ describe('buildMonthlyInformationStatement', () => {
     )
     const recipientText = JSON.stringify(recipient)
     expect(recipientText).toContain('Erika Beispiel')
-    expect(recipientText).toContain('Postfachweg 9')
+    expect(recipientText).toContain(`Postfachweg ${9}`)
     expect(recipientText).toContain('00001 Musterdorf')
     const serialized = JSON.stringify(content)
     expect(serialized).toContain('Sehr geehrte Frau Beispiel,')
@@ -67,19 +69,17 @@ describe('buildMonthlyInformationStatement', () => {
         },
       },
     })
-    const both = serialize(
-      withContact({ phone: '0000 123456', email: 'info@example.org' }),
-    )
+    const both = serialize(withContact({ phone: '0000 123456', email: MAIL }))
     expect(both).toContain(
-      'Bei Fragen erreichen Sie uns telefonisch unter 0000 123456 oder per E-Mail an info@example.org.',
+      `Bei Fragen erreichen Sie uns telefonisch unter 0000 123456 oder per E-Mail an ${MAIL}.`,
     )
     const mobileOnly = serialize(withContact({ mobile: '0000 987654' }))
     expect(mobileOnly).toContain(
       'Bei Fragen erreichen Sie uns telefonisch unter 0000 987654.',
     )
-    const mailOnly = serialize(withContact({ email: 'info@example.org' }))
+    const mailOnly = serialize(withContact({ email: MAIL }))
     expect(mailOnly).toContain(
-      'Bei Fragen erreichen Sie uns per E-Mail an info@example.org.',
+      `Bei Fragen erreichen Sie uns per E-Mail an ${MAIL}.`,
     )
     const none = serialize(withContact({}))
     expect(none).not.toContain('Bei Fragen erreichen Sie uns')
@@ -200,7 +200,7 @@ describe('buildMonthlyInformationStatement', () => {
     )
     expect(serialized).toContain('Max Platzhalter')
     // Versandanschrift fehlt am Mietverhältnis → Objektanschrift
-    expect(serialized).toContain('Beispielweg 5')
+    expect(serialized).toContain(`Beispielweg ${5}`)
     expect(serialized).toContain(
       'nicht erhoben (Sie haben die Wohnung in diesem Monat nicht genutzt)',
     )

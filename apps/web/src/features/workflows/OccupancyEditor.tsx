@@ -8,6 +8,11 @@ import { WorkflowField } from './form-support'
 import { formatEuroInput } from '../../app/form-parsers'
 import { occupancyUsesMeteredKwh } from '../consumption/capture-mode'
 import { InterimReadingNotice } from '../occupancies/InterimReadingNotice'
+import { DeliveryFields } from '../monthly-information/DeliveryFields'
+import {
+  deliveryDraftInvalid,
+  type DeliveryDraft,
+} from '../monthly-information/delivery'
 
 function datesOf(form: HTMLFormElement) {
   const values = new FormData(form)
@@ -54,6 +59,21 @@ export function OccupancyEditor({
   const person = data.masterData.persons.find(({ id }) =>
     tenancy?.personIds.includes(id),
   )
+  // Versandweg der Monatsinformation (ADR-0014): Zustimmungsdatum ist bei
+  // E-Mail Pflicht; die E-Mail-Adresse wird live für den Hinweis verfolgt.
+  const [delivery, setDelivery] = useState<DeliveryDraft>({
+    channel: tenancy?.monthlyInformationDelivery?.channel ?? 'letter',
+    emailConsentDate:
+      tenancy?.monthlyInformationDelivery?.emailConsentDate ?? '',
+  })
+  const [deliveryAttempted, setDeliveryAttempted] = useState(false)
+  const [email, setEmail] = useState(person?.email ?? '')
+  const otherPersonHasEmail = data.masterData.persons.some(
+    ({ id, email: address }) =>
+      id !== person?.id &&
+      tenancy?.personIds.includes(id) &&
+      (address ?? '').trim() !== '',
+  )
   const currentPrepayment = data.billingData.prepayments.find(
     ({ occupancyPeriodId }) => occupancyPeriodId === occupancy.id,
   )
@@ -76,8 +96,20 @@ export function OccupancyEditor({
         <form
           className="embedded-form"
           noValidate
-          onSubmit={(event) => saveTenant(event, occupancy.id)}
-          onChange={(event) => setDates(datesOf(event.currentTarget))}
+          onSubmit={(event) => {
+            if (deliveryDraftInvalid(delivery)) {
+              event.preventDefault()
+              setDeliveryAttempted(true)
+              return
+            }
+            saveTenant(event, occupancy.id)
+          }}
+          onChange={(event) => {
+            setDates(datesOf(event.currentTarget))
+            setEmail(
+              String(new FormData(event.currentTarget).get('email') ?? ''),
+            )
+          }}
         >
           <WorkflowField
             label="Anzeigename bearbeiten"
@@ -149,6 +181,12 @@ export function OccupancyEditor({
             Objektanschrift, auch nach einem Auszug. Eine bekannte neue
             Anschrift hier eintragen.
           </small>
+          <DeliveryFields
+            draft={delivery}
+            onChange={setDelivery}
+            hasEmailAddress={email.trim() !== '' || otherPersonHasEmail}
+            showError={deliveryAttempted}
+          />
           <p className="consumption-hint">
             Heizverbrauch:{' '}
             {meteredKwh

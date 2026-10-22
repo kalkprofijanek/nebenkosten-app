@@ -2,6 +2,7 @@ import {
   appDataFileSchema,
   allocationScopeSchema,
   heatMeterReadingSchema,
+  monthlyInformationDeliverySchema,
   occupancyPeriodSchema,
   personSchema,
   prepaymentSchema,
@@ -9,6 +10,7 @@ import {
   tenancySchema,
   uuidSchema,
   type AppDataFile,
+  type MonthlyInformationDelivery,
   type OccupancyPeriod,
   type Person,
   type Prepayment,
@@ -63,6 +65,8 @@ export interface UpdateTenantOccupancyInput {
   readonly persons?: number
   readonly shippingAddressStreet?: string
   readonly shippingAddressPostalCodeAndCity?: string
+  /** Versandweg der Monatsinformation (ADR-0014); ohne Angabe gilt Brief. */
+  readonly monthlyInformationDelivery?: MonthlyInformationDelivery
   readonly prepayment: AddTenantOccupancyInput['prepayment']
 }
 
@@ -172,6 +176,36 @@ function readingWithoutUndefined(value: unknown): unknown {
         : replacement,
     ),
   }
+}
+
+const EMAIL_CONSENT_REQUIRED =
+  'Für den E-Mail-Versand ist das Datum der Zustimmung anzugeben.'
+
+/**
+ * Versandweg der Monatsinformation (ADR-0014, Schritt 3): E-Mail nur mit
+ * Datum der Zustimmung; Prüfung über das Schema.
+ */
+function parseMonthlyInformationDelivery(
+  value: unknown,
+): MonthlyInformationDelivery {
+  const label = 'Monatsinformation'
+  const record = recordWithExactKeys(
+    value,
+    ['channel', 'emailConsentDate'],
+    label,
+  )
+  if (
+    record.channel === 'email' &&
+    (record.emailConsentDate === undefined ||
+      record.emailConsentDate === null ||
+      record.emailConsentDate === '')
+  )
+    throw new OccupancyCommandError(EMAIL_CONSENT_REQUIRED)
+  return parseEntity(
+    monthlyInformationDeliverySchema,
+    withoutUndefined(record),
+    label,
+  )
 }
 
 function parsePrepaymentInput(
@@ -587,6 +621,7 @@ export function updateTenantOccupancy(
       'monthlyRentCents',
       'shippingAddressStreet',
       'shippingAddressPostalCodeAndCity',
+      'monthlyInformationDelivery',
       'consumptionUnits',
       'consumptionUnitsEstimated',
       'consumptionUnitsEstimateReason',
@@ -679,6 +714,10 @@ export function updateTenantOccupancy(
     'shippingAddressPostalCodeAndCity',
     500,
   )
+  const monthlyInformationDelivery =
+    input.monthlyInformationDelivery === undefined
+      ? undefined
+      : parseMonthlyInformationDelivery(input.monthlyInformationDelivery)
   const prepayment = parsePrepaymentInput(input.prepayment)
   const occupancy = file.billingData.occupancyPeriods.find(
     ({ id }) => id === occupancyPeriodId,
@@ -733,6 +772,7 @@ export function updateTenantOccupancy(
               shippingAddressPostalCodeAndCity,
               mandateReference,
               monthlyRentCents,
+              monthlyInformationDelivery,
             })
           : item,
       ),

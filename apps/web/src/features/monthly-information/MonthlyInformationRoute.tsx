@@ -1,5 +1,8 @@
 import type { AppDataFile } from '@nebenkosten/schema'
+import { useState } from 'react'
+import { MonthlyDispatch } from './MonthlyDispatch'
 import { MonthlyOverview } from './MonthlyOverview'
+import { previousMonthOf } from './format'
 import { MonthlyReadingsImport } from './MonthlyReadingsImport'
 
 type Apply = (transform: (data: AppDataFile) => AppDataFile) => boolean
@@ -15,7 +18,7 @@ interface MonthlyInformationRouteProps {
 const defaultToday = () => new Date()
 const defaultCreateId = () => globalThis.crypto.randomUUID()
 
-/** Monatliche Verbrauchsinformation nach § 6a HeizKV (ADR-0014, Schritt 2). */
+/** Monatliche Verbrauchsinformation nach § 6a HeizKV (ADR-0014). */
 export function MonthlyInformationRoute({
   data,
   propertyId,
@@ -23,6 +26,7 @@ export function MonthlyInformationRoute({
   today = defaultToday,
   createId = defaultCreateId,
 }: MonthlyInformationRouteProps) {
+  const [month, setMonth] = useState(() => previousMonthOf(today()))
   if (
     !propertyId ||
     !data.masterData.properties.some(({ id }) => id === propertyId)
@@ -45,9 +49,10 @@ export function MonthlyInformationRoute({
         <li>CSV der Auslesesoftware laden.</li>
         <li>Vorschau prüfen: neue Stände, Dubletten, Probleme.</li>
         <li>Geprüfte Zählerstände übernehmen.</li>
+        <li>Monatsübersicht kontrollieren.</li>
         <li>
-          Monatsübersicht kontrollieren; das PDF je Mieter folgt in einem
-          späteren Schritt.
+          PDF je Mieter erzeugen, per E-Mail-Entwurf oder Brief versenden und
+          den Versand des Monats protokollieren.
         </li>
       </ol>
       <MonthlyReadingsImport
@@ -61,7 +66,17 @@ export function MonthlyInformationRoute({
         key={`overview-${propertyId}`}
         data={data}
         propertyId={propertyId}
+        month={month}
+        onMonthChange={setMonth}
+      />
+      <MonthlyDispatch
+        key={`dispatch-${propertyId}-${month}`}
+        data={data}
+        propertyId={propertyId}
+        month={month}
+        onApply={onApply}
         today={today}
+        createId={createId}
       />
     </section>
   )

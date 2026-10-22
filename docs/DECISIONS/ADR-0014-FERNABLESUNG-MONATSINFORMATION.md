@@ -90,6 +90,18 @@ emailConsentDate }`; E-Mail nur mit Datum der Zustimmung, ohne Angabe
      Monat ab Fernablesbarkeit im Abrechnungszeitraum ohne Versandprotokoll
      des Objekts.
 
+9. **Schritt 3 – Oberfläche und Regeln:**
+   - Versand, PDF und E-Mail-Entwürfe nur, wenn `remoteReading.since`
+     spätestens am Monatsletzten liegt.
+   - E-Mail-Weg nur mit Zustimmungsdatum **und** mindestens einer
+     E-Mail-Adresse einer Person des Mietverhältnisses, sonst Brief.
+   - Ein Protokoll je Objekt und Monat; ein zweites wird abgelehnt
+     (vorhandenes zuerst entfernen). Gesperrte Abrechnungsjahre, die den
+     Monat berühren, sperren Protokoll und Entfernen.
+   - Versanddatum frühestens am Monatsletzten.
+   - Mehrere Mieter einer Wohnung im Monat: Name im PDF-Dateinamen.
+   - E-Mail-Entwurf je Mieter mit Grußzeile der Eigentümergesellschaft.
+
 ## Begründung der Einstufung
 
 - Warnung statt Fehler bei fehlender Fernablesbarkeit: Die Abrechnung bleibt
