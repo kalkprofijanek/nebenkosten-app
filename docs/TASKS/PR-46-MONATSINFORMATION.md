@@ -26,7 +26,7 @@ Stand: 21. Oktober 2026. Auftrag: Nutzer, 21.10.2026. Entscheidung:
 Freigegebene Pfade: `packages/schema/`, `packages/validators/`,
 `apps/web/src/features/workflows/PropertyRoute*`, `docs/`, `CHANGELOG.md`.
 
-## Schritt 2 – Monatswerte (geplant)
+## Schritt 2 – Monatswerte (dieser PR)
 
 - CSV-Import der Monatsendstände (vorhandener Parser
   `parseMeterServiceCsv`: Zählernummer, Datum, Stand, Einheit `kWh`/`m3`).
@@ -35,7 +35,7 @@ Freigegebene Pfade: `packages/schema/`, `packages/validators/`,
   (2,5 × V × (tw − 10)).
 - Vergleiche: Vormonat, Vorjahresmonat („nicht erhoben“, wenn fehlend),
   Durchschnittsnutzer (Heizspiegel-Jahreswert × Gradtagsanteil des Monats;
-  Warmwasser ÷ 12).
+  bei Vergleichswerten mit Warmwasser Näherung, siehe ADR-0014 E-46-3).
 - Mieterwechsel im Monat: tagesanteilig, sofern keine Zwischenablesung.
 
 ## Schritt 3 – Ausgabe und Nachweis (geplant)
