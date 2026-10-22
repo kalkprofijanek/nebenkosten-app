@@ -61,7 +61,7 @@ Umfang:
 - Versandliste des Monats: Mieter, Weg, Knopf „E-Mail-Entwurf“ (Betreff
   und Text vorbelegt), Briefe zum Drucken.
 - Versandprotokoll je Monat und Mietverhältnis; Prüfung meldet fehlende
-  Monate (E-46-2).
+  Monate als Warnung (E-46-2, entschieden 22.10.2026).
 
 ## Hinweise an den Nutzer (außerhalb der App)
 

@@ -101,8 +101,9 @@ Auslesesoftware; Versand gemischt (E-Mail mit Zustimmung, sonst Brief).
   gekennzeichnet als Schätzwert.
 - **E-46-5:** Toleranz ±3 Tage für den Monatsendstand; Gültigkeit der
   Zähler (`validFrom`/`validTo`) wird noch nicht geprüft.
-- **E-46-2:** Ab Schritt 3: fehlende Monatsinformation im Zeitraum als
-  Warnung (Vorschlag) oder Fehler?
+- **E-46-2 (entschieden 22.10.2026):** Ab Schritt 3 wird ein Monat ohne
+  protokollierten Versand der Monatsinformation als **Warnung** gemeldet
+  (vor der Freigabe zu bestätigen), nicht als Fehler.
 
 ## Tests
 
