@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import type { Meter, MeterReading, QuantityUnit } from '@nebenkosten/schema'
 import { ReadingBoundaryField } from './ReadingBoundaryField'
 import { MeterConsumptionPanel } from './MeterConsumptionPanel'
+import { MeterHotWaterPanel } from './MeterHotWaterPanel'
 import {
   formatEuroInput,
   parseEuroCents,
@@ -23,6 +24,33 @@ import type { WorkflowSubRouteProps } from '../route-types'
 import type { WorkflowApply } from '../HeatingRoute'
 
 const UNITS: readonly QuantityUnit[] = ['kWh', 'm3', 'l', 'kg', 'einheiten']
+
+const KIND_LABELS: Record<Meter['kind'], string> = {
+  general: 'Allgemeinstrom',
+  heat: 'Wärmeerzeugung',
+  unit_heat: 'Wohnungswärme (kWh)',
+  unit_hot_water: 'Wohnungs-Warmwasserzähler (m³)',
+}
+
+/** Flat meters are read in a fixed unit: heat in kWh, hot water in m³. */
+const FIXED_READING_UNIT: Partial<Record<Meter['kind'], QuantityUnit>> = {
+  unit_heat: 'kWh',
+  unit_hot_water: 'm3',
+}
+
+const UNIT_LABELS: Partial<Record<QuantityUnit, string>> = { m3: 'm³' }
+
+function KindOptions() {
+  return (
+    <>
+      {(Object.keys(KIND_LABELS) as Meter['kind'][]).map((kind) => (
+        <option key={kind} value={kind}>
+          {KIND_LABELS[kind]}
+        </option>
+      ))}
+    </>
+  )
+}
 
 function meterInput(form: FormData, propertyId: string) {
   return {
@@ -104,6 +132,7 @@ export function MeterPanel({
       reference === meter?.id &&
       (billingPeriodId == null || billingPeriodId === period.id),
   )
+  const fixedUnit = meter ? FIXED_READING_UNIT[meter.kind] : undefined
   const status = data.billingData.meterBillingStatuses.find(
     ({ meterId: reference, year }) =>
       reference === meter?.id && year === period.year,
@@ -233,14 +262,17 @@ export function MeterPanel({
         billingPeriodId={period.id}
         apply={apply}
       />
+      <MeterHotWaterPanel
+        data={data}
+        billingPeriodId={period.id}
+        apply={apply}
+      />
       <form noValidate onSubmit={createMeter}>
         <h2>Zähler anlegen</h2>
         <label>
           <span>Zählerart</span>
           <select name="kind">
-            <option value="general">Allgemeinstrom</option>
-            <option value="heat">Wärmeerzeugung</option>
-            <option value="unit_heat">Wohnungswärme (kWh)</option>
+            <KindOptions />
           </select>
         </label>
         <WorkflowField label="Zählernummer" name="meterNumber" />
@@ -286,11 +318,9 @@ export function MeterPanel({
             <div className="record-editor__heading">
               <div>
                 <p className="section-kicker">
-                  {meter.kind === 'unit_heat'
-                    ? 'Wohnungswärme (kWh)'
-                    : meter.kind === 'heat'
-                      ? 'Wärmezähler'
-                      : 'Allgemeinstrom'}
+                  {meter.kind === 'heat'
+                    ? 'Wärmezähler'
+                    : KIND_LABELS[meter.kind]}
                 </p>
                 <h2 id="meter-title">
                   {meter.meterNumber ?? 'Zähler ohne Nummer'}
@@ -309,9 +339,7 @@ export function MeterPanel({
                 <label>
                   <span>Zählerart bearbeiten</span>
                   <select name="kind" defaultValue={meter.kind}>
-                    <option value="general">Allgemeinstrom</option>
-                    <option value="heat">Wärmeerzeugung</option>
-                    <option value="unit_heat">Wohnungswärme (kWh)</option>
+                    <KindOptions />
                   </select>
                 </label>
                 <WorkflowField
@@ -390,15 +418,17 @@ export function MeterPanel({
             <ReadingBoundaryField />
             <WorkflowField
               label={
-                meter.kind === 'unit_heat' ? 'Zählerstand (kWh)' : 'Zählerstand'
+                fixedUnit
+                  ? `Zählerstand (${UNIT_LABELS[fixedUnit] ?? fixedUnit})`
+                  : 'Zählerstand'
               }
               name="value"
               required
             />
             <label>
               <span>Ableseeinheit</span>
-              <select name="unit" defaultValue="kWh">
-                {(meter.kind === 'unit_heat' ? ['kWh'] : UNITS).map((unit) => (
+              <select name="unit" defaultValue={fixedUnit ?? 'kWh'}>
+                {(fixedUnit ? [fixedUnit] : UNITS).map((unit) => (
                   <option key={unit} value={unit}>
                     {unit}
                   </option>

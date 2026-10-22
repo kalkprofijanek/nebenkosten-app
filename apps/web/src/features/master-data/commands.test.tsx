@@ -410,6 +410,35 @@ describe('property structure maintenance', () => {
     })
   })
 
+  it('speichert und entfernt die Fernablesbarkeit am Objekt (ADR-0014)', () => {
+    const withRemote = updateProperty(
+      fileWithPropertyStructure(),
+      IDS.property,
+      {
+        remoteReadingSince: '2026-11-15',
+        remoteReadingExemptionReason: '  ',
+      },
+    )
+    expect(withRemote.masterData.properties[0]?.remoteReading).toEqual({
+      since: '2026-11-15',
+    })
+
+    const exemption = updateProperty(withRemote, IDS.property, {
+      remoteReadingExemptionReason: 'Gutachten liegt vor',
+    })
+    expect(exemption.masterData.properties[0]?.remoteReading).toEqual({
+      exemptionReason: 'Gutachten liegt vor',
+    })
+
+    const cleared = updateProperty(exemption, IDS.property, {})
+    expect(cleared.masterData.properties[0]).not.toHaveProperty('remoteReading')
+    expect(() =>
+      updateProperty(cleared, IDS.property, {
+        remoteReadingSince: '15.11.2026',
+      }),
+    ).toThrow(MasterDataCommandError)
+  })
+
   it('fügt weitere Gebäude und Einheiten mit geprüften Referenzen hinzu', () => {
     const source = fileWithPropertyStructure()
     const buildingId = '10000000-0000-4000-8000-000000000006'

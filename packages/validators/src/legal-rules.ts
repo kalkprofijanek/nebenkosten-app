@@ -20,7 +20,7 @@ export interface LegalRule {
   readonly validTo?: string
 }
 
-export const LEGAL_RULES_AS_OF = '2026-10-04'
+export const LEGAL_RULES_AS_OF = '2026-10-21'
 
 export const LEGAL_RULES: readonly LegalRule[] = [
   {
@@ -32,11 +32,19 @@ export const LEGAL_RULES: readonly LegalRule[] = [
     validFrom: '2024-07-01',
   },
   {
+    code: 'monthly-consumption-information',
+    title: 'Monatliche Verbrauchsinformation',
+    norm: '§ 6a Abs. 1 Satz 1 Nr. 2 und Abs. 2, § 12 Abs. 1 Satz 3 HeizkostenV',
+    summary:
+      'Sind fernablesbare Erfassungsgeräte eingebaut, sind den Nutzern seit dem 01.01.2022 monatlich Verbrauchsinformationen für Heizung und Warmwasser mitzuteilen: Verbrauch des Vormonats in kWh, Vergleich mit dem Vormonat und dem Vorjahresmonat sowie mit einem Durchschnittsnutzer. Fehlen sie, darf der Mieter seinen Anteil an den Heizkosten um 3 % kürzen.',
+    validFrom: '2022-01-01',
+  },
+  {
     code: 'remote-reading',
     title: 'Fernablesbare Erfassungsgeräte',
-    norm: '§ 5 Abs. 2 und 3, § 6a, § 12 Abs. 1 HeizkostenV',
+    norm: '§ 5 Abs. 2 und 3, § 12 Abs. 1 Satz 2 HeizkostenV',
     summary:
-      'Zähler und Heizkostenverteiler mussten bis zum 31.12.2026 fernablesbar nachgerüstet oder ersetzt werden; dann sind monatliche Verbrauchsinformationen zu erteilen. Fehlt das, darf der Mieter seinen Anteil an den Heizkosten jeweils um 3 % kürzen.',
+      'Wärme- und Warmwasserzähler sowie Heizkostenverteiler mussten bis zum 31.12.2026 fernablesbar nachgerüstet oder ersetzt werden; Ausnahmen nur bei technischer Unmöglichkeit oder unbilliger Härte. Fehlt die Fernablesbarkeit, darf der Mieter seinen Anteil an den Heizkosten um 3 % kürzen.',
     validFrom: '2027-01-01',
   },
 ]

@@ -103,6 +103,14 @@ export const appRoutes = [
     actionLabel: 'Heizkreis anlegen',
   },
   {
+    path: '/monatsinformation',
+    label: 'Monatsinformation',
+    eyebrow: 'Heizkosten',
+    title: 'Monatsinformation',
+    description:
+      'Monatliche Verbrauchsinformation nach § 6a HeizKV: Zählerstände per CSV übernehmen und Heizung und Warmwasser je Mieter vergleichen.',
+  },
+  {
     path: '/berechnung',
     label: 'Berechnung',
     eyebrow: 'Ergebnis',

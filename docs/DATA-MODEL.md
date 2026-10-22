@@ -111,15 +111,16 @@ Datenänderung).
 
 ### 3.3 Property / Liegenschaft (`propertySchema`)
 
-| Feld               | Typ         | P/opt | Legacy                    |
-| ------------------ | ----------- | ----- | ------------------------- |
-| `id`               | EntityId    | P     | `Objekt.id`               |
-| `ownerCompanyId`   | EntityId    | P     | Position im Baum          |
-| `internalNumber`   | string      | opt   | `eigene_nr`               |
-| `externalNumber`   | string      | opt   | `objekt_nr`               |
-| `address`          | Address     | opt   | `strasse`, `plz_ort`      |
-| `bankAccount`      | BankAccount | opt   | `iban`, `kontoinhaber`    |
-| `legacySourceInfo` | Record      | opt   | `excel_quelle` (verbatim) |
+| Feld               | Typ           | P/opt | Legacy                                        |
+| ------------------ | ------------- | ----- | --------------------------------------------- |
+| `id`               | EntityId      | P     | `Objekt.id`                                   |
+| `ownerCompanyId`   | EntityId      | P     | Position im Baum                              |
+| `internalNumber`   | string        | opt   | `eigene_nr`                                   |
+| `externalNumber`   | string        | opt   | `objekt_nr`                                   |
+| `address`          | Address       | opt   | `strasse`, `plz_ort`                          |
+| `bankAccount`      | BankAccount   | opt   | `iban`, `kontoinhaber`                        |
+| `remoteReading`    | RemoteReading | opt   | – (neu, ADR-0014: `since`, `exemptionReason`) |
+| `legacySourceInfo` | Record        | opt   | `excel_quelle` (verbatim)                     |
 
 ### 3.4 Building / Gebäudeblock (`buildingSchema`)
 

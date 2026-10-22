@@ -677,6 +677,48 @@ describe('Vergleichswerte am Heizkreis (§ 6a Abs. 3 Nr. 4 HeizKV)', () => {
     hasCentralHotWater: false,
   }
 
+  it('erhalten Warmwasserzähler-Zuordnungen und sperren Gebäudewechsel (ADR-0014)', () => {
+    const unitId = '20000000-0000-4000-8000-000000000101'
+    const meterId = '20000000-0000-4000-8000-000000000102'
+    const context = createHeatingContext()
+    const withAssignment: AppDataFile = {
+      ...context,
+      masterData: {
+        ...context.masterData,
+        units: [
+          ...context.masterData.units,
+          { id: unitId, propertyId: IDS.property, buildingId: IDS.building },
+        ],
+        meters: [
+          ...context.masterData.meters,
+          { id: meterId, propertyId: IDS.property, kind: 'unit_hot_water' },
+        ],
+      },
+      billingData: {
+        ...context.billingData,
+        heatingCircuits: context.billingData.heatingCircuits.map((circuit) =>
+          circuit.id === IDS.circuit
+            ? { ...circuit, hotWaterMeterAssignments: [{ meterId, unitId }] }
+            : circuit,
+        ),
+      },
+    }
+    // Auch beim Abschalten des zentralen Warmwassers bleibt die Zuordnung.
+    const updated = updateHeatingCircuit(withAssignment, IDS.circuit, {
+      ...circuitInput,
+      hasCentralHotWater: false,
+    })
+    expect(
+      updated.billingData.heatingCircuits[0]?.hotWaterMeterAssignments,
+    ).toEqual([{ meterId, unitId }])
+    expect(() =>
+      updateHeatingCircuit(withAssignment, IDS.circuit, {
+        ...circuitInput,
+        buildingId: IDS.otherBuilding,
+      }),
+    ).toThrow(/Wohnungszähler-Zuordnungen/)
+  })
+
   it('werden gesetzt, geändert und ausdrücklich entfernt', () => {
     const context = createHeatingContext()
     const set = updateHeatingCircuit(context, IDS.circuit, {

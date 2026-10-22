@@ -41,6 +41,13 @@ describe('Regelverzeichnis', () => {
     expect(codes('2024-01-01', '2024-06-30')).not.toContain('cable-tv-signal')
     expect(codes('2026-01-01', '2026-12-31')).not.toContain('remote-reading')
     expect(codes('2027-01-01', '2027-12-31')).toContain('remote-reading')
+    // § 6a Abs. 1 Nr. 2 HeizKV gilt seit 2022, nicht erst ab der Nachrüstfrist.
+    expect(codes('2021-01-01', '2021-12-31')).not.toContain(
+      'monthly-consumption-information',
+    )
+    expect(codes('2022-01-01', '2022-12-31')).toContain(
+      'monthly-consumption-information',
+    )
   })
 
   it('sperrt Kabel-TV-Kosten in Zeiträumen nach dem 30.06.2024', () => {
@@ -101,24 +108,93 @@ describe('Regelverzeichnis', () => {
     expect(issuesWithPrefix(internal)).toEqual([])
   })
 
-  it('erinnert ab 2027 bei Heizkreisen an die Fernablesbarkeit', () => {
-    const data = periodData(2027)
+  function withCircuit(year: number, hasCentralHotWater = false) {
+    const data = periodData(year)
     data.billingData.heatingCircuits.push({
       id: 'circuit-1',
       billingPeriodId: 'period-1',
       heatingSystemId: 'system-1',
       buildingId: 'building-1',
-      hasCentralHotWater: false,
+      hasCentralHotWater,
     })
+    return data
+  }
+  const codesOf = (data: AppDataFile) =>
+    issuesWithPrefix(data).map(({ code }) => code)
+
+  it('warnt ab 2027 bei nicht fernablesbaren Geräten (ADR-0014)', () => {
+    const issue = issuesWithPrefix(withCircuit(2027)).find(
+      ({ code }) => code === 'rules.remote_reading_missing',
+    )
+    expect(issue).toMatchObject({ severity: 'warning', area: 'heating' })
+    expect(issue!.detail).toContain('3 %')
+    expect(issue!.detail).toContain('§ 12 Abs. 1')
+
+    // Vor 2027 keine Warnung, ohne Heizkreis ebenfalls nicht.
+    expect(codesOf(withCircuit(2026))).not.toContain(
+      'rules.remote_reading_missing',
+    )
+    expect(codesOf(periodData(2027))).not.toContain(
+      'rules.remote_reading_missing',
+    )
+  })
+
+  it('akzeptiert Fernablesbarkeit ab Periodenbeginn, warnt bei späterem Einbau', () => {
+    const inTime = withCircuit(2027)
+    inTime.masterData.properties[0]!.remoteReading = { since: '2026-11-15' }
+    expect(codesOf(inTime)).not.toContain('rules.remote_reading_missing')
+
+    const late = withCircuit(2027)
+    late.masterData.properties[0]!.remoteReading = { since: '2027-03-01' }
+    const issue = issuesWithPrefix(late).find(
+      ({ code }) => code === 'rules.remote_reading_missing',
+    )
+    expect(issue!.detail).toContain('01.03.2027')
+  })
+
+  it('zeigt eine begründete Ausnahme statt der Warnung', () => {
+    const data = withCircuit(2027)
+    data.masterData.properties[0]!.remoteReading = {
+      exemptionReason: 'Nachrüstung technisch unmöglich (Gutachten liegt vor)',
+    }
+    const issues = issuesWithPrefix(data)
+    expect(issues.map(({ code }) => code)).not.toContain(
+      'rules.remote_reading_missing',
+    )
+    const exemption = issues.find(
+      ({ code }) => code === 'rules.remote_reading_exemption',
+    )
+    expect(exemption).toMatchObject({ severity: 'info' })
+    expect(exemption!.detail).toContain('Gutachten liegt vor')
+  })
+
+  it('erinnert bei fernablesbaren Geräten an die Monatsinformation, auch vor 2027', () => {
+    const data = withCircuit(2025, true)
+    data.masterData.properties[0]!.remoteReading = { since: '2025-06-01' }
     const issue = issuesWithPrefix(data).find(
-      ({ code }) => code === 'rules.remote_reading',
+      ({ code }) => code === 'rules.monthly_information',
     )
     expect(issue).toMatchObject({ severity: 'info', area: 'heating' })
-    expect(issue!.detail).toContain('31.12.2026')
+    expect(issue!.detail).toContain('01.06.2025')
+    expect(issue!.detail).toContain('für Heizung und Warmwasser erforderlich')
 
-    expect(
-      issuesWithPrefix(periodData(2027)).map(({ code }) => code),
-    ).not.toContain('rules.remote_reading')
+    const heatingOnly = withCircuit(2025)
+    heatingOnly.masterData.properties[0]!.remoteReading = {
+      since: '2024-01-01',
+    }
+    const heatingIssue = issuesWithPrefix(heatingOnly).find(
+      ({ code }) => code === 'rules.monthly_information',
+    )
+    expect(heatingIssue!.detail).toContain('01.01.2025')
+    expect(heatingIssue!.detail).toContain('für Heizung erforderlich')
+
+    // Einbau nach Periodenende oder ohne Fernablesung: kein Hinweis.
+    const later = withCircuit(2025)
+    later.masterData.properties[0]!.remoteReading = { since: '2026-02-01' }
+    expect(codesOf(later)).not.toContain('rules.monthly_information')
+    expect(codesOf(withCircuit(2025))).not.toContain(
+      'rules.monthly_information',
+    )
   })
 })
 

@@ -382,4 +382,21 @@ describe('WorkspaceApp', () => {
     ).toHaveAttribute('aria-current', 'page')
     controller.dispose()
   })
+
+  it('opens the monthly consumption information from the workspace navigation', async () => {
+    const adapter = new MemoryStorageAdapter()
+    await adapter.save(createEmptyAppDataFile(), { expectedRevision: null })
+    const controller = createWorkspaceController({ adapter, debounceMs: 0 })
+    window.location.hash = '#/monatsinformation'
+
+    render(<WorkspaceApp controller={controller} />)
+
+    expect(
+      await screen.findByText('Bitte zuerst ein Objekt auswählen.'),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('link', { name: 'Monatsinformation' }),
+    ).toHaveAttribute('aria-current', 'page')
+    controller.dispose()
+  })
 })

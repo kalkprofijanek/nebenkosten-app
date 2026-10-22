@@ -251,6 +251,17 @@ export function updateMeter(
     throw new MeterCommandError(
       'Ein Zähler mit Jahresdaten kann nicht in ein anderes Objekt verschoben werden.',
     )
+  if (
+    input.kind !== 'unit_hot_water' &&
+    file.billingData.heatingCircuits.some((circuit) =>
+      circuit.hotWaterMeterAssignments?.some(
+        (assignment) => assignment.meterId === meterId,
+      ),
+    )
+  )
+    throw new MeterCommandError(
+      'Ein zugeordneter Warmwasserzähler muss Warmwasserzähler bleiben. Bitte zuerst die Zuordnung lösen.',
+    )
   const replacement = meterSchema.parse({
     ...input,
     id: current.id,
@@ -274,10 +285,14 @@ export function deleteMeter(
   const file = parsedFile(currentFile)
   requireMeter(file, meterId)
   if (
-    file.billingData.heatingCircuits.some((circuit) =>
-      circuit.meterAssignments?.some(
-        (assignment) => assignment.meterId === meterId,
-      ),
+    file.billingData.heatingCircuits.some(
+      (circuit) =>
+        circuit.meterAssignments?.some(
+          (assignment) => assignment.meterId === meterId,
+        ) ||
+        circuit.hotWaterMeterAssignments?.some(
+          (assignment) => assignment.meterId === meterId,
+        ),
     )
   ) {
     throw new MeterCommandError(

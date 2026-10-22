@@ -18,7 +18,7 @@ const defaultDependencies = (): EditGuardDependencies => ({
   now: () => new Date(),
 })
 
-function lockedStatus(status: BillingPeriodStatus): boolean {
+export function lockedStatus(status: BillingPeriodStatus): boolean {
   return (
     status === 'READY_FOR_PDF' ||
     status === 'FINALIZED' ||

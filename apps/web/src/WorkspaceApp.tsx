@@ -13,6 +13,7 @@ import { MigrationPanel } from './MigrationPanel'
 import { PdfExportRoute } from './PdfExportRoute'
 import { PrepaymentsRoute } from './features/prepayments/PrepaymentsRoute'
 import { RentLedgerRoute } from './features/rent-ledger/RentLedgerRoute'
+import { MonthlyInformationRoute } from './features/monthly-information/MonthlyInformationRoute'
 import { ConsumptionRoute } from './features/consumption/ConsumptionRoute'
 import { ReleaseRoute } from './ReleaseRoute'
 import { WorkflowRoute } from './WorkflowRoute'
@@ -197,6 +198,12 @@ export function WorkspaceApp({
                   data={workspaceState.data!}
                   propertyId={normalizedSelection.propertyId}
                   billingPeriodId={normalizedSelection.billingPeriodId}
+                  onApply={(transform) => controller.update(transform)}
+                />
+              ) : path === '/monatsinformation' ? (
+                <MonthlyInformationRoute
+                  data={workspaceState.data!}
+                  propertyId={normalizedSelection.propertyId}
                   onApply={(transform) => controller.update(transform)}
                 />
               ) : path === '/berechnung' ? (

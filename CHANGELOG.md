@@ -4,6 +4,27 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Monatsinformation, Schritt 2 (ADR-0014, PR-46)**: Wohnungs-Warmwasserzähler
+  (`unit_hot_water`, m³) mit Zuordnung am Heizkreis
+  (`HeatingCircuit.hotWaterMeterAssignments`, additiv, Schema v5); CSV-Import
+  der Monatsendstände mit Vorschau (`planMonthlyMeterReadings`: Zuordnung über
+  Zählernummer, Einheit, Dubletten, Konflikte, fallende Stände; Übernahme nur
+  ohne Probleme und nicht in gesperrte Abrechnungsjahre); Rechenkern
+  `calculateMonthlyConsumptionInformation` (Monatsverbrauch je Mieter,
+  Vormonat/Vorjahresmonat des eigenen Mietverhältnisses, Durchschnittsnutzer
+  aus der Heizspiegel-Mitte „mittel“, Warmwasser m³ → kWh mit 60 °C als
+  gekennzeichnetem Schätzwert); neue Seite **Monatsinformation**. Fix:
+  Bearbeiten eines Heizkreises behält die Warmwasserzuordnungen,
+- **Fernablesbarkeit und Monatsinformation, Schritt 1 (ADR-0014, PR-46)**:
+  Regelverzeichnis korrigiert – die monatliche Verbrauchsinformation gilt
+  bei fernablesbaren Geräten seit 01.01.2022 (`monthly-consumption-information`),
+  `remote-reading` ab 2027 nur noch für die Nachrüstpflicht. Neues optionales
+  Feld `Property.remoteReading` (`since`, `exemptionReason`; additiv, Schema
+  v5) mit Eingabe im Objekt-Formular. Prüfhinweise: Warnung
+  `rules.remote_reading_missing` ab 2027 ohne Fernablesbarkeit (Kürzung 3 %,
+  § 12 Abs. 1 Satz 2 HeizKV), Hinweise `rules.remote_reading_exemption` und
+  `rules.monthly_information` (Heizung bzw. Heizung und Warmwasser); der
+  allgemeine Hinweis `rules.remote_reading` entfällt,
 - **Belegprüfung gegen den Rechnungsordner je Objekt (PR-40/41)**:
   `pnpm belegpruefung <datendatei> --jahr <Jahr>` liest den bestehenden
   Rechnungsordner aus der privaten Zuordnung

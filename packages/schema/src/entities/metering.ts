@@ -11,8 +11,17 @@ import {
   quantitySchema,
 } from '../primitives'
 
-/** Zählerart (Legacy `art`): Allgemeinstrom oder Wärmeerzeugung. */
-export const meterKindSchema = z.enum(['general', 'heat', 'unit_heat'])
+/**
+ * Zählerart (Legacy `art`): Allgemeinstrom, Wärmeerzeugung,
+ * Wohnungs-Wärmemengenzähler (kWh) oder Wohnungs-Warmwasserzähler (m³,
+ * additiv, Schema v5, ADR-0014).
+ */
+export const meterKindSchema = z.enum([
+  'general',
+  'heat',
+  'unit_heat',
+  'unit_hot_water',
+])
 export type MeterKind = z.infer<typeof meterKindSchema>
 
 /**

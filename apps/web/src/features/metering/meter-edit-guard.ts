@@ -26,9 +26,10 @@ export function meterPeriodIds(
     ...new Set([
       ...data.billingData.heatingCircuits
         .filter((circuit) =>
-          circuit.meterAssignments?.some(
-            (assignment) => assignment.meterId === meterId,
-          ),
+          [
+            ...(circuit.meterAssignments ?? []),
+            ...(circuit.hotWaterMeterAssignments ?? []),
+          ].some((assignment) => assignment.meterId === meterId),
         )
         .map((circuit) => circuit.billingPeriodId),
       ...data.billingData.meterReadings
