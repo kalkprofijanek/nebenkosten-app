@@ -14,6 +14,23 @@ export const MONTHLY_INFORMATION_LEGAL_BASIS =
 export const MONTHLY_INFORMATION_NOT_A_BILL =
   'Diese Information ist keine Abrechnung und begründet keine Zahlungspflicht. Maßgeblich bleibt die Jahresabrechnung der Heizkosten.'
 
+/**
+ * Kontaktsatz am Ende der Verbrauchsinformation; `null`, wenn weder
+ * Telefon noch E-Mail hinterlegt sind.
+ */
+export function monthlyInformationContactSentence(
+  phone: string | null | undefined,
+  email: string | null | undefined,
+): string | null {
+  const parts = [
+    phone?.trim() ? `telefonisch unter ${phone.trim()}` : null,
+    email?.trim() ? `per E-Mail an ${email.trim()}` : null,
+  ].filter((part): part is string => part !== null)
+  return parts.length > 0
+    ? `Bei Fragen erreichen Sie uns ${parts.join(' oder ')}.`
+    : null
+}
+
 export const MONTHLY_INFORMATION_PARTIAL_PERIOD =
   'Für Teilzeiträume wird der Monatsverbrauch der Wohnung anteilig zugerechnet: Heizung nach Gradtagszahlen, Warmwasser nach Kalendertagen.'
 

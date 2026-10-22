@@ -53,6 +53,38 @@ describe('buildMonthlyInformationStatement', () => {
     expect(serialized).toContain('03.11.2026')
   })
 
+  it('ergänzt einen Kontaktsatz mit Telefon und E-Mail', () => {
+    const context = buildMonthlyContext()
+    const withContact = (contact: Record<string, string>) => ({
+      ...context,
+      appData: {
+        ...context.appData,
+        masterData: {
+          ...context.appData.masterData,
+          ownerCompanies: context.appData.masterData.ownerCompanies.map(
+            (company) => ({ ...company, contact }),
+          ),
+        },
+      },
+    })
+    const both = serialize(
+      withContact({ phone: '0000 123456', email: 'info@example.org' }),
+    )
+    expect(both).toContain(
+      'Bei Fragen erreichen Sie uns telefonisch unter 0000 123456 oder per E-Mail an info@example.org.',
+    )
+    const mobileOnly = serialize(withContact({ mobile: '0000 987654' }))
+    expect(mobileOnly).toContain(
+      'Bei Fragen erreichen Sie uns telefonisch unter 0000 987654.',
+    )
+    const mailOnly = serialize(withContact({ email: 'info@example.org' }))
+    expect(mailOnly).toContain(
+      'Bei Fragen erreichen Sie uns per E-Mail an info@example.org.',
+    )
+    const none = serialize(withContact({}))
+    expect(none).not.toContain('Bei Fragen erreichen Sie uns')
+  })
+
   it('zeigt Titel, Wohnung, Zeitraum und Heizungsvergleiche', () => {
     const serialized = serialize(buildMonthlyContext())
     expect(serialized).toContain('Verbrauchsinformation Oktober 2026')

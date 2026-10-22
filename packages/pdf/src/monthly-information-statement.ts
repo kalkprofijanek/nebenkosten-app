@@ -28,6 +28,7 @@ import {
   averageUnavailableText,
   averageUserExplanation,
   hotWaterConversionText,
+  monthlyInformationContactSentence,
   notCollectedText,
 } from './monthly-information-texts'
 import { ADDRESS_WINDOW } from './tenant-statement'
@@ -290,10 +291,15 @@ function resolveParties(context: MonthlyInformationStatementContext) {
       billingPeriod: { periodEnd: information.to },
     }),
   )
+  const contact = ownerCompany.contact
   return {
     sender: buildSenderBlock(ownerCompany, property),
     recipient,
     unit,
+    contactSentence: monthlyInformationContactSentence(
+      contact?.phone || contact?.mobile,
+      contact?.email,
+    ),
   }
 }
 
@@ -307,7 +313,7 @@ export function buildMonthlyInformationStatement(
   context: MonthlyInformationStatementContext,
 ): TDocumentDefinitions {
   const { information, tenant } = context
-  const { sender, recipient, unit } = resolveParties(context)
+  const { sender, recipient, unit, contactSentence } = resolveParties(context)
   const months: Months = {
     current: calendarMonth(information.month),
     previousMonth: calendarMonth(information.month, -1),
@@ -392,6 +398,9 @@ export function buildMonthlyInformationStatement(
         fontSize: 8,
         margin: [0, 0, 0, 8],
       },
+      ...(contactSentence
+        ? [{ text: contactSentence, margin: [0, 0, 0, 8] } as Content]
+        : []),
       ...(assumptions.length > 0
         ? [
             { text: 'Annahmen', style: 'th', margin: [0, 4, 0, 4] } as Content,
