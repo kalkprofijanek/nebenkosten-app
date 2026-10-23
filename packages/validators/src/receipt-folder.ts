@@ -45,6 +45,7 @@ interface Reference extends ReceiptSource {
   readonly periodId: string
   readonly receiptReference: string | null
   readonly needsReceipt: boolean
+  readonly amountCents: number
 }
 
 function normalize(value: string): string {
@@ -87,6 +88,7 @@ function allReferences(data: AppDataFile): Reference[] {
       periodId: categoryPeriod.get(entry.costCategoryId) ?? '',
       receiptReference: entry.receiptReference?.trim() || null,
       needsReceipt: entry.amountBasis !== 'estimate',
+      amountCents: entry.amountCents,
     })),
     ...data.billingData.fuelDeliveries.map((delivery) => ({
       kind: 'fuelDelivery' as const,
@@ -94,6 +96,7 @@ function allReferences(data: AppDataFile): Reference[] {
       periodId: delivery.billingPeriodId,
       receiptReference: delivery.receiptReference?.trim() || null,
       needsReceipt: true,
+      amountCents: delivery.amountCents ?? 0,
     })),
   ]
 }
@@ -149,6 +152,130 @@ export function checkReceiptFolder(
       .map(([file, sources]) => ({ file, sources })),
     unreferencedFiles: files.filter((file) => !referencedFiles.has(file)),
   }
+}
+
+/** Rechnungsbetrag laut Beleg, unabhängig vom Beleg gelesen (KI-Erfassungsliste). */
+export interface ReceiptAmount {
+  readonly receiptReference: string
+  readonly amountCents: number
+  readonly serviceFrom?: string
+  readonly serviceTo?: string
+}
+
+export interface ReceiptAmountMismatch {
+  readonly receiptReference: string
+  readonly receiptAmountCents: number
+  readonly bookedAmountCents: number
+  /** Kostenpositionen − Beleg; negativ = zu wenig angesetzt. */
+  readonly differenceCents: number
+  /** Leistungszeitraum ragt über den Abrechnungszeitraum hinaus. */
+  readonly partialPeriod: boolean
+  readonly serviceFrom?: string
+  readonly serviceTo?: string
+  readonly sources: readonly ReceiptSource[]
+}
+
+export interface ReceiptAmountComparison {
+  readonly matched: number
+  readonly mismatches: readonly ReceiptAmountMismatch[]
+  /** Beleg mit Leistung im Zeitraum, aber ohne Kostenposition. */
+  readonly notBooked: readonly string[]
+  /** Leistungszeitraum vollständig außerhalb des Abrechnungszeitraums. */
+  readonly outsidePeriod: readonly string[]
+}
+
+/** Abweichung bis 1 Cent gilt als Rundung. */
+const AMOUNT_TOLERANCE_CENTS = 1
+
+function receiptKey(reference: string): string {
+  return withoutExtension(basename(normalize(reference)))
+}
+
+/**
+ * Betragsabgleich (E-41-2): Rechnungsbetrag laut unabhängig gelesenem Beleg
+ * gegen die Summe der Kostenpositionen und Lieferungen des Zeitraums, die
+ * auf diese Rechnung verweisen. Mehrere Zeilen derselben Rechnung werden
+ * summiert (Aufteilung auf Kostenarten).
+ */
+export function compareReceiptAmounts(
+  data: AppDataFile,
+  input: {
+    readonly billingPeriodId: string
+    readonly receipts: readonly ReceiptAmount[]
+  },
+): ReceiptAmountComparison {
+  const period = data.billingData.billingPeriods.find(
+    ({ id }) => id === input.billingPeriodId,
+  )
+  if (!period)
+    throw new Error(
+      `Abrechnungszeitraum ${input.billingPeriodId} nicht gefunden.`,
+    )
+  const receipts = new Map<
+    string,
+    { reference: string; amountCents: number; from?: string; to?: string }
+  >()
+  const outsidePeriod: string[] = []
+  for (const receipt of input.receipts) {
+    const outside =
+      (receipt.serviceTo !== undefined &&
+        receipt.serviceTo < period.periodStart) ||
+      (receipt.serviceFrom !== undefined &&
+        receipt.serviceFrom > period.periodEnd)
+    if (outside) {
+      outsidePeriod.push(receipt.receiptReference)
+      continue
+    }
+    const key = receiptKey(receipt.receiptReference)
+    const known = receipts.get(key)
+    receipts.set(key, {
+      reference: known?.reference ?? receipt.receiptReference,
+      amountCents: (known?.amountCents ?? 0) + receipt.amountCents,
+      from: known?.from ?? receipt.serviceFrom,
+      to: known?.to ?? receipt.serviceTo,
+    })
+  }
+  const booked = new Map<
+    string,
+    { amountCents: number; sources: ReceiptSource[] }
+  >()
+  for (const reference of allReferences(data)) {
+    if (reference.periodId !== period.id || !reference.receiptReference)
+      continue
+    const key = receiptKey(reference.receiptReference)
+    const known = booked.get(key) ?? { amountCents: 0, sources: [] }
+    known.amountCents += reference.amountCents
+    known.sources.push({ kind: reference.kind, id: reference.id })
+    booked.set(key, known)
+  }
+  let matched = 0
+  const mismatches: ReceiptAmountMismatch[] = []
+  const notBooked: string[] = []
+  for (const [key, receipt] of receipts) {
+    const entry = booked.get(key)
+    if (!entry) {
+      notBooked.push(receipt.reference)
+      continue
+    }
+    const differenceCents = entry.amountCents - receipt.amountCents
+    if (Math.abs(differenceCents) <= AMOUNT_TOLERANCE_CENTS) {
+      matched += 1
+      continue
+    }
+    mismatches.push({
+      receiptReference: receipt.reference,
+      receiptAmountCents: receipt.amountCents,
+      bookedAmountCents: entry.amountCents,
+      differenceCents,
+      partialPeriod:
+        (receipt.from !== undefined && receipt.from < period.periodStart) ||
+        (receipt.to !== undefined && receipt.to > period.periodEnd),
+      ...(receipt.from === undefined ? {} : { serviceFrom: receipt.from }),
+      ...(receipt.to === undefined ? {} : { serviceTo: receipt.to }),
+      sources: entry.sources,
+    })
+  }
+  return { matched, mismatches, notBooked, outsidePeriod }
 }
 
 /**

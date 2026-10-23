@@ -4,6 +4,16 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Betragsabgleich in der Belegprüfung (E-41-2)**: `pnpm belegpruefung …
+--erfassungsliste <datei>` vergleicht den unabhängig gelesenen
+  Rechnungsbetrag (Format KI-Erfassungsliste) mit der Summe der
+  Kostenpositionen und Lieferungen je Rechnung (Toleranz 1 Cent); Befunde
+  „Betrag weicht ab“ (mit Hinweis bei Leistungszeitraum über den
+  Jahreswechsel) und „Beleg ohne Kostenposition“. Reine Logik
+  `compareReceiptAmounts` in `packages/validators`,
+- **Tests**: zwei Web-Testdateien (`interim-reading`, `degree-day-split`)
+  liefen wegen der Endung `.test.ts` nie; umbenannt, Architekturtest
+  verhindert die Endung künftig,
 - **Monatsinformation, Schritt 3 (ADR-0014, PR-46)**: PDF „Verbrauchsinformation
   <Monat>“ je Mieter im Fensterkuvert-Format (Heizung und Warmwasser mit
   Vormonat, Vorjahresmonat, Durchschnittsnutzer, Erläuterungen, Annahmen,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   checkReceiptFolder,
+  compareReceiptAmounts,
   parseReceiptFolderMapping,
 } from '../src/receipt-folder'
 import { validData } from './fixture'
@@ -142,6 +143,106 @@ describe('checkReceiptFolder (PR-40/41)', () => {
   it('wirft bei unbekanntem Abrechnungszeitraum', () => {
     expect(() =>
       checkReceiptFolder(validData(), { billingPeriodId: 'x', files }),
+    ).toThrow(/Abrechnungszeitraum/)
+  })
+})
+
+describe('compareReceiptAmounts (E-41-2)', () => {
+  function amounts(
+    entries: { id: string; receiptReference: string; amountCents: number }[],
+  ) {
+    const data = validData()
+    data.billingData.costEntries = entries.map((entry) => ({
+      costCategoryId: 'category-1',
+      ...entry,
+    }))
+    return data
+  }
+
+  it('vergleicht den Rechnungsbetrag mit der Summe der Kostenpositionen', () => {
+    const result = compareReceiptAmounts(
+      amounts([
+        { id: 'a', receiptReference: 'Wasser.pdf', amountCents: 60_000 },
+        { id: 'b', receiptReference: 'wasser', amountCents: 40_000 },
+        { id: 'c', receiptReference: 'Versicherung.pdf', amountCents: 50_000 },
+        { id: 'd', receiptReference: 'Muell.pdf', amountCents: 30_001 },
+      ]),
+      {
+        billingPeriodId: 'period-1',
+        receipts: [
+          // auf zwei Kostenarten aufgeteilt: Summe zählt
+          { receiptReference: 'Wasser.pdf', amountCents: 100_000 },
+          // abweichender Betrag
+          { receiptReference: 'Versicherung.pdf', amountCents: 55_000 },
+          // 1 Cent Rundung gilt als gleich
+          { receiptReference: '2025/Muell.pdf', amountCents: 30_000 },
+          // nicht angesetzt
+          { receiptReference: 'Schornsteinfeger.pdf', amountCents: 9_000 },
+        ],
+      },
+    )
+    expect(result.matched).toBe(2)
+    expect(result.mismatches).toEqual([
+      expect.objectContaining({
+        receiptReference: 'Versicherung.pdf',
+        receiptAmountCents: 55_000,
+        bookedAmountCents: 50_000,
+        differenceCents: -5_000,
+        partialPeriod: false,
+        sources: [{ kind: 'costEntry', id: 'c' }],
+      }),
+    ])
+    expect(result.notBooked).toEqual(['Schornsteinfeger.pdf'])
+  })
+
+  it('fasst Zeilen derselben Rechnung zusammen und kennzeichnet Teilzeiträume', () => {
+    const result = compareReceiptAmounts(
+      amounts([{ id: 'a', receiptReference: 'Gas.pdf', amountCents: 60_000 }]),
+      {
+        billingPeriodId: 'period-1',
+        receipts: [
+          {
+            receiptReference: 'Gas.pdf',
+            amountCents: 70_000,
+            serviceFrom: '2024-07-01',
+            serviceTo: '2025-06-30',
+          },
+          {
+            receiptReference: 'Gas.pdf',
+            amountCents: 50_000,
+            serviceFrom: '2024-07-01',
+            serviceTo: '2025-06-30',
+          },
+          // ganz außerhalb des Abrechnungszeitraums: nicht Teil dieses Jahres
+          {
+            receiptReference: 'Alt.pdf',
+            amountCents: 1_000,
+            serviceFrom: '2023-01-01',
+            serviceTo: '2023-12-31',
+          },
+        ],
+      },
+    )
+    expect(result.mismatches).toEqual([
+      expect.objectContaining({
+        receiptReference: 'Gas.pdf',
+        receiptAmountCents: 120_000,
+        bookedAmountCents: 60_000,
+        partialPeriod: true,
+        serviceFrom: '2024-07-01',
+        serviceTo: '2025-06-30',
+      }),
+    ])
+    expect(result.notBooked).toEqual([])
+    expect(result.outsidePeriod).toEqual(['Alt.pdf'])
+  })
+
+  it('wirft bei unbekanntem Abrechnungszeitraum', () => {
+    expect(() =>
+      compareReceiptAmounts(validData(), {
+        billingPeriodId: 'x',
+        receipts: [],
+      }),
     ).toThrow(/Abrechnungszeitraum/)
   })
 })
