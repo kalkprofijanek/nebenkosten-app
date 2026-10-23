@@ -4,6 +4,10 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Datenschutz (PR-43)**: `docs/DATENSCHUTZ-KI.md` als endgültige Fassung
+  (Monatsinformation, Belegprüfung, Mieterinformation); neues Muster
+  `docs/DATENSCHUTZ-MIETERINFORMATION.md` nach Art. 13 DSGVO mit
+  Einwilligung in den E-Mail-Versand,
 - **Betragsabgleich in der Belegprüfung (E-41-2)**: `pnpm belegpruefung …
 --erfassungsliste <datei>` vergleicht den unabhängig gelesenen
   Rechnungsbetrag (Format KI-Erfassungsliste) mit der Summe der

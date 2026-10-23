@@ -38,12 +38,18 @@ Maintainer und für andere private Vermieter. Ergebnis ist
 - Echte Objektkürzel und Ordnerpfade bleiben außerhalb des Repositorys;
   Beispiele verwenden ausschließlich Platzhalter (`Objekt-A`, `Objekt-B`).
 
-## Offene Entscheidungen
+## Umsetzungsstand (23.10.2026)
 
-- **E-43-2:** Optionales lokales Skript, das Kontoauszüge vor der
-  KI-Vorkontierung pseudonymisiert (Mieternamen → Einheitskürzel) – als
-  Angebot, das der Nutzer je Lauf wählt, nicht als Pflicht.
-- **E-43-3:** Technische Sperre zusätzlich zur Dokumentation, z. B. Hook,
-  der Commits mit Pfaden aus `private-data/objekt-ordner.json` blockiert.
-- Rechtliche Einschätzungen im Entwurf sind keine Rechtsberatung und vor
-  Veröffentlichung fachlich zu prüfen.
+- `docs/DATENSCHUTZ-KI.md` als endgültige Fassung (Entwurfsvermerk entfernt),
+  ergänzt um Monatsinformation, Belegprüfung und Mieterinformation.
+- `docs/DATENSCHUTZ-MIETERINFORMATION.md`: Muster nach Art. 13 DSGVO mit
+  Empfängerkategorie IT-/KI-Dienstleister, Drittland, Speicherdauer und
+  Einwilligung in den E-Mail-Versand.
+
+## Zurückgestellt
+
+- **E-43-2** (Pseudonymisierung von Kontoauszügen) und **E-43-3**
+  (technische Commit-Sperre): bewusst nicht umgesetzt; Begründung in
+  `docs/DATENSCHUTZ-KI.md` Abschnitt 6.
+- Rechtliche Einschätzungen sind keine Rechtsberatung; vor Verwendung
+  fachlich prüfen.
