@@ -20,6 +20,24 @@ function germanDate(iso: string): string {
 
 const later = (a: string, b: string) => (a > b ? a : b)
 
+/** Kalendermonate (JJJJ-MM) von `from` bis `to` einschließlich. */
+function monthsBetween(from: string, to: string): string[] {
+  const months: string[] = []
+  let year = Number(from.slice(0, 4))
+  let month = Number(from.slice(5, 7))
+  const end = to.slice(0, 7)
+  for (;;) {
+    const key = `${year}-${String(month).padStart(2, '0')}`
+    if (key > end) return months
+    months.push(key)
+    month += 1
+    if (month > 12) {
+      month = 1
+      year += 1
+    }
+  }
+}
+
 /**
  * Fernablesbarkeit und monatliche Verbrauchsinformation (ADR-0014). Nur für
  * Abrechnungszeiträume mit Heizkreisen; `codes` sind die Regeln aus dem
@@ -91,6 +109,31 @@ export function remoteReadingIssues(
     const media = circuits.some(({ hasCentralHotWater }) => hasCentralHotWater)
       ? 'Heizung und Warmwasser'
       : 'Heizung'
+    const covered = new Set(
+      (data.billingData.monthlyInformationDispatches ?? [])
+        .filter(({ propertyId }) => propertyId === period.propertyId)
+        .map(({ month }) => month),
+    )
+    const missing = monthsBetween(from, period.periodEnd).filter(
+      (month) => !covered.has(month),
+    )
+    if (missing.length > 0)
+      add(
+        issue(
+          'warning',
+          'rules.monthly_information_missing',
+          'heating',
+          'Monatsinformation ohne Versandnachweis',
+          {
+            entity,
+            detail: `Für ${missing.length === 1 ? 'den Monat' : 'die Monate'} ${missing
+              .map((month) => `${month.slice(5)}/${month.slice(0, 4)}`)
+              .join(
+                ', ',
+              )} ist kein Versand der Monatsinformation protokolliert (Seite „Monatsinformation“). Fehlt die Information, darf der Mieter seinen Anteil an den Heizkosten um 3 % kürzen (§ 12 Abs. 1 Satz 3 HeizkostenV).`,
+          },
+        ),
+      )
     add(
       issue('info', 'rules.monthly_information', 'heating', rule.title, {
         entity,

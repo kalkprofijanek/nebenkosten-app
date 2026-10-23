@@ -4,6 +4,16 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Monatsinformation, Schritt 3 (ADR-0014, PR-46)**: PDF „Verbrauchsinformation
+  <Monat>“ je Mieter im Fensterkuvert-Format (Heizung und Warmwasser mit
+  Vormonat, Vorjahresmonat, Durchschnittsnutzer, Erläuterungen, Annahmen,
+  Kontaktsatz mit Telefon und E-Mail); Versandweg am Mietverhältnis
+  (`Tenancy.monthlyInformationDelivery`, E-Mail nur mit Zustimmungsdatum);
+  Versandliste auf der Seite **Monatsinformation** mit PDF je Mieter, ZIP und
+  E-Mail-Entwurf je Mieter (kein BCC), „Monat versendet am“ mit Ausnahmen und
+  Versandprotokoll (`billingData.monthlyInformationDispatches`, additiv);
+  Warnung `rules.monthly_information_missing` je Monat ohne Protokoll. Versand
+  nur bei erfasster Fernablesbarkeit; Versanddatum nicht vor Monatsende,
 - **Monatsinformation, Schritt 2 (ADR-0014, PR-46)**: Wohnungs-Warmwasserzähler
   (`unit_hot_water`, m³) mit Zuordnung am Heizkreis
   (`HeatingCircuit.hotWaterMeterAssignments`, additiv, Schema v5); CSV-Import

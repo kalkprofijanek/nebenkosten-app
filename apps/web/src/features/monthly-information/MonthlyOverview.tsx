@@ -6,7 +6,7 @@ import {
   type MonthlyValue,
 } from '@nebenkosten/core'
 import type { AppDataFile } from '@nebenkosten/schema'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { tenantDisplayName } from '../prepayments/overview'
 import {
   AVERAGE_REASON_LABELS,
@@ -16,14 +16,15 @@ import {
   formatM3,
   germanDate,
   monthBounds,
-  previousMonthOf,
   shiftMonthKey,
 } from './format'
 
 interface Props {
   readonly data: AppDataFile
   readonly propertyId: string
-  readonly today: () => Date
+  /** Gewählter Monat `JJJJ-MM` (von der Seite geführt, auch für den Versand). */
+  readonly month: string
+  readonly onMonthChange: (month: string) => void
 }
 
 const DASH = '–'
@@ -112,8 +113,12 @@ function calculate(
   return calculateMonthlyConsumptionInformation(data, { propertyId, month })
 }
 
-export function MonthlyOverview({ data, propertyId, today }: Props) {
-  const [month, setMonth] = useState(() => previousMonthOf(today()))
+export function MonthlyOverview({
+  data,
+  propertyId,
+  month,
+  onMonthChange,
+}: Props) {
   const info = useMemo(
     () => calculate(data, propertyId, month),
     [data, propertyId, month],
@@ -134,7 +139,7 @@ export function MonthlyOverview({ data, propertyId, today }: Props) {
         <input
           type="month"
           value={month}
-          onChange={(event) => setMonth(event.target.value)}
+          onChange={(event) => onMonthChange(event.target.value)}
         />
       </label>
       {info === null ? (

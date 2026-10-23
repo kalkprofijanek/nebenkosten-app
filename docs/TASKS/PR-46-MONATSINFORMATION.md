@@ -13,7 +13,7 @@ Stand: 21. Oktober 2026. Auftrag: Nutzer, 21.10.2026. Entscheidung:
 | Warmwasser            | je Objekt zentral (eigener m³-Zähler je Wohnung) oder dezentral    |
 | Versand               | gemischt: E-Mail mit Zustimmung, sonst Brief; Weg je Mieter merken |
 
-## Schritt 1 – Grundlagen (dieser PR)
+## Schritt 1 – Grundlagen (erledigt, #107)
 
 - Regelverzeichnis: `monthly-consumption-information` ab 2022,
   `remote-reading` ab 2027 nur Nachrüstpflicht.
@@ -26,7 +26,7 @@ Stand: 21. Oktober 2026. Auftrag: Nutzer, 21.10.2026. Entscheidung:
 Freigegebene Pfade: `packages/schema/`, `packages/validators/`,
 `apps/web/src/features/workflows/PropertyRoute*`, `docs/`, `CHANGELOG.md`.
 
-## Schritt 2 – Monatswerte (dieser PR)
+## Schritt 2 – Monatswerte (erledigt, #107)
 
 - CSV-Import der Monatsendstände (vorhandener Parser
   `parseMeterServiceCsv`: Zählernummer, Datum, Stand, Einheit `kWh`/`m3`).
@@ -38,7 +38,7 @@ Freigegebene Pfade: `packages/schema/`, `packages/validators/`,
   bei Vergleichswerten mit Warmwasser Näherung, siehe ADR-0014 E-46-3).
 - Mieterwechsel im Monat: tagesanteilig, sofern keine Zwischenablesung.
 
-## Schritt 3 – Ausgabe und Nachweis (geplant)
+## Schritt 3 – Ausgabe und Nachweis (dieser PR)
 
 Entscheidungen des Nutzers (21.10.2026):
 

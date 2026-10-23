@@ -78,6 +78,30 @@ Auslesesoftware; Versand gemischt (E-Mail mit Zustimmung, sonst Brief).
    - Mehrere Abrechnungszeiträume im Monat: der zuerst beginnende, mit
      Hinweis. Annahmen werden im Ergebnis ausgewiesen (`assumptions`).
 
+8. **Schritt 3 – Schnittstelle (additiv, Schema v5, keine Migration):**
+   - `Tenancy.monthlyInformationDelivery { channel: 'email' | 'letter',
+emailConsentDate }`; E-Mail nur mit Datum der Zustimmung, ohne Angabe
+     gilt Brief.
+   - `billingData.monthlyInformationDispatches` (optional): je Objekt und
+     Monat `{ id, propertyId, month: 'JJJJ-MM', dispatchedOn, entries[] }`,
+     Eintrag je Mietverhältnis mit `channel`, `status: 'sent' | 'not_sent'`
+     und Begründung.
+   - Prüfung `rules.monthly_information_missing` (**Warnung**, E-46-2): je
+     Monat ab Fernablesbarkeit im Abrechnungszeitraum ohne Versandprotokoll
+     des Objekts.
+
+9. **Schritt 3 – Oberfläche und Regeln:**
+   - Versand, PDF und E-Mail-Entwürfe nur, wenn `remoteReading.since`
+     spätestens am Monatsletzten liegt.
+   - E-Mail-Weg nur mit Zustimmungsdatum **und** mindestens einer
+     E-Mail-Adresse einer Person des Mietverhältnisses, sonst Brief.
+   - Ein Protokoll je Objekt und Monat; ein zweites wird abgelehnt
+     (vorhandenes zuerst entfernen). Gesperrte Abrechnungsjahre, die den
+     Monat berühren, sperren Protokoll und Entfernen.
+   - Versanddatum frühestens am Monatsletzten.
+   - Mehrere Mieter einer Wohnung im Monat: Name im PDF-Dateinamen.
+   - E-Mail-Entwurf je Mieter mit Grußzeile der Eigentümergesellschaft.
+
 ## Begründung der Einstufung
 
 - Warnung statt Fehler bei fehlender Fernablesbarkeit: Die Abrechnung bleibt

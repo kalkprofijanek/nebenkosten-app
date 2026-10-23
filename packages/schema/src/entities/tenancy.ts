@@ -4,6 +4,7 @@
  * abrechnungsjahresbezogen (Masterplan 5.2).
  */
 import { z } from 'zod'
+import { monthlyInformationDeliverySchema } from './monthly-information'
 import {
   entityIdSchema,
   isoDateSchema,
@@ -30,6 +31,8 @@ export const tenancySchema = z.strictObject({
   monthlyRentCents: moneyCentsSchema.nullish(),
   shippingAddressStreet: z.string().nullish(),
   shippingAddressPostalCodeAndCity: z.string().nullish(),
+  /** Versandweg der Monatsinformation (additiv, Schema v5, ADR-0014). */
+  monthlyInformationDelivery: monthlyInformationDeliverySchema.nullish(),
 })
 export type Tenancy = z.infer<typeof tenancySchema>
 
