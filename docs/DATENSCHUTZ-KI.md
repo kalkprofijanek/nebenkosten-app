@@ -1,6 +1,7 @@
 # Datenschutz bei der Verarbeitung mit KI
 
-**Entwurf (PR-43).** Diese Seite ist keine Rechtsberatung. Sie beschreibt,
+Stand: 23. Oktober 2026 (PR-43). Diese Seite ist keine Rechtsberatung.
+Sie beschreibt,
 wie die App und der KI-Workflow (`docs/KI-ANLEITUNG.md`) so eingesetzt
 werden, dass möglichst wenige personenbezogene Daten die eigene
 Umgebung verlassen.
@@ -84,6 +85,23 @@ Empfehlungen.
 - Die Browser-App erhält nur nach ausdrücklicher Freigabe im Ordnerdialog
   Lesezugriff; sie überträgt nichts.
 
+## 4a. Monatliche Verbrauchsinformation und Belegprüfung
+
+- **Monatsinformation (ADR-0014):** Jeder Mieter erhält nur seine eigenen
+  Werte; Vergleiche beziehen sich nur auf sein eigenes Mietverhältnis.
+  E-Mail-Versand nur mit dokumentierter Einwilligung, **ein Entwurf je
+  Mieter, nie BCC an alle**. Die App versendet nichts selbst.
+- **Belegprüfung und Betragsabgleich:** laufen lokal (`pnpm belegpruefung`).
+  Liest ein KI-Agent die Rechnungen, gelten Abschnitt 2 und 3; Versorger-
+  und Handwerkerrechnungen enthalten in der Regel keine Mieterdaten.
+
+## 4b. Information der Mieter
+
+Die Empfängerkategorie „IT- und KI-Dienstleister (Auftragsverarbeiter)“
+und ggf. die Drittlandübermittlung gehören in Ihre Datenschutzinformation
+nach Art. 13 DSGVO. Ein Muster mit Einwilligung in den E-Mail-Versand steht
+in [`DATENSCHUTZ-MIETERINFORMATION.md`](DATENSCHUTZ-MIETERINFORMATION.md).
+
 ## 5. Checkliste
 
 Vor dem ersten Einsatz:
@@ -92,7 +110,10 @@ Vor dem ersten Einsatz:
       ausgeschlossen.
 - [ ] Drittlandübermittlung geprüft (Zertifizierung/Standardvertragsklauseln).
 - [ ] Datenschutzinformation für Mieter (Art. 13) nennt die Empfänger-
-      kategorie „IT- und KI-Dienstleister (Auftragsverarbeiter)“.
+      kategorie „IT- und KI-Dienstleister (Auftragsverarbeiter)“ (Muster:
+      `DATENSCHUTZ-MIETERINFORMATION.md`); Übergabe dokumentiert.
+- [ ] Einwilligungen in den E-Mail-Versand liegen vor und sind mit Datum
+      am Mietverhältnis erfasst.
 - [ ] Verarbeitung im Verzeichnis der Verarbeitungstätigkeiten
       (Art. 30) erfasst, soweit eines geführt wird.
 - [ ] Agentenberechtigungen auf Repository, `private-data/` und
@@ -106,7 +127,10 @@ Je Abrechnungsjahr:
 - [ ] Chatverläufe/Uploads beim KI-Dienst nach Abschluss gelöscht, soweit
       nicht für Nachweise benötigt.
 
-## 6. Offene Punkte
+## 6. Bewusst nicht umgesetzt
 
-Siehe `docs/TASKS/PR-43-DATENSCHUTZ-KI-VERARBEITUNG.md` (E-43-2,
-E-43-3).
+- Automatische Pseudonymisierung von Kontoauszügen vor der KI-Vorkontierung
+  (E-43-2) und eine technische Commit-Sperre für Ordnerpfade (E-43-3):
+  derzeit nicht nötig, weil echte Daten nur lokal unter `private-data/`
+  liegen und der Repository-Scan Anschriften, E-Mail-Adressen und IBANs
+  blockiert. Bei Bedarf als eigener Auftrag.
