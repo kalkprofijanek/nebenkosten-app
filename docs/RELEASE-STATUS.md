@@ -1,6 +1,6 @@
 # Release-Status
 
-Stand: 10. Oktober 2026 (Abschnitt Version 1.0.0: 9. August 2026). Diese Datei enthält ausschließlich technische Nachweise;
+Stand: 25. Oktober 2026 (Abschnitt Version 1.0.0: 9. August 2026). Diese Datei enthält ausschließlich technische Nachweise;
 lokale produktive Abnahmeberichte bleiben unter `private-data/` und werden
 nicht veröffentlicht.
 
@@ -28,5 +28,6 @@ produktive Übernahme wurde bis zur Korrektur (PR 14) angehalten.
 **Nachtrag 10. Oktober 2026:** Der Maintainer hat bestätigt, dass die
 Produktionsmigration abgeschlossen ist. Der Abnahmebericht liegt
 ausschließlich lokal (`private-data/`) und wird nicht veröffentlicht.
-Aktueller Release-Tag ist `v1.3.0`; Änderungen danach stehen in
-`CHANGELOG.md` unter „Unveröffentlicht“.
+Aktueller Release-Tag ist `v1.3.0`. Version 1.4.0 (25. Oktober 2026) ist
+vorbereitet; der Tag `v1.4.0` wird auf den Merge-Commit des Release-PR
+gesetzt. Änderungen danach stehen in `CHANGELOG.md` unter „Unveröffentlicht“.

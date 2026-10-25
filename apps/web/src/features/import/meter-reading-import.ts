@@ -19,7 +19,7 @@ export interface MeterReadingPlanRow {
   readonly date: string
   readonly value: number
   readonly unit: MeterServiceRow['unit']
-  readonly boundary?: NonNullable<MeterReading['boundary']>
+  readonly boundary: NonNullable<MeterReading['boundary']>
 }
 
 export interface MeterReadingImportResult {
@@ -82,15 +82,16 @@ export function importMeterReadings(
   const plan: MeterReadingPlanRow[] = []
   const issues: MeterServiceIssue[] = []
   const seen = new Map<string, number>()
-  // Stichtagsablesungen an den Jahresgrenzen: Stand am Tagesende des
-  // Vortags bzw. letzten Tags, am Tagesbeginn des ersten bzw. Folgetags.
-  // Andere Tage bleiben ohne Zeitpunkt und werden zur Bestätigung angezeigt.
-  const boundaries = new Map<string, 'start_of_day' | 'end_of_day'>([
-    [shiftMeterDate(period.periodStart, -1), 'end_of_day'],
-    [period.periodStart, 'start_of_day'],
-    [period.periodEnd, 'end_of_day'],
-    [shiftMeterDate(period.periodEnd, 1), 'start_of_day'],
+  // Messdienst-Stände gelten als Stand am Tagesende des Stichtags
+  // (Maintainer, 25.10.2026). Ausnahme: Jahresbeginn und Folgetag nach
+  // Jahresende gelten als Tagesbeginn, damit ein Anfangsstand vom 01.01.
+  // die Grenze des Abrechnungszeitraums trifft.
+  const startOfDay = new Set([
+    period.periodStart,
+    shiftMeterDate(period.periodEnd, 1),
   ])
+  const boundaryOf = (date: string): 'start_of_day' | 'end_of_day' =>
+    startOfDay.has(date) ? 'start_of_day' : 'end_of_day'
 
   const result = applyEditableBillingPeriodChange(
     file,
@@ -134,14 +135,14 @@ export function importMeterReadings(
             throw new Error(
               `Einheit ${row.unit} passt nicht zu den übrigen Ablesungen von „${label}“ (${other.value.unit}).`,
             )
-          const boundary = boundaries.get(row.date)
+          const boundary = boundaryOf(row.date)
           current = addMeterReading(
             current,
             {
               meterId: meter.id,
               billingPeriodId,
               date: row.date,
-              ...(boundary ? { boundary } : {}),
+              boundary,
               value: { value: row.value, unit: row.unit },
               source: 'imported',
             },
@@ -154,7 +155,7 @@ export function importMeterReadings(
             date: row.date,
             value: row.value,
             unit: row.unit,
-            ...(boundary ? { boundary } : {}),
+            boundary,
           })
         } catch (caught) {
           issues.push({
