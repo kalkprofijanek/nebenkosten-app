@@ -50,6 +50,14 @@ Zwei geprüfte Treffer in minimierten Bibliotheken sind an Pfad, Zeile und den
 vollständigen SHA-256-Hash der jeweiligen Datei gebunden. Jede Byteänderung
 macht diese Ausnahme automatisch ungültig.
 
+Von der Suche nach lokalen Pfaden ist genau ein geprüfter Pfad ausgenommen
+(`REVIEWED_LIBRARY_PATHS` in `scripts/verify-deployment-artifact.mjs`): Ab
+0.3.12 bündelt pdfmake die Bibliothek pdfkit mit dem Pfad ihres eigenen
+CI-Builds (`file:///home/runner/work/pdfmake/pdfmake/node_modules/pdfkit/js/pdfkit.browser.mjs`)
+als Basis-URL für das PDF/A-Farbprofil. Der Pfad stammt vom GitHub-Runner des
+pdfmake-Projekts, nicht aus diesem Projekt. Jeder andere Pfad unter
+`/home/…` oder `/Users/…` bleibt ein Fehler.
+
 Nach der Prüfung erzeugt der Workflow ein festes `artifact.tar` und lädt
 genau dieses Archiv unveränderlich hoch. Ein separater Job auf einem frischen
 Runner lädt anschließend dasselbe Archiv herunter und prüft dessen Tar-Header,

@@ -51,6 +51,16 @@ const REVIEWED_LIBRARY_CREDENTIAL_FLAGS = Object.freeze([
   /\bmultiline\s*:\s*4096\s*,\s*password\s*:\s*8192\s*,\s*toggleToOffButton\s*:\s*16384\b/gu,
 ])
 
+/**
+ * Geprüfte Pfade aus Fremdbibliotheken, die keinen lokalen Pfad dieses
+ * Projekts verraten. pdfmake ab 0.3.12 bündelt pdfkit mit dem Pfad seines
+ * eigenen CI-Builds (GitHub-Runner des pdfmake-Projekts) als Basis-URL für
+ * das PDF/A-Farbprofil. Nur genau dieser Pfad ist ausgenommen.
+ */
+const REVIEWED_LIBRARY_PATHS = Object.freeze([
+  'file:///home/runner/work/pdfmake/pdfmake/node_modules/pdfkit/js/pdfkit.browser.mjs',
+])
+
 function normalizedLimits(options = {}) {
   return Object.freeze({ ...DEFAULT_LIMITS, ...options })
 }
@@ -89,8 +99,13 @@ function sensitiveContentFailures(relativePath, content) {
       `Sensitive deployment content: ${relativePath}:${finding.line} (${finding.kind})`,
   )
 
-  for (const match of content.matchAll(LOCAL_PATH_PATTERN)) {
-    const line = content.slice(0, match.index).split('\n').length
+  const contentForPathScan = REVIEWED_LIBRARY_PATHS.reduce(
+    (reviewedContent, path) =>
+      reviewedContent.replaceAll(path, 'reviewedLibraryPath'),
+    content,
+  )
+  for (const match of contentForPathScan.matchAll(LOCAL_PATH_PATTERN)) {
+    const line = contentForPathScan.slice(0, match.index).split('\n').length
     failures.push(
       `Sensitive deployment content: ${relativePath}:${line} (local path)`,
     )

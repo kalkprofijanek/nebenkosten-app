@@ -187,3 +187,32 @@ test('stops directory traversal when the total entry budget is exceeded', (conte
     ),
   )
 })
+
+test('accepts only the reviewed pdfkit build path of pdfmake', () => {
+  const home = ['', 'home', ''].join('/')
+  const reviewedPath = `file://${home}runner/work/pdfmake/pdfmake/node_modules/pdfkit/js/pdfkit.browser.mjs`
+  const reviewedLibraryCode = `let profile=new URL(\`./data/sRGB_IEC61966_2_1.icc\`,\`${reviewedPath}\`).href`
+  const reviewedResult = inspectDeploymentEntries([
+    textEntry('index.html', '<main></main>'),
+    textEntry('assets/pdfmake.js', reviewedLibraryCode),
+  ])
+
+  assert.deepEqual(reviewedResult.failures, [])
+
+  for (const localPath of [
+    `${home}runner/work/nebenkosten-app/private.json`,
+    `file://${home}runner/work/pdfmake/pdfmake/node_modules/other/file.mjs`,
+    `${home}name/data.json`,
+  ]) {
+    const result = inspectDeploymentEntries([
+      textEntry('index.html', '<main></main>'),
+      textEntry(
+        'assets/pdfmake.js',
+        `${reviewedLibraryCode}\nconst local="${localPath}"`,
+      ),
+    ])
+    assert.deepEqual(result.failures, [
+      'Sensitive deployment content: assets/pdfmake.js:2 (local path)',
+    ])
+  }
+})
