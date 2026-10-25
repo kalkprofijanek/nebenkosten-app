@@ -74,12 +74,11 @@ Tests je Vorlage; Privacy-Scan grün; Beispielobjekt rechnet ohne Fehler.
   Datei, abweichender Einheit gegenüber vorhandenen Ablesungen, anderer
   Einheit als kWh bei Wohnungswärmezählern und Datum außerhalb des
   Abrechnungszeitraums (Prüfung von `addMeterReading`). Ablesungen werden
-  als `source: imported` gespeichert. Stichtage erhalten einen
-  Ablesezeitpunkt: Vortag des Jahresbeginns und Jahresende `end_of_day`,
-  Jahresbeginn und Folgetag des Jahresendes `start_of_day`. Andere Tage
-  bleiben ohne Zeitpunkt (Hinweis „Ablesezeitpunkt nicht bestätigt“).
-  Offene Entscheidung: ob Messdienst-Stände an Stichtagen grundsätzlich als
-  Tagesende gelten sollen.
+  als `source: imported` gespeichert. Ablesezeitpunkt (Entscheidung des
+  Maintainers, 25.10.2026): Messdienst-Stände gelten als Stand am
+  **Tagesende** des Stichtags; nur der Jahresbeginn und der Folgetag nach
+  Jahresende gelten als **Tagesbeginn**, damit ein Anfangsstand vom 01.01.
+  die Grenze des Abrechnungszeitraums trifft.
 - Plausibilität: Nach dem Probelauf läuft `validateBillingPeriod`; Hinweise
   der Reihenprüfung aus PR-31 (`heating.meter_reading_series_*`) zu den
   betroffenen Zählern werden angezeigt. Werte werden nie geändert; bei
