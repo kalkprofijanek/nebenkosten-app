@@ -84,6 +84,17 @@ Unter **Kosten**:
 1. **Kostenarten** einmalig anlegen (z. B. Grundsteuer, Wasser,
    Gebäudeversicherung, Hausreinigung) mit Umlageschlüssel, Text auf der
    Abrechnung, umlagefähigem Anteil und ggf. Lohnanteil (§ 35a EStG).
+   Sind Wohnungswasserzähler eingebaut, Wasser und Abwasser mit dem
+   Schlüssel **Wasserverbrauch (m³)** anlegen und die Zählerwerte (Kalt- und
+   Warmwasser) unter **Verbrauch** eintragen – auch für Leerstände. Nach
+   § 556a Abs. 1 Satz 2 BGB ist erfasster Verbrauch nach Verbrauch
+   umzulegen; die Prüfung warnt, wenn Zählerwerte vorliegen, die Kosten
+   aber nach Fläche verteilt werden.
+   Optional den **Verbrauch laut Hauptwasserzähler in m³** aus der
+   Wasserrechnung eintragen: Die Prüfung warnt, wenn die Summe der
+   Wohnungszähler um mehr als 15 % davon abweicht. Die Differenz wird
+   sonst anteilig auf alle Wohnungen verteilt; eine große Abweichung
+   (Leck, Gartenwasser, defekter Zähler) macht die Abrechnung angreifbar.
 2. Je Rechnung eine **Kostenposition** anlegen: Kostenart, Belegdatum,
    Beschreibung, Belegnummer, Betrag in Euro, umlagefähiger Anteil.
 3. Unter **Zahlungsnachweis** die Position mit der passenden Bankbuchung

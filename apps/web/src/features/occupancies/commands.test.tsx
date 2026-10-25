@@ -466,6 +466,69 @@ describe('Nutzer-Commands', () => {
     })
   })
 
+  it('speichert den Versandweg der Monatsinformation mit Schemaprüfung', () => {
+    const source = addTenantOccupancy(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        unitId: IDS.unit,
+        person: { displayName: 'Fiktiver Nutzer' },
+        occupancy: {},
+        prepayment: { mode: 'none_agreed' },
+      },
+      sequentialIds(IDS.person, IDS.tenancy, IDS.occupancy, IDS.prepayment),
+    )
+    const base = {
+      occupancyPeriodId: IDS.occupancy,
+      displayName: 'Fiktiver Nutzer',
+      prepayment: { mode: 'none_agreed' },
+    } as const
+    const withEmail = updateTenantOccupancy(source, {
+      ...base,
+      monthlyInformationDelivery: {
+        channel: 'email',
+        emailConsentDate: '2026-02-01',
+      },
+    })
+    expect(
+      withEmail.masterData.tenancies[0]?.monthlyInformationDelivery,
+    ).toEqual({ channel: 'email', emailConsentDate: '2026-02-01' })
+    const letter = updateTenantOccupancy(withEmail, {
+      ...base,
+      monthlyInformationDelivery: {
+        channel: 'letter',
+        emailConsentDate: undefined,
+      },
+    })
+    expect(letter.masterData.tenancies[0]?.monthlyInformationDelivery).toEqual({
+      channel: 'letter',
+    })
+    // Wie bei den übrigen optionalen Feldern: nicht angegeben = entfernt.
+    const removed = updateTenantOccupancy(withEmail, base)
+    expect(removed.masterData.tenancies[0]).not.toHaveProperty(
+      'monthlyInformationDelivery',
+    )
+    expect(() =>
+      updateTenantOccupancy(source, {
+        ...base,
+        monthlyInformationDelivery: { channel: 'email' },
+      }),
+    ).toThrow('Für den E-Mail-Versand ist das Datum der Zustimmung anzugeben.')
+    for (const invalid of [
+      { channel: 'fax' },
+      { channel: 'email', emailConsentDate: '01.02.2026' },
+      { channel: 'letter', extra: true },
+      'email',
+      null,
+    ])
+      expect(() =>
+        updateTenantOccupancy(source, {
+          ...base,
+          monthlyInformationDelivery: invalid,
+        }),
+      ).toThrow('Ungültige Eingabe für Monatsinformation.')
+  })
+
   it('speichert Zählerstände und lehnt ungültige Zählerstände ab', () => {
     const source = addTenantOccupancy(
       validFile(),

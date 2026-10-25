@@ -326,6 +326,23 @@ describe('Kosten-Commands', () => {
     })
   })
 
+  it('legt Wasserkosten mit dem Schlüssel Wasserverbrauch an (ADR-0013)', () => {
+    const result = addCostCategory(
+      validFile(),
+      {
+        billingPeriodId: IDS.billingPeriod,
+        kind: 'water',
+        label: 'Wasser und Abwasser',
+        allocationKey: 'water_consumption',
+      },
+      () => IDS.category,
+    )
+    expect(result.billingData.costCategories[0]).toMatchObject({
+      kind: 'water',
+      allocationKey: 'water_consumption',
+    })
+  })
+
   it('löscht Positionen, aber schützt Kostenarten mit Positionen', () => {
     const withCategory = addCostCategory(
       validFile(),

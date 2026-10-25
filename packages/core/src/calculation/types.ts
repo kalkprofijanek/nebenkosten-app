@@ -28,6 +28,8 @@ export interface OccupancyContext {
   heatedArea: number
   persons: number
   consumptionUnits: number
+  /** Kalt- plus Warmwasser des Nutzungszeitraums in m³ (ADR-0013). */
+  waterM3: number
 }
 
 export interface AllocationBasis {
@@ -36,6 +38,7 @@ export interface AllocationBasis {
   persons: number
   consumptionUnits: number
   residentialUnits: number
+  waterM3: number
 }
 
 export interface RawCircuitResult {

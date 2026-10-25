@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * Abrechnung ohne Browser: Import (Legacy v3), Berechnung, fachliche Prüfung
+ * Abrechnung ohne Browser: Import (App-Sicherung v4/v5 oder Legacy v3), Berechnung, fachliche Prüfung
  * und PDF-Erzeugung mit genau derselben Fachlogik wie die App. Gedacht für
  * die Arbeit mit einem KI-Coding-Agenten (z. B. Claude Code) auf einer
  * lokalen Kopie der Daten – siehe docs/KI-ANLEITUNG.md.
  *
  * Aufruf:
- *   pnpm abrechnung <nk-daten.json> [--jahr 2025] [--out <ordner>] [--json <datei>] [--overlay <modul.mjs>]
+ *   pnpm abrechnung <nk-daten.json | sicherung.json> [--jahr 2025] [--out <ordner>] [--json <datei>] [--overlay <modul.mjs>]
  *
  * Ohne --out werden nur Summen, Heizkreise, Salden und Prüfhinweise
  * ausgegeben. Mit --json zusätzlich eine maschinenlesbare Zusammenfassung.
@@ -18,6 +18,14 @@
  * `export default function (data, { year }) { … }` verändert `data` oder gibt
  * einen neuen Datenstand zurück. Das Ergebnis wird erneut gegen das
  * Dateischema geprüft.
+ *
+ * --abrechnungsentgelt <netto-euro> [--ust <prozent>]: Vorschau des Entgelts
+ * für die Erstellung der Heiz-/Warmwasserkostenabrechnung (ADR-0015) mit
+ * Kalkulationshilfe Netto je erstellter Heizkostenabrechnung × Abrechnungen
+ * der Abrechnungseinheit (je bewohnte Nutzung eine; Nutzerwechsel zwei,
+ * Leerstand keine) gegen die erfasste Rechnung, Aufteilung
+ * Heizung/Warmwasser und Auswirkung je Nutzung. Ohne Option erscheint die
+ * Vorschau, sobald eine Abrechnungsdienstleistung erfasst ist.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
@@ -48,6 +56,26 @@ if (!input) {
 const outDir = option('--out')
 const jsonOut = option('--json')
 const overlayPath = option('--overlay')
+const feeNetOption = option('--abrechnungsentgelt')
+const feeVatOption = option('--ust')
+const parseDecimal = (value, name) => {
+  const number = Number(String(value).replace(',', '.'))
+  if (!Number.isFinite(number) || number < 0) {
+    console.error(`Option ${name} erwartet eine Zahl ≥ 0.`)
+    process.exit(2)
+  }
+  return number
+}
+const feeTariff =
+  feeNetOption === undefined
+    ? undefined
+    : {
+        netPerStatementCents: Math.round(
+          parseDecimal(feeNetOption, '--abrechnungsentgelt') * 100,
+        ),
+        vatRatePercent:
+          feeVatOption === undefined ? 19 : parseDecimal(feeVatOption, '--ust'),
+      }
 const euro = (cents) =>
   (cents / 100).toLocaleString('de-DE', {
     minimumFractionDigits: 2,
@@ -73,10 +101,22 @@ try {
     '/apps/web/src/features/prepayments/statement-with-adjustment.ts',
   )
 
-  const imported = await io.importLegacyV3Bytes(await readFile(input), {
-    sourceFileName: basename(input),
-    appVersion: 'cli',
-  })
+  const bytes = await readFile(input)
+  // Sicherungen aus der App (Schema v4/v5, z. B. docs/beispiel/
+  // beispielobjekt.json) direkt lesen, Alt-App-Dateien (v3) importieren.
+  const imported = await io
+    .decodeSupportedAppDataBytes(bytes)
+    .then(({ data }) => ({ ok: true, data }))
+    .catch((error) => {
+      if (error?.code !== 'unsupported_schema_version') {
+        console.error(`Datei nicht lesbar (${error?.code ?? error}).`)
+        process.exit(1)
+      }
+      return io.importLegacyV3Bytes(bytes, {
+        sourceFileName: basename(input),
+        appVersion: 'cli',
+      })
+    })
   if (!imported.ok) {
     const errors = (imported.issues ?? []).filter(
       (issue) => issue.severity === 'error',
@@ -154,6 +194,70 @@ try {
     console.log(`  [${details.length}] ${key}`)
     for (const detail of details.slice(0, 3))
       console.log(`      ${detail.slice(0, 140)}`)
+  }
+
+  const feePreview = core.billingServiceFeePreview(data, period.id, {
+    tariff: feeTariff,
+  })
+  const showFee =
+    feeTariff !== undefined ||
+    feePreview.buildings.some(({ recordedCents }) => recordedCents !== 0)
+  if (showFee) {
+    console.log(
+      'Abrechnungsdienstleistung Heiz-/Warmwasserkosten (Vorschau, ADR-0015)',
+    )
+    if (feeTariff)
+      console.log(
+        `  Kalkulationshilfe: ${euro(feeTariff.netPerStatementCents)} € netto je erstellter Heizkostenabrechnung + ${feeTariff.vatRatePercent} % USt (je bewohnte Nutzung eine; Nutzerwechsel = zwei Abrechnungen, Leerstand keine)`,
+      )
+    const unitLabels = new Map(
+      data.masterData.units.map((unit) => [unit.id, unit.label ?? unit.id]),
+    )
+    for (const building of feePreview.buildings) {
+      const quote = building.quote
+      console.log(
+        `  ${building.buildingName ?? building.buildingId}: ${building.statementCount} Heizkostenabrechnungen` +
+          (quote
+            ? ` → netto ${euro(quote.netCents)} + USt ${euro(quote.vatCents)} = ${euro(quote.grossCents)} €`
+            : '') +
+          ` · erfasst ${euro(building.recordedCents)} €` +
+          (building.differenceCents
+            ? ` · Abweichung ${euro(building.differenceCents)} € (zu prüfen gegen Rechnung)`
+            : '') +
+          (building.duplicate ? ' · ⚠ mehrere Abrechnungsdienstleistungen' : ''),
+      )
+      for (const entry of building.entries)
+        console.log(
+          `      Beleg: Rechnung ${entry.invoiceNumber ?? '–'} vom ${entry.invoiceDate ?? '–'}, Leistung ${entry.servicePeriodStart ?? '–'} bis ${entry.servicePeriodEnd ?? '–'}, netto ${entry.netCents === null ? '–' : euro(entry.netCents)} + USt ${entry.vatCents === null ? '–' : euro(entry.vatCents)} = brutto ${euro(entry.grossCents)} €`,
+        )
+      for (const other of building.otherMeteringFees)
+        console.log(
+          `      getrennt: ${other.kind} ${euro(other.amountCents)} €`,
+        )
+      console.log(
+        `      Aufteilung im Heiztopf: Heizung ${euro(building.allocation.heatingCents)} € · Warmwasser ${euro(building.allocation.hotWaterCents)} €`,
+      )
+      for (const occupancy of feePreview.impact.occupancies.filter(
+        ({ buildingId }) => buildingId === building.buildingId,
+      ))
+        console.log(
+          `        ${unitLabels.get(occupancy.unitId) ?? occupancy.unitId}${occupancy.isVacancy ? ' (Leerstand → Vermieter)' : ''}: +${euro(occupancy.deltaCents)} €`,
+        )
+    }
+    const { totals: feeTotals, impact } = feePreview
+    console.log(
+      `  Summe: ${feeTotals.statementCount} Heizkostenabrechnungen` +
+        (feeTotals.quoteGrossCents === null
+          ? ''
+          : ` · Kalkulationshilfe ${euro(feeTotals.quoteGrossCents)} €`) +
+        ` · erfasst ${euro(feeTotals.recordedCents)} €` +
+        (feeTotals.differenceCents
+          ? ` · Abweichung ${euro(feeTotals.differenceCents)} €`
+          : ''),
+    )
+    console.log(
+      `  Mieter +${euro(impact.tenantDeltaCents)} € · Vermieter (Leerstand) +${euro(impact.landlordDeltaCents)} € · Energie unverändert: ${impact.energyUnchanged ? 'ja' : 'NEIN'} · CO₂ unverändert: ${impact.co2Unchanged ? 'ja' : 'NEIN'}`,
+    )
   }
 
   let written = 0
@@ -235,6 +339,7 @@ try {
             balanceCents: tenant.balanceCents,
           })),
           issues: report.issues,
+          ...(showFee ? { billingServiceFee: feePreview } : {}),
         },
         null,
         2,

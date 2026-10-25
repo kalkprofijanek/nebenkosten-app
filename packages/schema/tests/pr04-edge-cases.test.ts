@@ -798,6 +798,31 @@ describe('PR 04: Options- und Versionsschutz', () => {
     expect(inspectLegacyInput(productionScale)).toBe('ok')
   })
 
+  it('übernimmt ein Objekt mit über 1.000 Bankbuchungen im Jahr', () => {
+    const { input, object } = fixtureParts()
+    const template = records(object.buchungen)[0]!
+    object.buchungen = Array.from({ length: 1_006 }, (_, index) => ({
+      ...template,
+      id: `bch_fiktiv_${index}`,
+      hash: `fiktiv-${index}`,
+      splits: [],
+    }))
+
+    expect(MAX_LEGACY_COLLECTION_ITEMS).toBeGreaterThanOrEqual(10_000)
+    const result = expectSuccess(migrateV3ToCurrent(input, OPTIONS))
+    expect(result.data.billingData.bankBookings).toHaveLength(1_006)
+  })
+
+  it('begrenzt eine einzelne Collection unabhängig von Knoten und Skalaren', () => {
+    const { input, object } = fixtureParts()
+    object.buchungen = Array.from(
+      { length: MAX_LEGACY_COLLECTION_ITEMS + 1 },
+      (_, index) => index,
+    )
+
+    expect(inspectLegacyInput(input)).toBe('limits-exceeded')
+  })
+
   it('redigiert dynamische unbekannte Schlüssel im Bericht und konserviert nur die Originaldaten', () => {
     const input = createFictionalV3File()
     const privateKey = 'MANDANT_INTERN_GEHEIM_4711'

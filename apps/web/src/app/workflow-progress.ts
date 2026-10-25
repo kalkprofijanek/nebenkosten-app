@@ -106,10 +106,15 @@ export function workflowProgress(
       ) ?? false,
     '/sicherung': data?.meta.savedAt != null,
   }
-  const steps = appRoutes.slice(1).map(({ path }) => ({
-    path,
-    status: completedByPath[path] ? ('done' as const) : ('open' as const),
-  }))
+  // Die Monatsinformation (ADR-0014) ist eine monatliche Aufgabe und kein
+  // Schritt der Jahresabrechnung.
+  const steps = appRoutes
+    .slice(1)
+    .filter(({ path }) => path !== '/monatsinformation')
+    .map(({ path }) => ({
+      path,
+      status: completedByPath[path] ? ('done' as const) : ('open' as const),
+    }))
 
   return {
     steps,

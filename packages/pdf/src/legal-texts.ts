@@ -153,6 +153,9 @@ export function creditText(
     : `Ihr Guthaben von ${amount} überweisen wir Ihnen innerhalb von vier Wochen bzw. verrechnen es mit der nächsten Miete.`
 }
 
+/** Bildunterschrift zum EPC-QR-Code (PR-39). */
+export const GIROCODE_CAPTION = 'GiroCode: mit der Banking-App scannen'
+
 export const BALANCED_TEXT =
   'Ihre Vorauszahlungen decken Ihren Kostenanteil genau; es ergibt sich weder eine Nachzahlung noch ein Guthaben.'
 

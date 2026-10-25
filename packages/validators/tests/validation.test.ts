@@ -281,6 +281,28 @@ describe('validateBillingPeriod', () => {
     )
   })
 
+  it('warnt bei fehlendem Kontoinhaber des maßgeblichen Kontos (PR-39)', () => {
+    const data = validData()
+    data.masterData.ownerCompanies[0]!.bankAccount = {
+      iban: ['DE89', '370400440532013000'].join(''),
+    }
+    expect(codes(data)).toContain('master_data.account_holder_missing')
+    // Hinweis, keine Warnung: blockiert die Freigabe nicht.
+    expect(validateBillingPeriod(data, 'period-1').canBecomeReady).toBe(true)
+
+    const propertyAccount = validData()
+    propertyAccount.masterData.properties[0]!.bankAccount = {
+      iban: ['DE89', '370400440532013000'].join(''),
+      accountHolder: '  ',
+    }
+    expect(codes(propertyAccount)).toContain(
+      'master_data.account_holder_missing',
+    )
+    expect(codes(validData())).not.toContain(
+      'master_data.account_holder_missing',
+    )
+  })
+
   it('prüft fehlende Kostenarten und fehlende/leer laufende Umlagebasen', () => {
     const noCosts = validData()
     noCosts.billingData.costCategories = []

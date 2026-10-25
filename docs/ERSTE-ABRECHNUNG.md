@@ -8,13 +8,27 @@ Rechtsberatung.
 
 1. App im Desktop-Browser öffnen.
 2. In der Kopfleiste **Daten importieren** wählen und
-   [`docs/beispiel/beispielobjekt.json`](beispiel/beispielobjekt.json) laden;
-   die Vorschau bestätigen.
+   [`docs/beispiel/beispielobjekt.json`](beispiel/beispielobjekt.json) laden
+   (auf GitHub: Datei öffnen → „Download raw file“); die Vorschau bestätigen.
+
+   ![Importvorschau](medien/02-import-pruefen.png)
+
 3. Unter **Berechnung** auf „Abrechnung berechnen“ klicken. Die
    Einzelabrechnungen, die **Energiebilanz je Heizkreis** und die
    Prüfhinweise erscheinen.
+
+   ![Abrechnungsvorschau](medien/07-berechnung.png)
+
 4. Unter **Freigabe** die Liste der Hinweise durchgehen. Jeder Hinweis führt
-   mit einem Link zur Stelle, an der er behoben wird.
+   mit einem Link zur Stelle, an der er behoben wird. Das Beispiel ist
+   vollständig erfasst und zeigt keine Hinweise; bei eigenen Daten
+   erscheinen hier die offenen Punkte.
+
+   ![Prüfung und Freigabe](medien/08-freigabe.png)
+
+So sehen die fertigen PDFs aus:
+[Musterabrechnungen 2025](medien/README.md#musterabrechnungen-2025-pdf). Alle
+Arbeitsbereiche mit Bedienhinweisen: [Rundgang](medien/README.md).
 
 Danach unter **Sicherung** eine Sicherung herunterladen und mit eigenen Daten
 neu beginnen.

@@ -11,6 +11,7 @@ import {
 import type { InterimReadingDraft } from '../occupancies/interim-reading'
 import { InterimReadingNotice } from '../occupancies/InterimReadingNotice'
 import { TenantListCsvImport } from '../import/TenantListCsvImport'
+import { deliveryFromForm } from '../monthly-information/delivery'
 import { WorkflowField } from './form-support'
 import { formOptionalText, formText } from './form-values'
 import type { WorkflowSubRouteProps } from './route-types'
@@ -167,6 +168,7 @@ export function OccupanciesRoute({
             form,
             'shippingAddressPostalCodeAndCity',
           ),
+          monthlyInformationDelivery: deliveryFromForm(form),
           consumptionUnits: existing?.consumptionUnits?.value,
           consumptionUnitsEstimated:
             existing?.consumptionUnitsEstimated ?? undefined,

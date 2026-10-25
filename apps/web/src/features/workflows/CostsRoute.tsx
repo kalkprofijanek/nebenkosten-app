@@ -72,7 +72,34 @@ function categoryInput(form: FormData, billingPeriodId?: string) {
     allocablePercent: optionalPercent(form, 'allocablePercent'),
     laborSharePercent: optionalPercent(form, 'laborSharePercent'),
     meteringFee: meteringFeeInput(form, kind),
+    meteringFeeKind:
+      kind === 'heating' ? formText(form, 'meteringFeeKind') || null : null,
+    mainWaterMeterM3:
+      kind === 'water'
+        ? parseOptionalNumber(formText(form, 'mainWaterMeterM3'))
+        : null,
   }
+}
+
+/** Rechnungsangaben (ADR-0015); alle Felder leer = keine Angaben. */
+function invoiceInput(form: FormData) {
+  if (!form.has('invoiceNumber')) return {}
+  const optionalCents = (name: string) => {
+    const value = formText(form, name)
+    return value ? parseEuroCents(value) : undefined
+  }
+  const invoice = Object.fromEntries(
+    Object.entries({
+      invoiceNumber: formOptionalText(form, 'invoiceNumber'),
+      invoiceDate: formOptionalText(form, 'invoiceDate'),
+      servicePeriodStart: formOptionalText(form, 'servicePeriodStart'),
+      servicePeriodEnd: formOptionalText(form, 'servicePeriodEnd'),
+      netCents: optionalCents('invoiceNet'),
+      vatCents: optionalCents('invoiceVat'),
+      vatRatePercent: optionalPercent(form, 'invoiceVatRate'),
+    }).filter(([, value]) => value !== undefined),
+  )
+  return { invoice: Object.keys(invoice).length > 0 ? invoice : null }
 }
 
 function entryInput(form: FormData) {
@@ -91,6 +118,7 @@ function entryInput(form: FormData) {
     ...(form.has('amountBasis')
       ? { amountBasis: formText(form, 'amountBasis') || null }
       : {}),
+    ...invoiceInput(form),
     ...(paymentKind === 'booking' && bankBookingId
       ? { bookingLink: { bankBookingId } }
       : {}),

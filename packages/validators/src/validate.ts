@@ -21,6 +21,10 @@ import { co2OpeningPriceIssues } from './co2-price'
 import { meterReadingSeriesIssues } from './meter-reading-series'
 import { ownershipChangeIssues } from './ownership-change'
 import { energyBalanceIssues } from './energy-balance'
+import {
+  billingServiceDuplicateIssues,
+  invoiceAmountIssues,
+} from './billing-service-fee'
 
 function report(
   id: string,
@@ -113,6 +117,10 @@ export function validateBillingPeriod(
   heatingComplianceIssues(parsed.data, period, (value) => issues.push(value))
   meterReadingSeriesIssues(parsed.data, period, (value) => issues.push(value))
   ownershipChangeIssues(parsed.data, period, (value) => issues.push(value))
+  billingServiceDuplicateIssues(parsed.data, period, (value) =>
+    issues.push(value),
+  )
+  invoiceAmountIssues(parsed.data, period, (value) => issues.push(value))
   try {
     const input = createCalculationInput(parsed.data, billingPeriodId)
     const output = calculateBilling(input)

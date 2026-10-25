@@ -20,6 +20,7 @@ import {
 import {
   allocationRuleSchema,
   auditEventSchema,
+  monthlyInformationDispatchSchema,
   bankBookingSchema,
   billingPeriodSchema,
   buildingSchema,
@@ -80,6 +81,10 @@ export const billingDataSchema = z.strictObject({
   calculationResults: z.array(calculationResultSchema),
   documents: z.array(documentSchema),
   auditEvents: z.array(auditEventSchema),
+  /** Versandprotokoll der Monatsinformation (additiv, Schema v5, ADR-0014). */
+  monthlyInformationDispatches: z
+    .array(monthlyInformationDispatchSchema)
+    .optional(),
 })
 export type BillingData = z.infer<typeof billingDataSchema>
 

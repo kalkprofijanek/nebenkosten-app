@@ -183,6 +183,18 @@ export const heatingCircuitSchema = z.strictObject({
       }),
     )
     .nullish(),
+  /**
+   * Wohnungs-Warmwasserzähler (`unit_hot_water`, m³) je Nutzungseinheit für
+   * die monatliche Verbrauchsinformation (additiv, Schema v5, ADR-0014).
+   */
+  hotWaterMeterAssignments: z
+    .array(
+      z.strictObject({
+        meterId: entityIdSchema,
+        unitId: entityIdSchema,
+      }),
+    )
+    .nullish(),
   co2: co2ConfigSchema.nullish(),
   overrides: heatingCircuitOverridesSchema.nullish(),
   /** Zentrale Warmwasserbereitung nach § 9 HeizKV aktiv. */

@@ -23,6 +23,7 @@ import {
   wholeYear,
 } from './helpers'
 import { section9bIssues } from './section-9b'
+import { remoteReadingIssues } from './remote-reading'
 import { issue } from './issues'
 import { legalRule, legalRulesForPeriod } from './legal-rules'
 import { ambiguousCostEntries, heatingInformation } from './billing-information'
@@ -65,7 +66,11 @@ function masterData(data: AppDataFile, period: BillingPeriod, add: Add): void {
         { entity: { type: 'Property', id: property?.id ?? period.propertyId } },
       ),
     )
-  const iban = property?.bankAccount?.iban || owner?.bankAccount?.iban
+  // Wie die PDF-Absenderzeile: Objektkonto vor Konto der Gesellschaft.
+  const bankAccount = blank(property?.bankAccount?.iban)
+    ? owner?.bankAccount
+    : property?.bankAccount
+  const iban = bankAccount?.iban
   if (blank(iban))
     add(
       issue('error', 'master_data.iban_missing', 'master_data', 'IBAN fehlt', {
@@ -79,6 +84,19 @@ function masterData(data: AppDataFile, period: BillingPeriod, add: Add): void {
         'master_data.iban_invalid',
         'master_data',
         'IBAN ist ungültig',
+        { entity: { type: 'Property', id: property?.id ?? period.propertyId } },
+      ),
+    )
+  // PR-39: Ohne Kontoinhaber druckt die Abrechnung keinen GiroCode, weil die
+  // Empfängerüberprüfung der Bank sonst beim Mieter warnt. Nur Hinweis: Die
+  // Abrechnung bleibt richtig und die Freigabe wird nicht blockiert.
+  else if (blank(bankAccount?.accountHolder))
+    add(
+      issue(
+        'info',
+        'master_data.account_holder_missing',
+        'master_data',
+        'Kontoinhaber fehlt – die Abrechnung enthält keinen GiroCode',
         { entity: { type: 'Property', id: property?.id ?? period.propertyId } },
       ),
     )
@@ -450,6 +468,7 @@ function costs(data: AppDataFile, period: BillingPeriod, add: Add): void {
           ),
         )
     }
+    waterConsumptionIssues(data, period, category, add)
     const match = previousCategories.find(
       (old) =>
         (category.standardKey && old.standardKey === category.standardKey) ||
@@ -483,6 +502,98 @@ function costs(data: AppDataFile, period: BillingPeriod, add: Add): void {
       )
     for (const entry of entries) documents(entry, data, add)
   }
+}
+
+/** Wasserkosten und Wohnungswasserzähler (§ 556a Abs. 1 Satz 2 BGB, ADR-0013). */
+function waterConsumptionIssues(
+  data: AppDataFile,
+  period: BillingPeriod,
+  category: AppDataFile['billingData']['costCategories'][number],
+  add: Add,
+): void {
+  const rows = periodOccupancies(data, period.id).filter((row) =>
+    category.scope ? occupancyMatchesScope(data, row, category.scope) : true,
+  )
+  if (rows.length === 0) return
+  const entity = { type: 'CostCategory', id: category.id }
+  const allMetered = rows.every((row) => row.coldWater?.value != null)
+  if (category.allocationKey === 'water_consumption') {
+    if (!allMetered)
+      add(
+        issue(
+          'error',
+          'costs.water_consumption_missing',
+          'costs',
+          'Wasserverbrauch fehlt',
+          {
+            entity,
+            detail: `${category.label}: Die Kostenart wird nach Wasserverbrauch verteilt, aber nicht für jede Nutzung ist ein Kaltwasserwert (m³) erfasst. Bitte die Werte unter „Verbrauch“ eintragen, auch für Leerstände.`,
+          },
+        ),
+      )
+    else mainWaterMeterIssue(rows, category, add)
+    return
+  }
+  if (
+    category.kind === 'water' &&
+    allMetered &&
+    (category.allocationKey === 'usable_area' ||
+      category.allocationKey === 'heated_area' ||
+      category.allocationKey === 'residential_units')
+  )
+    add(
+      issue(
+        'warning',
+        'costs.water_meter_not_used',
+        'costs',
+        'Wasserkosten nicht nach Verbrauch umgelegt',
+        {
+          entity,
+          detail: `${category.label}: Für alle Nutzungen ist der Kaltwasserverbrauch erfasst, die Kosten werden aber nach Fläche bzw. Wohneinheiten verteilt. Ist der Verbrauch erfasst, sind verbrauchsabhängige Betriebskosten nach § 556a Abs. 1 Satz 2 BGB nach Verbrauch umzulegen; Umlageschlüssel „Wasserverbrauch“ wählen. Hinweis, keine Rechtsberatung.`,
+        },
+      ),
+    )
+}
+
+/** Zulässige Abweichung Hauptzähler zu Wohnungszählern (E-45-3, Maintainer 25.10.2026). */
+const MAIN_WATER_METER_TOLERANCE_PERCENT = 15
+
+/**
+ * Abgleich Hauptwasserzähler mit der Summe der Wohnungszähler (Kalt- plus
+ * Warmwasser, E-45-1). Die Differenz wird anteilig mitverteilt (E-45-3);
+ * eine große Abweichung (Leck, Gartenwasser, defekter Zähler) macht die
+ * Verteilung angreifbar.
+ */
+function mainWaterMeterIssue(
+  rows: ReturnType<typeof periodOccupancies>,
+  category: AppDataFile['billingData']['costCategories'][number],
+  add: Add,
+): void {
+  const main = category.mainWaterMeterM3
+  if (main == null || main <= 0) return
+  const units = rows.reduce(
+    (sum, row) =>
+      sum + (row.coldWater?.value ?? 0) + (row.warmWater?.value ?? 0),
+    0,
+  )
+  const difference = Math.abs(main - units)
+  if (difference * 100 <= MAIN_WATER_METER_TOLERANCE_PERCENT * main) return
+  const percent = ((difference / main) * 100).toLocaleString('de-DE', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })
+  add(
+    issue(
+      'warning',
+      'costs.water_main_meter_difference',
+      'costs',
+      'Wohnungszähler weichen vom Hauptwasserzähler ab',
+      {
+        entity: { type: 'CostCategory', id: category.id },
+        detail: `${category.label}: Hauptwasserzähler ${formatReadingNumber(main)} m³, Summe der Wohnungszähler (Kalt- und Warmwasser) ${formatReadingNumber(units)} m³, Abweichung ${percent} % (zulässig bis ${MAIN_WATER_METER_TOLERANCE_PERCENT} %). Die Differenz wird anteilig auf alle Nutzungen verteilt. Bitte Ablesewerte, Zählertausch, Leckagen und Wasserentnahmen außerhalb der Wohnungen (z. B. Garten) prüfen. Hinweis, keine Rechtsberatung.`,
+      },
+    ),
+  )
 }
 
 function documents(
@@ -1301,20 +1412,7 @@ function legalRules(data: AppDataFile, period: BillingPeriod, add: Add): void {
       )
     }
   }
-  if (
-    codes.has('remote-reading') &&
-    data.billingData.heatingCircuits.some(
-      ({ billingPeriodId }) => billingPeriodId === period.id,
-    )
-  ) {
-    const rule = legalRule('remote-reading')
-    add(
-      issue('info', 'rules.remote_reading', 'heating', rule.title, {
-        entity: { type: 'BillingPeriod', id: period.id },
-        detail: `${rule.summary} (${rule.norm})`,
-      }),
-    )
-  }
+  remoteReadingIssues(data, period, codes, add)
 }
 
 const euroFormatter = new Intl.NumberFormat('de-DE', {

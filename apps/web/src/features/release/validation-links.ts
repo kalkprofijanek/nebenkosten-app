@@ -37,7 +37,8 @@ export function validationIssueLink(
   }
   if (
     issue.code === 'documents.booking_link_missing' ||
-    issue.code === 'costs.entry_ambiguous'
+    issue.code === 'costs.entry_ambiguous' ||
+    issue.code === 'costs.invoice_amount_mismatch'
   ) {
     if (issue.entity?.type === 'CostEntry') {
       return {
@@ -90,7 +91,10 @@ export function validationIssueLink(
       label: 'Zählerstände prüfen',
     }
 
-  if (issue.code === 'heating.metering_fee_not_identified')
+  if (
+    issue.code === 'heating.metering_fee_not_identified' ||
+    issue.code === 'heating.billing_service_duplicate'
+  )
     return {
       href: '#/kosten?tab=categories&kind=heating',
       label: 'Heizungs-Kostenarten kennzeichnen',

@@ -4,6 +4,120 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Wasser nach Zählern, Abgleich mit dem Hauptwasserzähler (ADR-0013,
+  E-45-3)**: Entscheidungen E-45-1 bis E-45-3 angenommen (Kalt- plus
+  Warmwasser, Leerstand im Nenner, Nenner = Summe der Wohnungszähler).
+  Optionales Feld „Verbrauch laut Hauptwasserzähler“ an Wasser-Kostenarten
+  (`CostCategory.mainWaterMeterM3`, m³, additiv, Schema v5, nicht ins
+  Folgejahr übernommen); Warnung `costs.water_main_meter_difference`, wenn
+  die Summe der Wohnungszähler um mehr als 15 % vom Hauptzähler abweicht,
+- **Abrechnungsentgelt Heiz-/Warmwasserkostenabrechnung (ADR-0015)**: Art
+  des Entgelts an Heizungs-Kostenarten (`CostCategory.meteringFeeKind`:
+  Erstellung der Abrechnung, Ablesung, Gerätemiete, Eichung, Sonstiges) und
+  Rechnungsangaben am Beleg (`CostEntry.invoice`: Rechnungsnummer, -datum,
+  Leistungszeitraum, Netto, Umsatzsteuer, Steuersatz; beide additiv,
+  Schema v5) mit Erfassung in der Oberfläche; Vorschau
+  `billingServiceFeePreview` mit Kalkulationshilfe **je erstellter
+  Heizkostenabrechnung** (je bewohnte Nutzung eine, Nutzerwechsel zwei,
+  Leerstand keine), Verteilung über den Heiztopf und Auswirkung je Nutzung;
+  `pnpm abrechnung … --abrechnungsentgelt <netto> [--ust <prozent>]`;
+  Warnungen `heating.billing_service_duplicate` und
+  `costs.invoice_amount_mismatch`,
+- **Legacy-v3-Import**: Grenze je Collection von 1.000 auf 10.000 Einträge
+  angehoben – Objekte mit über 1.000 Bankbuchungen im Jahr wurden als
+  „Eingabegrenzen überschritten“ abgelehnt,
+- **Datenschutz (PR-43)**: `docs/DATENSCHUTZ-KI.md` als endgültige Fassung
+  (Monatsinformation, Belegprüfung, Mieterinformation); neues Muster
+  `docs/DATENSCHUTZ-MIETERINFORMATION.md` nach Art. 13 DSGVO mit
+  Einwilligung in den E-Mail-Versand,
+- **Betragsabgleich in der Belegprüfung (E-41-2)**: `pnpm belegpruefung …
+--erfassungsliste <datei>` vergleicht den unabhängig gelesenen
+  Rechnungsbetrag (Format KI-Erfassungsliste) mit der Summe der
+  Kostenpositionen und Lieferungen je Rechnung (Toleranz 1 Cent); Befunde
+  „Betrag weicht ab“ (mit Hinweis bei Leistungszeitraum über den
+  Jahreswechsel) und „Beleg ohne Kostenposition“. Reine Logik
+  `compareReceiptAmounts` in `packages/validators`,
+- **Tests**: zwei Web-Testdateien (`interim-reading`, `degree-day-split`)
+  liefen wegen der Endung `.test.ts` nie; umbenannt, Architekturtest
+  verhindert die Endung künftig,
+- **Monatsinformation, Schritt 3 (ADR-0014, PR-46)**: PDF „Verbrauchsinformation
+  <Monat>“ je Mieter im Fensterkuvert-Format (Heizung und Warmwasser mit
+  Vormonat, Vorjahresmonat, Durchschnittsnutzer, Erläuterungen, Annahmen,
+  Kontaktsatz mit Telefon und E-Mail); Versandweg am Mietverhältnis
+  (`Tenancy.monthlyInformationDelivery`, E-Mail nur mit Zustimmungsdatum);
+  Versandliste auf der Seite **Monatsinformation** mit PDF je Mieter, ZIP und
+  E-Mail-Entwurf je Mieter (kein BCC), „Monat versendet am“ mit Ausnahmen und
+  Versandprotokoll (`billingData.monthlyInformationDispatches`, additiv);
+  Warnung `rules.monthly_information_missing` je Monat ohne Protokoll. Versand
+  nur bei erfasster Fernablesbarkeit; Versanddatum nicht vor Monatsende,
+- **Monatsinformation, Schritt 2 (ADR-0014, PR-46)**: Wohnungs-Warmwasserzähler
+  (`unit_hot_water`, m³) mit Zuordnung am Heizkreis
+  (`HeatingCircuit.hotWaterMeterAssignments`, additiv, Schema v5); CSV-Import
+  der Monatsendstände mit Vorschau (`planMonthlyMeterReadings`: Zuordnung über
+  Zählernummer, Einheit, Dubletten, Konflikte, fallende Stände; Übernahme nur
+  ohne Probleme und nicht in gesperrte Abrechnungsjahre); Rechenkern
+  `calculateMonthlyConsumptionInformation` (Monatsverbrauch je Mieter,
+  Vormonat/Vorjahresmonat des eigenen Mietverhältnisses, Durchschnittsnutzer
+  aus der Heizspiegel-Mitte „mittel“, Warmwasser m³ → kWh mit 60 °C als
+  gekennzeichnetem Schätzwert); neue Seite **Monatsinformation**. Fix:
+  Bearbeiten eines Heizkreises behält die Warmwasserzuordnungen,
+- **Fernablesbarkeit und Monatsinformation, Schritt 1 (ADR-0014, PR-46)**:
+  Regelverzeichnis korrigiert – die monatliche Verbrauchsinformation gilt
+  bei fernablesbaren Geräten seit 01.01.2022 (`monthly-consumption-information`),
+  `remote-reading` ab 2027 nur noch für die Nachrüstpflicht. Neues optionales
+  Feld `Property.remoteReading` (`since`, `exemptionReason`; additiv, Schema
+  v5) mit Eingabe im Objekt-Formular. Prüfhinweise: Warnung
+  `rules.remote_reading_missing` ab 2027 ohne Fernablesbarkeit (Kürzung 3 %,
+  § 12 Abs. 1 Satz 2 HeizKV), Hinweise `rules.remote_reading_exemption` und
+  `rules.monthly_information` (Heizung bzw. Heizung und Warmwasser); der
+  allgemeine Hinweis `rules.remote_reading` entfällt,
+- **Belegprüfung gegen den Rechnungsordner je Objekt (PR-40/41)**:
+  `pnpm belegpruefung <datendatei> --jahr <Jahr>` liest den bestehenden
+  Rechnungsordner aus der privaten Zuordnung
+  `private-data/objekt-ordner.json` und meldet Kosten ohne Belegangabe,
+  nicht gefundene Belege, Mehrfachverwendung und Dateien ohne
+  Kostenposition. Verknüpfung über das vorhandene Feld
+  „Belegnummer/Dateiname“ (keine Schemaänderung); Abrechnungsjahr nach
+  Leistungszeitraum, daher Dateien ohne Kostenposition jahresunabhängig;
+  nur lesend. Reine Prüflogik `checkReceiptFolder` in
+  `packages/validators`; Anleitung `docs/BELEGPRUEFUNG.md`,
+- **Wasser nach Zähler (ADR-0013, PR-45)**: neuer Umlageschlüssel
+  `water_consumption` „Wasserverbrauch (m³)“ (additiv, Schema v5): Kalt- plus
+  Warmwasser je Nutzung, Leerstand im Nenner (trägt der Vermieter), ohne
+  Zeitfaktor; Nenner „m³“ und eigene m³ in der Einzelabrechnung. Prüfung:
+  Fehler `costs.water_consumption_missing` ohne Kaltwasserwert, Warnung
+  `costs.water_meter_not_used`, wenn Zählerwerte vorliegen, Wasserkosten aber
+  nach Fläche oder Wohneinheiten verteilt werden (§ 556a Abs. 1 Satz 2 BGB),
+- **Screenshots und Musterabrechnungen (ADR-0012, PR-44)**: Rundgang in
+  neun Bildern mit Bedienhinweisen, Vorschau der Einzelabrechnung und des
+  GiroCodes sowie sechs Muster-PDFs aus dem fiktiven Beispielobjekt unter
+  `docs/medien/`, eingebunden in README, Kurzanleitung und
+  Beispiel-Beschreibung; erzeugt mit `pnpm medien`. Der Privacy-Scan lässt
+  Binärdateien nur dort und nur mit Eintrag in `docs/medien/SHA256SUMS` zu
+  und akzeptiert IBANs mit der nicht vergebenen Bankleitzahl 00000000.
+  Beispielobjekt praxisnah und vollständig erfasst (keine Prüfhinweise):
+  Zählerstände mit Zwischenablesung, Warmwasser nach Wärmezähler und m³,
+  Heizspiegel-2026-Vergleichswerte, Klimafaktoren, Vorjahreswerte des
+  Voreigentümers, Messdienst, Schornsteinfeger, Steuern und Abgaben je
+  Lieferung, Anreden, neue Anschriften nach Auszug, Bankverbindung mit
+  Kontoinhaber. `pnpm abrechnung` liest jetzt auch Sicherungen der App
+  (Schema v4/v5), nicht nur `nk-daten.json`,
+- **Korrekturen aus dem Rundgang**: Anrede „Sehr geehrte Familie Familie …“
+  bei Anzeigenamen mit „Familie“ (PDF); Lieferliste unter **Heizkreise →
+  Brennstoffe** mit deutschem Datum, Menge und Betrag statt `2025-02-10` und
+  `3150.00 €`; Verbrauchstabelle passt bei 1440 px ohne horizontales
+  Scrollen,
+- **GiroCode bei Nachzahlung (PR-39)**: Die Einzelabrechnung druckt neben
+  der Zahlungsaufforderung einen EPC-QR-Code (EPC069-12, Version 002,
+  UTF-8, Fehlerkorrektur M) mit Kontoinhaber, IBAN, ggf. BIC, Betrag und
+  Verwendungszweck. Kein Code bei Guthaben, ausgeglichenem Saldo,
+  ungültiger IBAN/BIC oder fehlendem Kontoinhaber (kein Ersatzname wegen
+  der Empfängerüberprüfung der Banken); neuer Hinweis
+  `master_data.account_holder_missing` (Stufe info, blockiert die Freigabe
+  nicht). Bei Mieterwechsel im Jahr erhält
+  der nachfolgende Mieter den Verwendungszweck „NK <Jahr> <Einheit> ab
+  TT.MM.“ (QR-Code und Text);
+  Berechnung unverändert, keine neue Abhängigkeit (pdfmake-QR),
 - **Mieterliste aus Excel/CSV (PR-37 Teil 2)**: Vorlage „Mieterliste“ zum
   Herunterladen unter **Nutzer**; je Zeile eine Belegung (Wohnung mit Fläche,
   Mieter oder Leerstand, Von/Bis, Personen, Vorauszahlung monatlich, jährlich

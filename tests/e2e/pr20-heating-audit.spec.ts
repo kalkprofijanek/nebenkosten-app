@@ -206,7 +206,7 @@ async function fuel(page: Page) {
     page.locator('article').filter({
       has: page.getByRole('heading', { name: 'Fiktive Öllieferung Oktober' }),
     }),
-  ).toContainText('900.00 €')
+  ).toContainText('900,00 €')
   await select(page, 'Aktive Energiequelle', {
     label: 'Fiktiver Wärmepumpenstrom',
   })

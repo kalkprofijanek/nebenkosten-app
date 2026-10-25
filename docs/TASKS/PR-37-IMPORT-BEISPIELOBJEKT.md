@@ -33,7 +33,8 @@ Tests je Vorlage; Privacy-Scan grün; Beispielobjekt rechnet ohne Fehler.
   auf PR-30 auf).
 - Erzeugt und abgesichert durch `tests/integration/beispielobjekt.test.ts`
   (Datei aktuell, Schema gültig, Kontrolldifferenz ≤ 1 Cent, einziger Fehler
-  „IBAN fehlt“, weil eine Beispiel-IBAN der Privacy-Scan meldet) und
+  „IBAN fehlt“, weil eine Beispiel-IBAN der Privacy-Scan meldet; seit
+  PR-44 fiktive IBAN mit Bankleitzahl 00000000, keine Prüfhinweise mehr) und
   `apps/web/src/features/import/beispielobjekt.test.tsx` (lädt über den
   normalen Import).
 - Beschreibung: `docs/beispiel/README.md`.

@@ -33,6 +33,13 @@ und Eigentümerwechsel erstellt:
 2. Den Agenten (z. B. **Claude Code**) die Belege lesen lassen: Rechnungen,
    Kontoauszüge, Ablesebögen, Fotos, Mails. Für jeden übernommenen Wert nennt
    er die Quelle.
+   Liegen die Rechnungen in einem Ordner je Objekt, ordnen Sie ihn einmal in
+   `private-data/objekt-ordner.json` zu (siehe
+   [`BELEGPRUEFUNG.md`](BELEGPRUEFUNG.md)). Der Agent liest nur die Ordner,
+   die Sie freigeben, bestimmt das Abrechnungsjahr aus dem
+   **Leistungszeitraum** (nicht aus Rechnungsdatum oder Ordner) und trägt den
+   Dateinamen als Belegnummer ein. `pnpm belegpruefung … --jahr 2025` zeigt
+   danach Kosten ohne Rechnung und Rechnungen ohne Kostenposition.
 3. **Vor jeder Änderung eine Sicherungskopie**; Änderungen als kleines Skript
    mit Kommentar (was, warum, welcher Beleg), damit sie nachvollziehbar und
    wiederholbar sind. Keine Handänderung ohne Beleg.
@@ -49,6 +56,12 @@ und Eigentümerwechsel erstellt:
    Repositorys: `--overlay private-data/overlay.mjs` mit
    `export default function (data, { year }) { … }`. Das Ergebnis wird erneut
    gegen das Dateischema geprüft; die Eingabedatei bleibt unverändert.
+   Mit `--abrechnungsentgelt 40 [--ust 19]` zeigt die Ausgabe zusätzlich das
+   Entgelt für die Erstellung der Heiz-/Warmwasserkostenabrechnung
+   (ADR-0015): Kalkulationshilfe je erstellter Heizkostenabrechnung (je
+   bewohnte Nutzung eine, Nutzerwechsel zwei, Leerstand keine) gegen die
+   erfasste Rechnung, Aufteilung Heizung/Warmwasser und Mehrbelastung je
+   Nutzung.
 6. **Referenzwerte selbst abrufen:** Klimafaktor je Postleitzahl (DWD),
    Vergleichswerte (Heizspiegel), CO₂-Preis und Rechtsgrundlagen holt der
    Agent selbst aus den Quellen in [`DATENQUELLEN.md`](DATENQUELLEN.md) – mit
@@ -74,6 +87,8 @@ verarbeitet sie im Sinne der DSGVO **als Verantwortlicher**.
   Kontoauszüge bei Bedarf (Mietereingänge) oder lassen Sie diese Zeilen weg.
 - Geben Sie **niemals** die vollständige JSON-Sicherung an eine KI, wenn eine
   Teilinformation reicht.
+- Regeln für lokale Agenten, Ordnerverknüpfung und eine Checkliste stehen
+  in [`DATENSCHUTZ-KI.md`](DATENSCHUTZ-KI.md).
 - Dies ist keine Rechtsberatung. Klären Sie die Anforderungen für Ihren Fall.
 
 ## Ablauf A: Eingangsrechnungen auslesen

@@ -221,4 +221,77 @@ describe('OccupancyEditor', () => {
       ),
     ).toBeVisible()
   })
+
+  it('erfasst den Versandweg der Monatsinformation mit Pflichtdatum bei E-Mail', () => {
+    const data = fixture()
+    data.masterData.persons = [
+      { id: 'pa', organizationId: 'org', displayName: 'Fiktive Person' },
+      { id: 'pb', organizationId: 'org', displayName: 'Fiktive Mitbewohnerin' },
+    ]
+    data.masterData.tenancies = [
+      { id: 't2', unitId: 'u2', personIds: ['pa', 'pb'] },
+    ]
+    const saveTenant = vi.fn((event: { preventDefault(): void }) =>
+      event.preventDefault(),
+    )
+    const view = (source: AppDataFile) =>
+      render(
+        <OccupancyEditor
+          data={source}
+          occupancy={source.billingData.occupancyPeriods[1]!}
+          period={source.billingData.billingPeriods[0]!}
+          saveTenant={saveTenant}
+          saveVacancy={vi.fn()}
+        />,
+      )
+    view(data)
+    const channel = screen.getByLabelText('Monatsinformation per')
+    expect(channel).toHaveValue('letter')
+    expect(screen.getByLabelText('E-Mail-Zustimmung vom')).toHaveValue('')
+    expect(screen.queryByRole('status')).toBeNull()
+
+    fireEvent.change(channel, { target: { value: 'email' } })
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Keine Person dieses Mietverhältnisses hat eine E-Mail-Adresse.',
+    )
+    const save = screen.getByRole('button', { name: 'Nutzerdaten speichern' })
+    fireEvent.click(save)
+    expect(saveTenant).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Für den E-Mail-Versand ist das Datum der Zustimmung anzugeben.',
+    )
+    expect(screen.getByLabelText('E-Mail-Zustimmung vom')).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    )
+
+    fireEvent.change(screen.getByLabelText('E-Mail-Zustimmung vom'), {
+      target: { value: '2026-02-01' },
+    })
+    expect(screen.queryByRole('alert')).toBeNull()
+    fireEvent.change(screen.getByLabelText('E-Mail bearbeiten'), {
+      target: { value: ['person', 'example.invalid'].join('@') },
+    })
+    expect(screen.queryByRole('status')).toBeNull()
+    fireEvent.click(save)
+    expect(saveTenant).toHaveBeenCalledTimes(1)
+    cleanup()
+
+    // Gespeicherter Weg; E-Mail-Adresse einer weiteren Person genügt.
+    const stored = structuredClone(data)
+    stored.masterData.persons[1]!.email = [
+      'mitbewohnerin',
+      'example.invalid',
+    ].join('@')
+    stored.masterData.tenancies[0]!.monthlyInformationDelivery = {
+      channel: 'email',
+      emailConsentDate: '2026-01-15',
+    }
+    view(stored)
+    expect(screen.getByLabelText('Monatsinformation per')).toHaveValue('email')
+    expect(screen.getByLabelText('E-Mail-Zustimmung vom')).toHaveValue(
+      '2026-01-15',
+    )
+    expect(screen.queryByRole('status')).toBeNull()
+  })
 })

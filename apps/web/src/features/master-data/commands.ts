@@ -1,4 +1,4 @@
-import type { AppDataFile } from '@nebenkosten/schema'
+import { isoDateSchema, type AppDataFile } from '@nebenkosten/schema'
 import {
   assertValidResult,
   assertValidSource,
@@ -60,6 +60,10 @@ export interface UpdatePropertyInput {
   readonly bic?: string
   readonly accountHolder?: string
   readonly bankName?: string
+  /** Fernablesbar seit (ISO-Datum, ADR-0014). */
+  readonly remoteReadingSince?: string
+  /** Begründete Ausnahme nach § 5 Abs. 3 Satz 2 HeizKV. */
+  readonly remoteReadingExemptionReason?: string
 }
 
 export interface AddBuildingInput {
@@ -494,6 +498,19 @@ export function updateProperty(
     bankName === undefined
       ? undefined
       : withoutUndefined({ iban, bic, accountHolder, bankName })
+  const since = normalizeOptional(input.remoteReadingSince, 'Fernablesbar seit')
+  if (since !== undefined && !isoDateSchema.safeParse(since).success)
+    throw new MasterDataCommandError(
+      'Bitte ein gültiges Datum für „Erfassungsgeräte fernablesbar seit“ eingeben.',
+    )
+  const exemptionReason = normalizeOptional(
+    input.remoteReadingExemptionReason,
+    'Ausnahme von der Fernablesbarkeit',
+  )
+  const remoteReading =
+    since === undefined && exemptionReason === undefined
+      ? undefined
+      : withoutUndefined({ since, exemptionReason })
   const result: AppDataFile = {
     ...data,
     masterData: {
@@ -506,6 +523,7 @@ export function updateProperty(
               externalNumber,
               address,
               bankAccount,
+              remoteReading,
             })
           : property,
       ),

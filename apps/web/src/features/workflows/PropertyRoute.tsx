@@ -150,6 +150,11 @@ export function PropertyRoute({
           bic: formOptionalText(form, 'bic'),
           accountHolder: formOptionalText(form, 'accountHolder'),
           bankName: formOptionalText(form, 'bankName'),
+          remoteReadingSince: formOptionalText(form, 'remoteReadingSince'),
+          remoteReadingExemptionReason: formOptionalText(
+            form,
+            'remoteReadingExemptionReason',
+          ),
         }),
       )
     )
@@ -447,6 +452,39 @@ export function PropertyRoute({
                   name="bankName"
                   defaultValue={property.bankAccount?.bankName ?? ''}
                 />
+                <label>
+                  <span>Erfassungsgeräte fernablesbar seit</span>
+                  <input
+                    name="remoteReadingSince"
+                    type="date"
+                    defaultValue={property.remoteReading?.since ?? ''}
+                    aria-describedby="property-remote-reading-since-hint"
+                  />
+                </label>
+                <p
+                  id="property-remote-reading-since-hint"
+                  className="form-section__hint"
+                >
+                  Datum, ab dem alle Wärme- und Warmwasserzähler bzw.
+                  Heizkostenverteiler per Funk ablesbar sind (§ 5 HeizKV). Ab
+                  diesem Datum sind monatliche Verbrauchsinformationen nötig.
+                </p>
+                <label>
+                  <span>Ausnahme von der Fernablesbarkeit (Begründung)</span>
+                  <input
+                    name="remoteReadingExemptionReason"
+                    type="text"
+                    defaultValue={property.remoteReading?.exemptionReason ?? ''}
+                    aria-describedby="property-remote-reading-exemption-hint"
+                  />
+                </label>
+                <p
+                  id="property-remote-reading-exemption-hint"
+                  className="form-section__hint"
+                >
+                  Nur bei technischer Unmöglichkeit oder unbilliger Härte (§ 5
+                  Abs. 3 Satz 2 HeizKV); muss belegbar sein.
+                </p>
                 <button type="submit">Objektdaten speichern</button>
               </form>
             ) : null}

@@ -135,6 +135,17 @@ ausgenommen. Die Einzelabrechnung begründet die Flächenverteilung.
   Belegbeschreibung z. B. „Wärmezähler“, „Messdienst“, „Ablesung“,
   „Abrechnung“ oder „Eichung“ enthält; sonst lautet der Hinweis, dass sie in
   den Betriebskosten der Heizungsanlage enthalten sind.
+- Das Entgelt eines Abrechnungsdienstleisters für die Erstellung der
+  Heiz-/Warmwasserkostenabrechnung (ADR-0015, `meteringFeeKind:
+  'billing_service'`) ist eine Heizungs-Betriebskostenart des Heizkreises.
+  Es fließt in den Heiztopf (Grund-/Verbrauchskosten, bei zentralem
+  Warmwasser anteilig nach § 9 Abs. 1 HeizKV); Leerstandsanteile trägt der
+  Vermieter, Energie und CO₂ bleiben unverändert. Die Kalkulationshilfe
+  rechnet **je erstellter Heizkostenabrechnung**: je bewohnte Nutzung eine,
+  Nutzerwechsel zwei, Leerstand keine (Beispiel: 10 Abrechnungen × 40,00 €
+  netto = 400,00 € + 76,00 € USt = 476,00 €).
+  Mehrere Abrechnungsdienstleistungen im selben Heizkreis meldet
+  `heating.billing_service_duplicate`.
 - Zählerstände (`OccupancyPeriod.heatMeterReading`) sind rein dokumentarisch;
   maßgeblich für die Verteilung bleiben `consumptionUnits` bzw. die gemessenen
   kWh. Die Einzelabrechnung zeigt sie unter „Ihre Verbrauchserfassung“ mit der

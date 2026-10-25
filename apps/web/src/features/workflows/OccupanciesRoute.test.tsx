@@ -200,3 +200,65 @@ describe('Wohnungsbezogene Belegungsübersicht', () => {
     expect(screen.getByRole('region', { name: 'Wohnung 1' })).toBeVisible()
   })
 })
+
+describe('Versandweg der Monatsinformation', () => {
+  it('speichert E-Mail mit Zustimmungsdatum und entfernt den Weg bei Brief', () => {
+    let current = fixture()
+    current.masterData.persons[1]!.email = ['neu', 'example.invalid'].join('@')
+    current.billingData.prepayments = [
+      { id: 'pp', occupancyPeriodId: 'new', mode: 'none_agreed' },
+    ]
+    const onApply = vi.fn((transform: (file: AppDataFile) => AppDataFile) => {
+      current = transform(current)
+      return true
+    })
+    const props = {
+      selection: {
+        ownerCompanyId: null,
+        propertyId: 'p',
+        billingPeriodId: 'y',
+      },
+      onApply,
+      onSelectionChange: vi.fn(),
+    }
+    const view = render(<OccupanciesRoute data={current} {...props} />)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Fiktiv Neu bearbeiten' }),
+    )
+    fireEvent.change(screen.getByLabelText('Monatsinformation per'), {
+      target: { value: 'email' },
+    })
+    fireEvent.change(screen.getByLabelText('E-Mail-Zustimmung vom'), {
+      target: { value: '2026-09-01' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Nutzerdaten speichern' }),
+    )
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(
+      current.masterData.tenancies.find(({ id }) => id === 'tn'),
+    ).toMatchObject({
+      monthlyInformationDelivery: {
+        channel: 'email',
+        emailConsentDate: '2026-09-01',
+      },
+    })
+
+    view.rerender(<OccupanciesRoute data={current} {...props} />)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Fiktiv Neu bearbeiten' }),
+    )
+    fireEvent.change(screen.getByLabelText('Monatsinformation per'), {
+      target: { value: 'letter' },
+    })
+    fireEvent.change(screen.getByLabelText('E-Mail-Zustimmung vom'), {
+      target: { value: '' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Nutzerdaten speichern' }),
+    )
+    expect(
+      current.masterData.tenancies.find(({ id }) => id === 'tn'),
+    ).not.toHaveProperty('monthlyInformationDelivery')
+  })
+})

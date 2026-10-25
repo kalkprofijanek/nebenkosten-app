@@ -1,6 +1,14 @@
-import { act, cleanup, render, screen } from '@testing-library/react'
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  createHotWaterFixture,
   createMeteredFixture,
   meteringId as id,
 } from '../../metering/metered-fixture'
@@ -98,5 +106,74 @@ describe('MeterPanel', () => {
     window.history.replaceState(null, '', `#/abrechnungsablauf?meter=${id(30)}`)
     render(show())
     expect(meterHeading()).toHaveTextContent('TEST-WMZ-1')
+  })
+
+  it('bietet Warmwasserzähler an und erfasst deren Stände fest in m³', () => {
+    const apply = vi.fn(() => true)
+    render(
+      <MeterPanel
+        data={createHotWaterFixture()}
+        selection={{
+          ownerCompanyId: id(2),
+          propertyId: id(3),
+          billingPeriodId: id(10),
+        }}
+        onSelectionChange={vi.fn()}
+        onApply={vi.fn(() => true)}
+        apply={apply}
+      />,
+    )
+    const kind = screen.getByLabelText('Zählerart')
+    expect(
+      within(kind).getByRole('option', {
+        name: 'Wohnungs-Warmwasserzähler (m³)',
+      }),
+    ).toHaveValue('unit_hot_water')
+    expect(
+      screen.getByRole('heading', { name: 'Warmwasserzähler je Wohnung' }),
+    ).toBeVisible()
+    fireEvent.change(screen.getByLabelText('Aktiver Zähler'), {
+      target: { value: id(41) },
+    })
+    expect(
+      screen.getByText('Wohnungs-Warmwasserzähler (m³)', {
+        selector: '.section-kicker',
+      }),
+    ).toBeVisible()
+    expect(screen.getByLabelText('Zählerstand (m³)')).toBeVisible()
+    const unit = screen.getByLabelText('Ableseeinheit')
+    expect(unit).toHaveValue('m3')
+    expect(within(unit).getAllByRole('option')).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Zähler bearbeiten' }))
+    expect(screen.getByLabelText('Zählerart bearbeiten')).toHaveValue(
+      'unit_hot_water',
+    )
+  })
+
+  it('lässt Allgemeinstromzähler bei freier Ableseeinheit', () => {
+    const source = createMeteredFixture()
+    render(
+      <MeterPanel
+        data={{
+          ...source,
+          masterData: {
+            ...source.masterData,
+            meters: [{ id: id(30), propertyId: id(3), kind: 'general' }],
+          },
+        }}
+        selection={{
+          ownerCompanyId: id(2),
+          propertyId: id(3),
+          billingPeriodId: id(10),
+        }}
+        onSelectionChange={vi.fn()}
+        onApply={vi.fn(() => true)}
+        apply={vi.fn(() => true)}
+      />,
+    )
+    expect(screen.getByLabelText('Zählerstand')).toBeVisible()
+    expect(
+      within(screen.getByLabelText('Ableseeinheit')).getAllByRole('option'),
+    ).toHaveLength(5)
   })
 })

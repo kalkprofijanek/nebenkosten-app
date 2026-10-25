@@ -700,7 +700,8 @@ export function updateHeatingCircuit(
     'Heizkreis',
   )
   if (
-    current.meterAssignments?.length &&
+    (current.meterAssignments?.length ||
+      current.hotWaterMeterAssignments?.length) &&
     (input.buildingId !== current.buildingId ||
       input.billingPeriodId !== current.billingPeriodId)
   ) {
@@ -747,6 +748,9 @@ export function updateHeatingCircuit(
     ...validated.billingData.heatingCircuits.at(-1)!,
     consumptionMode: current.consumptionMode,
     meterAssignments: current.meterAssignments,
+    // ADR-0014: bleibt auch beim Abschalten des zentralen Warmwassers
+    // erhalten; der Rechenkern meldet das, entfernt wird nur ausdrücklich.
+    hotWaterMeterAssignments: current.hotWaterMeterAssignments,
     consumptionBenchmark:
       input.consumptionBenchmark === undefined
         ? current.consumptionBenchmark

@@ -9,6 +9,7 @@ import {
   entityIdSchema,
   isoDateSchema,
   moneyCentsSchema,
+  nonNegativeMoneyCentsSchema,
   percentSchema,
 } from '../primitives'
 import {
@@ -28,6 +29,8 @@ import {
  * `heated_area` = m² beheizte Fläche (`m2_nf_hzg`),
  * `consumption_units` = HKV-Verbrauchseinheiten (`einheiten`),
  * `residential_units` = je Wohneinheit (`we_anzahl`),
+ * `water_consumption` = gemessener Wasserverbrauch, Kalt- plus Warmwasser in
+ *   m³ je Nutzung (§ 556a Abs. 1 Satz 2 BGB; additiv, Schema v5, ADR-0013),
  * `direct` = direkte Zuordnung ohne automatische Verteilung (`direkt`).
  */
 export const allocationKeySchema = z.enum([
@@ -35,6 +38,7 @@ export const allocationKeySchema = z.enum([
   'heated_area',
   'consumption_units',
   'residential_units',
+  'water_consumption',
   'direct',
 ])
 export type AllocationKey = z.infer<typeof allocationKeySchema>
@@ -57,6 +61,21 @@ export type AllocationRule = z.infer<typeof allocationRuleSchema>
 /** Kostenart-Typ (Legacy `typ`): steuert die Umlagelogik grundlegend. */
 export const costCategoryKindSchema = z.enum(['operating', 'water', 'heating'])
 export type CostCategoryKind = z.infer<typeof costCategoryKindSchema>
+
+/**
+ * Art des Entgelts für Verbrauchserfassung und Abrechnung (§ 6a Abs. 3
+ * Nr. 1c HeizKV, ADR-0015). Trennt die Erstellung der Heiz-/Warmwasser-
+ * kostenabrechnung (`billing_service`) von Ablesung, Gerätemiete und Eichung,
+ * damit Doppelansätze erkannt werden. Leer = nicht unterschieden.
+ */
+export const meteringFeeKindSchema = z.enum([
+  'billing_service',
+  'reading',
+  'device_rental',
+  'calibration',
+  'other',
+])
+export type MeteringFeeKind = z.infer<typeof meteringFeeKindSchema>
 
 /**
  * CostCategory / Kostenart eines Abrechnungsjahres (Legacy: `Kostenart`
@@ -97,11 +116,49 @@ export const costCategorySchema = z.strictObject({
    * ADR-0006).
    */
   meteringFee: z.boolean().nullish(),
+  /** Art des Entgelts (additiv, Schema v5; ADR-0015). */
+  meteringFeeKind: meteringFeeKindSchema.nullish(),
+  /**
+   * Verbrauch laut Hauptwasserzähler im Abrechnungszeitraum in m³, nur zum
+   * Abgleich mit der Summe der Wohnungszähler; verteilt wird stets nach den
+   * Wohnungszählern (additiv, Schema v5; ADR-0013, E-45-3).
+   */
+  mainWaterMeterM3: z.number().finite().positive().nullish(),
   /** Herkunftsmarker Grundsteuer-Import (Legacy-Felder). */
   fromPropertyTaxImport: z.boolean().nullish(),
   propertyTaxAssessmentCents: moneyCentsSchema.nullish(),
 })
 export type CostCategory = z.infer<typeof costCategorySchema>
+
+/**
+ * Rechnungsangaben eines Belegs (additiv, Schema v5; ADR-0015). Der
+ * Belegbetrag `amountCents` bleibt der umgelegte Betrag (bei Wohnraum ohne
+ * Vorsteuerabzug brutto); Netto und Umsatzsteuer sind Angaben der Rechnung,
+ * die die Prüfung gegen den Belegbetrag abgleicht. Der Leistungszeitraum ist
+ * der tatsächliche Zeitraum der Leistung (z. B. Erstellung der Abrechnung im
+ * Folgejahr), nicht der abgerechnete Zeitraum.
+ */
+export const costEntryInvoiceSchema = z
+  .strictObject({
+    invoiceNumber: z.string().trim().min(1).max(200).nullish(),
+    invoiceDate: isoDateSchema.nullish(),
+    servicePeriodStart: isoDateSchema.nullish(),
+    servicePeriodEnd: isoDateSchema.nullish(),
+    netCents: nonNegativeMoneyCentsSchema.nullish(),
+    vatCents: nonNegativeMoneyCentsSchema.nullish(),
+    vatRatePercent: percentSchema.nullish(),
+  })
+  .refine(
+    (value) =>
+      !value.servicePeriodStart ||
+      !value.servicePeriodEnd ||
+      value.servicePeriodStart <= value.servicePeriodEnd,
+    {
+      message: 'Der Leistungszeitraum muss vor seinem Ende beginnen.',
+      path: ['servicePeriodEnd'],
+    },
+  )
+export type CostEntryInvoice = z.infer<typeof costEntryInvoiceSchema>
 
 /**
  * CostEntry / Kostenbuchung oder Rechnung (Legacy: `Beleg`/`rechnungen[]`
@@ -128,5 +185,7 @@ export const costEntrySchema = z.strictObject({
   origin: costOriginSchema.nullish(),
   /** Rechnung, Abschläge oder Schätzung (additiv, Schema v5, PR-30). */
   amountBasis: amountBasisSchema.nullish(),
+  /** Rechnungsangaben (additiv, Schema v5; ADR-0015). */
+  invoice: costEntryInvoiceSchema.nullish(),
 })
 export type CostEntry = z.infer<typeof costEntrySchema>

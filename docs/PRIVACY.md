@@ -16,7 +16,7 @@ Geschlossene Pull-Request-Refs und alte Commit-Objekte können trotz History-Rew
 
 ## Nutzerdaten der veröffentlichten App
 
-Die App unter GitHub Pages verarbeitet alle Eingaben ausschließlich lokal im Browser (IndexedDB); ausgehende Verbindungen sind per Content Security Policy gesperrt. Der Maintainer erhält keine Nutzerdaten. Wer Belege oder Kontoauszüge an einen KI-Dienst gibt, verarbeitet sie in eigener Verantwortung (siehe `docs/KI-ANLEITUNG.md`).
+Die App unter GitHub Pages verarbeitet alle Eingaben ausschließlich lokal im Browser (IndexedDB); ausgehende Verbindungen sind per Content Security Policy gesperrt. Der Maintainer erhält keine Nutzerdaten. Wer Belege oder Kontoauszüge an einen KI-Dienst gibt, verarbeitet sie in eigener Verantwortung (siehe `docs/KI-ANLEITUNG.md` und `docs/DATENSCHUTZ-KI.md`). Ein Muster für die Datenschutzinformation an Mieter steht in `docs/DATENSCHUTZ-MIETERINFORMATION.md`.
 
 ## Beiträge Dritter
 

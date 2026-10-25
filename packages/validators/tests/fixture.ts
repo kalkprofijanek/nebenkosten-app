@@ -16,7 +16,10 @@ export function validData(): AppDataFile {
             street: 'Musterweg',
             postalCodeAndCity: '12345 Beispielstadt',
           },
-          bankAccount: { iban: ['DE89', '370400440532013000'].join('') },
+          bankAccount: {
+            iban: ['DE89', '370400440532013000'].join(''),
+            accountHolder: 'Beispiel Eigentum',
+          },
         },
       ],
       properties: [

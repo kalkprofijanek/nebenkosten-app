@@ -141,5 +141,6 @@ Pauschaltext (Nutzerentscheidung 10. Oktober 2026, ADR-0006). Die ursprüngliche
 
 ### 7. Kleinigkeiten
 
-- Schlichtungsstellen-Text aktualisieren (Abs. 3 Nr. 3).
+- ~~Schlichtungsstellen-Text aktualisieren (Abs. 3 Nr. 3).~~ Erledigt:
+  „Universalschlichtungsstelle des Bundes“ in `packages/pdf/src/legal-texts.ts`.
 - Test: § 6a-Block bei reiner Flächenverteilung nach § 9a Abs. 2 (Abs. 5).
