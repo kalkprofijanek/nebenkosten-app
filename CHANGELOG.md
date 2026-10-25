@@ -4,6 +4,14 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Zählerstände aus Ablesebogen/Messdienst-CSV (PR-37 Teil 3)**: Abschnitt
+  unter **Heizung › Zähler** mit Vorlage „Zählerstände“, Spaltenzuordnung
+  (Vorschlag nur bei eindeutigem Treffer), Probelauf mit Zeilenfehlern und
+  Übernahme nach dem Prinzip alles oder nichts (`source: imported`);
+  Zuordnung über die Zählernummer, keine stille Überschreibung vorhandener
+  Ablesungen, Plausibilitätshinweise aus PR-31 mit Bestätigung. Stände
+  gelten als Tagesende des Stichtags, Jahresbeginn und Folgetag nach
+  Jahresende als Tagesbeginn,
 - **Wasser nach Zählern, Abgleich mit dem Hauptwasserzähler (ADR-0013,
   E-45-3)**: Entscheidungen E-45-1 bis E-45-3 angenommen (Kalt- plus
   Warmwasser, Leerstand im Nenner, Nenner = Summe der Wohnungszähler).

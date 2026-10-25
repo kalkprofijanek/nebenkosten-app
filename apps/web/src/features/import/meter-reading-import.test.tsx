@@ -103,6 +103,7 @@ describe('Zählerstände aus CSV übernehmen', () => {
         meterId: id(40),
         billingPeriodId: PERIOD,
         date: '2026-06-30',
+        boundary: 'end_of_day',
         value: { value: 350.5, unit: 'kWh' },
         source: 'imported',
       },
@@ -133,6 +134,7 @@ describe('Zählerstände aus CSV übernehmen', () => {
         date: '2026-06-30',
         value: 350.5,
         unit: 'kWh',
+        boundary: 'end_of_day',
       },
       {
         line: 4,
