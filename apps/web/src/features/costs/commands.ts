@@ -9,8 +9,12 @@ import {
   type BookingLink,
   type CostCategory,
   type CostEntry,
+  type CostEntryInvoice,
   type CostOrigin,
   type ExternalPayment,
+  type MeteringFeeKind,
+  costEntryInvoiceSchema,
+  meteringFeeKindSchema,
 } from '@nebenkosten/schema'
 
 export type IdFactory = () => string
@@ -41,6 +45,8 @@ export interface AddCostCategoryInput {
    * Erkennung über Schlagworte).
    */
   readonly meteringFee?: boolean | null
+  /** Art des Entgelts (ADR-0015); `null` entfernt die Angabe. */
+  readonly meteringFeeKind?: MeteringFeeKind | null
 }
 
 export interface AddCostEntryInput {
@@ -56,6 +62,8 @@ export interface AddCostEntryInput {
   readonly origin?: CostOrigin | null
   /** PR-30: Betragsgrundlage; `null` entfernt ein gesetztes Kennzeichen. */
   readonly amountBasis?: AmountBasis | null
+  /** Rechnungsangaben (ADR-0015); `null` entfernt sie. */
+  readonly invoice?: CostEntryInvoice | null
 }
 
 const CATEGORY_KEYS = [
@@ -70,6 +78,7 @@ const CATEGORY_KEYS = [
   'allocablePercent',
   'laborSharePercent',
   'meteringFee',
+  'meteringFeeKind',
 ] as const
 const ENTRY_KEYS = [
   'costCategoryId',
@@ -82,6 +91,7 @@ const ENTRY_KEYS = [
   'externalPayment',
   'origin',
   'amountBasis',
+  'invoice',
 ] as const
 const MAX_LABEL_LENGTH = 200
 const MAX_TEXT_LENGTH = 2_000
@@ -159,9 +169,21 @@ function optionalChoice<T extends string>(
 /** `null`-Kennzeichen nicht speichern, sondern entfernen. */
 function withoutClearedFlags<T extends Record<string, unknown>>(entry: T): T {
   const result = { ...entry }
-  for (const key of ['origin', 'amountBasis'])
+  for (const key of ['origin', 'amountBasis', 'invoice'])
     if (result[key] === null) delete result[key]
   return result
+}
+
+/** Rechnungsangaben (ADR-0015): `null` entfernt, sonst Schemaprüfung. */
+function optionalInvoice(
+  record: Record<string, unknown>,
+): CostEntryInvoice | null | undefined {
+  const value = record.invoice
+  if (value === undefined || value === null) return value
+  const parsed = costEntryInvoiceSchema.safeParse(value)
+  if (!parsed.success)
+    throw new CostCommandError('Ungültige Eingabe für Rechnungsangaben.')
+  return parsed.data
 }
 
 function optionalFiniteNumber(
@@ -246,16 +268,23 @@ function parseCategoryInput(value: unknown): AddCostCategoryInput {
     ...defined('allocablePercent', allocablePercent),
     ...defined('laborSharePercent', laborSharePercent),
     ...defined('meteringFee', meteringFee),
+    ...defined(
+      'meteringFeeKind',
+      optionalChoice(input, 'meteringFeeKind', meteringFeeKindSchema.options),
+    ),
   }
 }
 
 /** Entfernt ein auf `null` gesetztes Entgelt-Kennzeichen (automatisch). */
-function withoutClearedMeteringFee<T extends { meteringFee?: boolean | null }>(
-  value: T,
-): T {
-  if (value.meteringFee !== null) return value
+function withoutClearedMeteringFee<
+  T extends {
+    meteringFee?: boolean | null
+    meteringFeeKind?: MeteringFeeKind | null
+  },
+>(value: T): T {
   const copy = { ...value }
-  delete copy.meteringFee
+  if (copy.meteringFee === null) delete copy.meteringFee
+  if (copy.meteringFeeKind === null) delete copy.meteringFeeKind
   return copy
 }
 
@@ -339,6 +368,7 @@ function parseEntryInput(value: unknown): AddCostEntryInput {
         'estimate',
       ] as const),
     ),
+    ...defined('invoice', optionalInvoice(input)),
   }
 }
 
@@ -642,6 +672,7 @@ const CARRY_OVER_KEYS = [
   'allocablePercent',
   'laborSharePercent',
   'meteringFee',
+  'meteringFeeKind',
 ] as const satisfies readonly (keyof CostCategory)[]
 
 export interface PreviousYearCostCategories {

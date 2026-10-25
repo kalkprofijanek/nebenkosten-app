@@ -5,7 +5,9 @@
  */
 // Die Mapper bauen unveränderliche Ergebnisarrays auf. Diese Grenzen halten
 // deren kumulative Kopierkosten auch bei absichtlich breiten Eingaben begrenzt.
-export const MAX_LEGACY_COLLECTION_ITEMS = 1_000
+// Echte Bestände erreichen über 1.000 Bankbuchungen je Objekt und Jahr; die
+// Gesamtgrenzen für Knoten und Skalare bleiben die eigentliche Schranke.
+export const MAX_LEGACY_COLLECTION_ITEMS = 10_000
 export const MAX_LEGACY_INPUT_NODES = 10_000
 export const MAX_LEGACY_INPUT_SCALARS = 50_000
 export const MAX_LEGACY_INPUT_DEPTH = 64

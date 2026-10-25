@@ -10,11 +10,13 @@ sharedWorkspaceLockfile: true
 overrides:
   # GHSA-q2hr-2g5m-vwhr and nested-brace recursion fixes.
   brace-expansion: '>=5.0.12 <6'
-  # Undici WebSocket, retry, cache and TLS fixes (8.10.2).
-  'undici@>=8.0.0 <8.10.2': '8.10.2'
+  # Undici WebSocket, retry, cache, TLS (8.10.2) and GHSA-xjj6-f33q-929c (8.12.2) fixes.
+  'undici@>=8.0.0 <8.12.2': '8.12.2'
   # GHSA-c83g-rgw3-j3cx and GHSA-73wf-gq98-2v4g (Babel tooling).
   browserslist: '>=4.28.7 <5'
   nanoid: '3.3.18'
   postcss: '>=8.5.23'
+  # GHSA-mrhx-c7xc-m3w5 (zod memory exhaustion, 4.6.6).
+  'zod@>=4.0.0 <4.6.6': '4.6.6'
   # GHSA-68fv-2mgg-jv7q (source-map-js event-loop DoS).
   source-map-js: '>=1.2.2'

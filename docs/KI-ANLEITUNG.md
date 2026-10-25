@@ -56,6 +56,12 @@ und Eigentümerwechsel erstellt:
    Repositorys: `--overlay private-data/overlay.mjs` mit
    `export default function (data, { year }) { … }`. Das Ergebnis wird erneut
    gegen das Dateischema geprüft; die Eingabedatei bleibt unverändert.
+   Mit `--abrechnungsentgelt 40 [--ust 19]` zeigt die Ausgabe zusätzlich das
+   Entgelt für die Erstellung der Heiz-/Warmwasserkostenabrechnung
+   (ADR-0015): Kalkulationshilfe je erstellter Heizkostenabrechnung (je
+   bewohnte Nutzung eine, Nutzerwechsel zwei, Leerstand keine) gegen die
+   erfasste Rechnung, Aufteilung Heizung/Warmwasser und Mehrbelastung je
+   Nutzung.
 6. **Referenzwerte selbst abrufen:** Klimafaktor je Postleitzahl (DWD),
    Vergleichswerte (Heizspiegel), CO₂-Preis und Rechtsgrundlagen holt der
    Agent selbst aus den Quellen in [`DATENQUELLEN.md`](DATENQUELLEN.md) – mit

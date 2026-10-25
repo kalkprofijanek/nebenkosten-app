@@ -4,6 +4,21 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Abrechnungsentgelt Heiz-/Warmwasserkostenabrechnung (ADR-0015)**: Art
+  des Entgelts an Heizungs-Kostenarten (`CostCategory.meteringFeeKind`:
+  Erstellung der Abrechnung, Ablesung, Gerätemiete, Eichung, Sonstiges) und
+  Rechnungsangaben am Beleg (`CostEntry.invoice`: Rechnungsnummer, -datum,
+  Leistungszeitraum, Netto, Umsatzsteuer, Steuersatz; beide additiv,
+  Schema v5) mit Erfassung in der Oberfläche; Vorschau
+  `billingServiceFeePreview` mit Kalkulationshilfe **je erstellter
+  Heizkostenabrechnung** (je bewohnte Nutzung eine, Nutzerwechsel zwei,
+  Leerstand keine), Verteilung über den Heiztopf und Auswirkung je Nutzung;
+  `pnpm abrechnung … --abrechnungsentgelt <netto> [--ust <prozent>]`;
+  Warnungen `heating.billing_service_duplicate` und
+  `costs.invoice_amount_mismatch`,
+- **Legacy-v3-Import**: Grenze je Collection von 1.000 auf 10.000 Einträge
+  angehoben – Objekte mit über 1.000 Bankbuchungen im Jahr wurden als
+  „Eingabegrenzen überschritten“ abgelehnt,
 - **Datenschutz (PR-43)**: `docs/DATENSCHUTZ-KI.md` als endgültige Fassung
   (Monatsinformation, Belegprüfung, Mieterinformation); neues Muster
   `docs/DATENSCHUTZ-MIETERINFORMATION.md` nach Art. 13 DSGVO mit
