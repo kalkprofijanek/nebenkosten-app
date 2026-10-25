@@ -47,6 +47,11 @@ export interface AddCostCategoryInput {
   readonly meteringFee?: boolean | null
   /** Art des Entgelts (ADR-0015); `null` entfernt die Angabe. */
   readonly meteringFeeKind?: MeteringFeeKind | null
+  /**
+   * Verbrauch laut Hauptwasserzähler in m³ (ADR-0013, E-45-3); `null`
+   * entfernt die Angabe.
+   */
+  readonly mainWaterMeterM3?: number | null
 }
 
 export interface AddCostEntryInput {
@@ -79,6 +84,7 @@ const CATEGORY_KEYS = [
   'laborSharePercent',
   'meteringFee',
   'meteringFeeKind',
+  'mainWaterMeterM3',
 ] as const
 const ENTRY_KEYS = [
   'costCategoryId',
@@ -250,6 +256,12 @@ function parseCategoryInput(value: unknown): AddCostCategoryInput {
     typeof meteringFee !== 'boolean'
   )
     throw new CostCommandError('Ungültige Eingabe für meteringFee.')
+  const mainWaterMeterM3 =
+    input.mainWaterMeterM3 === null
+      ? null
+      : optionalFiniteNumber(input, 'mainWaterMeterM3')
+  if (mainWaterMeterM3 != null && mainWaterMeterM3 <= 0)
+    throw new CostCommandError('Ungültige Eingabe für mainWaterMeterM3.')
   return {
     billingPeriodId: requiredString(input, 'billingPeriodId'),
     kind: kind as AddCostCategoryInput['kind'],
@@ -272,6 +284,7 @@ function parseCategoryInput(value: unknown): AddCostCategoryInput {
       'meteringFeeKind',
       optionalChoice(input, 'meteringFeeKind', meteringFeeKindSchema.options),
     ),
+    ...defined('mainWaterMeterM3', mainWaterMeterM3),
   }
 }
 
@@ -280,11 +293,13 @@ function withoutClearedMeteringFee<
   T extends {
     meteringFee?: boolean | null
     meteringFeeKind?: MeteringFeeKind | null
+    mainWaterMeterM3?: number | null
   },
 >(value: T): T {
   const copy = { ...value }
   if (copy.meteringFee === null) delete copy.meteringFee
   if (copy.meteringFeeKind === null) delete copy.meteringFeeKind
+  if (copy.mainWaterMeterM3 === null) delete copy.mainWaterMeterM3
   return copy
 }
 

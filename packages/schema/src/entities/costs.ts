@@ -118,6 +118,12 @@ export const costCategorySchema = z.strictObject({
   meteringFee: z.boolean().nullish(),
   /** Art des Entgelts (additiv, Schema v5; ADR-0015). */
   meteringFeeKind: meteringFeeKindSchema.nullish(),
+  /**
+   * Verbrauch laut Hauptwasserzähler im Abrechnungszeitraum in m³, nur zum
+   * Abgleich mit der Summe der Wohnungszähler; verteilt wird stets nach den
+   * Wohnungszählern (additiv, Schema v5; ADR-0013, E-45-3).
+   */
+  mainWaterMeterM3: z.number().finite().positive().nullish(),
   /** Herkunftsmarker Grundsteuer-Import (Legacy-Felder). */
   fromPropertyTaxImport: z.boolean().nullish(),
   propertyTaxAssessmentCents: moneyCentsSchema.nullish(),

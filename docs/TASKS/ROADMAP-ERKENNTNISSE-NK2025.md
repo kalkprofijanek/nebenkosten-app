@@ -1,6 +1,7 @@
 # Roadmap: Erkenntnisse aus der Abrechnung 2025 und offene Arbeiten
 
-Stand: 16. Oktober 2026, `main` bei `bda4a82` (PR #85). Diese Datei ist die
+Stand: 25. Oktober 2026, `main` bei `b580222` (PR #111); zuvor 16. Oktober
+2026 (`bda4a82`, PR #85). Diese Datei ist die
 Arbeitsliste. Wer einen Punkt beginnt, trägt Branch/PR ein; nach dem Merge
 wird der Status auf „erledigt“ gesetzt. Reihenfolge = empfohlene
 Bearbeitungsfolge. Je Punkt gilt die verlinkte Task-Datei (AGENTS.md Regel 1–2).
@@ -9,14 +10,14 @@ Ziel: Die App soll auch für andere private Vermieter (z. B. aus der
 Immocation-Community) ohne Programmierkenntnisse eine prüffeste Abrechnung
 ermöglichen – insbesondere nach einem **Objektkauf im laufenden Jahr**.
 
-## Phase 0 – Offene Pull Requests (Stand 16. Oktober 2026)
+## Phase 0 – Offene Pull Requests (Stand 25. Oktober 2026)
 
-| #   | Inhalt                                                   | Bewertung                                  | Status                                      |
-| --- | -------------------------------------------------------- | ------------------------------------------ | ------------------------------------------- |
-| #69 | Dependabot: 20 Werkzeug-Updates                          | bricht Web-Typecheck (3 Checks rot)        | schließen, sobald #72 gemergt ist           |
-| #72 | Werkzeug-Updates aus #69 mit Vitest-Matcher-Korrektur    | Checks grün, aber 42 Commits hinter `main` | auf `main` aktualisieren, CI prüfen, mergen |
-| #76 | Heizspiegel-Vergleichswerte erfassen und im PDF ausgeben | überholt: in #82 umgesetzt (Agent A/B)     | schließen                                   |
-| #79 | DWD-Klimafaktoren, PDF-Vergleich, Messentgelte           | überholt: in #82 umgesetzt (Agent A/B/D)   | schließen                                   |
+Die am 16. Oktober 2026 gelisteten PRs #69, #72, #76 und #79 sind erledigt.
+
+| #    | Inhalt                                                     | Bewertung                            | Status                               |
+| ---- | ---------------------------------------------------------- | ------------------------------------ | ------------------------------------ |
+| #101 | Zählerstände aus Ablesebogen/Messdienst-CSV (PR-37 Teil 3) | seit 17.10.2026 offen, hinter `main` | auf `main` aktualisieren, CI prüfen  |
+| #106 | Dependabot: 14 Werkzeug-Updates                            | wie #69 auf Typecheck-Brüche prüfen  | CI prüfen, ggf. Korrektur-PR wie #72 |
 
 ## Phase 1 – Folge-PRs „Teil B“
 
@@ -24,24 +25,24 @@ Erledigt: PR-24 bis PR-29 Teil B mit #82 (Vergleichswerte, Klimafaktoren mit
 DWD-Import, § 9b-Aufteilung nach Gradtagen, Zählertausch, Zwischenablesung,
 Messentgelte); PR-HEIZKV-IMPORT und PR-HEIZKV-UI mit #74.
 
-Offen aus TODO-HEIZKV-6A: Nr. 6 Monatliche Verbrauchsinformation
-(Konzept in `docs/KONZEPT-MONATLICHE-VERBRAUCHSINFORMATION.md`), Nr. 7
-Kleinigkeiten; Nr. 4 Fernwärme zurückgestellt.
+Aus TODO-HEIZKV-6A: Nr. 6 Monatliche Verbrauchsinformation erledigt
+(PR-46, #107, #108). Offen: Nr. 7 Kleinigkeiten (Test § 6a-Block bei reiner
+Flächenverteilung); Nr. 4 Fernwärme zurückgestellt.
 
 ## Phase 2 – Neue Punkte aus der Abrechnung 2025 (Nutzerauftrag 16.10.2026)
 
-| Task                                           | Inhalt                                                                         | Abhängigkeit           | Status       |
-| ---------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------- | ------------ |
-| [PR-30](PR-30-EIGENTUEMERWECHSEL.md)           | Eigentümerwechsel im Jahr: Erwerberabrechnung, Bestände FIFO, Abschlag-Warnung | –                      | erledigt     |
-| [PR-31](PR-31-ZAEHLERSTAND-PLAUSIBILITAET.md)  | Zählerstand-Plausibilität (Stellenverlust, Vertauschung, Stillstand, Rücklauf) | PR-27 (Gradtage)       | erledigt     |
-| [PR-32](PR-32-ENERGIEBILANZ.md)                | Energiebilanz je Heizkreis (Nutzungsgrad, Jahresarbeitszahl)                   | –                      | erledigt     |
-| [PR-33](PR-33-MEHRJAHRESVERGLEICH.md)          | Mehrjahresvergleich je Wohnung und Kostenart mit Ausreißern                    | –                      | erledigt     |
-| [PR-34](PR-34-SCHAETZGRENZE-9A.md)             | § 9a Abs. 2: 25-%-Grenze vor jeder Schätzung anzeigen                          | –                      | erledigt     |
-| [PR-35](PR-35-A3-FELDER-OBERFLAECHE.md)        | Prüfliste „neue Angaben nach Import“ (§ 9b-Auswahl seit #82 vorhanden)         | –                      | erledigt     |
-| [PR-36](PR-36-REFERENZDATEN.md)                | DWD-Klimafaktoren und Heizspiegel als mitgelieferte Tabellen                   | –                      | erledigt     |
-| [PR-37](PR-37-IMPORT-BEISPIELOBJEKT.md)        | Excel/CSV-Import (Mieter, Ablesebögen, Messdienst) und anonymes Beispielobjekt | PR-HEIZKV-IMPORT       | Teil 2 in PR |
-| [PR-38](PR-38-KURZANLEITUNG-KLEINVERMIETER.md) | Kurzanleitung „Erste Abrechnung in 60 Minuten“                                 | PR-37 (Beispielobjekt) | erledigt     |
-| [PR-44](PR-44-MEDIEN-MUSTERABRECHNUNG.md)      | Screenshots, Bedienhinweise und Musterabrechnungen (ADR-0012)                  | PR-37, PR-38           | erledigt     |
+| Task                                           | Inhalt                                                                         | Abhängigkeit           | Status              |
+| ---------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------- | ------------------- |
+| [PR-30](PR-30-EIGENTUEMERWECHSEL.md)           | Eigentümerwechsel im Jahr: Erwerberabrechnung, Bestände FIFO, Abschlag-Warnung | –                      | erledigt            |
+| [PR-31](PR-31-ZAEHLERSTAND-PLAUSIBILITAET.md)  | Zählerstand-Plausibilität (Stellenverlust, Vertauschung, Stillstand, Rücklauf) | PR-27 (Gradtage)       | erledigt            |
+| [PR-32](PR-32-ENERGIEBILANZ.md)                | Energiebilanz je Heizkreis (Nutzungsgrad, Jahresarbeitszahl)                   | –                      | erledigt            |
+| [PR-33](PR-33-MEHRJAHRESVERGLEICH.md)          | Mehrjahresvergleich je Wohnung und Kostenart mit Ausreißern                    | –                      | erledigt            |
+| [PR-34](PR-34-SCHAETZGRENZE-9A.md)             | § 9a Abs. 2: 25-%-Grenze vor jeder Schätzung anzeigen                          | –                      | erledigt            |
+| [PR-35](PR-35-A3-FELDER-OBERFLAECHE.md)        | Prüfliste „neue Angaben nach Import“ (§ 9b-Auswahl seit #82 vorhanden)         | –                      | erledigt            |
+| [PR-36](PR-36-REFERENZDATEN.md)                | DWD-Klimafaktoren und Heizspiegel als mitgelieferte Tabellen                   | –                      | erledigt            |
+| [PR-37](PR-37-IMPORT-BEISPIELOBJEKT.md)        | Excel/CSV-Import (Mieter, Ablesebögen, Messdienst) und anonymes Beispielobjekt | PR-HEIZKV-IMPORT       | Teil 3 in PR (#101) |
+| [PR-38](PR-38-KURZANLEITUNG-KLEINVERMIETER.md) | Kurzanleitung „Erste Abrechnung in 60 Minuten“                                 | PR-37 (Beispielobjekt) | erledigt            |
+| [PR-44](PR-44-MEDIEN-MUSTERABRECHNUNG.md)      | Screenshots, Bedienhinweise und Musterabrechnungen (ADR-0012)                  | PR-37, PR-38           | erledigt            |
 
 ## Phase 3 – Schlanke Erweiterungen (Nutzerauftrag 17.10.2026)
 
@@ -69,8 +70,8 @@ aus geprüfter Abrechnungsengine und lokalem KI-Agenten.
 | [PR-41](PR-41-KI-BELEGWORKFLOW-UND-BELEGPRUEFUNG.md) | KI-Workflow aus dem Objektordner und Belegprüfung                            | PR-40, PR-43 | Belegprüfung erledigt (#105)                 |
 | [PR-42](PR-42-FRISTENUEBERSICHT.md)                  | Fristen nach § 556 Abs. 3 BGB mit `.ics`-Export                              | –            | verworfen                                    |
 | [PR-43](PR-43-DATENSCHUTZ-KI-VERARBEITUNG.md)        | Datenschutz bei KI (`docs/DATENSCHUTZ-KI.md`); Nutzer entscheidet je Schritt | –            | erledigt                                     |
-| [PR-45](PR-45-WASSER-NACH-ZAEHLER.md)                | Umlageschlüssel „Wasserverbrauch“ (§ 556a Abs. 1 Satz 2 BGB, ADR-0013)       | –            | in PR                                        |
-| [PR-46](PR-46-MONATSINFORMATION.md)                  | Monatliche Verbrauchsinformation § 6a HeizKV (ADR-0014), Schritt 3 von 3     | –            | Schritt 1–2 erledigt (#107), Schritt 3 in PR |
+| [PR-45](PR-45-WASSER-NACH-ZAEHLER.md)                | Umlageschlüssel „Wasserverbrauch“ (§ 556a Abs. 1 Satz 2 BGB, ADR-0013)       | –            | erledigt (#103); E-45 entschieden 25.10.2026 |
+| [PR-46](PR-46-MONATSINFORMATION.md)                  | Monatliche Verbrauchsinformation § 6a HeizKV (ADR-0014), Schritt 3 von 3     | –            | erledigt (#107, #108)                        |
 
 Reihenfolge: PR-39 → PR-43 (Regeln festlegen) → PR-40 → PR-41. PR-42
 verworfen (Nutzer, 21.10.2026).

@@ -101,6 +101,13 @@ export function CostCategoryFields({
         name="laborSharePercent"
         defaultValue={category?.laborSharePercent ?? ''}
       />
+      {kind === 'water' ? (
+        <WorkflowField
+          label="Verbrauch laut Hauptwasserzähler in m³ (optional)"
+          name="mainWaterMeterM3"
+          defaultValue={formatDecimal(category?.mainWaterMeterM3)}
+        />
+      ) : null}
       {kind === 'heating' ? (
         <label>
           <span>
@@ -311,4 +318,9 @@ export function CostEntryFields({
       ) : null}
     </>
   )
+}
+
+/** Dezimalzahl mit Komma für das Eingabefeld; leer, wenn nicht erfasst. */
+function formatDecimal(value: number | null | undefined): string {
+  return value == null ? '' : String(value).replace('.', ',')
 }

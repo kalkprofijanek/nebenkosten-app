@@ -4,6 +4,13 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Wasser nach Zählern, Abgleich mit dem Hauptwasserzähler (ADR-0013,
+  E-45-3)**: Entscheidungen E-45-1 bis E-45-3 angenommen (Kalt- plus
+  Warmwasser, Leerstand im Nenner, Nenner = Summe der Wohnungszähler).
+  Optionales Feld „Verbrauch laut Hauptwasserzähler“ an Wasser-Kostenarten
+  (`CostCategory.mainWaterMeterM3`, m³, additiv, Schema v5, nicht ins
+  Folgejahr übernommen); Warnung `costs.water_main_meter_difference`, wenn
+  die Summe der Wohnungszähler um mehr als 15 % vom Hauptzähler abweicht,
 - **Abrechnungsentgelt Heiz-/Warmwasserkostenabrechnung (ADR-0015)**: Art
   des Entgelts an Heizungs-Kostenarten (`CostCategory.meteringFeeKind`:
   Erstellung der Abrechnung, Ablesung, Gerätemiete, Eichung, Sonstiges) und
