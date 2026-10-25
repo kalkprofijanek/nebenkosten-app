@@ -9,6 +9,7 @@ import {
   entityIdSchema,
   isoDateSchema,
   moneyCentsSchema,
+  nonNegativeMoneyCentsSchema,
   percentSchema,
 } from '../primitives'
 import {
@@ -62,6 +63,21 @@ export const costCategoryKindSchema = z.enum(['operating', 'water', 'heating'])
 export type CostCategoryKind = z.infer<typeof costCategoryKindSchema>
 
 /**
+ * Art des Entgelts für Verbrauchserfassung und Abrechnung (§ 6a Abs. 3
+ * Nr. 1c HeizKV, ADR-0015). Trennt die Erstellung der Heiz-/Warmwasser-
+ * kostenabrechnung (`billing_service`) von Ablesung, Gerätemiete und Eichung,
+ * damit Doppelansätze erkannt werden. Leer = nicht unterschieden.
+ */
+export const meteringFeeKindSchema = z.enum([
+  'billing_service',
+  'reading',
+  'device_rental',
+  'calibration',
+  'other',
+])
+export type MeteringFeeKind = z.infer<typeof meteringFeeKindSchema>
+
+/**
  * CostCategory / Kostenart eines Abrechnungsjahres (Legacy: `Kostenart`
  * ohne die Beleg-Beträge — Beträge leben in `CostEntry`).
  */
@@ -100,11 +116,43 @@ export const costCategorySchema = z.strictObject({
    * ADR-0006).
    */
   meteringFee: z.boolean().nullish(),
+  /** Art des Entgelts (additiv, Schema v5; ADR-0015). */
+  meteringFeeKind: meteringFeeKindSchema.nullish(),
   /** Herkunftsmarker Grundsteuer-Import (Legacy-Felder). */
   fromPropertyTaxImport: z.boolean().nullish(),
   propertyTaxAssessmentCents: moneyCentsSchema.nullish(),
 })
 export type CostCategory = z.infer<typeof costCategorySchema>
+
+/**
+ * Rechnungsangaben eines Belegs (additiv, Schema v5; ADR-0015). Der
+ * Belegbetrag `amountCents` bleibt der umgelegte Betrag (bei Wohnraum ohne
+ * Vorsteuerabzug brutto); Netto und Umsatzsteuer sind Angaben der Rechnung,
+ * die die Prüfung gegen den Belegbetrag abgleicht. Der Leistungszeitraum ist
+ * der tatsächliche Zeitraum der Leistung (z. B. Erstellung der Abrechnung im
+ * Folgejahr), nicht der abgerechnete Zeitraum.
+ */
+export const costEntryInvoiceSchema = z
+  .strictObject({
+    invoiceNumber: z.string().trim().min(1).max(200).nullish(),
+    invoiceDate: isoDateSchema.nullish(),
+    servicePeriodStart: isoDateSchema.nullish(),
+    servicePeriodEnd: isoDateSchema.nullish(),
+    netCents: nonNegativeMoneyCentsSchema.nullish(),
+    vatCents: nonNegativeMoneyCentsSchema.nullish(),
+    vatRatePercent: percentSchema.nullish(),
+  })
+  .refine(
+    (value) =>
+      !value.servicePeriodStart ||
+      !value.servicePeriodEnd ||
+      value.servicePeriodStart <= value.servicePeriodEnd,
+    {
+      message: 'Der Leistungszeitraum muss vor seinem Ende beginnen.',
+      path: ['servicePeriodEnd'],
+    },
+  )
+export type CostEntryInvoice = z.infer<typeof costEntryInvoiceSchema>
 
 /**
  * CostEntry / Kostenbuchung oder Rechnung (Legacy: `Beleg`/`rechnungen[]`
@@ -131,5 +179,7 @@ export const costEntrySchema = z.strictObject({
   origin: costOriginSchema.nullish(),
   /** Rechnung, Abschläge oder Schätzung (additiv, Schema v5, PR-30). */
   amountBasis: amountBasisSchema.nullish(),
+  /** Rechnungsangaben (additiv, Schema v5; ADR-0015). */
+  invoice: costEntryInvoiceSchema.nullish(),
 })
 export type CostEntry = z.infer<typeof costEntrySchema>

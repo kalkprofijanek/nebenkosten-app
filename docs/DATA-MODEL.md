@@ -273,6 +273,12 @@ ADR-0006): Entgelt für Verbrauchserfassung und Abrechnung (§ 6a Abs. 3 Nr. 1c
 HeizKV). `true` zählt die Kostenart, `false` schließt sie aus, leer =
 Erkennung über Schlagworte.
 
+`CostCategory.meteringFeeKind` (optional, additiv in Schema v5; ADR-0015):
+Art des Entgelts – `billing_service` (Erstellung der Heiz-/Warmwasser-
+kostenabrechnung), `reading`, `device_rental`, `calibration`, `other`; leer =
+nicht unterschieden. Dient der Erkennung von Doppelansätzen und der
+Vorschau des Abrechnungsentgelts.
+
 ### 3.11 CostEntry / Kostenbuchung oder Rechnung (`costEntrySchema`)
 
 Legacy: `Beleg` (`Kostenart.rechnungen[]`).
@@ -291,6 +297,14 @@ Legacy: `Beleg` (`Kostenart.rechnungen[]`).
 | `externalPayment`  | {confirmed, reason}              | opt   | `_extern_ok`, `_extern_grund`                                         |
 | `meterId`          | EntityId                         | opt   | `_stromzaehler_id`                                                    |
 | `estimate`         | {isEstimated, reason}            | opt   | `_geschaetzt`, `_schaetzung_grund`                                    |
+| `invoice`          | CostEntryInvoice                 | opt   | – (neu, ADR-0015)                                                     |
+
+`CostEntry.invoice` (`costEntryInvoiceSchema`, alle Felder optional):
+`invoiceNumber`, `invoiceDate`, `servicePeriodStart`, `servicePeriodEnd`
+(tatsächlicher Leistungszeitraum, Beginn ≤ Ende), `netCents`, `vatCents`
+(nicht negativ), `vatRatePercent`. `amountCents` bleibt der umgelegte
+Betrag; die Prüfung `costs.invoice_amount_mismatch` gleicht Netto +
+Umsatzsteuer mit ihm ab.
 
 ### 3.12 AllocationRule / Umlageregel (`allocationRuleSchema`)
 

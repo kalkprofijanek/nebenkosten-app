@@ -116,6 +116,24 @@ export function CostCategoryFields({
           </select>
         </label>
       ) : null}
+      {kind === 'heating' ? (
+        <label>
+          <span>Art des Entgelts</span>
+          <select
+            name="meteringFeeKind"
+            defaultValue={category?.meteringFeeKind ?? ''}
+          >
+            <option value="">nicht unterschieden</option>
+            <option value="billing_service">
+              Erstellung der Heiz-/Warmwasserkostenabrechnung
+            </option>
+            <option value="reading">Ablesung</option>
+            <option value="device_rental">Gerätemiete</option>
+            <option value="calibration">Eichung</option>
+            <option value="other">Sonstiges Entgelt</option>
+          </select>
+        </label>
+      ) : null}
     </>
   )
 }
@@ -203,6 +221,55 @@ export function CostEntryFields({
           <option value="previous_owner">Vom Voreigentümer übernommen</option>
         </select>
       </label>
+      <fieldset>
+        <legend>Rechnungsangaben (optional)</legend>
+        <WorkflowField
+          label="Rechnungsnummer"
+          name="invoiceNumber"
+          defaultValue={entry?.invoice?.invoiceNumber ?? ''}
+        />
+        <WorkflowField
+          label="Rechnungsdatum"
+          name="invoiceDate"
+          type="date"
+          defaultValue={entry?.invoice?.invoiceDate ?? ''}
+        />
+        <WorkflowField
+          label="Leistungszeitraum von"
+          name="servicePeriodStart"
+          type="date"
+          defaultValue={entry?.invoice?.servicePeriodStart ?? ''}
+        />
+        <WorkflowField
+          label="Leistungszeitraum bis"
+          name="servicePeriodEnd"
+          type="date"
+          defaultValue={entry?.invoice?.servicePeriodEnd ?? ''}
+        />
+        <WorkflowField
+          label="Netto in Euro"
+          name="invoiceNet"
+          defaultValue={
+            entry?.invoice?.netCents == null
+              ? ''
+              : editCostAmount(entry.invoice.netCents)
+          }
+        />
+        <WorkflowField
+          label="Umsatzsteuer in Euro"
+          name="invoiceVat"
+          defaultValue={
+            entry?.invoice?.vatCents == null
+              ? ''
+              : editCostAmount(entry.invoice.vatCents)
+          }
+        />
+        <WorkflowField
+          label="Umsatzsteuersatz in Prozent"
+          name="invoiceVatRate"
+          defaultValue={entry?.invoice?.vatRatePercent ?? ''}
+        />
+      </fieldset>
       <label>
         <span>Zahlungsnachweis</span>
         <select
