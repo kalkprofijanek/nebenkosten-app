@@ -269,7 +269,7 @@ describe('Monatsinformation', () => {
     upload([HEADER, 'HZ-1;30.04.2026;11500;kWh', 'HZ-1;x;1;kWh'].join('\n'))
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent(
-        'Datenzeile 2: Ungültiges Datum in CSV.',
+        'Datenzeile 2: Ablesedatum ist ungültig (TT.MM.JJJJ erwartet).',
       ),
     )
     expect(

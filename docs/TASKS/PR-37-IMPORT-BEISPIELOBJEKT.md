@@ -55,6 +55,40 @@ Tests je Vorlage; Privacy-Scan grün; Beispielobjekt rechnet ohne Fehler.
   Zusätzlich freigegebener Pfad für die Einbindung:
   `apps/web/src/features/workflows/OccupanciesRoute.tsx`.
 - Kosten: bereits über die KI-Erfassungsliste (`parseAiCostCsv`) abgedeckt.
-- Offen (Teil 3): Zählerstände mit Datum aus Ablesebogen/Messdienst-CSV in
-  der Oberfläche (Parser `parseMeterServiceCsv` vorhanden, Prüfung aus PR-31
-  anbinden); XLSX direkt statt CSV.
+- Teil 3 siehe unten; offen bleibt XLSX direkt statt CSV.
+
+## Umsetzungsstand (Teil 3: Zählerstände)
+
+- Vorlage „Zählerstände“ (`packages/import-export/src/csv/meter-service.ts`):
+  `Zaehlernummer;Ablesedatum;Zaehlerstand;Einheit` (kWh, m3, einheiten) mit
+  fiktiven Zeilen. Für fremde Messdienst-Dateien liest
+  `readMeterServiceHeader` die Kopfzeile; `suggestMeterServiceColumns`
+  schlägt Spalten nur bei genau einem Treffer vor, mehrdeutige bleiben offen.
+  `parseMeterServiceRows` sammelt Fehler je Zeile; `parseMeterServiceCsv`
+  bricht weiterhin beim ersten Fehler ab.
+- Übernahme (`apps/web/src/features/import/meter-reading-import.ts`):
+  Probelauf für die Vorschau, alles oder nichts; Zuordnung über die
+  Zählernummer (ohne Groß-/Kleinschreibung) innerhalb des Objekts.
+  Zeilenfehler bei unbekannter oder mehrfach vergebener Nummer, vorhandener
+  Ablesung am selben Tag (keine stille Überschreibung), doppeltem Tag in der
+  Datei, abweichender Einheit gegenüber vorhandenen Ablesungen, anderer
+  Einheit als kWh bei Wohnungswärmezählern und Datum außerhalb des
+  Abrechnungszeitraums (Prüfung von `addMeterReading`). Ablesungen werden
+  als `source: imported` gespeichert. Stichtage erhalten einen
+  Ablesezeitpunkt: Vortag des Jahresbeginns und Jahresende `end_of_day`,
+  Jahresbeginn und Folgetag des Jahresendes `start_of_day`. Andere Tage
+  bleiben ohne Zeitpunkt (Hinweis „Ablesezeitpunkt nicht bestätigt“).
+  Offene Entscheidung: ob Messdienst-Stände an Stichtagen grundsätzlich als
+  Tagesende gelten sollen.
+- Plausibilität: Nach dem Probelauf läuft `validateBillingPeriod`; Hinweise
+  der Reihenprüfung aus PR-31 (`heating.meter_reading_series_*`) zu den
+  betroffenen Zählern werden angezeigt. Werte werden nie geändert; bei
+  Hinweisen ist die Übernahme erst nach ausdrücklicher Bestätigung möglich.
+- Oberfläche: Abschnitt „Zählerstände aus Ablesebogen/Messdienst übernehmen“
+  unter **Heizung › Zähler** (`MeterReadingCsvImport.tsx`) mit Vorlage,
+  Spaltenzuordnung, Probelauf, Fehlerliste mit Zeilennummern und Vorschau.
+  Zusätzlich freigegebener Pfad für die Einbindung:
+  `apps/web/src/features/workflows/heating/MeterPanel.tsx`.
+- Nicht enthalten: Anfangs- und Endstände von HKV und Wohnungswärmezählern an
+  Belegungen (`occupancyPeriods[].heatMeterReading`); diese werden weiter an
+  der Belegung erfasst. Zähler müssen vor dem Import angelegt sein.
