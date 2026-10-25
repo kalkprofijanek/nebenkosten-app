@@ -42,7 +42,11 @@ Belegarchiv, keine eigene Belegverwaltung.
 - Offen: Arbeitsanweisung für den Agenten zur Ordnerverarbeitung
   (Erfassungsliste mit Dateiname als Quelle) präzisieren.
 
-## Offene Entscheidungen
+## Entscheidungen (Nutzer, 23.10.2026)
 
-- **E-41-2:** Abgleich nur auf Dateiebene oder zusätzlich Betrag
-  (Agent liest Betrag aus PDF und vergleicht mit Kostenposition)?
+- **E-41-2:** Zusätzlich Betragsabgleich. Der Agent liest die Rechnungen
+  **unabhängig neu** (KI-Erfassungsliste als Format), die App vergleicht
+  deterministisch: `compareReceiptAmounts` in `packages/validators`,
+  `pnpm belegpruefung … --erfassungsliste <datei>`; Toleranz 1 Cent,
+  Summe je Rechnung, Kennzeichnung bei Leistungszeitraum über den
+  Jahreswechsel.

@@ -56,7 +56,7 @@ aus geprüfter Abrechnungsengine und lokalem KI-Agenten.
 | KI-gestützte Belegauswertung aus diesem Ordner    | vorhandenen Workflow nutzen (PR-41) |
 | Belegprüfung (Kosten ohne Rechnung und umgekehrt) | umsetzen (PR-41)                    |
 | Fristenübersicht mit Kalenderexport               | nicht umsetzen (Nutzer, 21.10.2026) |
-| Datenschutz bei der Verarbeitung mit KI           | umsetzen (PR-43)                    |
+| Datenschutz bei der Verarbeitung mit KI           | erledigt (PR-43)                    |
 | Korrigierte Abrechnungen / Versionsvergleich      | nicht umsetzen                      |
 | Steuerliche Anlage-V-Auswertung                   | nicht umsetzen                      |
 | Eigenständige Belegverwaltung mit Uploadarchiv    | nicht notwendig                     |
@@ -68,7 +68,7 @@ aus geprüfter Abrechnungsengine und lokalem KI-Agenten.
 | [PR-40](PR-40-RECHNUNGSORDNER-JE-OBJEKT.md)          | Rechnungsordner je Objekt verknüpfen, nur zur Prüfung (Agentenweg)           | PR-43        | erledigt (#105)                              |
 | [PR-41](PR-41-KI-BELEGWORKFLOW-UND-BELEGPRUEFUNG.md) | KI-Workflow aus dem Objektordner und Belegprüfung                            | PR-40, PR-43 | Belegprüfung erledigt (#105)                 |
 | [PR-42](PR-42-FRISTENUEBERSICHT.md)                  | Fristen nach § 556 Abs. 3 BGB mit `.ics`-Export                              | –            | verworfen                                    |
-| [PR-43](PR-43-DATENSCHUTZ-KI-VERARBEITUNG.md)        | Datenschutz bei KI (`docs/DATENSCHUTZ-KI.md`); Nutzer entscheidet je Schritt | –            | Entwurf                                      |
+| [PR-43](PR-43-DATENSCHUTZ-KI-VERARBEITUNG.md)        | Datenschutz bei KI (`docs/DATENSCHUTZ-KI.md`); Nutzer entscheidet je Schritt | –            | erledigt                                     |
 | [PR-45](PR-45-WASSER-NACH-ZAEHLER.md)                | Umlageschlüssel „Wasserverbrauch“ (§ 556a Abs. 1 Satz 2 BGB, ADR-0013)       | –            | in PR                                        |
 | [PR-46](PR-46-MONATSINFORMATION.md)                  | Monatliche Verbrauchsinformation § 6a HeizKV (ADR-0014), Schritt 3 von 3     | –            | Schritt 1–2 erledigt (#107), Schritt 3 in PR |
 

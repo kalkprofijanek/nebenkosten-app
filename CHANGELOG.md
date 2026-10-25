@@ -19,6 +19,20 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 - **Legacy-v3-Import**: Grenze je Collection von 1.000 auf 10.000 Einträge
   angehoben – Objekte mit über 1.000 Bankbuchungen im Jahr wurden als
   „Eingabegrenzen überschritten“ abgelehnt,
+- **Datenschutz (PR-43)**: `docs/DATENSCHUTZ-KI.md` als endgültige Fassung
+  (Monatsinformation, Belegprüfung, Mieterinformation); neues Muster
+  `docs/DATENSCHUTZ-MIETERINFORMATION.md` nach Art. 13 DSGVO mit
+  Einwilligung in den E-Mail-Versand,
+- **Betragsabgleich in der Belegprüfung (E-41-2)**: `pnpm belegpruefung …
+--erfassungsliste <datei>` vergleicht den unabhängig gelesenen
+  Rechnungsbetrag (Format KI-Erfassungsliste) mit der Summe der
+  Kostenpositionen und Lieferungen je Rechnung (Toleranz 1 Cent); Befunde
+  „Betrag weicht ab“ (mit Hinweis bei Leistungszeitraum über den
+  Jahreswechsel) und „Beleg ohne Kostenposition“. Reine Logik
+  `compareReceiptAmounts` in `packages/validators`,
+- **Tests**: zwei Web-Testdateien (`interim-reading`, `degree-day-split`)
+  liefen wegen der Endung `.test.ts` nie; umbenannt, Architekturtest
+  verhindert die Endung künftig,
 - **Monatsinformation, Schritt 3 (ADR-0014, PR-46)**: PDF „Verbrauchsinformation
   <Monat>“ je Mieter im Fensterkuvert-Format (Heizung und Warmwasser mit
   Vormonat, Vorjahresmonat, Durchschnittsnutzer, Erläuterungen, Annahmen,

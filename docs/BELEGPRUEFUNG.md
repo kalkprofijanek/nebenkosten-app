@@ -64,6 +64,29 @@ jahresunabhängig gelistet. Ob eine solche Rechnung in das geprüfte Jahr
 gehört, entscheidet ihr Leistungszeitraum – geprüft von Ihnen oder vom
 KI-Agenten anhand des Belegs.
 
+## 4. Betragsabgleich (optional)
+
+Für eine echte Kontrolle liest der KI-Agent die Rechnungen im Ordner
+**unabhängig neu** und schreibt Rechnungsbetrag, Belegnummer (Dateiname) und
+Leistungszeitraum in eine Datei im Format der KI-Erfassungsliste (siehe
+[`KI-ANLEITUNG.md`](KI-ANLEITUNG.md), Ablauf A). Nicht die Liste verwenden,
+mit der die Kosten ursprünglich erfasst wurden – sonst wird nur die Liste
+mit sich selbst verglichen.
+
+```
+pnpm belegpruefung <datendatei.json> --jahr 2025 --erfassungsliste private-data/belegbetraege.csv
+```
+
+| Befund                                        | Bedeutung                                                                         |
+| --------------------------------------------- | --------------------------------------------------------------------------------- |
+| Betrag weicht ab                              | Summe der Kostenpositionen zu dieser Rechnung ≠ Rechnungsbetrag (Toleranz 1 Cent) |
+| … Leistungszeitraum reicht über das Jahr      | Rechnung über den Jahreswechsel: anteilige Abgrenzung ist gewollt, Anteil prüfen  |
+| Beleg laut Erfassungsliste, aber keine Kosten | Rechnung mit Leistung im Jahr ist nicht angesetzt                                 |
+
+Mehrere Zeilen derselben Rechnung (Aufteilung auf Kostenarten) werden
+summiert; Rechnungen mit Leistungszeitraum vollständig außerhalb des Jahres
+bleiben unberücksichtigt.
+
 ## Datenschutz
 
 Die Prüfung läuft lokal und überträgt nichts. Ob ein KI-Agent die

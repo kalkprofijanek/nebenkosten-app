@@ -8,6 +8,7 @@
  * Aufruf:
  *   pnpm belegpruefung <datendatei.json> [--jahr 2025]
  *     [--zuordnung private-data/objekt-ordner.json] [--json <datei>]
+ *     [--erfassungsliste <ki-erfassungsliste.csv>]
  *
  * Die Zuordnung Objekt → Ordner liegt nur lokal (nie im Repository):
  *   { "version": 1, "objects": [{ "propertyId": "…", "invoiceFolder": "…" }] }
@@ -37,12 +38,13 @@ const input = args.find(
 )
 if (!input) {
   console.error(
-    'Aufruf: pnpm belegpruefung <datendatei.json> [--jahr 2025] [--zuordnung private-data/objekt-ordner.json] [--json <datei>]',
+    'Aufruf: pnpm belegpruefung <datendatei.json> [--jahr 2025] [--zuordnung private-data/objekt-ordner.json] [--json <datei>] [--erfassungsliste <ki-erfassungsliste.csv>]',
   )
   process.exit(2)
 }
 const mappingPath = option('--zuordnung') ?? 'private-data/objekt-ordner.json'
 const jsonOut = option('--json')
+const amountListPath = option('--erfassungsliste')
 const euro = (cents) =>
   ((cents ?? 0) / 100).toLocaleString('de-DE', {
     minimumFractionDigits: 2,
@@ -144,6 +146,26 @@ try {
     property?.id ??
     'Objekt ?'
 
+  // Betragsabgleich (E-41-2): unabhängig gelesene Rechnungsbeträge im
+  // Format der KI-Erfassungsliste (docs/KI-ANLEITUNG.md).
+  let receipts = null
+  if (amountListPath) {
+    const rows = io.parseAiCostCsv(await readFile(amountListPath, 'utf8'))
+    receipts = rows
+      .filter((row) => row.receiptReference)
+      .map((row) => ({
+        receiptReference: row.receiptReference,
+        amountCents: row.amountCents,
+        ...(row.serviceFrom ? { serviceFrom: row.serviceFrom } : {}),
+        ...(row.serviceTo ? { serviceTo: row.serviceTo } : {}),
+      }))
+    const withoutReference = rows.length - receipts.length
+    if (withoutReference > 0)
+      console.log(
+        `Erfassungsliste: ${withoutReference} Zeile(n) ohne Belegnummer – im Betragsabgleich nicht berücksichtigt.`,
+      )
+  }
+
   const report = []
   let findings = 0
   for (const period of periods.filter((candidate) => candidate.year === year)) {
@@ -206,6 +228,32 @@ try {
       'Dateien ohne Kostenposition – Leistungszeitraum prüfen',
       result.unreferencedFiles,
     )
+    if (receipts) {
+      const amounts = validators.compareReceiptAmounts(data, {
+        billingPeriodId: period.id,
+        receipts,
+      })
+      report.at(-1).amounts = amounts
+      findings += amounts.mismatches.length + amounts.notBooked.length
+      console.log(
+        `\nBetragsabgleich: ${amounts.matched} ${amounts.matched === 1 ? 'Rechnung stimmt' : 'Rechnungen stimmen'} überein.`,
+      )
+      section(
+        'Betrag weicht ab (Kosten − Beleg)',
+        amounts.mismatches.map(
+          (item) =>
+            `${item.receiptReference}: Beleg ${euro(item.receiptAmountCents)} €, angesetzt ${euro(item.bookedAmountCents)} €, Differenz ${euro(item.differenceCents)} €${
+              item.partialPeriod
+                ? ` – Leistungszeitraum ${item.serviceFrom ?? '?'} bis ${item.serviceTo ?? '?'} reicht über das Jahr hinaus, anteilige Abgrenzung prüfen`
+                : ''
+            }`,
+        ),
+      )
+      section(
+        'Beleg laut Erfassungsliste, aber keine Kostenposition',
+        amounts.notBooked,
+      )
+    }
   }
   if (report.length === 0) console.log(`Kein Abrechnungszeitraum ${year}.`)
   else
