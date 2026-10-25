@@ -4,6 +4,19 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+## 1.4.0 – 25. Oktober 2026
+
+Schwerpunkte: monatliche Verbrauchsinformation nach § 6a HeizKV
+(Fernablesbarkeit, Monatsendstände, PDF und Versandprotokoll), Wasser nach
+Wohnungswasserzählern mit Abgleich zum Hauptwasserzähler,
+Abrechnungsentgelt der Heizkostenabrechnung, Belegprüfung mit
+Betragsabgleich und Mieterliste-Import. Schema bleibt v5; neue Felder sind
+additiv, keine Datenmigration. Dateien, die eines der neuen Felder
+enthalten, lassen sich mit 1.3.0 nicht mehr öffnen.
+
+- **Werkzeuge**: 14 Updates (u. a. pdfmake 0.3.12, React 19.3.1,
+  Playwright 1.64.1, Vitest 5.0.5, Vite 8.3.5); die Artefaktprüfung lässt
+  genau den pdfkit-Buildpfad aus pdfmake 0.3.12 zu (`docs/DEPLOYMENT.md`),
 - **Wasser nach Zählern, Abgleich mit dem Hauptwasserzähler (ADR-0013,
   E-45-3)**: Entscheidungen E-45-1 bis E-45-3 angenommen (Kalt- plus
   Warmwasser, Leerstand im Nenner, Nenner = Summe der Wohnungszähler).

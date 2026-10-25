@@ -17,7 +17,7 @@ und fertige PDF-Abrechnungen für jede Mietpartei.
 > der Abrechnende verantwortlich. Bereitstellung ohne Gewährleistung gemäß
 > [AGPL-3.0](LICENSE).
 
-**Aktuelle Version: 1.3.0 · Schema v5**
+**Aktuelle Version: 1.4.0 · Schema v5**
 
 ## So sieht es aus
 
@@ -150,15 +150,17 @@ Geplant bzw. sinnvoll (Beiträge willkommen):
 - **§ 6a HeizKV vollständig umsetzen**: Lückenanalyse und Bauliste in
   [docs/TODO-HEIZKV-6A.md](docs/TODO-HEIZKV-6A.md).
 
-- **Fernablesung / Messdienst-Import**: Ablesedaten funkauslesbarer Zähler
-  direkt übernehmen. Sind fernablesbare Geräte eingebaut, ist die monatliche
-  Verbrauchsinformation nach § 6a HeizKV bereits seit 2022 zu erteilen; nicht
-  fernablesbare Geräte sind bis 31.12.2026 nachzurüsten (Konzept:
+- **Messdienst-Schnittstellen**: Die monatliche Verbrauchsinformation
+  (§ 6a HeizKV, seit 2022 bei fernablesbaren Geräten) erstellt die App ab 1.4.0
+  aus CSV-Monatsendständen; herstellerspezifische Exporte (Techem, ista,
+  Brunata, Minol, Kalo) werden noch nicht direkt erkannt. Nicht fernablesbare
+  Geräte sind bis 31.12.2026 nachzurüsten (Konzept:
   [docs/KONZEPT-MONATLICHE-VERBRAUCHSINFORMATION.md](docs/KONZEPT-MONATLICHE-VERBRAUCHSINFORMATION.md)).
 - **Fernwärme**: Treibhausgasemissionen und Primärenergiefaktor des Netzes
   (§ 6a Abs. 3 Nr. 1a HeizKV).
-- **Versand mit Nachweis** (Serien-E-Mail, Zustelldatum je Mietpartei) und
-  Mehrbenutzer-/Mandantenbetrieb.
+- **Versand mit Nachweis** für die Jahresabrechnung (Zustelldatum je
+  Mietpartei; für die Monatsinformation gibt es seit 1.4.0 E-Mail-Entwürfe
+  je Mieter und ein Versandprotokoll) und Mehrbenutzer-/Mandantenbetrieb.
 
 Änderungen je Version: [`CHANGELOG.md`](CHANGELOG.md).
 
