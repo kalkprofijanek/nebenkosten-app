@@ -531,6 +531,7 @@ function waterConsumptionIssues(
           },
         ),
       )
+    else mainWaterMeterIssue(rows, category, add)
     return
   }
   if (
@@ -552,6 +553,47 @@ function waterConsumptionIssues(
         },
       ),
     )
+}
+
+/** Zulässige Abweichung Hauptzähler zu Wohnungszählern (E-45-3, Maintainer 25.10.2026). */
+const MAIN_WATER_METER_TOLERANCE_PERCENT = 15
+
+/**
+ * Abgleich Hauptwasserzähler mit der Summe der Wohnungszähler (Kalt- plus
+ * Warmwasser, E-45-1). Die Differenz wird anteilig mitverteilt (E-45-3);
+ * eine große Abweichung (Leck, Gartenwasser, defekter Zähler) macht die
+ * Verteilung angreifbar.
+ */
+function mainWaterMeterIssue(
+  rows: ReturnType<typeof periodOccupancies>,
+  category: AppDataFile['billingData']['costCategories'][number],
+  add: Add,
+): void {
+  const main = category.mainWaterMeterM3
+  if (main == null || main <= 0) return
+  const units = rows.reduce(
+    (sum, row) =>
+      sum + (row.coldWater?.value ?? 0) + (row.warmWater?.value ?? 0),
+    0,
+  )
+  const difference = Math.abs(main - units)
+  if (difference * 100 <= MAIN_WATER_METER_TOLERANCE_PERCENT * main) return
+  const percent = ((difference / main) * 100).toLocaleString('de-DE', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })
+  add(
+    issue(
+      'warning',
+      'costs.water_main_meter_difference',
+      'costs',
+      'Wohnungszähler weichen vom Hauptwasserzähler ab',
+      {
+        entity: { type: 'CostCategory', id: category.id },
+        detail: `${category.label}: Hauptwasserzähler ${formatReadingNumber(main)} m³, Summe der Wohnungszähler (Kalt- und Warmwasser) ${formatReadingNumber(units)} m³, Abweichung ${percent} % (zulässig bis ${MAIN_WATER_METER_TOLERANCE_PERCENT} %). Die Differenz wird anteilig auf alle Nutzungen verteilt. Bitte Ablesewerte, Zählertausch, Leckagen und Wasserentnahmen außerhalb der Wohnungen (z. B. Garten) prüfen. Hinweis, keine Rechtsberatung.`,
+      },
+    ),
+  )
 }
 
 function documents(

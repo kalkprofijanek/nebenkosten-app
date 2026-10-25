@@ -74,6 +74,10 @@ function categoryInput(form: FormData, billingPeriodId?: string) {
     meteringFee: meteringFeeInput(form, kind),
     meteringFeeKind:
       kind === 'heating' ? formText(form, 'meteringFeeKind') || null : null,
+    mainWaterMeterM3:
+      kind === 'water'
+        ? parseOptionalNumber(formText(form, 'mainWaterMeterM3'))
+        : null,
   }
 }
 
