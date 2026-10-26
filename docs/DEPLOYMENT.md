@@ -46,9 +46,18 @@ und begrenzt Tiefe, Verzeichniseinträge, Dateizahl, Einzel- und Gesamtgröße. 
 personenbezogene Muster, Schlüssel, starke Tokenmuster, lokale Benutzerpfade,
 Backups, JSON, PDF, ZIP, Source Maps, versteckte Dateien und `private-data`.
 
-Zwei geprüfte Treffer in minimierten Bibliotheken sind an Pfad, Zeile und den
-vollständigen SHA-256-Hash der jeweiligen Datei gebunden. Jede Byteänderung
-macht diese Ausnahme automatisch ungültig.
+Zwei geprüfte Codestellen in minimierten Bibliotheken enthalten das Wort
+„password“, ohne ein Kennwort zu sein: die Liste unterstützter Eingabetypen
+in React-DOM und die Bitmaske für Kennwort-Felder in pdfmake. Sie sind als
+genaue Suchmuster für genau diese Codefolge hinterlegt
+(`REVIEWED_LIBRARY_CREDENTIAL_FLAGS` in
+`scripts/verify-deployment-artifact.mjs`). Vor der Suche nach Zugangsdaten
+wird nur diese Codefolge neutralisiert; eine echte Kennwort- oder
+Token-Zuweisung in derselben Datei bleibt ein Fehler
+(`tests/repository/deployment-artifact.test.mjs`). Die Ausnahmen sind nicht
+an Datei, Zeile oder Hash gebunden: Ändert eine Bibliothek die Codefolge,
+greift das Muster nicht mehr, und ein verbleibender Treffer macht die
+Prüfung rot.
 
 Von der Suche nach lokalen Pfaden ist genau ein geprüfter Pfad ausgenommen
 (`REVIEWED_LIBRARY_PATHS` in `scripts/verify-deployment-artifact.mjs`): Ab
