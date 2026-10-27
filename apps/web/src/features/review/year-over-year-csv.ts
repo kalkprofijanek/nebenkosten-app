@@ -86,7 +86,17 @@ export function yearOverYearRows(
 }
 
 function csvCell(value: string): string {
-  return /[";\n]/u.test(value) ? `"${value.replaceAll('"', '""')}"` : value
+  return /[";\r\n]/u.test(value) ? `"${value.replaceAll('"', '""')}"` : value
+}
+
+/**
+ * Freitext (Kostenart, Gebäude, Wohnung) darf in Excel nicht als Formel
+ * ausgeführt werden (CSV-Injection): führendes `=`, `+`, `-`, `@`, Tab oder
+ * CR wird mit `'` entschärft. Zahlenspalten laufen bewusst nicht hier
+ * durch, weil „Veränderung %“ mit Vorzeichen beginnt.
+ */
+export function textCell(value: string): string {
+  return /^[=+\-@\t\r]/u.test(value) ? `'${value}` : value
 }
 
 /**
@@ -107,14 +117,14 @@ export function yearOverYearCsv(data: AppDataFile, report: Compared): string {
   ]
   const lines = yearOverYearRows(data, report).map((row) =>
     [
-      row.area,
-      row.label,
+      textCell(row.area),
+      textCell(row.label),
       euroText(row.value.previousCents),
       euroText(row.value.currentCents),
       euroText(row.value.changeCents),
       percentText(row.value.changeRatio),
       row.value.outlier ? 'ja' : '',
-      row.note,
+      textCell(row.note),
       '',
     ]
       .map(csvCell)

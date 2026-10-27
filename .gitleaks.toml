@@ -1,0 +1,10 @@
+# Gitleaks-Konfiguration: Standardregeln plus geprüfte Fehlalarme.
+# legacy/index.html bleibt unverändert; Ausnahmen gehören ausschließlich hierher.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "localStorage-Schlüsselname der Legacy-App, kein Geheimnis"
+regexTarget = "match"
+regexes = ['''LS_KEY=.nk_abrechnung_v\d+.''']
