@@ -4,6 +4,15 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Sicherheit: CSV-Export „Veränderung zum Vorjahr“ gegen Formel-Injection
+  gehärtet**: Freitext in den Spalten Bereich, Position und Hinweis, der mit
+  `=`, `+`, `-`, `@`, Tab oder CR beginnt, erhält ein vorangestelltes `'`,
+  damit Excel ihn nicht als Formel ausführt. Zahlen- und Prozentspalten
+  bleiben unverändert; Zeilenumbrüche mit CR werden jetzt ebenfalls in
+  Anführungszeichen gesetzt,
+- **Dependabot mit 7 Tagen Cooldown**: neue Paket- und Action-Versionen
+  werden erst nach einer Woche vorgeschlagen (Schutz vor kurzfristig
+  kompromittierten Releases),
 - **Spaltenerkennung beim CSV-Import vereinheitlicht**: Monatsinformation
   und Zählerstand-Import schlagen Spalten mit derselben Funktion
   `suggestMeterServiceColumns` vor (exakte Überschriften vor Teilbegriffen,
