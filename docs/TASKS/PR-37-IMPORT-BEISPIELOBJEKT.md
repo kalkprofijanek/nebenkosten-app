@@ -63,7 +63,10 @@ Tests je Vorlage; Privacy-Scan grün; Beispielobjekt rechnet ohne Fehler.
   `Zaehlernummer;Ablesedatum;Zaehlerstand;Einheit` (kWh, m3, einheiten) mit
   fiktiven Zeilen. Für fremde Messdienst-Dateien liest
   `readMeterServiceHeader` die Kopfzeile; `suggestMeterServiceColumns`
-  schlägt Spalten nur bei genau einem Treffer vor, mehrdeutige bleiben offen.
+  schlägt Spalten nur bei genau einem Treffer vor – zuerst nach exakten
+  Überschriften, dann nach Teilbegriffen in freien Spalten; mehrdeutige
+  bleiben offen. Seit 27.10.2026 nutzt auch die Monatsinformation (PR-46)
+  diese Funktion statt einer eigenen Erkennung.
   `parseMeterServiceRows` sammelt Fehler je Zeile; `parseMeterServiceCsv`
   bricht weiterhin beim ersten Fehler ab.
 - Übernahme (`apps/web/src/features/import/meter-reading-import.ts`):

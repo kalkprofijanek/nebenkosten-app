@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import {
+  METER_SERVICE_COLUMN_LABELS,
   METER_SERVICE_TEMPLATE,
   parseMeterServiceRows,
   readMeterServiceHeader,
@@ -23,15 +24,9 @@ interface Props {
   ) => boolean
 }
 
-const FIELDS: readonly {
-  readonly key: keyof MeterServiceColumns
-  readonly label: string
-}[] = [
-  { key: 'meterNumber', label: 'Zählernummer' },
-  { key: 'date', label: 'Ablesedatum' },
-  { key: 'value', label: 'Zählerstand' },
-  { key: 'unit', label: 'Einheit' },
-]
+const FIELDS = (['meterNumber', 'date', 'value', 'unit'] as const).map(
+  (key) => ({ key, label: METER_SERVICE_COLUMN_LABELS[key] }),
+)
 
 const number = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 6 })
 

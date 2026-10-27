@@ -4,6 +4,16 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Spaltenerkennung beim CSV-Import vereinheitlicht**: Monatsinformation
+  und Zählerstand-Import schlagen Spalten mit derselben Funktion
+  `suggestMeterServiceColumns` vor (exakte Überschriften vor Teilbegriffen,
+  nur bei eindeutigem Treffer). Die Monatsinformation lässt mehrdeutige
+  Spalten jetzt offen, statt die erste passende zu nehmen; der
+  Zählerstand-Import erkennt zusätzlich Überschriften wie „Zähler“,
+  „Stichtag“ und „Einh.“ und belegt eine exakte Überschrift (z. B.
+  „Ablesedatum“) auch dann vor, wenn eine weitere Spalte nur einen
+  Teilbegriff enthält,
+
 ## 1.4.0 – 25. Oktober 2026
 
 Schwerpunkte: monatliche Verbrauchsinformation nach § 6a HeizKV
