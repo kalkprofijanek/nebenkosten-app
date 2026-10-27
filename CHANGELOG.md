@@ -4,11 +4,26 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
-- **Sicherheitsprüfungen in der CI**: gitleaks (Git-Historie), Semgrep,
-  zizmor und OSV-Scanner im Workflow `security.yml`, dazu CodeQL und
-  OpenSSF Scorecard als eigene Workflows; Übersicht und Ausnahmeregeln in
-  `SECURITY.md`. Dependabot wartet sieben Tage nach einem Release, bevor
-  es ein Update vorschlägt (Sicherheitsupdates ausgenommen),
+- **Weitere Sicherheitsprüfungen in der CI**: `security.yml` ergänzt
+  Semgrep (Pull Requests scheitern nur an neuen Funden) und OSV-Scanner
+  über `pnpm-lock.yaml` (nur neue Schwachstellen blockieren);
+  `scorecard.yml` bewertet die Sicherheitspraxis des Repositorys mit
+  OpenSSF Scorecard. Übersicht aller Prüfungen in `SECURITY.md`,
+- **Sicherheitsprüfungen in der CI**: CodeQL (`security-extended`) für
+  JavaScript/TypeScript und GitHub Actions bei jedem PR, Push auf `main` und
+  wöchentlich; `guardrails.yml` durchsucht zusätzlich die gesamte
+  Git-Historie mit Gitleaks (Binary mit SHA-256-Prüfung, geprüfte
+  Fehlalarme in `.gitleaks.toml`) und prüft die Workflows mit zizmor
+  (ab Schweregrad „medium“),
+- **Sicherheit: CSV-Export „Veränderung zum Vorjahr“ gegen Formel-Injection
+  gehärtet**: Freitext in den Spalten Bereich, Position und Hinweis, der mit
+  `=`, `+`, `-`, `@`, Tab oder CR beginnt, erhält ein vorangestelltes `'`,
+  damit Excel ihn nicht als Formel ausführt. Zahlen- und Prozentspalten
+  bleiben unverändert; Zeilenumbrüche mit CR werden jetzt ebenfalls in
+  Anführungszeichen gesetzt,
+- **Dependabot mit 7 Tagen Cooldown**: neue Paket- und Action-Versionen
+  werden erst nach einer Woche vorgeschlagen (Schutz vor kurzfristig
+  kompromittierten Releases),
 - **Spaltenerkennung beim CSV-Import vereinheitlicht**: Monatsinformation
   und Zählerstand-Import schlagen Spalten mit derselben Funktion
   `suggestMeterServiceColumns` vor (exakte Überschriften vor Teilbegriffen,

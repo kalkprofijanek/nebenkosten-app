@@ -1,6 +1,0 @@
-# zizmor-Konfiguration. Abweichungen von den Standardregeln nur mit Begründung.
-rules:
-  # Die lokale Composite-Action wird bewusst über ./.github/actions/… eingebunden;
-  # die neuere $/…-Syntax bringt hier keinen Sicherheitsgewinn.
-  self-repository:
-    disable: true

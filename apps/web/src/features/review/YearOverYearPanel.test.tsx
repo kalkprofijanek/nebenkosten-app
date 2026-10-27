@@ -49,6 +49,31 @@ describe('Veränderung zum Vorjahr', () => {
     expect(lines.some((line) => line.startsWith('Wohnung;'))).toBe(true)
   })
 
+  it('entschärft Freitext, der in Excel als Formel ausgeführt würde', () => {
+    const withLabel = (label: string) => {
+      const value = base()
+      value.costs[0]!.label = label
+      value.costs[0]!.statementText = label
+      return value
+    }
+    const previous = year(withLabel('=HYPERLINK("http://x";"y")'))
+    const next = JSON.parse(
+      JSON.stringify(withLabel('=HYPERLINK("http://x";"y")')).replaceAll(
+        '2024',
+        '2025',
+      ),
+    ) as Scenario
+    next.costs[0]!.amountEur = 1_800
+    const current = year(next)
+    const lines = yearOverYearCsv(
+      current.data,
+      compareYears(previous, current),
+    ).split('\r\n')
+    expect(lines).toContain(
+      `Kostenart;"'=HYPERLINK(""http://x"";""y"")";1.200,00;1.800,00;600,00;+50,0 %;ja;;`,
+    )
+  })
+
   it('meldet im Panel ein fehlendes Vorjahr', () => {
     const { data } = year(base())
     render(
