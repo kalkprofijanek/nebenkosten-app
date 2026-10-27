@@ -20,3 +20,16 @@ Bei versehentlicher Veröffentlichung ist die Arbeit zu stoppen. Geheimnisse mü
 ## Architektur und Datenfluss
 
 Die veröffentlichte App verarbeitet alle Daten ausschließlich lokal im Browser. Die Content Security Policy verbietet ausgehende Verbindungen (`connect-src 'none'`). Änderungen, die Daten an Dritte übertragen, sind nur nach eigener Architekturentscheidung (ADR) zulässig.
+
+## Automatische Sicherheitsprüfungen
+
+| Werkzeug       | Workflow         | Prüft                                    | Wirkung im Pull Request                |
+| -------------- | ---------------- | ---------------------------------------- | -------------------------------------- |
+| gitleaks       | `guardrails.yml` | Geheimnisse in der gesamten Git-Historie | blockiert bei jedem Fund               |
+| zizmor         | `guardrails.yml` | GitHub-Actions-Workflows                 | blockiert ab Schweregrad „medium“      |
+| Semgrep        | `security.yml`   | Codemuster (SAST)                        | blockiert nur bei neuen Funden         |
+| OSV-Scanner    | `security.yml`   | bekannte Schwachstellen in `pnpm-lock`   | blockiert nur bei neuen Schwachstellen |
+| CodeQL         | `codeql.yml`     | tiefe Codeanalyse (TypeScript, Actions)  | Meldung über GitHub Code Scanning      |
+| OSSF Scorecard | `scorecard.yml`  | Sicherheitspraxis des Repositorys        | läuft nur auf `main` und wöchentlich   |
+
+Ergebnisse von `main` und den wöchentlichen Läufen erscheinen unter _Security → Code scanning_. Ausnahmen stehen ausschließlich in `.gitleaks.toml` und brauchen eine Begründung je Eintrag; echte Geheimnisse werden nie als Ausnahme eingetragen, sondern rotiert.
