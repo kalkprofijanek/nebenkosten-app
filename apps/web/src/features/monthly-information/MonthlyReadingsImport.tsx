@@ -1,6 +1,8 @@
 import {
+  METER_SERVICE_COLUMN_LABELS,
   parseMeterServiceCsv,
   planMonthlyMeterReadings,
+  suggestMeterServiceColumns,
   type MeterServiceColumns,
   type MeterServiceReading,
   type MonthlyReadingsPlan,
@@ -15,13 +17,7 @@ import {
   type ChangeEvent,
 } from 'react'
 import { importMonthlyMeterReadings } from './commands'
-import {
-  METER_COLUMN_LABELS,
-  locateCsvError,
-  readCsvHeader,
-  suggestMeterColumns,
-  type MeterColumnKey,
-} from './csv-columns'
+import { locateCsvError, readCsvHeader } from './csv-columns'
 import { formatReading, germanDate } from './format'
 
 type Apply = (transform: (data: AppDataFile) => AppDataFile) => boolean
@@ -48,7 +44,12 @@ type Preview =
     }
 
 const MAX_BYTES = 5 * 1024 * 1024
-const KEYS: readonly MeterColumnKey[] = ['meterNumber', 'date', 'value', 'unit']
+const KEYS: readonly (keyof MeterServiceColumns)[] = [
+  'meterNumber',
+  'date',
+  'value',
+  'unit',
+]
 
 const count = (n: number, one: string, many: string) =>
   `${n} ${n === 1 ? one : many}`
@@ -140,7 +141,13 @@ export function MonthlyReadingsImport({
           'Die CSV-Datei braucht mindestens vier Spalten (Semikolon als Trennzeichen).',
         )
       setFile({ text, header })
-      setColumns(suggestMeterColumns(header))
+      setColumns({
+        meterNumber: '',
+        date: '',
+        value: '',
+        unit: '',
+        ...suggestMeterServiceColumns(header),
+      })
     } catch (caught) {
       setError((caught as Error).message)
     } finally {
@@ -207,7 +214,7 @@ export function MonthlyReadingsImport({
             <legend>Spalten zuordnen</legend>
             {KEYS.map((key) => (
               <label key={key}>
-                <span>{METER_COLUMN_LABELS[key]}</span>
+                <span>{METER_SERVICE_COLUMN_LABELS[key]}</span>
                 <select
                   value={columns[key]}
                   onChange={(event) =>

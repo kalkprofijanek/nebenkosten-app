@@ -125,8 +125,64 @@ describe('Zählerstände aus Ablesebogen/Messdienst (CSV)', () => {
         'Ablesedatum',
         'Wert',
       ]),
-    ).toEqual({ meterNumber: 'Zählernummer', value: 'Wert' })
+    ).toEqual({
+      meterNumber: 'Zählernummer',
+      date: 'Ablesedatum',
+      value: 'Wert',
+    })
     expect(suggestMeterServiceColumns(['A', 'B'])).toEqual({})
+  })
+
+  it('bevorzugt exakte Überschriften vor Teilbegriffen', () => {
+    expect(
+      suggestMeterServiceColumns([
+        'Einheit',
+        'Zählerstand',
+        'Ablesedatum',
+        'Zählernummer',
+      ]),
+    ).toEqual({
+      meterNumber: 'Zählernummer',
+      date: 'Ablesedatum',
+      value: 'Zählerstand',
+      unit: 'Einheit',
+    })
+    expect(suggestMeterServiceColumns(['Zählerstand', 'Zähler'])).toEqual({
+      meterNumber: 'Zähler',
+      value: 'Zählerstand',
+    })
+    expect(
+      suggestMeterServiceColumns(['Zähler-Nr.', 'Stichtag', 'Stand', 'Einh.']),
+    ).toEqual({
+      meterNumber: 'Zähler-Nr.',
+      date: 'Stichtag',
+      value: 'Stand',
+      unit: 'Einh.',
+    })
+  })
+
+  it('erkennt Teilbegriffe nur bei genau einer freien Spalte', () => {
+    expect(
+      suggestMeterServiceColumns([
+        'Gerätenummer',
+        'Stichtag Datum',
+        'Wert',
+        'ME',
+      ]),
+    ).toEqual({
+      meterNumber: 'Gerätenummer',
+      date: 'Stichtag Datum',
+      value: 'Wert',
+    })
+    expect(
+      suggestMeterServiceColumns([
+        'Nummer',
+        'Datum Ablesung',
+        'Datum Eingang',
+        'Stand kum.',
+      ]),
+    ).toEqual({ meterNumber: 'Nummer', value: 'Stand kum.' })
+    expect(suggestMeterServiceColumns(['Datum', 'Ablesedatum'])).toEqual({})
   })
 
   it('liest die Kopfzeile auch fremder Messdienst-Dateien', () => {

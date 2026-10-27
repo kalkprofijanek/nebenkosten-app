@@ -47,13 +47,47 @@ export const METER_SERVICE_TEMPLATE = [
 
 const COLUMN_KEYS = ['meterNumber', 'date', 'value', 'unit'] as const
 
-/** Erkennungsmuster für gängige Messdienst-Spaltennamen (normalisiert). */
-const COLUMN_PATTERNS: Record<keyof MeterServiceColumns, RegExp> = {
-  meterNumber: /(zaehler|geraete|serien)(nummer|nr)/u,
-  date: /datum/u,
-  value: /^(zaehler)?stand$|^wert$|^ablesewert$|^messwert$/u,
-  unit: /einheit/u,
+/** Bezeichnungen der vier Angaben für die Spaltenzuordnung. */
+export const METER_SERVICE_COLUMN_LABELS: Record<
+  keyof MeterServiceColumns,
+  string
+> = {
+  meterNumber: 'Zählernummer',
+  date: 'Ablesedatum',
+  value: 'Zählerstand',
+  unit: 'Einheit',
 }
+
+/** Exakte Überschriften je Angabe (normalisiert, siehe `normalize`). */
+const EXACT_COLUMN_NAMES: Record<keyof MeterServiceColumns, readonly string[]> =
+  {
+    meterNumber: [
+      'zaehlernummer',
+      'zaehlernr',
+      'geraetenummer',
+      'geraetenr',
+      'seriennummer',
+      'zaehler',
+    ],
+    date: ['ablesedatum', 'datum', 'stichtag', 'date'],
+    value: ['zaehlerstand', 'stand', 'wert', 'value', 'ablesewert', 'messwert'],
+    unit: ['einheit', 'einh', 'unit'],
+  }
+
+/**
+ * Teilbegriffe, falls keine exakte Überschrift passt. Reihenfolge ist
+ * wichtig: „Zählerstand“ wird vor der Zählernummer vergeben, damit „zaehler“
+ * es nicht als Nummer erkennt.
+ */
+const PARTIAL_COLUMN_TERMS: readonly (readonly [
+  keyof MeterServiceColumns,
+  RegExp,
+])[] = [
+  ['value', /stand|wert/u],
+  ['date', /datum|date|stichtag/u],
+  ['unit', /einheit|unit/u],
+  ['meterNumber', /nummer|zaehler|geraet|nr/u],
+]
 
 function normalize(name: string): string {
   return name
@@ -71,19 +105,39 @@ export function readMeterServiceHeader(text: string): string[] {
 }
 
 /**
- * Schlägt je Angabe eine Spalte vor – nur bei genau einem Treffer.
+ * Schlägt je Angabe eine Spalte vor – nur bei genau einem Treffer. Zuerst
+ * zählen exakte Überschriften, dann Teilbegriffe in noch freien Spalten.
  * Mehrdeutige oder fehlende Spalten bleiben offen und müssen von Hand
  * zugeordnet werden.
  */
 export function suggestMeterServiceColumns(
   header: readonly string[],
 ): Partial<MeterServiceColumns> {
+  const names = header.map(normalize)
   const suggestion: Partial<Record<keyof MeterServiceColumns, string>> = {}
-  for (const key of COLUMN_KEYS) {
-    const matches = header.filter((name) =>
-      COLUMN_PATTERNS[key].test(normalize(name)),
+  const used = new Set<number>()
+  const ambiguous = new Set<keyof MeterServiceColumns>()
+  const take = (key: keyof MeterServiceColumns, indexes: number[]) => {
+    if (indexes.length === 1) {
+      suggestion[key] = header[indexes[0]!]!
+      used.add(indexes[0]!)
+    } else if (indexes.length > 1) ambiguous.add(key)
+  }
+  for (const key of COLUMN_KEYS)
+    take(
+      key,
+      names.flatMap((name, index) =>
+        EXACT_COLUMN_NAMES[key].includes(name) ? [index] : [],
+      ),
     )
-    if (matches.length === 1) suggestion[key] = matches[0]!
+  for (const [key, pattern] of PARTIAL_COLUMN_TERMS) {
+    if (suggestion[key] !== undefined || ambiguous.has(key)) continue
+    take(
+      key,
+      names.flatMap((name, index) =>
+        !used.has(index) && pattern.test(name) ? [index] : [],
+      ),
+    )
   }
   return suggestion
 }
