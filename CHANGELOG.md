@@ -4,6 +4,12 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Sicherheitsprüfungen in der CI**: CodeQL (`security-extended`) für
+  JavaScript/TypeScript und GitHub Actions bei jedem PR, Push auf `main` und
+  wöchentlich; `guardrails.yml` durchsucht zusätzlich die gesamte
+  Git-Historie mit Gitleaks (Binary mit SHA-256-Prüfung, geprüfte
+  Fehlalarme in `.gitleaks.toml`) und prüft die Workflows mit zizmor
+  (ab Schweregrad „medium“),
 - **Sicherheit: CSV-Export „Veränderung zum Vorjahr“ gegen Formel-Injection
   gehärtet**: Freitext in den Spalten Bereich, Position und Hinweis, der mit
   `=`, `+`, `-`, `@`, Tab oder CR beginnt, erhält ein vorangestelltes `'`,
