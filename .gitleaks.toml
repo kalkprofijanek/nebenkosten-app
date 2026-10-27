@@ -1,0 +1,11 @@
+# Gitleaks-Konfiguration: Standardregeln plus eng begrenzte Ausnahmen.
+# Jede Ausnahme muss einen geprüften Fehlalarm benennen, nie ein echtes Geheimnis.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "localStorage-Schlüssel der Legacy-App (LS_KEY), kein Geheimnis"
+targetRules = ["generic-api-key"]
+regexTarget = "match"
+regexes = ['''LS_KEY\s*=\s*'nk_abrechnung_v3\'''']

@@ -4,6 +4,11 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Sicherheitsprüfungen in der CI**: gitleaks (Git-Historie), Semgrep,
+  zizmor und OSV-Scanner im Workflow `security.yml`, dazu CodeQL und
+  OpenSSF Scorecard als eigene Workflows; Übersicht und Ausnahmeregeln in
+  `SECURITY.md`. Dependabot wartet sieben Tage nach einem Release, bevor
+  es ein Update vorschlägt (Sicherheitsupdates ausgenommen),
 - **Spaltenerkennung beim CSV-Import vereinheitlicht**: Monatsinformation
   und Zählerstand-Import schlagen Spalten mit derselben Funktion
   `suggestMeterServiceColumns` vor (exakte Überschriften vor Teilbegriffen,
