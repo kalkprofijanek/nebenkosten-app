@@ -57,8 +57,9 @@ import {
   section12Applies,
   tenantHeatingTable,
 } from './tenant-statement-tables'
+import { PDF_LIGHT_FILL } from './colors'
 
-const LIGHT_FILL = '#eef4fb'
+const LIGHT_FILL = PDF_LIGHT_FILL
 
 function isMeteredOccupancy(context: TenantStatementContext): boolean {
   return Boolean(

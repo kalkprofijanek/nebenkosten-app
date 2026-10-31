@@ -53,9 +53,10 @@ import {
 } from './tenant-statement-data'
 import { MUTED } from './tenant-statement-tables'
 import { energyTaxesInformation } from './taxes-and-levies'
+import { PDF_LIGHT } from './colors'
 
 /** Heller Balkenanteil (Warmwasser) neben `MUTED` (Heizwärme). */
-const LIGHT = '#b8c4ce'
+const LIGHT = PDF_LIGHT
 const BAR_WIDTH = 200
 
 interface ChartBar {
