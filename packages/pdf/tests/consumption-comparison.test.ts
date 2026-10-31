@@ -284,7 +284,7 @@ describe('Vorjahresvergleich des Energieverbrauchs (§ 6a Abs. 3 Satz 2 HeizKV)'
     // Abrechnungsjahr: 8.000 × 1,1 = 8.800 + 1.667 = 10.467 kWh.
     expect(serialized).toContain('"7.803 kWh"')
     expect(serialized).toContain('"10.467 kWh"')
-    expect(serialized).toContain('"color":"#b8c4ce"')
+    expect(serialized).toContain('"color":"#bbbbbb"')
     expect(serialized).toContain('Warmwasser 1.467 kWh')
     expect(serialized).toContain(
       'Bereinigt ist nur die Heizwärme; das Warmwasser hängt nicht von der Witterung ab',

@@ -102,7 +102,6 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
             {
               "alignment": "right",
               "bold": false,
-              "color": undefined,
               "fillColor": undefined,
               "noWrap": true,
               "text": "0,00 €",
@@ -117,7 +116,6 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
             {
               "alignment": "right",
               "bold": false,
-              "color": undefined,
               "fillColor": undefined,
               "noWrap": true,
               "text": "0,00 €",
@@ -132,7 +130,6 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
             {
               "alignment": "right",
               "bold": false,
-              "color": undefined,
               "fillColor": undefined,
               "noWrap": true,
               "text": "720,00 €",
@@ -147,7 +144,6 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
             {
               "alignment": "right",
               "bold": true,
-              "color": undefined,
               "fillColor": undefined,
               "noWrap": true,
               "text": "720,00 €",
@@ -162,7 +158,6 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
             {
               "alignment": "right",
               "bold": false,
-              "color": undefined,
               "fillColor": undefined,
               "noWrap": true,
               "text": "600,00 €",
@@ -171,14 +166,13 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
           [
             {
               "bold": true,
-              "fillColor": "#eef4fb",
+              "fillColor": "#eeeeee",
               "text": "Nachzahlung",
             },
             {
               "alignment": "right",
               "bold": true,
-              "color": undefined,
-              "fillColor": "#eef4fb",
+              "fillColor": "#eeeeee",
               "noWrap": true,
               "text": "120,00 €",
             },
@@ -191,7 +185,7 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
       },
     },
     {
-      "color": "#5a6a78",
+      "color": "#555555",
       "fontSize": 7,
       "margin": [
         0,
@@ -309,7 +303,7 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
               "stack": [
                 "Muellbeseitigung",
                 {
-                  "color": "#5a6a78",
+                  "color": "#555555",
                   "fontSize": 7,
                   "text": "Objekt Beispielangabe",
                 },
@@ -369,7 +363,7 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
       },
     },
     {
-      "color": "#5a6a78",
+      "color": "#555555",
       "fontSize": 7,
       "margin": [
         0,
@@ -484,7 +478,7 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
       "text": "Ein grafischer, witterungsbereinigter Vergleich mit dem vorhergehenden Abrechnungszeitraum ist nicht möglich, weil für diesen Zeitraum keine Verbrauchsdaten vorliegen (Eigentümer- bzw. Abrechnungswechsel).",
     },
     {
-      "color": "#5a6a78",
+      "color": "#555555",
       "fontSize": 8,
       "margin": [
         0,
@@ -573,12 +567,12 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
     },
   ],
   "defaultStyle": {
-    "color": "#1f2a36",
+    "color": "#000000",
     "font": "Roboto",
     "fontSize": 9,
   },
   "footer": {
-    "color": "#5a6a78",
+    "color": "#555555",
     "fontSize": 7,
     "margin": [
       71,
@@ -598,12 +592,12 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
   "styles": {
     "th": {
       "bold": true,
-      "color": "#1a3a5c",
+      "color": "#000000",
       "fontSize": 9,
     },
     "title": {
       "bold": true,
-      "color": "#1a3a5c",
+      "color": "#000000",
       "fontSize": 14,
     },
   },

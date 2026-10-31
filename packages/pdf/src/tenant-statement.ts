@@ -38,8 +38,9 @@ import {
   section35aContent,
 } from './tenant-statement-heating'
 import { consumptionInformation } from './tenant-statement-consumption'
+import { PDF_TEXT } from './colors'
 
-const BLUE = '#1a3a5c'
+const BLUE = PDF_TEXT
 
 function propertyDataFooter(context: TenantStatementContext): Content {
   const { billingPeriod, property } = context
@@ -322,7 +323,7 @@ export function buildTenantStatement(
       title: { fontSize: 14, bold: true, color: BLUE },
       th: { fontSize: 9, bold: true, color: BLUE },
     },
-    defaultStyle: { fontSize: 9, color: '#1f2a36', font: 'Roboto' },
+    defaultStyle: { fontSize: 9, color: PDF_TEXT, font: 'Roboto' },
   }
 }
 

@@ -7,9 +7,10 @@ import { resolveShippingAddress } from '@nebenkosten/core'
 import { buildRecipientBlock, buildSenderBlock } from './address'
 import type { TenantStatementContext } from './contracts'
 import { formatEuroCents, formatIsoDate } from './format'
+import { PDF_MUTED, PDF_TEXT } from './colors'
 
-const BLUE = '#1a3a5c'
-const MUTED = '#5a6a78'
+const BLUE = PDF_TEXT
+const MUTED = PDF_MUTED
 
 export const PREPAYMENT_ADJUSTMENT_TITLE =
   'Anpassung der Betriebskostenvorauszahlung gemäß § 560 Abs. 4 BGB'

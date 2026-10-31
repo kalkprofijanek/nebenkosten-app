@@ -46,9 +46,10 @@ import {
   tenantResult,
   type TenantFacts,
 } from './tenant-statement-data'
+import { PDF_LIGHT_FILL, PDF_MUTED } from './colors'
 
-const LIGHT_FILL = '#eef4fb'
-export const MUTED = '#5a6a78'
+const LIGHT_FILL = PDF_LIGHT_FILL
+export const MUTED = PDF_MUTED
 const PAYMENT_TERM_DAYS = 30
 
 export function summaryTable(context: TenantStatementContext): Content {
@@ -89,8 +90,6 @@ export function summaryTable(context: TenantStatementContext): Content {
             noWrap: true,
             bold: emphasized,
             fillColor: balanceRow ? LIGHT_FILL : undefined,
-            color:
-              balanceRow && tenant.balanceCents < 0 ? '#1a6a2e' : undefined,
           },
         ]
       }),
