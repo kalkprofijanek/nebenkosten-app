@@ -1,4 +1,5 @@
 import { createEmptyAppDataFile } from '@nebenkosten/schema'
+import { calculationBinding } from '@nebenkosten/validators'
 import { describe, expect, it } from 'vitest'
 
 import { createBillingPeriod } from '../billing-periods/commands'
@@ -91,5 +92,18 @@ describe('calculatePreview', () => {
         resultSnapshot: expect.objectContaining({ snapshotFormatVersion: 3 }),
       }),
     ])
+  })
+
+  it('bindet den Rechenlauf per inputSha256 an den Eingabestand', () => {
+    const periodId = '40000000-0000-4000-8000-000000000006'
+    const result = runCalculation(calculableData(), periodId)
+    expect(result.billingData.calculationRuns[0]?.inputSha256).toMatch(
+      /^[0-9a-f]{64}$/,
+    )
+    expect(calculationBinding(result, periodId)).toBe('current')
+
+    const changed = structuredClone(result)
+    changed.billingData.billingPeriods[0]!.periodEnd = '2026-11-30'
+    expect(calculationBinding(changed, periodId)).toBe('stale')
   })
 })

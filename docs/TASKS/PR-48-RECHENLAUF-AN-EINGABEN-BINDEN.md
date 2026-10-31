@@ -56,11 +56,11 @@ Härtungshinweise. Priorität 2. Abhängigkeit: PR-47.
 - Backup mit FINALIZED und abweichendem Snapshot: Importvorschau meldet es.
 - Bankverbindung bei READY_FOR_PDF ändern: Verhalten nach E-48-3.
 
-## Offene Entscheidungen
+## Entscheidungen (Nutzer, 31.10.2026)
 
-- **E-48-1 – Umfang des Hashes:** nur die Eingaben, die `createCalculationInput`
+- **E-48-1 = Empfehlung – Umfang des Hashes:** nur die Eingaben, die `createCalculationInput`
   für den Zeitraum verwendet (Empfehlung), oder die gesamte `AppDataFile`.
-- **E-48-2 – Läufe ohne oder mit falschem Hash beim Import:**
+- **E-48-2 = A – Läufe ohne oder mit falschem Hash beim Import:**
   - A = Status auf IN_REVIEW zurücksetzen und Neuberechnung verlangen.
     Empfehlung.
   - B = nur Hinweis.
@@ -68,10 +68,43 @@ Härtungshinweise. Priorität 2. Abhängigkeit: PR-47.
 
   Fachlich relevant für bereits versandte Abrechnungen (FINALIZED).
 
-- **E-48-3 – Bankdaten nach Freigabe:**
+- **E-48-3 = A – Bankdaten nach Freigabe** (keine Empfehlung im Task; A
+  als Annahme gewählt, im PR benannt):
   - A = wie andere Stammdaten über die Bearbeitungssperre (Zeitraum
     zurücksetzen).
   - B = erlaubt, aber PDF-Hinweis „Bankverbindung nach Freigabe geändert“.
 
   Die IBAN wird beim Rendern aus den aktuellen Stammdaten gelesen, nicht aus
   dem Snapshot.
+
+## Umsetzung
+
+- `packages/core/src/integrity/`: synchrones `sha256Hex` und
+  `calculationInputSha256`. Gehasht wird die kanonisch serialisierte
+  `CalculationInput` des Zeitraums. Ohne die Freigabe- und Textfelder des
+  Abrechnungszeitraums: `status`, `dispatchDate`, `lastModifiedAt`, `notes`,
+  `coverLetter`, `legacyUnmapped`.
+- `runCalculation` speichert `inputSha256`.
+- `packages/validators`: `calculationBinding` liefert `current`, `stale`,
+  `unbound` oder `missing`. `transitionBillingPeriod` verlangt für
+  READY_FOR_PDF und FINALIZED einen aktuellen, gebundenen Lauf; sonst
+  `transition.calculation_stale`.
+- PDF-Export (`pdfCalculationSnapshot`): Ein abweichender Lauf (`stale`)
+  wird abgelehnt. Läufe ohne Hash aus dem Bestand vor PR-48 bleiben
+  exportierbar.
+- Import (`resetUnboundReleases`): READY_FOR_PDF ohne aktuellen Lauf und
+  FINALIZED mit abweichendem Lauf werden auf IN_REVIEW gesetzt, mit
+  Audit-Ereignis `billing_period.import_release_reset`. Die Vorschau nennt
+  die betroffenen Jahre. FINALIZED ohne Hash (Bestand vor PR-48) bleibt
+  unverändert, damit eigene ältere Sicherungen versandte Jahre nicht
+  wieder öffnen.
+- Bankverbindung (Firma und Objekt): Änderungen werden abgelehnt, solange
+  ein betroffenes Jahr READY_FOR_PDF ist. FINALIZED sperrt nicht, damit ein
+  späterer Kontowechsel möglich bleibt.
+
+## Migrationsauswirkung
+
+Keine Schemaänderung. Ein Jahr, das schon vor PR-48 READY_FOR_PDF war, kann
+ohne Neuberechnung nicht mehr nach FINALIZED wechseln: Prüfung öffnen,
+neu berechnen, erneut freigeben. Der PDF-Export solcher Jahre bleibt
+möglich.

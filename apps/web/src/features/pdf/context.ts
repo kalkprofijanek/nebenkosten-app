@@ -2,7 +2,10 @@ import {
   CORE_SNAPSHOT_FORMAT_VERSION,
   type CalculationOutput,
 } from '@nebenkosten/core'
-import { latestCalculationRun } from '@nebenkosten/validators'
+import {
+  calculationBinding,
+  latestCalculationRun,
+} from '@nebenkosten/validators'
 import { compatibleMeteringTrace } from './metering-snapshot'
 import {
   allocationScopeSchema,
@@ -21,6 +24,15 @@ export class IncompatibleCalculationSnapshotError extends Error {
       'Dieser Berechnungsstand ist zu alt für die PDF-Ausgabe. Öffne unter „Freigabe“ zuerst kontrolliert die Prüfung, berechne das Abrechnungsjahr neu und gib es anschließend erneut für PDF frei.',
     )
     this.name = 'IncompatibleCalculationSnapshotError'
+  }
+}
+
+export class StaleCalculationSnapshotError extends Error {
+  constructor() {
+    super(
+      'Die gespeicherte Berechnung passt nicht zu den aktuellen Daten. Öffne unter „Freigabe“ kontrolliert die Prüfung, berechne das Abrechnungsjahr neu und gib es anschließend erneut für PDF frei.',
+    )
+    this.name = 'StaleCalculationSnapshotError'
   }
 }
 
@@ -167,6 +179,23 @@ export function latestCalculationSnapshot(
     calculationRunId: latestRun.id,
     output: result.resultSnapshot,
   }
+}
+
+/**
+ * Berechnungsstand für die PDF-Ausgabe: wie `latestCalculationSnapshot`,
+ * zusätzlich muss der Lauf zu den aktuellen Eingaben passen (PR-48). Läufe
+ * ohne Hash (vor PR-48) bleiben exportierbar; die Freigabe verlangt ab jetzt
+ * einen gebundenen Lauf, und der Import setzt ungebundene PDF-Freigaben
+ * zurück.
+ */
+export function pdfCalculationSnapshot(
+  data: AppDataFile,
+  billingPeriodId: string,
+): CalculationSnapshot | undefined {
+  const snapshot = latestCalculationSnapshot(data, billingPeriodId)
+  if (snapshot && calculationBinding(data, billingPeriodId) === 'stale')
+    throw new StaleCalculationSnapshotError()
+  return snapshot
 }
 
 export function tenantOccupancies(

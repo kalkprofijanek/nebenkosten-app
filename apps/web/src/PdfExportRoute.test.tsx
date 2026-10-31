@@ -300,6 +300,25 @@ describe('PdfExportRoute', () => {
     )
   })
 
+  it('verweigert die Ausgabe, wenn die Berechnung nicht zu den Daten passt', () => {
+    const data = fixtureAppData()
+    data.billingData.calculationRuns[0]!.inputSha256 = 'a'.repeat(64)
+    render(
+      <PdfExportRoute
+        data={data}
+        billingPeriodId={PERIOD_ID}
+        onApply={() => true}
+      />,
+    )
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /passt nicht zu den aktuellen Daten/,
+    )
+    expect(
+      screen.queryByRole('button', { name: /Einzelabrechnung/ }),
+    ).not.toBeInTheDocument()
+  })
+
   it('erzeugt eine Einzelabrechnung, löst den Download aus und speichert das Dokument', async () => {
     renderPdfBlob.mockResolvedValue(new Blob(['pdf']))
     const onApply = vi.fn((transform: (data: AppDataFile) => AppDataFile) => {

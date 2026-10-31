@@ -8,7 +8,7 @@ import { useState } from 'react'
 import {
   buildCombinedCostStatementContext,
   buildTenantStatementContext,
-  latestCalculationSnapshot,
+  pdfCalculationSnapshot,
   tenantOccupancies,
 } from './features/pdf/context'
 import {
@@ -118,7 +118,7 @@ export function PdfExportRoute({
 
   let calculationSnapshot
   try {
-    calculationSnapshot = latestCalculationSnapshot(data, billingPeriodId)
+    calculationSnapshot = pdfCalculationSnapshot(data, billingPeriodId)
   } catch (caught) {
     return (
       <p role="alert">

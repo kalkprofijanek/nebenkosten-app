@@ -299,6 +299,46 @@ export function createPropertyStructure(
   return assertValidResult(result, MasterDataCommandError)
 }
 
+type BankAccountFields = Partial<
+  Record<'iban' | 'bic' | 'accountHolder' | 'bankName', string | null>
+>
+
+function sameBankAccount(
+  left: BankAccountFields | null | undefined,
+  right: BankAccountFields | null | undefined,
+): boolean {
+  return (['iban', 'bic', 'accountHolder', 'bankName'] as const).every(
+    (field) => (left?.[field] ?? null) === (right?.[field] ?? null),
+  )
+}
+
+/**
+ * Die Bankverbindung steht im Absender und im GiroCode der Abrechnung. Solange
+ * ein Jahr der betroffenen Objekte für PDF freigegeben ist, gilt dieselbe
+ * Bearbeitungssperre wie für andere Stammdaten (PR-48, E-48-3 = A).
+ * Abgeschlossene Jahre sperren nicht: Sie sind versandt, ein späterer
+ * Kontowechsel muss möglich bleiben.
+ */
+function assertBankAccountEditable(
+  data: AppDataFile,
+  propertyIds: ReadonlySet<string>,
+  before: BankAccountFields | null | undefined,
+  after: BankAccountFields | null | undefined,
+): void {
+  if (sameBankAccount(before, after)) return
+  const years = data.billingData.billingPeriods
+    .filter(
+      ({ propertyId, status }) =>
+        propertyIds.has(propertyId) && status === 'READY_FOR_PDF',
+    )
+    .map(({ year }) => year)
+    .sort((a, b) => a - b)
+  if (years.length > 0)
+    throw new MasterDataCommandError(
+      `Die Bankverbindung erscheint in der für PDF freigegebenen Abrechnung ${years.join(', ')}. Öffne dort zuerst kontrolliert die Prüfung.`,
+    )
+}
+
 export function updateCompany(
   data: AppDataFile,
   ownerCompanyId: string,
@@ -379,6 +419,16 @@ export function updateCompany(
           email: contactEmail,
         })
 
+  assertBankAccountEditable(
+    data,
+    new Set(
+      data.masterData.properties
+        .filter((property) => property.ownerCompanyId === ownerCompanyId)
+        .map(({ id }) => id),
+    ),
+    company.bankAccount,
+    bankAccount,
+  )
   const result: AppDataFile = {
     ...data,
     masterData: {
@@ -511,6 +561,12 @@ export function updateProperty(
     since === undefined && exemptionReason === undefined
       ? undefined
       : withoutUndefined({ since, exemptionReason })
+  assertBankAccountEditable(
+    data,
+    new Set([propertyId]),
+    data.masterData.properties.find(({ id }) => id === propertyId)!.bankAccount,
+    bankAccount,
+  )
   const result: AppDataFile = {
     ...data,
     masterData: {

@@ -293,6 +293,29 @@ export function ImportControl({
               <>
                 <h3>Bestandszahlen</h3>
                 <CountList counts={preview.summary} labels={summaryLabels} />
+                {preview.releaseResets.length > 0 ? (
+                  <section aria-labelledby="import-release-resets-title">
+                    <h3 id="import-release-resets-title">
+                      Freigaben werden zurückgesetzt
+                    </h3>
+                    <p>
+                      Die gespeicherte Berechnung dieser Jahre passt nicht zu
+                      den importierten Daten. Sie werden nach der Übernahme auf
+                      „In Prüfung“ gesetzt und müssen neu berechnet werden.
+                    </p>
+                    <ul>
+                      {preview.releaseResets.map((reset) => (
+                        <li key={reset.year}>
+                          Abrechnungsjahr {reset.year} (bisher{' '}
+                          {reset.from === 'FINALIZED'
+                            ? 'abgeschlossen'
+                            : 'für PDF freigegeben'}
+                          )
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
               </>
             )}
             <div className="dialog-actions">

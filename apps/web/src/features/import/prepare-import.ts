@@ -4,12 +4,18 @@ import {
   importLegacyV3Bytes,
 } from '@nebenkosten/import-export'
 import {
+  appDataFileSchema,
   safeFileNameSchema,
   type AppDataFile,
+  type BillingPeriodStatus,
   type MigrationReport,
   type MigrationResult,
 } from '@nebenkosten/schema'
-import { validateBillingPeriod } from '@nebenkosten/validators'
+import {
+  calculationBinding,
+  validateBillingPeriod,
+  type CalculationBinding,
+} from '@nebenkosten/validators'
 
 export const MAX_IMPORT_BYTES = 25 * 1024 * 1024
 
@@ -95,12 +101,20 @@ function groupIssues(
   )
 }
 
+/** Abrechnungsjahr, dessen Freigabe der Import zurückgesetzt hat (E-48-2). */
+export interface ImportReleaseReset {
+  readonly year: number
+  readonly from: BillingPeriodStatus
+  readonly binding: Exclude<CalculationBinding, 'current'>
+}
+
 export type ImportPreview =
   | {
       readonly ok: true
       readonly sourceFormat: 'current-v5' | 'legacy-v4'
       readonly data: AppDataFile
       readonly summary: ImportSummary
+      readonly releaseResets: readonly ImportReleaseReset[]
     }
   | {
       readonly ok: true
@@ -179,6 +193,68 @@ function summarizeValidation(
       issueGroups: groupIssues(report.issues),
     }
   })
+}
+
+function needsReleaseReset(
+  status: BillingPeriodStatus,
+  binding: CalculationBinding,
+): binding is Exclude<CalculationBinding, 'current'> {
+  if (binding === 'current') return false
+  if (status === 'READY_FOR_PDF') return true
+  // Versandte Abrechnungen ohne Hash (vor PR-48) bleiben unverändert; nur ein
+  // nachweislich abweichender Rechenlauf öffnet die Prüfung wieder.
+  return status === 'FINALIZED' && binding === 'stale'
+}
+
+/**
+ * Ein Backup ist unbekannte Eingabe: Ein PDF-freigegebenes oder
+ * abgeschlossenes Jahr, dessen gespeicherte Berechnung nicht zu den
+ * importierten Daten passt, wird auf IN_REVIEW zurückgesetzt und muss neu
+ * berechnet werden (PR-48, E-48-2 = A).
+ */
+export function resetUnboundReleases(
+  data: AppDataFile,
+  dependencies: {
+    readonly createId?: () => string
+    readonly now?: () => Date
+  } = {},
+): { readonly data: AppDataFile; readonly resets: ImportReleaseReset[] } {
+  const createId = dependencies.createId ?? (() => crypto.randomUUID())
+  const timestamp = (dependencies.now ?? (() => new Date()))().toISOString()
+  const resets: ImportReleaseReset[] = []
+  const auditEvents = [...data.billingData.auditEvents]
+  const billingPeriods = data.billingData.billingPeriods.map((period) => {
+    const binding = calculationBinding(data, period.id)
+    if (!needsReleaseReset(period.status, binding)) return period
+    resets.push({ year: period.year, from: period.status, binding })
+    auditEvents.push({
+      id: createId(),
+      billingPeriodId: period.id,
+      timestamp,
+      action: 'billing_period.import_release_reset',
+      details: {
+        from: period.status,
+        to: 'IN_REVIEW',
+        reason:
+          binding === 'stale'
+            ? 'Importierte Berechnung passt nicht zu den importierten Daten.'
+            : 'Importierte Berechnung ist nicht an die Eingabedaten gebunden.',
+      },
+    })
+    return {
+      ...period,
+      status: 'IN_REVIEW' as const,
+      lastModifiedAt: timestamp,
+    }
+  })
+  if (resets.length === 0) return { data, resets }
+  return {
+    data: appDataFileSchema.parse({
+      ...data,
+      billingData: { ...data.billingData, billingPeriods, auditEvents },
+    }),
+    resets,
+  }
 }
 
 function migrationFailure(result: Extract<MigrationResult, { ok: false }>) {
@@ -273,12 +349,14 @@ export async function prepareImport(
     const decoded = await decodeSupportedAppDataBytes(copied, {
       maxBytes: MAX_IMPORT_BYTES,
     })
+    const { data, resets } = resetUnboundReleases(decoded.data)
     return {
       ok: true,
       sourceFormat:
         decoded.sourceSchemaVersion === 4 ? 'legacy-v4' : 'current-v5',
-      data: decoded.data,
-      summary: summarize(decoded.data, 0),
+      data,
+      summary: summarize(data, 0),
+      releaseResets: resets,
     }
   } catch (error) {
     if (!(error instanceof CurrentAppDataCodecError)) {

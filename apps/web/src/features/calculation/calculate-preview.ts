@@ -1,5 +1,6 @@
 import {
   calculateBilling,
+  calculationInputSha256,
   createCalculationInput,
   type CalculationOutput,
 } from '@nebenkosten/core'
@@ -25,7 +26,8 @@ export function runCalculation(
   billingPeriodId: string,
   dependencies: RunCalculationDependencies = {},
 ): AppDataFile {
-  const output = calculatePreview(data, billingPeriodId)
+  const input = createCalculationInput(data, billingPeriodId)
+  const output = calculateBilling(input)
   const createId = dependencies.createId ?? (() => crypto.randomUUID())
   const now = dependencies.now ?? (() => new Date())
   const calculationRunId = createId()
@@ -42,6 +44,7 @@ export function runCalculation(
           billingPeriodId,
           startedAt: now().toISOString(),
           appVersion: APP_VERSION,
+          inputSha256: calculationInputSha256(input),
         },
       ],
       calculationResults: [
