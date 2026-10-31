@@ -1,6 +1,13 @@
-import type { CalculationOutput } from '@nebenkosten/core'
+import {
+  calculateBilling,
+  createCalculationInput,
+  type CalculationOutput,
+} from '@nebenkosten/core'
 import { createEmptyAppDataFile, type AppDataFile } from '@nebenkosten/schema'
 import { describe, expect, it } from 'vitest'
+import { buildAppDataFile } from '../../../../../tests/characterization/build-app-data'
+import scenarioFile from '../../../../../tests/characterization/scenarios.json'
+import type { Scenario } from '../../../../../tests/characterization/types'
 import {
   buildCombinedCostStatementContext,
   buildTenantStatementContext,
@@ -227,6 +234,91 @@ describe('latestCalculationSnapshot', () => {
     delete heating.trace
     result.resultSnapshot = incompleteSnapshot
 
+    expect(() => latestCalculationSnapshot(data, PERIOD_ID)).toThrow(
+      IncompatibleCalculationSnapshotError,
+    )
+  })
+})
+
+describe('latestCalculationSnapshot – Kostenpositionen', () => {
+  function operatingPosition(): Record<string, unknown> {
+    return {
+      costCategoryId: 'cc-1',
+      label: 'Grundsteuer',
+      betrkvCategory: '§2 Nr. 1',
+      allocationKey: 'usable_area',
+      scope: null,
+      grossCents: 1000,
+      nonAllocableCents: 0,
+      allocableCents: 1000,
+      operatingElectricityDeductedCents: 0,
+      distributedCents: 1000,
+      distribution: 'key',
+      denominator: 100,
+      denominatorUnit: 'm²',
+      vacancyCents: 0,
+    }
+  }
+
+  function withPositions(positions: unknown): AppDataFile {
+    const data = fixtureAppData()
+    data.billingData.calculationResults[0]!.resultSnapshot = {
+      ...calculationOutput(),
+      operatingPositions: positions,
+    }
+    return data
+  }
+
+  it.each(
+    (scenarioFile.scenarios as unknown as Scenario[]).map(
+      (scenario) => [scenario.id, scenario] as const,
+    ),
+  )('akzeptiert eigene Berechnungsstände (%s)', (_id, scenario) => {
+    const output = calculateBilling(
+      createCalculationInput(buildAppDataFile(scenario), 'bp-1'),
+    )
+    const data = withPositions(
+      JSON.parse(JSON.stringify(output.operatingPositions)),
+    )
+    expect(() => latestCalculationSnapshot(data, PERIOD_ID)).not.toThrow()
+  })
+
+  it('prüft dabei Szenarien mit Kostenpositionen', () => {
+    const withOperatingPositions = (
+      scenarioFile.scenarios as unknown as Scenario[]
+    ).filter(
+      (scenario) =>
+        (calculateBilling(
+          createCalculationInput(buildAppDataFile(scenario), 'bp-1'),
+        ).operatingPositions?.length ?? 0) > 0,
+    )
+    expect(withOperatingPositions.length).toBeGreaterThan(0)
+  })
+
+  it('akzeptiert vollständige Kostenpositionen', () => {
+    const data = withPositions([operatingPosition()])
+    expect(
+      latestCalculationSnapshot(data, PERIOD_ID)?.output.operatingPositions,
+    ).toHaveLength(1)
+  })
+
+  it.each([
+    ['Bezeichnung als Objekt', { label: { text: 'x', link: 'https://x' } }],
+    ['Umlageschlüssel als Objekt', { allocationKey: { qr: 'x' } }],
+    ['BetrKV-Kategorie als Zahl', { betrkvCategory: 2 }],
+    ['Betrag als Text', { distributedCents: '1000' }],
+    ['unbekannte Verteilung', { distribution: 'other' }],
+    ['unbekannte Einheit', { denominatorUnit: { text: 'm²' } }],
+    ['Bezug ohne Art', { scope: { buildingId: 'b' } }],
+  ])('weist eine Position mit %s zurück', (_label, patch) => {
+    const data = withPositions([{ ...operatingPosition(), ...patch }])
+    expect(() => latestCalculationSnapshot(data, PERIOD_ID)).toThrow(
+      IncompatibleCalculationSnapshotError,
+    )
+  })
+
+  it('weist Kostenpositionen zurück, die keine Liste sind', () => {
+    const data = withPositions({ 0: operatingPosition() })
     expect(() => latestCalculationSnapshot(data, PERIOD_ID)).toThrow(
       IncompatibleCalculationSnapshotError,
     )

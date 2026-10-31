@@ -4,10 +4,11 @@ import {
 } from '@nebenkosten/core'
 import { latestCalculationRun } from '@nebenkosten/validators'
 import { compatibleMeteringTrace } from './metering-snapshot'
-import type {
-  AppDataFile,
-  BillingPeriod,
-  OccupancyPeriod,
+import {
+  allocationScopeSchema,
+  type AppDataFile,
+  type BillingPeriod,
+  type OccupancyPeriod,
 } from '@nebenkosten/schema'
 import type {
   CombinedCostStatementContext,
@@ -36,6 +37,51 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
 }
 
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === 'string'
+}
+
+const DISTRIBUTIONS: ReadonlySet<unknown> = new Set([
+  'key',
+  'heating_pool',
+  'direct',
+  'not_allocable',
+])
+const DENOMINATOR_UNITS: ReadonlySet<unknown> = new Set([
+  'm²',
+  'Einheiten',
+  'kWh',
+  'WE',
+  'm³',
+])
+
+/**
+ * Kostenpositionen landen als Tabellenzellen im PDF. Ein Snapshot aus einem
+ * importierten Backup ist unbekannte Eingabe (`resultSnapshot` ist im Schema
+ * `z.unknown()`), daher wird jedes verwendete Feld auf seinen Typ geprüft.
+ */
+function isCompatibleOperatingPosition(position: unknown): boolean {
+  return (
+    isRecord(position) &&
+    typeof position.costCategoryId === 'string' &&
+    typeof position.label === 'string' &&
+    isNullableString(position.betrkvCategory) &&
+    isNullableString(position.allocationKey) &&
+    (position.scope === null ||
+      allocationScopeSchema.safeParse(position.scope).success) &&
+    isFiniteNumber(position.grossCents) &&
+    isFiniteNumber(position.nonAllocableCents) &&
+    isFiniteNumber(position.allocableCents) &&
+    isFiniteNumber(position.operatingElectricityDeductedCents) &&
+    isFiniteNumber(position.distributedCents) &&
+    isFiniteNumber(position.vacancyCents) &&
+    DISTRIBUTIONS.has(position.distribution) &&
+    (position.denominator === null || isFiniteNumber(position.denominator)) &&
+    (position.denominatorUnit === null ||
+      DENOMINATOR_UNITS.has(position.denominatorUnit))
+  )
+}
+
 function isCompatibleCalculationOutput(
   value: unknown,
 ): value is CalculationOutput {
@@ -48,7 +94,10 @@ function isCompatibleCalculationOutput(
     !Array.isArray(value.tenants) ||
     !Array.isArray(value.warnings) ||
     (value.meteringTrace !== undefined &&
-      !compatibleMeteringTrace(value.meteringTrace))
+      !compatibleMeteringTrace(value.meteringTrace)) ||
+    (value.operatingPositions !== undefined &&
+      (!Array.isArray(value.operatingPositions) ||
+        !value.operatingPositions.every(isCompatibleOperatingPosition)))
   )
     return false
 

@@ -20,6 +20,7 @@ import {
   formatNumber,
   formatPercent,
   formatUnitPrice,
+  pdfText,
 } from './format'
 import {
   amountCell,
@@ -345,7 +346,7 @@ export function costCategoryTable(
     return [
       {
         stack: [
-          position.label,
+          pdfText(position.label),
           {
             text: scopeLabel(context.appData, position.scope, context.property),
             fontSize: 7,

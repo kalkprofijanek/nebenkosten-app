@@ -17,7 +17,11 @@ const MAX_REMITTANCE_LENGTH = 140
 const MAX_AMOUNT_CENTS = 99_999_999_999
 
 function singleLine(value: string, maxLength: number): string {
-  const cleaned = value.replace(/\s+/g, ' ').trim()
+  // NEL (U+0085) trennt Zeilen wie \n; übrige Steuerzeichen fallen weg.
+  const cleaned = value
+    .replace(/[\s\u0085]+/gu, ' ')
+    .replace(/\p{Cc}/gu, '')
+    .trim()
   return Array.from(cleaned).slice(0, maxLength).join('')
 }
 

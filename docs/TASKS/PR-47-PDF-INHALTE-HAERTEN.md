@@ -64,11 +64,25 @@ Auditbericht. Nach `SECURITY.md` gehören sie nicht in öffentliche Dateien.
 - `apps/web`: Snapshot mit nicht-textueller `operatingPositions[].label` gilt
   als inkompatibel; der Export verlangt eine Neuberechnung.
 
-## Offene Entscheidungen
+## Entscheidungen
 
-- **E-47-1 – Ort der Prüfung:**
+- **E-47-1 = A (Nutzer, 31.10.2026) – Ort der Prüfung:**
   - A = Laufzeitprüfung beim PDF-Lesen plus Textzwang in `packages/pdf`;
     keine Schemaänderung. Empfehlung.
   - B = strenges zod-Schema für `resultSnapshot` in `packages/schema`.
     Erfordert Schemaversion, Migration und Umgang mit bestehenden Snapshots
     (AGENTS.md Regel 3–4).
+
+## Umsetzung
+
+- `apps/web/src/features/pdf/context.ts`: `isCompatibleOperatingPosition`
+  prüft jedes Feld, das die PDF-Builder verwenden; Bezug über
+  `allocationScopeSchema`.
+- `packages/pdf/src/format.ts`: `pdfText`; `formatAllocationKeyLabel` mit
+  `Object.hasOwn`. Eingesetzt in `tenant-statement-tables.ts` und
+  `combined-cost-statement.ts` (Kostentabelle, BetrKV-Zelle,
+  Betriebsstrom-Zeile, Leerstandstabelle).
+- `cover-letter.ts` und `epc-girocode.ts` wie oben.
+- Neuer Test `packages/pdf/tests/untrusted-snapshot-text.test.ts`; ohne die
+  Änderung schlagen die neuen Tests fehl (geprüft).
+- Die weiteren PDF-Builder prüft PR-53.
