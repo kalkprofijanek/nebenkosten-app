@@ -23,7 +23,8 @@ export function renderCoverLetter(
   values: CoverLetterPlaceholders,
 ): string {
   return template.replace(PLACEHOLDER_PATTERN, (match, key: string) => {
-    const record = values as unknown as Record<string, string>
-    return key in record ? record[key]! : match
+    const record = values as unknown as Record<string, unknown>
+    const value = Object.hasOwn(record, key) ? record[key] : undefined
+    return typeof value === 'string' ? value : match
   })
 }

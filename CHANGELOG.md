@@ -4,6 +4,15 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Sicherheit: PDF-Inhalte nur aus geprüften Werten (PR-47)**: Der
+  PDF-Export prüft im gespeicherten Berechnungsstand auch die
+  Kostenpositionen (Texte, Beträge, Verteilung, Einheit, Bezug). Ein
+  abweichender Stand, etwa aus einem importierten Backup, wird wie ein
+  veralteter Stand zur Neuberechnung zurückgewiesen. Werte aus Daten werden
+  in Einzel- und Gesamtabrechnung nur noch als Text ausgegeben; Umlageschlüssel
+  und Anschreiben-Platzhalter werden nur über eigene Einträge nachgeschlagen
+  (`{{constructor}}` bleibt stehen). Der GiroCode entfernt Steuerzeichen aus
+  Empfänger und Verwendungszweck,
 - **Weitere Sicherheitsprüfungen in der CI**: `security.yml` ergänzt
   Semgrep (Pull Requests scheitern nur an neuen Funden) und OSV-Scanner
   über `pnpm-lock.yaml` (nur neue Schwachstellen blockieren);

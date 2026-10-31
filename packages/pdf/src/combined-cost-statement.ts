@@ -16,6 +16,7 @@ import {
   formatEuroCents,
   formatIsoDate,
   formatNumber,
+  pdfText,
 } from './format'
 import {
   amountCell,
@@ -94,6 +95,7 @@ const NOT_ALLOCABLE_CODE = /^NICHT[_ ]?UML/iu
  */
 export function betrkvCell(code: string | null | undefined): TableCell {
   if (!code) return { text: '–', noWrap: true }
+  code = pdfText(code)
   if (NOT_ALLOCABLE_CODE.test(code))
     return { text: 'nicht umlagefähig', fontSize: 6.5, color: MUTED }
   return { text: code, noWrap: true }
@@ -114,7 +116,7 @@ function distributionLabel(position: OperatingPositionTrace): string {
 
 function labelWithScope(label: string, scope: string): TableCell {
   return {
-    stack: [label, { text: scope, fontSize: 6.5, color: MUTED }],
+    stack: [pdfText(label), { text: scope, fontSize: 6.5, color: MUTED }],
   }
 }
 
@@ -227,7 +229,7 @@ function costCategoriesTable(
       )
       .map((position): TableCell[] => [
         '',
-        `− Betriebsstrom-Umbuchung aus „${position.label}“`,
+        `− Betriebsstrom-Umbuchung aus „${pdfText(position.label)}“`,
         '',
         '',
         amountCell(-position.operatingElectricityDeductedCents),
@@ -469,7 +471,7 @@ function vacancyTable(context: CombinedCostStatementContext): Content[] {
   ) =>
     vacancyResults.reduce((sum, result) => sum + pick(result.costBreakdown), 0)
   const rows: TableCell[][] = positions.map((position): TableCell[] => [
-    position.label,
+    pdfText(position.label),
     amountCell(position.vacancyCents),
   ])
   if (positions.length > 0) {

@@ -41,6 +41,8 @@ describe('format', () => {
     )
     expect(formatAllocationKeyLabel(null)).toBe('–')
     expect(formatAllocationKeyLabel('custom_key')).toBe('custom_key')
+    expect(formatAllocationKeyLabel('constructor')).toBe('constructor')
+    expect(formatAllocationKeyLabel('toString')).toBe('toString')
   })
 
   it('bestimmt Nachzahlung/Guthaben aus dem Vorzeichen', () => {

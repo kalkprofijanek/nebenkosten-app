@@ -56,6 +56,19 @@ describe('buildEpcPayload (EPC069-12, Version 002)', () => {
     expect(lines?.[10]?.startsWith('NK 2025 zz')).toBe(true)
   })
 
+  it('entfernt Steuerzeichen aus Name und Verwendungszweck', () => {
+    const lines = buildEpcPayload({
+      name: 'Bei\u0000spiel\u0007 GmbH',
+      iban: IBAN,
+      bic: null,
+      amountCents: 100,
+      remittance: 'NK\u00852025\u001bWE 1',
+    })?.split('\n')
+    expect(lines).toHaveLength(11)
+    expect(lines?.[5]).toBe('Beispiel GmbH')
+    expect(lines?.[10]).toBe('NK 2025WE 1')
+  })
+
   it.each([
     ['ungültige Prüfziffer', { iban: 'DE00 3704 0044 0532 0130 00' }],
     ['fehlender Name', { name: '   ' }],

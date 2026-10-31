@@ -86,7 +86,7 @@ Auditbericht liegt nicht im Repository (`SECURITY.md`).
 
 | Task                                            | Inhalt                                                                     | Abhängigkeit | Status |
 | ----------------------------------------------- | -------------------------------------------------------------------------- | ------------ | ------ |
-| [PR-47](PR-47-PDF-INHALTE-HAERTEN.md)           | PDF-Inhalte nur aus geprüften Werten (Snapshot-Prüfung, Textzwang)         | –            | offen  |
+| [PR-47](PR-47-PDF-INHALTE-HAERTEN.md)           | PDF-Inhalte nur aus geprüften Werten (Snapshot-Prüfung, Textzwang)         | –            | in PR  |
 | [PR-49](PR-49-EIGENE-HERKUNFT-UND-PAGES.md)     | Eigene Browser-Herkunft statt geteiltem github.io; Pages-Deploy absichern  | Inhaber (A)  | offen  |
 | [PR-48](PR-48-RECHENLAUF-AN-EINGABEN-BINDEN.md) | Rechenlauf per `inputSha256` an Eingaben binden; Import gesperrter Stände  | PR-47        | offen  |
 | [PR-51](PR-51-IMPORT-ROBUSTHEIT.md)             | CSV-Dezimaltrennzeichen, Personenzahl, Legacy-IDs, Nachschlagetabellen     | –            | offen  |
@@ -94,10 +94,10 @@ Auditbericht liegt nicht im Repository (`SECURITY.md`).
 | [PR-50](PR-50-CI-RELEASE-HAERTUNG.md)           | Install-Skripte, pnpm-Hash, Archivprüfer, `.gitignore`, Vite ohne HMR      | –            | offen  |
 | [PR-53](PR-53-SECURITY-AUDIT-FOLGELAUF.md)      | Folgelauf (standard) über `apps/web`, `packages/core` und Zurückgestelltes | PR-47–PR-49  | offen  |
 
-Reihenfolge = Tabellenfolge. Vor dem Start entscheidet der Nutzer E-47-1,
-E-48-1 bis E-48-3, E-49-1, E-51-1 bis E-51-4 und E-52-1. PR-49 Teil A
-(Pages-Seiten im Konto prüfen, Environment auf `main` beschränken) braucht
-keinen Code und kann sofort erledigt werden.
+Reihenfolge = Tabellenfolge. E-47-1 = A (Nutzer, 31.10.2026). Vor dem Start
+entscheidet der Nutzer E-48-1 bis E-48-3, E-49-1, E-51-1 bis E-51-4 und
+E-52-1. PR-49 Teil A (Pages-Seiten im Konto prüfen, Environment auf `main`
+beschränken) braucht keinen Code und kann sofort erledigt werden.
 
 ## Arbeitsweise
 

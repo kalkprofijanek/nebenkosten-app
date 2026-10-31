@@ -51,7 +51,21 @@ export function formatAllocationKeyLabel(
   allocationKey: string | null | undefined,
 ): string {
   if (!allocationKey) return '–'
-  return allocationKeyLabels[allocationKey] ?? allocationKey
+  const key = pdfText(allocationKey)
+  return Object.hasOwn(allocationKeyLabels, key)
+    ? allocationKeyLabels[key]!
+    : key
+}
+
+/**
+ * Text für pdfmake-Inhalte aus gespeicherten Daten. Ein Snapshot aus einem
+ * Backup ist nicht typgeprüft; ein Objekt an einer Textstelle würde pdfmake
+ * sonst als eigenen Knoten (z. B. QR-Code oder Link) darstellen.
+ */
+export function pdfText(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (value == null) return ''
+  return String(value)
 }
 
 export function balanceLabel(balanceCents: number): 'Nachzahlung' | 'Guthaben' {

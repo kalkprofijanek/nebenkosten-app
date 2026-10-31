@@ -33,6 +33,12 @@ describe('renderCoverLetter', () => {
     )
   })
 
+  it('ersetzt keine geerbten Objekt-Eigenschaften', () => {
+    expect(
+      renderCoverLetter('{{constructor}} {{toString}} {{__proto__}}', values),
+    ).toBe('{{constructor}} {{toString}} {{__proto__}}')
+  })
+
   it('funktioniert ohne jeden Platzhalter', () => {
     expect(renderCoverLetter('Ein fester Text ohne Platzhalter.', values)).toBe(
       'Ein fester Text ohne Platzhalter.',
