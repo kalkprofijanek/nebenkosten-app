@@ -1,5 +1,6 @@
 import {
   calculateBilling,
+  calculationInputSha256,
   createCalculationInput,
   type CalculationOutput,
 } from '@nebenkosten/core'
@@ -13,6 +14,8 @@ import {
   buildTenantStatementContext,
   IncompatibleCalculationSnapshotError,
   latestCalculationSnapshot,
+  pdfCalculationSnapshot,
+  StaleCalculationSnapshotError,
   tenantOccupancies,
 } from './context'
 
@@ -237,6 +240,28 @@ describe('latestCalculationSnapshot', () => {
     expect(() => latestCalculationSnapshot(data, PERIOD_ID)).toThrow(
       IncompatibleCalculationSnapshotError,
     )
+  })
+})
+
+describe('pdfCalculationSnapshot – Bindung an die Eingaben (PR-48)', () => {
+  it('liefert Läufe ohne Hash weiterhin aus (Bestand vor PR-48)', () => {
+    expect(pdfCalculationSnapshot(fixtureAppData(), PERIOD_ID)).toBeDefined()
+  })
+
+  it('weist einen Lauf zurück, dessen Hash nicht zu den Daten passt', () => {
+    const data = fixtureAppData()
+    data.billingData.calculationRuns[0]!.inputSha256 = 'a'.repeat(64)
+    expect(() => pdfCalculationSnapshot(data, PERIOD_ID)).toThrow(
+      StaleCalculationSnapshotError,
+    )
+  })
+
+  it('liefert einen gebundenen, aktuellen Lauf aus', () => {
+    const data = fixtureAppData()
+    data.billingData.calculationRuns[0]!.inputSha256 = calculationInputSha256(
+      createCalculationInput(data, PERIOD_ID),
+    )
+    expect(pdfCalculationSnapshot(data, PERIOD_ID)).toBeDefined()
   })
 })
 

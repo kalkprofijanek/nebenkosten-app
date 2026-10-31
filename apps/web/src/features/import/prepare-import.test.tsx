@@ -1,8 +1,17 @@
-import { createEmptyAppDataFile } from '@nebenkosten/schema'
+import {
+  createEmptyAppDataFile,
+  type AppDataFile,
+  type BillingPeriodStatus,
+} from '@nebenkosten/schema'
 import { describe, expect, it } from 'vitest'
+import { buildAppDataFile } from '../../../../../tests/characterization/build-app-data'
+import scenarioFile from '../../../../../tests/characterization/scenarios.json'
+import type { Scenario } from '../../../../../tests/characterization/types'
+import { runCalculation } from '../calculation/calculate-preview'
 import {
   MAX_IMPORT_BYTES,
   prepareImport,
+  resetUnboundReleases,
   type ImportFailureCode,
 } from './prepare-import'
 
@@ -321,5 +330,78 @@ describe('prepareImport', () => {
 
     expect(result).toEqual({ ok: false, code: 'invalid_source' })
     expect(JSON.stringify(result)).not.toContain('vertraulich')
+  })
+})
+
+describe('resetUnboundReleases (PR-48, E-48-2)', () => {
+  const scenario = (scenarioFile.scenarios as unknown as Scenario[]).find(
+    ({ id }) => id === 'case-01-full-year',
+  )!
+
+  function calculated(status: BillingPeriodStatus, bind = true): AppDataFile {
+    const data = runCalculation(
+      buildAppDataFile(structuredClone(scenario)),
+      'bp-1',
+    )
+    data.billingData.billingPeriods[0]!.status = status
+    if (!bind) delete data.billingData.calculationRuns[0]!.inputSha256
+    return data
+  }
+  const dependencies = {
+    createId: () => '60000000-0000-4000-8000-000000000001',
+    now: () => new Date('2026-10-31T12:00:00.000Z'),
+  }
+
+  it('lässt eine gebundene, aktuelle Freigabe unverändert', () => {
+    const data = calculated('READY_FOR_PDF')
+    const result = resetUnboundReleases(data, dependencies)
+    expect(result.resets).toEqual([])
+    expect(result.data).toBe(data)
+  })
+
+  it('setzt eine PDF-Freigabe ohne Hash auf IN_REVIEW zurück und protokolliert es', () => {
+    const result = resetUnboundReleases(
+      calculated('READY_FOR_PDF', false),
+      dependencies,
+    )
+    expect(result.resets).toEqual([
+      { year: 2024, from: 'READY_FOR_PDF', binding: 'unbound' },
+    ])
+    expect(result.data.billingData.billingPeriods[0]!.status).toBe('IN_REVIEW')
+    expect(result.data.billingData.auditEvents.at(-1)).toMatchObject({
+      action: 'billing_period.import_release_reset',
+      details: { from: 'READY_FOR_PDF', to: 'IN_REVIEW' },
+    })
+  })
+
+  it('setzt ein abgeschlossenes Jahr mit abweichender Berechnung zurück', () => {
+    const data = calculated('FINALIZED')
+    data.masterData.units[0]!.usableAreaSqm = { value: 123.45, unit: 'm2' }
+    const result = resetUnboundReleases(data, dependencies)
+    expect(result.resets).toEqual([
+      { year: 2024, from: 'FINALIZED', binding: 'stale' },
+    ])
+    expect(result.data.billingData.billingPeriods[0]!.status).toBe('IN_REVIEW')
+  })
+
+  it('lässt abgeschlossene Jahre ohne Hash (Bestand vor PR-48) unverändert', () => {
+    const result = resetUnboundReleases(
+      calculated('FINALIZED', false),
+      dependencies,
+    )
+    expect(result.resets).toEqual([])
+  })
+
+  it('wendet die Rücksetzung in der Importvorschau an', async () => {
+    const result = await prepareImport(
+      encode(calculated('READY_FOR_PDF', false)),
+      importMetadata,
+    )
+    expect(result).toMatchObject({
+      ok: true,
+      releaseResets: [{ year: 2024, from: 'READY_FOR_PDF' }],
+    })
+    if (!result.ok) throw new Error('Import fehlgeschlagen.')
+    expect(result.data.billingData.billingPeriods[0]!.status).toBe('IN_REVIEW')
   })
 })

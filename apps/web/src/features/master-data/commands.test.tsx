@@ -499,3 +499,84 @@ describe('property structure maintenance', () => {
     )
   })
 })
+
+describe('Bankverbindung bei freigegebenen Jahren (PR-48, E-48-3)', () => {
+  function fileWithPropertyStructure() {
+    return createPropertyStructure(
+      fileWithCompany(),
+      {
+        ownerCompanyId: IDS.ownerCompany,
+        buildingName: 'Haus A',
+        unitLabel: 'Einheit 1',
+      },
+      { createId: ids(IDS.property, IDS.building, IDS.unit) },
+    )
+  }
+
+  function withPeriod(status: 'READY_FOR_PDF' | 'FINALIZED' | 'DRAFT') {
+    const source = fileWithPropertyStructure()
+    return {
+      ...source,
+      billingData: {
+        ...source.billingData,
+        billingPeriods: [
+          {
+            id: '10000000-0000-4000-8000-000000000008',
+            propertyId: IDS.property,
+            year: 2026,
+            periodStart: '2026-01-01',
+            periodEnd: '2026-12-31',
+            status,
+          },
+        ],
+      },
+    } satisfies AppDataFile
+  }
+  const companyInput = {
+    organizationName: 'Hausverwaltung Beispiel',
+    ownerCompanyName: 'Beispiel Wohnen GmbH',
+  }
+
+  it('sperrt eine geänderte Firmen-Bankverbindung, solange ein Jahr für PDF freigegeben ist', () => {
+    expect(() =>
+      updateCompany(withPeriod('READY_FOR_PDF'), IDS.ownerCompany, {
+        ...companyInput,
+        iban: 'TEST-IBAN-NEU',
+      }),
+    ).toThrowError(/Bankverbindung.*2026.*Prüfung/)
+  })
+
+  it('sperrt eine geänderte Objekt-Bankverbindung, solange ein Jahr für PDF freigegeben ist', () => {
+    expect(() =>
+      updateProperty(withPeriod('READY_FOR_PDF'), IDS.property, {
+        iban: 'TEST-IBAN-NEU',
+      }),
+    ).toThrowError(MasterDataCommandError)
+  })
+
+  it('erlaubt andere Firmenangaben trotz Freigabe', () => {
+    const result = updateCompany(
+      withPeriod('READY_FOR_PDF'),
+      IDS.ownerCompany,
+      {
+        ...companyInput,
+        contactPhone: 'TEST-TELEFON',
+      },
+    )
+    expect(result.masterData.ownerCompanies[0]?.contact?.phone).toBe(
+      'TEST-TELEFON',
+    )
+  })
+
+  it.each(['FINALIZED', 'DRAFT'] as const)(
+    'erlaubt einen Kontowechsel bei Status %s',
+    (status) => {
+      const result = updateProperty(withPeriod(status), IDS.property, {
+        iban: 'TEST-IBAN-NEU',
+      })
+      expect(result.masterData.properties[0]?.bankAccount?.iban).toBe(
+        'TEST-IBAN-NEU',
+      )
+    },
+  )
+})

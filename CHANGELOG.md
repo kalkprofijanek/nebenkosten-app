@@ -4,6 +4,16 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Sicherheit: Rechenlauf an die Eingaben gebunden (PR-48)**: Jede
+  Berechnung speichert einen SHA-256 ihres Eingabestands (`inputSha256`).
+  Die Freigabe für PDF und der Abschluss verlangen eine Berechnung, die zu
+  den aktuellen Daten passt; der PDF-Export lehnt abweichende Stände ab.
+  Beim Import eines Backups werden PDF-freigegebene Jahre ohne passende
+  Berechnung und abgeschlossene Jahre mit abweichender Berechnung auf „In
+  Prüfung“ gesetzt; die Importvorschau nennt sie. Die Bankverbindung von
+  Firma und Objekt lässt sich nicht ändern, solange ein Jahr für PDF
+  freigegeben ist. Hinweis: Ein vor diesem Update freigegebenes Jahr muss vor
+  dem Abschluss einmal neu berechnet werden,
 - **Sicherheit: PDF-Inhalte nur aus geprüften Werten (PR-47)**: Der
   PDF-Export prüft im gespeicherten Berechnungsstand auch die
   Kostenpositionen (Texte, Beträge, Verteilung, Einheit, Bezug). Ein

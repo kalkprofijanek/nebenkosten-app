@@ -282,6 +282,33 @@ describe('ImportControl', () => {
     )
   })
 
+  it('nennt Abrechnungsjahre, deren Freigabe der Import zurücksetzt', async () => {
+    vi.mocked(prepareImport).mockResolvedValue({
+      ok: true,
+      sourceFormat: 'current-v5',
+      data: createEmptyAppDataFile(),
+      summary: summary(),
+      releaseResets: [
+        { year: 2025, from: 'FINALIZED', binding: 'stale' },
+        { year: 2026, from: 'READY_FOR_PDF', binding: 'unbound' },
+      ],
+    })
+    render(<ImportControl disabled={false} onConfirm={vi.fn()} />)
+    chooseFile()
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Freigaben werden zurückgesetzt',
+      }),
+    ).toBeVisible()
+    expect(
+      screen.getByText(/Abrechnungsjahr 2025 \(bisher abgeschlossen\)/),
+    ).toBeVisible()
+    expect(
+      screen.getByText(/Abrechnungsjahr 2026 \(bisher für PDF freigegeben\)/),
+    ).toBeVisible()
+  })
+
   it('übernimmt einen bestätigten Import und schließt den Dialog', async () => {
     const data = createEmptyAppDataFile()
     vi.mocked(prepareImport).mockResolvedValue({
@@ -289,6 +316,7 @@ describe('ImportControl', () => {
       sourceFormat: 'current-v5',
       data,
       summary: summary(),
+      releaseResets: [],
     })
     const onConfirm = vi.fn().mockResolvedValue(true)
     render(<ImportControl disabled={false} onConfirm={onConfirm} />)
@@ -324,6 +352,7 @@ describe('ImportControl', () => {
       sourceFormat: 'current-v5',
       data: createEmptyAppDataFile(),
       summary: summary(),
+      releaseResets: [],
     })
     rerender(
       <ImportControl
@@ -384,6 +413,7 @@ describe('ImportControl', () => {
       sourceFormat: 'current-v5',
       data: createEmptyAppDataFile(),
       summary: summary(),
+      releaseResets: [],
     })
     rerender(<ImportControl disabled={false} onConfirm={onConfirm} />)
     chooseFile()

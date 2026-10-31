@@ -6,6 +6,7 @@ import {
   type AppDataFile,
   type BillingPeriodStatus,
 } from '@nebenkosten/schema'
+import { calculationBinding } from './calculation-binding'
 import { clone } from './helpers'
 import { getFinalizationDocumentStatus } from './finalization-documents'
 import { latestCalculationRun } from './latest-calculation-run'
@@ -86,6 +87,16 @@ export function transitionBillingPeriod(
       throw new BillingPeriodTransitionError(
         'transition.calculation_required',
         'Vor der PDF-Freigabe ist eine aktuelle gespeicherte Berechnung erforderlich.',
+      )
+  }
+  if (target === 'READY_FOR_PDF' || target === 'FINALIZED') {
+    const binding = calculationBinding(parsed.data, billingPeriodId)
+    if (binding === 'stale' || binding === 'unbound')
+      throw new BillingPeriodTransitionError(
+        'transition.calculation_stale',
+        binding === 'stale'
+          ? 'Die gespeicherte Berechnung passt nicht mehr zu den aktuellen Daten. Öffne die Prüfung und berechne das Abrechnungsjahr neu.'
+          : 'Die gespeicherte Berechnung ist nicht an die Eingabedaten gebunden (älterer Stand oder Import). Öffne die Prüfung und berechne das Abrechnungsjahr neu.',
       )
   }
   const report = validateBillingPeriod(parsed.data, billingPeriodId, options)

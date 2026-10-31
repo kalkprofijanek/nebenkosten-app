@@ -1,6 +1,11 @@
+import {
+  calculationInputSha256,
+  createCalculationInput,
+} from '@nebenkosten/core'
 import { describe, expect, it } from 'vitest'
 import {
   BillingPeriodTransitionError,
+  calculationBinding,
   getFinalizationDocumentStatus,
   latestCalculationRun,
   transitionBillingPeriod,
@@ -27,6 +32,9 @@ function addCurrentCalculationAndDocuments(
     id: calculationRunId,
     billingPeriodId: 'period-1',
     startedAt: '2026-07-21T09:00:00.000Z',
+    inputSha256: calculationInputSha256(
+      createCalculationInput(data, 'period-1'),
+    ),
   })
   data.billingData.calculationResults.push({
     id: 'result-current',
@@ -120,9 +128,9 @@ describe('transitionBillingPeriod', () => {
   it('verlangt alle aktuellen Warnungsbestätigungen für READY', () => {
     const data = validData()
     data.billingData.billingPeriods[0]!.status = 'IN_REVIEW'
-    addCurrentCalculationAndDocuments(data)
     data.billingData.costEntries[0]!.amountCents = -10_000
     data.billingData.costCategories[0]!.totalAmountCents = -10_000
+    addCurrentCalculationAndDocuments(data)
     const report = validateBillingPeriod(data, 'period-1')
     expect(() =>
       transitionBillingPeriod(data, 'period-1', 'READY_FOR_PDF', OPTIONS),
@@ -301,5 +309,68 @@ describe('transitionBillingPeriod', () => {
     expect(() =>
       transitionBillingPeriod(data, 'period-1', 'IN_REVIEW', OPTIONS),
     ).toThrow(/Audit-ID/)
+  })
+
+  describe('Bindung des Rechenlaufs an die Eingaben (PR-48)', () => {
+    function readyForFinalization() {
+      const data = validData()
+      data.billingData.billingPeriods[0]!.status = 'READY_FOR_PDF'
+      return addCurrentCalculationAndDocuments(data)
+    }
+    const finalize = {
+      ...OPTIONS,
+      dispatchDate: '2026-07-22',
+    }
+
+    it('erkennt einen aktuellen Lauf', () => {
+      expect(calculationBinding(readyForFinalization(), 'period-1')).toBe(
+        'current',
+      )
+    })
+
+    it('bleibt nach dem Statuswechsel aktuell', () => {
+      const data = validData()
+      data.billingData.billingPeriods[0]!.status = 'IN_REVIEW'
+      addCurrentCalculationAndDocuments(data)
+      const ready = transitionBillingPeriod(
+        data,
+        'period-1',
+        'READY_FOR_PDF',
+        OPTIONS,
+      )
+      expect(calculationBinding(ready, 'period-1')).toBe('current')
+    })
+
+    it('verweigert FINALIZED, wenn sich Eingaben nach der Berechnung geändert haben', () => {
+      const data = readyForFinalization()
+      data.masterData.units[0]!.usableAreaSqm = { value: 61, unit: 'm2' }
+      expect(calculationBinding(data, 'period-1')).toBe('stale')
+      expect(() =>
+        transitionBillingPeriod(data, 'period-1', 'FINALIZED', finalize),
+      ).toThrow(
+        expect.objectContaining({ code: 'transition.calculation_stale' }),
+      )
+    })
+
+    it('verweigert READY_FOR_PDF und FINALIZED für Läufe ohne Hash', () => {
+      const data = readyForFinalization()
+      delete data.billingData.calculationRuns[0]!.inputSha256
+      expect(calculationBinding(data, 'period-1')).toBe('unbound')
+      expect(() =>
+        transitionBillingPeriod(data, 'period-1', 'FINALIZED', finalize),
+      ).toThrow(
+        expect.objectContaining({ code: 'transition.calculation_stale' }),
+      )
+      data.billingData.billingPeriods[0]!.status = 'IN_REVIEW'
+      expect(() =>
+        transitionBillingPeriod(data, 'period-1', 'READY_FOR_PDF', OPTIONS),
+      ).toThrow(
+        expect.objectContaining({ code: 'transition.calculation_stale' }),
+      )
+    })
+
+    it('meldet missing ohne gespeichertes Ergebnis', () => {
+      expect(calculationBinding(validData(), 'period-1')).toBe('missing')
+    })
   })
 })
