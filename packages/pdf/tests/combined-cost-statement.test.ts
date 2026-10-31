@@ -65,8 +65,9 @@ describe('buildCombinedCostStatement', () => {
     ).find(
       (item) =>
         typeof item.text === 'string' && item.text.includes('Kontrollsumme'),
-    ) as { color?: string } | undefined
-    expect(controlLine?.color).toBe('#a11919')
+    ) as { text?: string; color?: string } | undefined
+    expect(controlLine?.text).toContain('FEHLER, bitte prüfen')
+    expect(controlLine?.color).toBeUndefined()
   })
 
   it('führt negative Kostenkorrekturen in der Gesamtabrechnung auf', () => {

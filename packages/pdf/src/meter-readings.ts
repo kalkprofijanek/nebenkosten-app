@@ -18,6 +18,7 @@ import type {
 } from '@nebenkosten/schema'
 import { formatIsoDate, formatNumber } from './format'
 import { buildingName } from './heating-summary'
+import { PDF_MUTED } from './colors'
 
 /** Zählerstand im deutschen Format (bis zu drei Nachkommastellen). */
 export function formatMeterValue(value: number): string {
@@ -272,7 +273,7 @@ export function circuitMeterReadingTables(
   content.push({
     text: '„!“ = Zählerdifferenz weicht um mehr als 0,5 von den abgerechneten Verbrauchseinheiten ab.',
     fontSize: 7,
-    color: '#5a6a78',
+    color: PDF_MUTED,
     margin: [0, 0, 0, 8],
   })
   return content

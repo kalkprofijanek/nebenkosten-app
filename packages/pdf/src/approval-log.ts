@@ -1,8 +1,9 @@
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces'
 import type { ApprovalLogContext } from './contracts'
 import { formatIsoDate } from './format'
+import { PDF_MUTED, PDF_TEXT } from './colors'
 
-const BLUE = '#1a3a5c'
+const BLUE = PDF_TEXT
 
 const actionLabels: Readonly<Record<string, string>> = {
   'billing_period.status_transition': 'Statuswechsel',
@@ -63,7 +64,7 @@ export function buildApprovalProtocolDocument(
       {
         text: `Erstellt am ${formatIsoDate(context.generatedAt.toISOString().slice(0, 10))}`,
         fontSize: 8,
-        color: '#5a6a78',
+        color: PDF_MUTED,
         margin: [0, 0, 0, 12],
       },
       buildApprovalLogTable(context),
@@ -72,6 +73,6 @@ export function buildApprovalProtocolDocument(
       title: { fontSize: 14, bold: true, color: BLUE },
       th: { fontSize: 9, bold: true, color: BLUE },
     },
-    defaultStyle: { fontSize: 9, color: '#1f2a36', font: 'Roboto' },
+    defaultStyle: { fontSize: 9, color: PDF_TEXT, font: 'Roboto' },
   }
 }

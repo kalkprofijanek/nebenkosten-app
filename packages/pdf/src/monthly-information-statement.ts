@@ -33,8 +33,9 @@ import {
 } from './monthly-information-texts'
 import { ADDRESS_WINDOW } from './tenant-statement'
 import { MUTED } from './tenant-statement-tables'
+import { PDF_TEXT } from './colors'
 
-const BLUE = '#1a3a5c'
+const BLUE = PDF_TEXT
 const MONTH_PATTERN = /^(\d{4})-(0[1-9]|1[0-2])$/u
 
 /** Kontext für die Verbrauchsinformation eines Mieters in einem Monat. */
@@ -416,7 +417,7 @@ export function buildMonthlyInformationStatement(
       title: { fontSize: 14, bold: true, color: BLUE },
       th: { fontSize: 9, bold: true, color: BLUE },
     },
-    defaultStyle: { fontSize: 9, color: '#1f2a36', font: 'Roboto' },
+    defaultStyle: { fontSize: 9, color: PDF_TEXT, font: 'Roboto' },
   }
 }
 

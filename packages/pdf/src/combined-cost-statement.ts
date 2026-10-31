@@ -34,9 +34,10 @@ import {
 import { ROUNDING_DIFFERENCE_NOTICE, baseAreaLabel } from './legal-texts'
 import { circuitMeterReadingTables } from './meter-readings'
 import { meteringStatement } from './metering-statement'
+import { PDF_MUTED, PDF_TEXT } from './colors'
 
-const BLUE = '#1a3a5c'
-const MUTED = '#5a6a78'
+const BLUE = PDF_TEXT
+const MUTED = PDF_MUTED
 
 const costKindLabels: Readonly<Record<CostCategory['kind'], string>> = {
   operating: 'Betriebskosten',
@@ -990,9 +991,11 @@ export function buildCombinedCostStatement(
       ...heatingSections(context),
       ...internalContent,
       {
-        text: `Kontrollsumme (muss 0 sein): ${formatEuroCents(controlDifference)}`,
+        // Ohne Farbe: Eine Abweichung wird im Text als Fehler benannt.
+        text: controlOk
+          ? `Kontrollsumme (muss 0 sein): ${formatEuroCents(controlDifference)}`
+          : `Kontrollsumme (muss 0 sein): ${formatEuroCents(controlDifference)} – FEHLER, bitte prüfen`,
         bold: true,
-        color: controlOk ? '#1a6a2e' : '#a11919',
         margin: [0, 8, 0, 0],
       },
     ],
@@ -1001,6 +1004,6 @@ export function buildCombinedCostStatement(
       th: { fontSize: 9, bold: true, color: BLUE },
       header: { fontSize: 11, bold: true },
     },
-    defaultStyle: { fontSize: 9, color: '#1f2a36', font: 'Roboto' },
+    defaultStyle: { fontSize: 9, color: PDF_TEXT, font: 'Roboto' },
   }
 }

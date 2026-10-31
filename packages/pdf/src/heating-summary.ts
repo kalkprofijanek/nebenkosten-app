@@ -33,8 +33,9 @@ import {
   co2LandlordDeductedSentence,
   type ConsumptionCaptureMode,
 } from './legal-texts'
+import { PDF_MUTED } from './colors'
 
-const MUTED = '#5a6a78'
+const MUTED = PDF_MUTED
 
 /** Rechtsbündige Betragszelle ohne Zeilenumbruch. */
 export function amountCell(
