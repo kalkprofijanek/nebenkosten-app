@@ -47,6 +47,7 @@ import {
   type TenantFacts,
 } from './tenant-statement-data'
 import { PDF_LIGHT_FILL, PDF_MUTED } from './colors'
+import { prepaymentBreakdown } from './prepayment-breakdown'
 
 const LIGHT_FILL = PDF_LIGHT_FILL
 export const MUTED = PDF_MUTED
@@ -60,15 +61,14 @@ export function summaryTable(context: TenantStatementContext): Content {
     0,
   )
   const label = balanceLabel(tenant.balanceCents)
+  const prepaymentLabel = 'Von Ihnen geleistete Vorauszahlungen'
+  const prepaymentNote = prepaymentBreakdown(context, tenant.prepaymentCents)
   const rows: [string, string][] = [
     ['Ihre Heizkosten', formatEuroCents(heatingTotalCents(tenant))],
     ['Ihr CO2-Kostenanteil', formatEuroCents(costBreakdown.heatingCo2Cents)],
     ['Ihre Betriebskosten', formatEuroCents(operatingCents)],
     ['Ihr Anteil an den Gesamtkosten', formatEuroCents(tenant.shareCents)],
-    [
-      'Von Ihnen geleistete Vorauszahlungen',
-      formatEuroCents(tenant.prepaymentCents),
-    ],
+    [prepaymentLabel, formatEuroCents(tenant.prepaymentCents)],
     [label, formatEuroCents(Math.abs(tenant.balanceCents))],
   ]
   return {
@@ -79,11 +79,18 @@ export function summaryTable(context: TenantStatementContext): Content {
           left === 'Ihr Anteil an den Gesamtkosten' || left === label
         const balanceRow = left === label
         return [
-          {
-            text: left,
-            bold: emphasized,
-            fillColor: balanceRow ? LIGHT_FILL : undefined,
-          },
+          left === prepaymentLabel && prepaymentNote
+            ? {
+                stack: [
+                  left,
+                  { text: prepaymentNote, fontSize: 7.5, color: MUTED },
+                ],
+              }
+            : {
+                text: left,
+                bold: emphasized,
+                fillColor: balanceRow ? LIGHT_FILL : undefined,
+              },
           {
             text: right,
             alignment: 'right',

@@ -151,9 +151,14 @@ exports[`buildTenantStatement > bewahrt die vollständige PDF-Dokumentdefinition
           ],
           [
             {
-              "bold": false,
-              "fillColor": undefined,
-              "text": "Von Ihnen geleistete Vorauszahlungen",
+              "stack": [
+                "Von Ihnen geleistete Vorauszahlungen",
+                {
+                  "color": "#555555",
+                  "fontSize": 7.5,
+                  "text": "12 × 50,00 € = 600,00 €",
+                },
+              ],
             },
             {
               "alignment": "right",
