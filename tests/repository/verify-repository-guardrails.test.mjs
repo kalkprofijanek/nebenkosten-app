@@ -29,6 +29,11 @@ const completeGitignore = [
   '.env.*',
   'node_modules/',
   'dist/',
+  '*.pem',
+  '*.key',
+  '*.p12',
+  '*.pfx',
+  'credentials.json',
 ].join('\n')
 
 function runFixtureGit(
@@ -83,6 +88,11 @@ test('findMissingIgnoreRules reports every absent privacy rule', () => {
     '.env.*',
     'node_modules/',
     'dist/',
+    '*.pem',
+    '*.key',
+    '*.p12',
+    '*.pfx',
+    'credentials.json',
   ])
 })
 
@@ -100,6 +110,11 @@ test('findForbiddenTrackedFiles rejects private and environment files', () => {
     'scratch.tmp',
     'node_modules/example/index.js',
     'apps/web/dist/index.js',
+    'deploy/server.pem',
+    'keys/signing.KEY',
+    'certs/client.p12',
+    'certs/client.pfx',
+    'config/credentials.json',
   ]
 
   assert.deepEqual(findForbiddenTrackedFiles(trackedFiles), [
@@ -110,6 +125,11 @@ test('findForbiddenTrackedFiles rejects private and environment files', () => {
     'scratch.tmp',
     'node_modules/example/index.js',
     'apps/web/dist/index.js',
+    'deploy/server.pem',
+    'keys/signing.KEY',
+    'certs/client.p12',
+    'certs/client.pfx',
+    'config/credentials.json',
   ])
 })
 

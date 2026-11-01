@@ -4,6 +4,12 @@ packages:
 
 sharedWorkspaceLockfile: true
 
+# Keine Abhängigkeit darf beim Installieren Skripte ausführen. pnpm 11 bricht
+# bei nicht freigegebenen Build-Skripten ohnehin ab; hier ausdrücklich, damit
+# die Regel nicht von Standardwerten abhängt. Freigaben nur mit Begründung.
+strictDepBuilds: true
+allowBuilds: {}
+
 # Security floors: GHSA-mh99-v99m-4gvg, GHSA-r28c-9q8g-f849,
 # GHSA-rgw5-rvv9-x895, GHSA-fxqj-rqcc-2cmp and GHSA-2v37-7h3g-55p8.
 # Remove once every upstream dependency requires a patched version itself.

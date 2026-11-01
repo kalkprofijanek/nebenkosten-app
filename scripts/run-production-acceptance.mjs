@@ -68,7 +68,8 @@ async function run(legacyPath, expectationPath, billingYear) {
       root: process.cwd(),
       configFile: false,
       logLevel: 'silent',
-      server: { middlewareMode: true },
+      // Nur ssrLoadModule; ohne HMR-WebSocket öffnet der Lauf keinen Port.
+      server: { middlewareMode: true, hmr: false, ws: false },
       appType: 'custom',
     })
     const [importExport, core, acceptance] = await Promise.all([

@@ -33,3 +33,14 @@ Die veröffentlichte App verarbeitet alle Daten ausschließlich lokal im Browser
 | OSSF Scorecard | `scorecard.yml`  | Sicherheitspraxis des Repositorys        | läuft nur auf `main` und wöchentlich   |
 
 Ergebnisse von `main` und den wöchentlichen Läufen erscheinen unter _Security → Code scanning_. Ausnahmen stehen ausschließlich in `.gitleaks.toml` und brauchen eine Begründung je Eintrag; echte Geheimnisse werden nie als Ausnahme eingetragen, sondern rotiert.
+
+## Lieferkette der Werkzeuge
+
+- **pnpm** ist in `package.json` (`packageManager`) mit Version und sha512 festgelegt. Die CI aktiviert genau diese Angabe über `corepack prepare --activate`, das den Download gegen den Hash prüft.
+- **Install-Skripte** von Abhängigkeiten sind gesperrt (`strictDepBuilds: true`, leere `allowBuilds` in `pnpm-workspace.yaml`). Eine Freigabe braucht einen Eintrag mit Begründung.
+- **Schlüsseldateien** (`*.pem`, `*.key`, `*.p12`, `*.pfx`, `credentials.json`) sind ignoriert, und `scripts/verify-repository-guardrails.mjs` lehnt sie als versionierte Dateien ab.
+
+## Einstellungen, die nur im Repository gesetzt werden können
+
+- **Actions → Fork pull request workflows:** „Send write tokens to workflows from fork pull requests“ muss ausgeschaltet bleiben. Die PR-Jobs mit `security-events: write` führen keinen PR-Code aus, verlassen sich aber auf die Herabstufung des Tokens bei Forks. Das wird wichtig, wenn das Repository privat wird.
+- **Environment `github-pages`:** Deployment nur von `main` zulassen (siehe `docs/TASKS/PR-49-EIGENE-HERKUNFT-UND-PAGES.md`).

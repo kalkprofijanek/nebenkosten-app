@@ -29,9 +29,21 @@ function octalField(block, start, length) {
   return parsed
 }
 
+const POSIX_USTAR_MAGIC = 'ustar\u000000'
+const OLD_GNU_MAGIC = 'ustar  \u0000'
+
+function headerMagic(block) {
+  const magic = block.subarray(257, 265).toString('latin1')
+  if (magic === POSIX_USTAR_MAGIC || magic === OLD_GNU_MAGIC) return magic
+  throw new Error('unsupported tar magic')
+}
+
 function normalizedArchivePath(block) {
   const name = fieldText(block, 0, 100)
-  const prefix = fieldText(block, 345, 155)
+  // Nur POSIX-ustar kennt das Prefix-Feld; im alten GNU-Format liegen dort
+  // andere Daten (Zugriffszeiten), die kein Pfad sind.
+  const prefix =
+    headerMagic(block) === POSIX_USTAR_MAGIC ? fieldText(block, 345, 155) : ''
   const combined = prefix === '' ? name : `${prefix}/${name}`
   return combined.startsWith('./') ? combined.slice(2) : combined
 }
@@ -67,6 +79,7 @@ export function verifyDeploymentArchiveBytes(bytes) {
     let offset = 0
     let entryCount = 0
     let terminated = false
+    const seenPaths = new Set()
     while (offset + BLOCK_BYTES <= bytes.byteLength) {
       const header = bytes.subarray(offset, offset + BLOCK_BYTES)
       if (isZeroBlock(header)) {
@@ -86,6 +99,13 @@ export function verifyDeploymentArchiveBytes(bytes) {
       }
 
       const relativePath = normalizedArchivePath(header)
+      // Beim Entpacken gewinnt der letzte Eintrag; doppelte Pfade wären damit
+      // eine zweite, abweichende Lesart desselben Archivs.
+      const pathKey = relativePath.replace(/\/$/u, '')
+      if (seenPaths.has(pathKey)) {
+        failures.push(`Duplicate deployment path: ${pathKey}`)
+      }
+      seenPaths.add(pathKey)
       const size = octalField(header, 124, 12)
       const type = String.fromCharCode(header[156] ?? 0)
       const contentStart = offset + BLOCK_BYTES
