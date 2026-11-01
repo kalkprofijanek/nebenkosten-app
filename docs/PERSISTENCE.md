@@ -71,8 +71,11 @@ bestätigten Umstellung schreibgeschützt.
 
 Memory und IndexedDB sichern vollständige, unveränderliche Stände. Automatische
 Snapshots behalten immer die neuesten fünf sowie danach höchstens den neuesten
-Stand je UTC-Tag innerhalb von 14 Tagen. Manuelle, `before_import`- und
-`before_restore`-Snapshots sind angeheftet.
+Stand je UTC-Tag innerhalb von 14 Tagen. Liegt der neueste automatische
+Snapshot in der Zukunft (zurückgestellte Systemuhr), beginnt das 14-Tage-Fenster
+an diesem Snapshot statt an der aktuellen Uhrzeit. Manuelle, `before_import`-,
+`before_restore`- und `before_migration`-Snapshots sind angeheftet und werden
+nie automatisch gelöscht; die Sicherungsübersicht zeigt ihre Anzahl und Größe.
 
 Vor einer Wiederherstellung wird atomar ein angehefteter
 `before_restore`-Snapshot des aktuellen Standes erzeugt. Erst danach ersetzt

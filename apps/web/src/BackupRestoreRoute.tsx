@@ -28,6 +28,39 @@ const SNAPSHOT_KIND_LABELS = {
   before_migration: 'Vor Umstellung auf Version 5',
 } as const
 
+const byteFormatter = new Intl.NumberFormat('de-DE', {
+  maximumFractionDigits: 1,
+})
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} Bytes`
+  if (bytes < 1024 * 1024) return `${byteFormatter.format(bytes / 1024)} KB`
+  return `${byteFormatter.format(bytes / (1024 * 1024))} MB`
+}
+
+/**
+ * Angeheftete Sicherungsstände (manuell, vor Import, vor Wiederherstellung,
+ * vor Migration) löscht die App nie automatisch (PR-52, E-52-1: nur
+ * anzeigen). Anzahl und Größe machen den Speicherverbrauch sichtbar.
+ */
+function PinnedSnapshotSummary({
+  snapshots,
+}: {
+  readonly snapshots: readonly SnapshotMeta[]
+}) {
+  const pinned = snapshots.filter((snapshot) => snapshot.pinned)
+  if (pinned.length === 0) return null
+  const bytes = pinned.reduce((sum, snapshot) => sum + snapshot.byteLength, 0)
+  return (
+    <p className="snapshot-summary">
+      {pinned.length === 1
+        ? '1 angehefteter Sicherungsstand'
+        : `${pinned.length} angeheftete Sicherungsstände`}{' '}
+      ({formatBytes(bytes)}) werden nicht automatisch gelöscht.
+    </p>
+  )
+}
+
 function snapshotFailure(code: WorkspaceCommandErrorCode): string {
   return `Sicherungsaktion nicht möglich (${code}).`
 }
@@ -191,6 +224,7 @@ export function BackupRestoreRoute({
           </button>
         </div>
 
+        <PinnedSnapshotSummary snapshots={snapshots} />
         {snapshots.length === 0 ? (
           <p>Keine Sicherungsstände vorhanden.</p>
         ) : (

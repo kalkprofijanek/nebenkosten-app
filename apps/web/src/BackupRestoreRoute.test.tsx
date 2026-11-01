@@ -79,6 +79,9 @@ describe('BackupRestoreRoute', () => {
 
     expect(await screen.findByText('Manuell')).toBeVisible()
     expect(await adapter.listSnapshots()).toHaveLength(1)
+    expect(
+      screen.getByText(/1 angehefteter Sicherungsstand \(\d+ Bytes\)/),
+    ).toBeVisible()
   })
 
   it('blocks a canonical backup while the workspace has unsaved changes', async () => {

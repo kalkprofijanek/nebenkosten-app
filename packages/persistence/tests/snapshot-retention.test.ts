@@ -102,4 +102,28 @@ describe('selectSnapshotsToRetain', () => {
     expect(first.map(({ id }) => id)).toEqual(['newer', 'older'])
     expect(first).not.toBe(input)
   })
+
+  it('behält nach einer zurückgestellten Uhr die neuesten automatischen Snapshots', () => {
+    const input = [
+      snapshot('future-2', '2026-03-22T09:00:00.000Z'),
+      snapshot('future-1', '2026-03-21T09:00:00.000Z'),
+      snapshot('today', '2026-03-20T08:00:00.000Z'),
+      snapshot('old', '2026-02-01T08:00:00.000Z'),
+    ]
+    const retained = selectSnapshotsToRetain(input, { now: NOW }).map(
+      ({ id }) => id,
+    )
+    expect(retained).toEqual(['future-2', 'future-1', 'today'])
+  })
+
+  it('verankert das 14-Tage-Fenster am neuesten Snapshot, wenn dieser in der Zukunft liegt', () => {
+    const input = Array.from({ length: 8 }, (_, index) =>
+      snapshot(
+        `day-${index}`,
+        `2026-04-${String(10 - index).padStart(2, '0')}T09:00:00.000Z`,
+      ),
+    )
+    const retained = selectSnapshotsToRetain(input, { now: NOW })
+    expect(retained.map(({ id }) => id)).toEqual(input.map(({ id }) => id))
+  })
 })
