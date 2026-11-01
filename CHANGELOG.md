@@ -4,6 +4,13 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **CI- und Release-Härtung (PR-50)**: pnpm ist mit sha512 festgelegt und
+  wird in der CI daraus aktiviert; Install-Skripte von Abhängigkeiten sind
+  ausdrücklich gesperrt. Der Archivprüfer für Pages lehnt doppelte Pfade und
+  unbekannte tar-Formate ab. Schlüsseldateien (`*.pem`, `*.key`, `*.p12`,
+  `*.pfx`, `credentials.json`) sind ignoriert und als versionierte Dateien
+  gesperrt. `pnpm abrechnung`, `pnpm belegpruefung` und die Produktionsabnahme
+  öffnen keinen lokalen Vite-WebSocket mehr,
 - **Eindeutige PDF-Dateinamen und Snapshot-Aufbewahrung (PR-52)**: Eine
   Einzelabrechnung kann eine Gesamtabrechnung nicht mehr überschreiben (z. B.
   Einheit „Gesamtabrechnung“, Mieter „intern“); sie erhält dann `_2`. Das gilt

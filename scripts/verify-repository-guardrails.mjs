@@ -14,6 +14,11 @@ export const REQUIRED_IGNORE_RULES = Object.freeze([
   '.env.*',
   'node_modules/',
   'dist/',
+  '*.pem',
+  '*.key',
+  '*.p12',
+  '*.pfx',
+  'credentials.json',
 ])
 
 export const LEGACY_REFERENCE_SHA256 =
@@ -29,6 +34,11 @@ const IGNORE_PROBES = Object.freeze([
   ['.env.*', '.env.production'],
   ['node_modules/', 'node_modules/probe.js'],
   ['dist/', 'dist/probe.js'],
+  ['*.pem', 'probe.pem'],
+  ['*.key', 'probe.key'],
+  ['*.p12', 'probe.p12'],
+  ['*.pfx', 'probe.pfx'],
+  ['credentials.json', 'config/credentials.json'],
 ])
 
 const LOCAL_GIT_ENVIRONMENT_VARIABLES = Object.freeze([
@@ -99,6 +109,10 @@ export function findForbiddenTrackedFiles(trackedFiles) {
     if (fileName === '.env.example') return false
     if (fileName === '.env' || fileName.startsWith('.env.')) return true
     if (/\.(?:bak|backup|tmp)$/u.test(fileName)) return true
+    // Schlüssel- und Zertifikatscontainer sind binär und entgehen dem
+    // Textscanner; sie werden schon am Dateinamen abgelehnt.
+    if (/\.(?:pem|key|p12|pfx)$/u.test(fileName)) return true
+    if (fileName === 'credentials.json') return true
     return segments.includes('node_modules') || segments.includes('dist')
   })
 }
@@ -147,7 +161,9 @@ export function verifyRepository(
       gitEnvironment,
     )
     if (ineffectiveRules.length > 0) {
-      failures.push(`Ineffective .gitignore rules: ${ineffectiveRules.join(', ')}`)
+      failures.push(
+        `Ineffective .gitignore rules: ${ineffectiveRules.join(', ')}`,
+      )
     }
   }
 
@@ -165,7 +181,9 @@ export function verifyRepository(
         )
       }
     } catch (error) {
-      failures.push(error instanceof Error ? error.message : 'Invalid legacy checksum')
+      failures.push(
+        error instanceof Error ? error.message : 'Invalid legacy checksum',
+      )
     }
   }
   if (existsSync(legacyPath)) {
@@ -205,7 +223,9 @@ function runCli() {
     return
   }
 
-  console.log(`Repository guardrails passed. Legacy SHA-256: ${result.actualHash}`)
+  console.log(
+    `Repository guardrails passed. Legacy SHA-256: ${result.actualHash}`,
+  )
 }
 
 const isCli = process.argv[1]

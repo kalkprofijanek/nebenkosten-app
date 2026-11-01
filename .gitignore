@@ -5,6 +5,11 @@ private-data/
 nk-daten.json
 .env
 .env.*
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
 node_modules/
 dist/
 coverage/

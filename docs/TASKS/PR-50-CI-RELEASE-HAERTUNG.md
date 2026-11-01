@@ -50,3 +50,27 @@ Keine Änderung an App-Verhalten, Schema oder Build-Ausgabe.
 - `tests/repository/verify-repository-guardrails.test.mjs`: `x.pem` und
   `credentials.json` gelten als ignoriert.
 - CI: `pnpm install --frozen-lockfile` läuft mit Allowlist unverändert durch.
+
+## Umsetzung
+
+1. `pnpm-workspace.yaml`: `strictDepBuilds: true`, `allowBuilds: {}`. pnpm 11
+   heißt die Freigabeliste `allowBuilds` (nicht mehr
+   `onlyBuiltDependencies`). Kein Paket im Lockfile hat derzeit Install-Skripte.
+2. `packageManager`: `pnpm@11.7.0+sha512.<hash>`, Hash gegen den
+   Registry-Tarball geprüft. Die Composite-Action ruft
+   `corepack prepare --activate` ohne Version auf und übernimmt damit Hash und
+   Version aus `package.json`. Geprüft: Ein falscher Hash bricht ab.
+3. `scripts/verify-deployment-archive.mjs`: doppelte Pfade werden abgelehnt;
+   das Prefix-Feld wird nur bei POSIX-ustar gelesen; unbekannte Magic wird
+   abgelehnt. Ein GNU-tar-Archiv wie im Workflow besteht weiterhin.
+4. `.gitignore` und Guardrails um `*.pem`, `*.key`, `*.p12`, `*.pfx`,
+   `credentials.json` ergänzt (Ignore-Probe und Sperre versionierter Dateien).
+5. CLI-Skripte: `hmr: false`, `ws: false`. Geprüft: Vorher öffnete Vite einen
+   lauschenden TCP-Port, danach keinen.
+6. `setup-node` in der Composite-Action auf dieselbe SHA (v7.0.0) wie
+   `guardrails.yml`.
+7. `SECURITY.md`: Abschnitte zur Werkzeug-Lieferkette und zu den
+   Repository-Einstellungen.
+
+Neuer Architekturtest `tests/architecture/toolchain-hardening.test.mjs` für
+1, 2 und 5.

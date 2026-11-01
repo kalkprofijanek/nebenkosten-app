@@ -90,8 +90,8 @@ Auditbericht liegt nicht im Repository (`SECURITY.md`).
 | [PR-49](PR-49-EIGENE-HERKUNFT-UND-PAGES.md)     | Eigene Browser-Herkunft statt geteiltem github.io; Pages-Deploy absichern  | Inhaber (A)  | offen           |
 | [PR-48](PR-48-RECHENLAUF-AN-EINGABEN-BINDEN.md) | Rechenlauf per `inputSha256` an Eingaben binden; Import gesperrter Stände  | PR-47        | erledigt (#126) |
 | [PR-51](PR-51-IMPORT-ROBUSTHEIT.md)             | CSV-Dezimaltrennzeichen, Personenzahl, Legacy-IDs, Nachschlagetabellen     | –            | offen           |
-| [PR-52](PR-52-EXPORTDATEIEN-UND-SNAPSHOTS.md)   | Eindeutige PDF-Dateinamen, Aufbewahrung zukünftiger Snapshots              | –            | in PR           |
-| [PR-50](PR-50-CI-RELEASE-HAERTUNG.md)           | Install-Skripte, pnpm-Hash, Archivprüfer, `.gitignore`, Vite ohne HMR      | –            | offen           |
+| [PR-52](PR-52-EXPORTDATEIEN-UND-SNAPSHOTS.md)   | Eindeutige PDF-Dateinamen, Aufbewahrung zukünftiger Snapshots              | –            | erledigt (#128) |
+| [PR-50](PR-50-CI-RELEASE-HAERTUNG.md)           | Install-Skripte, pnpm-Hash, Archivprüfer, `.gitignore`, Vite ohne HMR      | –            | in PR           |
 | [PR-53](PR-53-SECURITY-AUDIT-FOLGELAUF.md)      | Folgelauf (standard) über `apps/web`, `packages/core` und Zurückgestelltes | PR-47–PR-49  | offen           |
 
 Reihenfolge = Tabellenfolge. Entschieden (Nutzer, 31.10.2026): E-47-1 = A,
