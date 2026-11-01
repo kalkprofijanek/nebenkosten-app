@@ -224,7 +224,9 @@ try {
           (building.differenceCents
             ? ` · Abweichung ${euro(building.differenceCents)} € (zu prüfen gegen Rechnung)`
             : '') +
-          (building.duplicate ? ' · ⚠ mehrere Abrechnungsdienstleistungen' : ''),
+          (building.duplicate
+            ? ' · ⚠ mehrere Abrechnungsdienstleistungen'
+            : ''),
       )
       for (const entry of building.entries)
         console.log(
@@ -267,14 +269,21 @@ try {
     const pdfMake = require('pdfmake/build/pdfmake.js')
     pdfMake.addVirtualFileSystem(require('pdfmake/build/vfs_fonts.js'))
     await mkdir(outDir, { recursive: true })
+    // Kein Name darf in einem Lauf zweimal geschrieben werden; Dateien eines
+    // früheren Laufs im selben Ordner werden bewusst ersetzt.
+    const writtenFileNames = new Set()
     const save = async (fileName, document) => {
+      const key = fileName.toLocaleLowerCase('de-DE')
+      if (writtenFileNames.has(key))
+        throw new Error(`Dateiname doppelt vergeben: ${fileName}`)
+      writtenFileNames.add(key)
       await writeFile(
         join(outDir, fileName),
         await pdfMake.createPdf(document).getBuffer(),
       )
       written++
     }
-    const usedFileNames = new Set()
+    const usedFileNames = names.reservedStatementFileNames(year)
     for (const occupancy of context.tenantOccupancies(data, period.id)) {
       try {
         const statement = context.buildTenantStatementContext(

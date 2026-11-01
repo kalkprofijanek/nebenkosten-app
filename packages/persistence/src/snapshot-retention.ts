@@ -30,13 +30,19 @@ export function selectSnapshotsToRetain(
   const retainedIds = new Set(
     sorted.filter((snapshot) => snapshot.pinned).map(({ id }) => id),
   )
-  const recentStart = startOfRecentWindow(options.now)
-  const recentAutomatic = sorted.filter(
-    (snapshot) =>
-      !snapshot.pinned &&
-      snapshot.kind === 'automatic' &&
-      Date.parse(snapshot.createdAt) >= recentStart &&
-      Date.parse(snapshot.createdAt) <= options.now.getTime(),
+  // Nach einer zurückgestellten Systemuhr liegen die neuesten automatischen
+  // Snapshots in der Zukunft. Das Fenster beginnt dann am neuesten Snapshot,
+  // damit diese Wiederherstellungspunkte nicht gelöscht werden.
+  const automatic = sorted.filter(
+    (snapshot) => !snapshot.pinned && snapshot.kind === 'automatic',
+  )
+  const newestAutomatic = automatic[0]
+    ? Date.parse(automatic[0].createdAt)
+    : Number.NEGATIVE_INFINITY
+  const anchor = new Date(Math.max(options.now.getTime(), newestAutomatic))
+  const recentStart = startOfRecentWindow(anchor)
+  const recentAutomatic = automatic.filter(
+    (snapshot) => Date.parse(snapshot.createdAt) >= recentStart,
   )
 
   for (const snapshot of recentAutomatic.slice(0, LATEST_AUTOMATIC_COUNT)) {

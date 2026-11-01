@@ -13,6 +13,7 @@ import {
 } from './features/pdf/context'
 import {
   combinedStatementFileName,
+  reservedStatementFileNames,
   tenantStatementFileName,
   uniqueFileName,
 } from './features/pdf/file-names'
@@ -214,10 +215,13 @@ export function PdfExportRoute({
       )
       const docDefinition = buildTenantStatementWithAdjustment(context)
       const blob = await renderPdfBlob(docDefinition)
-      const fileName = tenantStatementFileName(
-        billingPeriod!.year,
-        context.unit.label ?? occupancyPeriod.unitId,
-        context.persons.map((person) => person.displayName),
+      const fileName = uniqueFileName(
+        tenantStatementFileName(
+          billingPeriod!.year,
+          context.unit.label ?? occupancyPeriod.unitId,
+          context.persons.map((person) => person.displayName),
+        ),
+        reservedStatementFileNames(billingPeriod!.year),
       )
       await record([
         {
@@ -259,7 +263,7 @@ export function PdfExportRoute({
     void withErrorHandling(async () => {
       const entries: Array<ZipEntry & { readonly occupancyPeriodId: string }> =
         []
-      const usedFileNames = new Set<string>()
+      const usedFileNames = reservedStatementFileNames(billingPeriod!.year)
       for (const occupancyPeriod of occupancies) {
         const context = buildTenantStatementContext(
           data,

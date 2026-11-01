@@ -49,7 +49,27 @@ reproduziert). Priorität 2.
 - Sehr lange Einheitsbezeichnung ergibt einen gekürzten, gültigen Dateinamen.
 - Retention mit `now` vor dem neuesten automatischen Snapshot behält diesen.
 
-## Offene Entscheidungen
+## Entscheidungen
 
-- **E-52-1 – angeheftete Snapshots:** nur anzeigen (Empfehlung) oder eine
-  Obergrenze je Art mit Rückfrage vor dem Löschen.
+- **E-52-1 = nur anzeigen (Nutzer, 01.11.2026) – angeheftete Snapshots:**
+  nur anzeigen (Empfehlung) oder eine Obergrenze je Art mit Rückfrage vor dem
+  Löschen.
+
+## Umsetzung
+
+- `apps/web/src/features/pdf/file-names.ts`:
+  - `reservedStatementFileNames(year)` als Startmenge für `uniqueFileName`;
+    genutzt in CLI, ZIP-Export und Einzel-Download;
+  - `safeFileNamePart` kürzt jeden Teil auf 60 Zeichen.
+- `scripts/abrechnung.mjs`: Statt `'wx'` prüft die CLI doppelte Namen
+  innerhalb eines Laufs und meldet sie als Fehler. Abweichung vom Umfang:
+  Mit `'wx'` schlüge jeder erneute Lauf in denselben `--out`-Ordner fehl.
+- `packages/persistence/src/snapshot-retention.ts`: Das 14-Tage-Fenster
+  beginnt am neuesten automatischen Snapshot, wenn dieser nach der aktuellen
+  Uhrzeit liegt.
+- `apps/web/src/BackupRestoreRoute.tsx`: Anzahl und Größe der angehefteten
+  Sicherungsstände.
+- Manuell geprüft: `pnpm abrechnung` mit dem Beispielobjekt, darin Einheit
+  „Gesamtabrechnung“ und Mieter „intern“. Ergebnis: 14 Dateien, darunter
+  `NK_2025_Gesamtabrechnung_intern_2.pdf`; ein zweiter Lauf in denselben
+  Ordner läuft fehlerfrei.

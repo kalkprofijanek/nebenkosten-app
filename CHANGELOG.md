@@ -4,6 +4,13 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Eindeutige PDF-Dateinamen und Snapshot-Aufbewahrung (PR-52)**: Eine
+  Einzelabrechnung kann eine Gesamtabrechnung nicht mehr überschreiben (z. B.
+  Einheit „Gesamtabrechnung“, Mieter „intern“); sie erhält dann `_2`. Das gilt
+  für `pnpm abrechnung`, ZIP-Export und Einzel-Download. Namensteile werden auf
+  60 Zeichen gekürzt. Nach einer zurückgestellten Systemuhr bleiben die
+  neuesten automatischen Snapshots erhalten. Die Sicherungsübersicht zeigt
+  Anzahl und Größe der angehefteten Sicherungsstände,
 - **Sicherheit: Rechenlauf an die Eingaben gebunden (PR-48)**: Jede
   Berechnung speichert einen SHA-256 ihres Eingabestands (`inputSha256`).
   Die Freigabe für PDF und der Abschluss verlangen eine Berechnung, die zu
