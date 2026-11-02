@@ -20,6 +20,7 @@ export type MonthlyReadingProblemCode =
   | 'conflicting_reading'
   | 'decreasing_reading'
   | 'invalid_reading'
+  | 'outside_meter_validity'
 
 export interface MonthlyReadingProblem {
   /** 1-basierte Position in `rows` (Datenzeile ohne Kopf- und Leerzeilen). */
@@ -126,6 +127,17 @@ export function planMonthlyMeterReadings(
         detail: `${label}: Nummer ist mehreren Zählern dieses Objekts zugeordnet.`,
       })
     const meter = matches[0]!
+    // Ablesung außerhalb der Einbauzeit gehört zu einem anderen Gerät
+    // (z. B. nach einem Zählertausch mit gleicher Nummer).
+    if (
+      (meter.validFrom && source.date < meter.validFrom) ||
+      (meter.validTo && source.date > meter.validTo)
+    )
+      return problems.push({
+        row,
+        code: 'outside_meter_validity',
+        detail: `${label}: Ablesung vom ${source.date} liegt außerhalb der Einbauzeit des Zählers.`,
+      })
     const expected = UNIT_BY_KIND[meter.kind]!
     if (source.unit !== expected)
       return problems.push({

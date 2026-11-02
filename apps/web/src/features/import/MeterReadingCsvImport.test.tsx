@@ -120,6 +120,31 @@ describe('Zählerstand-Import in der Oberfläche', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
 
+  it('liest Zählerstände mit Punkt als Dezimaltrennzeichen, wenn gewählt', async () => {
+    setup()
+    upload(
+      `${header}\nTEST-STROM-1;31.12.2025;100;kWh\nTEST-STROM-1;31.12.2026;123.456;kWh`,
+    )
+    const mapping = await screen.findByRole('group', {
+      name: 'Spaltenzuordnung',
+    })
+    const separator = within(mapping).getByLabelText(
+      'Dezimaltrennzeichen der Zählerstände',
+    )
+    expect(separator).toHaveValue('comma')
+    check()
+    expect(
+      screen.getByRole('table', { name: 'Vorschau der Zählerstände' }),
+    ).toHaveTextContent('123.456')
+
+    fireEvent.change(separator, { target: { value: 'dot' } })
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    check()
+    expect(
+      screen.getByRole('table', { name: 'Vorschau der Zählerstände' }),
+    ).toHaveTextContent('123,456')
+  })
+
   it('verlangt eine vollständige Zuordnung fremder Spalten', async () => {
     setup()
     upload('Geraet;Tag;Wert;Masseinheit\nTEST-STROM-1;30.06.2026;5;kWh')

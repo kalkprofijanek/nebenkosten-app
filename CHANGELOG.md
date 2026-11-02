@@ -4,6 +4,15 @@ Alle wesentlichen Änderungen dieses Projekts werden hier dokumentiert.
 
 ## Unveröffentlicht
 
+- **Robustere Importe (PR-51)**: Beim Zählerstand- und Monatsstand-Import
+  ist das Dezimaltrennzeichen wählbar (Vorgabe Komma); ein Messdienst-Wert
+  `12.345` mit Punkt wurde bisher als 12345 gelesen. Die Mieterliste nimmt bei
+  „Personen“ nur ganze Zahlen von 0 bis 20 an. Fehlermeldungen nennen die Zeile
+  der Datei auch bei Leerzeilen. Monatsstände außerhalb der Einbauzeit eines
+  Zählers werden gemeldet. Die Legacy-Migration meldet eine Nutzer-ID, die in
+  mehreren Einheiten vorkommt, und scheitert nicht mehr an Statuswerten wie
+  `constructor`. Neue Prüfhinweise melden doppelte IDs und widersprüchliche
+  Verweise zwischen Belegung, Mietverhältnis und Einheit,
 - **CI- und Release-Härtung (PR-50)**: pnpm ist mit sha512 festgelegt und
   wird in der CI daraus aktiviert; Install-Skripte von Abhängigkeiten sind
   ausdrücklich gesperrt. Der Archivprüfer für Pages lehnt doppelte Pfade und

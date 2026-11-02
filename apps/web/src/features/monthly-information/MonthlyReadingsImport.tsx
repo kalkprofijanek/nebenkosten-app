@@ -3,6 +3,7 @@ import {
   parseMeterServiceCsv,
   planMonthlyMeterReadings,
   suggestMeterServiceColumns,
+  type MeterServiceColumnKey,
   type MeterServiceColumns,
   type MeterServiceReading,
   type MonthlyReadingsPlan,
@@ -17,6 +18,7 @@ import {
   type ChangeEvent,
 } from 'react'
 import { importMonthlyMeterReadings } from './commands'
+import { DecimalSeparatorSelect } from '../import/DecimalSeparatorSelect'
 import { locateCsvError, readCsvHeader } from './csv-columns'
 import { formatReading, germanDate } from './format'
 
@@ -44,7 +46,7 @@ type Preview =
     }
 
 const MAX_BYTES = 5 * 1024 * 1024
-const KEYS: readonly (keyof MeterServiceColumns)[] = [
+const KEYS: readonly MeterServiceColumnKey[] = [
   'meterNumber',
   'date',
   'value',
@@ -230,6 +232,12 @@ export function MonthlyReadingsImport({
                 </select>
               </label>
             ))}
+            <DecimalSeparatorSelect
+              value={columns.decimalSeparator}
+              onChange={(separator) =>
+                setColumns({ ...columns, decimalSeparator: separator })
+              }
+            />
           </fieldset>
 
           {preview?.kind === 'incomplete' ? (
