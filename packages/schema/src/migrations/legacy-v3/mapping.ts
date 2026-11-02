@@ -36,7 +36,8 @@ export function mapBillingStatus(
     veraltet: 'SUPERSEDED',
   }
   if (value == null || value === '') return 'DRAFT'
-  if (typeof value === 'string' && values[value]) return values[value]!
+  if (typeof value === 'string' && Object.hasOwn(values, value))
+    return values[value]!
   context.issue(
     'warning',
     'migration.unknown_billing_status',
@@ -58,7 +59,8 @@ export function mapCostKind(
     wasser: 'water',
     heizung: 'heating',
   }
-  if (typeof value === 'string' && values[value]) return values[value]!
+  if (typeof value === 'string' && Object.hasOwn(values, value))
+    return values[value]!
   context.issue(
     'warning',
     'migration.unknown_cost_kind',
@@ -83,7 +85,8 @@ export function mapAllocationKey(
     we_anzahl: 'residential_units',
     direkt: 'direct',
   }
-  if (typeof value === 'string' && values[value]) return values[value]!
+  if (typeof value === 'string' && Object.hasOwn(values, value))
+    return values[value]!
   context.issue(
     'warning',
     'migration.unknown_allocation_key',
@@ -142,7 +145,7 @@ export function mapQuantityUnit(value: unknown): QuantityUnit | undefined {
     stueck: 'stueck',
     stück: 'stueck',
   }
-  return values[normalized]
+  return Object.hasOwn(values, normalized) ? values[normalized] : undefined
 }
 
 export function inferFuelUnit(sourceType: unknown): QuantityUnit | undefined {

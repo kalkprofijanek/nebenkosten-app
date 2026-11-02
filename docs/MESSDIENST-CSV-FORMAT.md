@@ -28,8 +28,11 @@ Proprietäre Formate, PDF, XLSX und Monatsverbrauchsspalten werden nicht
 automatisch erkannt oder als Zählerstände interpretiert.
 
 Ergebnis: technische Zeilen `{ meterNumber, date, value, unit }`. Zulässige
-Einheiten sind exakt `kWh`, `m3`, `einheiten`; Datumswerte ISO oder TT.MM.JJJJ,
-Zahlen im deutschen Dezimalformat. Keine Umrechnung oder Zuordnung zu Nutzern.
+Einheiten sind exakt `kWh`, `m3`, `einheiten`; Datumswerte ISO oder TT.MM.JJJJ.
+Das Dezimaltrennzeichen der Zählerstände wird in der Spaltenzuordnung gewählt
+(`decimalSeparator`, Vorgabe Komma: `1.234,5`; Punkt: `1,234.5`). Wichtig bei
+Exporten mit Punkt: Mit der Vorgabe Komma wird `12.345` als 12345 gelesen.
+Keine Umrechnung oder Zuordnung zu Nutzern.
 Zusätzliche Spalten bleiben unverarbeitet in der Quelldatei. Die Funktion
 speichert nichts im Datenmodell und sendet keine Daten an einen Dienst.
 

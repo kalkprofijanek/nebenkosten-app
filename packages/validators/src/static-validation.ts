@@ -22,6 +22,7 @@ import {
   validIban,
   wholeYear,
 } from './helpers'
+import { dataIntegrityIssues } from './data-integrity'
 import { section9bIssues } from './section-9b'
 import { remoteReadingIssues } from './remote-reading'
 import { issue } from './issues'
@@ -1466,6 +1467,7 @@ export function collectStaticIssues(
 ): ValidationIssue[] {
   const result: ValidationIssue[] = []
   const add: Add = (value) => result.push(value)
+  dataIntegrityIssues(data, period, add)
   masterData(data, period, add)
   periodChecks(period, add)
   occupancies(data, period, add)

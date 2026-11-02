@@ -89,17 +89,16 @@ Auditbericht liegt nicht im Repository (`SECURITY.md`).
 | [PR-47](PR-47-PDF-INHALTE-HAERTEN.md)           | PDF-Inhalte nur aus geprüften Werten (Snapshot-Prüfung, Textzwang)         | –            | erledigt (#124) |
 | [PR-49](PR-49-EIGENE-HERKUNFT-UND-PAGES.md)     | Eigene Browser-Herkunft statt geteiltem github.io; Pages-Deploy absichern  | Inhaber (A)  | offen           |
 | [PR-48](PR-48-RECHENLAUF-AN-EINGABEN-BINDEN.md) | Rechenlauf per `inputSha256` an Eingaben binden; Import gesperrter Stände  | PR-47        | erledigt (#126) |
-| [PR-51](PR-51-IMPORT-ROBUSTHEIT.md)             | CSV-Dezimaltrennzeichen, Personenzahl, Legacy-IDs, Nachschlagetabellen     | –            | offen           |
+| [PR-51](PR-51-IMPORT-ROBUSTHEIT.md)             | CSV-Dezimaltrennzeichen, Personenzahl, Legacy-IDs, Nachschlagetabellen     | –            | in PR           |
 | [PR-52](PR-52-EXPORTDATEIEN-UND-SNAPSHOTS.md)   | Eindeutige PDF-Dateinamen, Aufbewahrung zukünftiger Snapshots              | –            | erledigt (#128) |
-| [PR-50](PR-50-CI-RELEASE-HAERTUNG.md)           | Install-Skripte, pnpm-Hash, Archivprüfer, `.gitignore`, Vite ohne HMR      | –            | in PR           |
+| [PR-50](PR-50-CI-RELEASE-HAERTUNG.md)           | Install-Skripte, pnpm-Hash, Archivprüfer, `.gitignore`, Vite ohne HMR      | –            | erledigt (#129) |
 | [PR-53](PR-53-SECURITY-AUDIT-FOLGELAUF.md)      | Folgelauf (standard) über `apps/web`, `packages/core` und Zurückgestelltes | PR-47–PR-49  | offen           |
 
-Reihenfolge = Tabellenfolge. Entschieden (Nutzer, 31.10.2026): E-47-1 = A,
-E-48-1 = Empfehlung, E-48-2 = A; E-48-3 = A als Annahme (keine Empfehlung im
-Task, im PR benannt, mit dem Merge von #126 bestätigt); E-52-1 = nur anzeigen
-(01.11.2026). Vor dem Start entscheidet der Nutzer E-49-1 und E-51-1 bis
-E-51-4. PR-49 Teil A (Pages-Seiten im Konto prüfen, Environment
-auf `main` beschränken) braucht keinen Code und kann sofort erledigt werden.
+Reihenfolge = Tabellenfolge. Entschieden (Nutzer): E-47-1 = A, E-48-1 =
+Empfehlung, E-48-2 = A, E-48-3 = A (Annahme, mit #126 bestätigt), E-52-1 = nur
+anzeigen, E-51-1 = A, E-51-2 = 20; E-51-3 und E-51-4 als Annahme ohne Schema-
+oder ID-Änderung (im PR benannt). Offen: E-49-1. PR-49 Teil A (Pages-Seiten im
+Konto prüfen, Environment auf `main` beschränken) braucht keinen Code.
 
 ## Arbeitsweise
 

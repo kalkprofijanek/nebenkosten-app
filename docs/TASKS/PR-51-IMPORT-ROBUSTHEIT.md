@@ -60,17 +60,30 @@ nach E-51-4 mit `packages/schema/src/versions/`.
 - v3-Datei mit ID-Kollision über Punkt-Pfade erzeugt unterschiedliche IDs.
 - v3-Datei mit derselben `nutzer.id` in zwei Objekten: Verhalten nach Punkt 7.
 
-## Offene Entscheidungen
+## Entscheidungen (Nutzer, 02.11.2026: „nach Empfehlung“)
 
-- **E-51-1 – Dezimaltrennzeichen:**
-  - A = in der Spaltenzuordnung wählbar, Vorgabe Komma. Empfehlung.
-  - B = Werte, die nur Punkt-Gruppen mit genau 3 Ziffern enthalten, als
-    mehrdeutig melden.
-  - C = unverändert lassen und dokumentieren.
-- **E-51-2 – Obergrenze Personenzahl** je Nutzungseinheit (fachliche
-  Annahme, nicht im Code festschreiben, bevor entschieden).
-- **E-51-3 – ID-Kodierung in der Legacy-Migration:** neue Kodierung nur für
-  neue Importe (Migrationsversion erhöhen) oder unverändert lassen und
-  Kollisionen nur erkennen und melden.
-- **E-51-4 – Prüfung auf eindeutige IDs und Fremdschlüssel** im Root-Schema
-  (Schemaversion und Migration) oder als Validator-Prüfhinweis.
+- **E-51-1 = A:** Dezimaltrennzeichen in der Spaltenzuordnung wählbar,
+  Vorgabe Komma.
+- **E-51-2 = 20:** höchstens 20 Personen je Belegung, nur ganze Zahlen.
+- **E-51-3 = erkennen und melden** (Annahme; im Task stand keine Empfehlung):
+  keine neue ID-Kodierung, damit sich bestehende abgeleitete IDs nicht
+  ändern. Doppelte IDs fängt der Prüfhinweis aus E-51-4; eine Nutzer-ID in
+  mehreren Einheiten meldet die Migration als Warnung.
+- **E-51-4 = Validator-Prüfhinweis** (Annahme; im Task stand keine
+  Empfehlung): keine Schemaänderung und keine Migration.
+
+## Umsetzung
+
+- `csv/table.ts`: `decimalText(value, separator)`, `csvTableWithLines`
+  (physische Zeilennummern), `csvCents('-0')` ergibt `0`.
+- `csv/meter-service.ts`: `MeterServiceColumns.decimalSeparator`;
+  Zeilennummern aus der Datei. Oberfläche: Auswahl „Dezimaltrennzeichen
+  der Zählerstände“ im Zählerstand- und im Monatsstand-Import.
+- `csv/tenant-list.ts`: Personen als ganze Zahl 0–20 (`MAX_PERSONS`);
+  Zeilennummern aus der Datei.
+- `csv/monthly-readings.ts`: Problemcode `outside_meter_validity`.
+- Legacy-v3: `mapping.ts` schlägt nur über `Object.hasOwn` nach (vorher
+  ließ ein Status `constructor` die Migration scheitern);
+  `billing-tenancy-costs.ts` meldet `migration.tenancy_id_reused`.
+- `packages/validators/src/data-integrity.ts`: `schema.duplicate_id` und
+  `schema.reference_mismatch` (beide Fehler, blockieren die Freigabe).

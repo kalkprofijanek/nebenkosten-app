@@ -2,7 +2,21 @@ export class CsvImportError extends Error {
   override readonly name = 'CsvImportError'
 }
 
+/** Dezimaltrennzeichen einer CSV-Zahl (E-51-1). Vorgabe: Komma. */
+export type DecimalSeparator = 'comma' | 'dot'
+
 export function csvTable(text: string): string[][] {
+  return csvTableWithLines(text).rows
+}
+
+/**
+ * Wie `csvTable`, zusätzlich mit der physischen Zeilennummer (1-basiert), in
+ * der jede Zeile beginnt. Leerzeilen werden übersprungen, zählen aber mit.
+ */
+export function csvTableWithLines(text: string): {
+  readonly rows: string[][]
+  readonly lines: number[]
+} {
   if (
     !text.trim() ||
     new TextEncoder().encode(text).length > 5 * 1024 * 1024 ||
@@ -10,6 +24,9 @@ export function csvTable(text: string): string[][] {
   )
     throw new CsvImportError('CSV ist leer, ungültig oder größer als 5 MB.')
   const rows: string[][] = []
+  const lines: number[] = []
+  let physicalLine = 1
+  let rowStart = 1
   let row: string[] = []
   let cell = ''
   let quoted = false
@@ -23,7 +40,10 @@ export function csvTable(text: string): string[][] {
   }
   const pushRow = () => {
     pushCell()
-    if (row.some(Boolean)) rows.push(row)
+    if (row.some(Boolean)) {
+      rows.push(row)
+      lines.push(rowStart)
+    }
     row = []
     if (rows.length > 1001)
       throw new CsvImportError('CSV enthält zu viele Zeilen.')
@@ -44,9 +64,14 @@ export function csvTable(text: string): string[][] {
     else if (!quoted && (char === '\r' || char === '\n')) {
       if (char === '\r' && source[i + 1] === '\n') i++
       pushRow()
+      physicalLine++
+      rowStart = physicalLine
     } else {
       if (closed && char.trim())
         throw new CsvImportError('Ungültige Anführungszeichen in CSV.')
+      // Zeilenumbruch innerhalb einer Zelle in Anführungszeichen.
+      if (char === '\n' || (char === '\r' && source[i + 1] !== '\n'))
+        physicalLine++
       cell += char
     }
     if (cell.length > 10000) throw new CsvImportError('CSV-Zelle ist zu lang.')
@@ -60,7 +85,7 @@ export function csvTable(text: string): string[][] {
     rows.some((r) => r.length !== rows[0]!.length)
   )
     throw new CsvImportError('CSV-Spalten sind doppelt oder unvollständig.')
-  return rows
+  return { rows, lines }
 }
 
 export function csvDate(value: string): string {
@@ -75,10 +100,24 @@ export function csvDate(value: string): string {
   return iso
 }
 
-export function decimalText(value: string): string {
-  if (!/^[+-]?(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d+)?$/u.test(value))
+/**
+ * Zahl aus einer CSV-Zelle als Text mit Punkt als Dezimaltrennzeichen.
+ * `comma` (Vorgabe): `1.234,5`; `dot`: `1,234.5` (E-51-1). Ohne die Wahl
+ * würde ein Messdienst-Wert `12.345` (m³) als 12345 gelesen.
+ */
+export function decimalText(
+  value: string,
+  separator: DecimalSeparator = 'comma',
+): string {
+  const pattern =
+    separator === 'comma'
+      ? /^[+-]?(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d+)?$/u
+      : /^[+-]?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/u
+  if (!pattern.test(value))
     throw new CsvImportError('Ungültiger Betrag oder Zählerstand in CSV.')
-  return value.replace(/\./gu, '').replace(',', '.')
+  return separator === 'comma'
+    ? value.replace(/\./gu, '').replace(',', '.')
+    : value.replace(/,/gu, '')
 }
 
 export function csvCents(value: string): number {
@@ -88,5 +127,5 @@ export function csvCents(value: string): number {
   const cents = Number(match[2]) * 100 + Number((match[3] ?? '').padEnd(2, '0'))
   if (!Number.isSafeInteger(cents))
     throw new CsvImportError('Betrag in CSV ist zu groß.')
-  return match[1] === '-' ? -cents : cents
+  return match[1] === '-' && cents !== 0 ? -cents : cents
 }

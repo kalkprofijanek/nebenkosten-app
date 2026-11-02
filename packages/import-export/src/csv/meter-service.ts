@@ -1,10 +1,19 @@
-import { CsvImportError, csvDate, csvTable, decimalText } from './table'
+import {
+  CsvImportError,
+  csvDate,
+  csvTable,
+  csvTableWithLines,
+  decimalText,
+  type DecimalSeparator,
+} from './table'
 
 export interface MeterServiceColumns {
   readonly meterNumber: string
   readonly date: string
   readonly value: string
   readonly unit: string
+  /** Dezimaltrennzeichen der Zählerstände; Vorgabe Komma (E-51-1). */
+  readonly decimalSeparator?: DecimalSeparator
 }
 export interface MeterServiceReading {
   readonly meterNumber: string
@@ -47,11 +56,12 @@ export const METER_SERVICE_TEMPLATE = [
 
 const COLUMN_KEYS = ['meterNumber', 'date', 'value', 'unit'] as const
 
+/** Die vier zuzuordnenden Spalten (ohne Dezimaltrennzeichen). */
+export type MeterServiceColumnKey = (typeof COLUMN_KEYS)[number]
+type ColumnKey = MeterServiceColumnKey
+
 /** Bezeichnungen der vier Angaben für die Spaltenzuordnung. */
-export const METER_SERVICE_COLUMN_LABELS: Record<
-  keyof MeterServiceColumns,
-  string
-> = {
+export const METER_SERVICE_COLUMN_LABELS: Record<ColumnKey, string> = {
   meterNumber: 'Zählernummer',
   date: 'Ablesedatum',
   value: 'Zählerstand',
@@ -59,30 +69,26 @@ export const METER_SERVICE_COLUMN_LABELS: Record<
 }
 
 /** Exakte Überschriften je Angabe (normalisiert, siehe `normalize`). */
-const EXACT_COLUMN_NAMES: Record<keyof MeterServiceColumns, readonly string[]> =
-  {
-    meterNumber: [
-      'zaehlernummer',
-      'zaehlernr',
-      'geraetenummer',
-      'geraetenr',
-      'seriennummer',
-      'zaehler',
-    ],
-    date: ['ablesedatum', 'datum', 'stichtag', 'date'],
-    value: ['zaehlerstand', 'stand', 'wert', 'value', 'ablesewert', 'messwert'],
-    unit: ['einheit', 'einh', 'unit'],
-  }
+const EXACT_COLUMN_NAMES: Record<ColumnKey, readonly string[]> = {
+  meterNumber: [
+    'zaehlernummer',
+    'zaehlernr',
+    'geraetenummer',
+    'geraetenr',
+    'seriennummer',
+    'zaehler',
+  ],
+  date: ['ablesedatum', 'datum', 'stichtag', 'date'],
+  value: ['zaehlerstand', 'stand', 'wert', 'value', 'ablesewert', 'messwert'],
+  unit: ['einheit', 'einh', 'unit'],
+}
 
 /**
  * Teilbegriffe, falls keine exakte Überschrift passt. Reihenfolge ist
  * wichtig: „Zählerstand“ wird vor der Zählernummer vergeben, damit „zaehler“
  * es nicht als Nummer erkennt.
  */
-const PARTIAL_COLUMN_TERMS: readonly (readonly [
-  keyof MeterServiceColumns,
-  RegExp,
-])[] = [
+const PARTIAL_COLUMN_TERMS: readonly (readonly [ColumnKey, RegExp])[] = [
   ['value', /stand|wert/u],
   ['date', /datum|date|stichtag/u],
   ['unit', /einheit|unit/u],
@@ -114,10 +120,10 @@ export function suggestMeterServiceColumns(
   header: readonly string[],
 ): Partial<MeterServiceColumns> {
   const names = header.map(normalize)
-  const suggestion: Partial<Record<keyof MeterServiceColumns, string>> = {}
+  const suggestion: Partial<Record<ColumnKey, string>> = {}
   const used = new Set<number>()
-  const ambiguous = new Set<keyof MeterServiceColumns>()
-  const take = (key: keyof MeterServiceColumns, indexes: number[]) => {
+  const ambiguous = new Set<ColumnKey>()
+  const take = (key: ColumnKey, indexes: number[]) => {
     if (indexes.length === 1) {
       suggestion[key] = header[indexes[0]!]!
       used.add(indexes[0]!)
@@ -143,7 +149,8 @@ export function suggestMeterServiceColumns(
 }
 
 function readRow(
-  get: (key: keyof MeterServiceColumns) => string,
+  get: (key: ColumnKey) => string,
+  separator: DecimalSeparator,
 ): MeterServiceReading {
   const meterNumber = get('meterNumber')
   if (!meterNumber) throw new CsvImportError('Zählernummer fehlt.')
@@ -155,7 +162,7 @@ function readRow(
   }
   let value: number
   try {
-    value = Number(decimalText(get('value')))
+    value = Number(decimalText(get('value'), separator))
   } catch {
     throw new CsvImportError('Zählerstand ist keine Zahl.')
   }
@@ -172,7 +179,10 @@ function readRow(
 }
 
 function mappedTable(text: string, columns: MeterServiceColumns) {
-  const [header, ...rows] = csvTable(text)
+  const {
+    rows: [header, ...rows],
+    lines,
+  } = csvTableWithLines(text)
   const names = COLUMN_KEYS.map((key) => columns[key])
   if (new Set(names).size !== 4)
     throw new CsvImportError(
@@ -183,9 +193,11 @@ function mappedTable(text: string, columns: MeterServiceColumns) {
     throw new CsvImportError(
       `Spalten passen nicht: „${missing}“ fehlt in der CSV.`,
     )
-  const index = (key: keyof MeterServiceColumns) =>
-    header!.indexOf(columns[key])
-  return rows.map((row) => (key: keyof MeterServiceColumns) => row[index(key)]!)
+  const index = (key: ColumnKey) => header!.indexOf(columns[key])
+  return rows.map((row, position) => ({
+    line: lines[position + 1]!,
+    get: (key: ColumnKey) => row[index(key)]!,
+  }))
 }
 
 /**
@@ -198,10 +210,10 @@ export function parseMeterServiceRows(
   columns: MeterServiceColumns,
 ): MeterServiceParseResult {
   const result: MeterServiceParseResult = { rows: [], issues: [] }
-  mappedTable(text, columns).forEach((get, index) => {
-    const line = index + 2
+  const separator = columns.decimalSeparator ?? 'comma'
+  mappedTable(text, columns).forEach(({ get, line }) => {
     try {
-      result.rows.push({ line, ...readRow(get) })
+      result.rows.push({ line, ...readRow(get, separator) })
     } catch (caught) {
       result.issues.push({ line, message: (caught as Error).message })
     }
@@ -214,5 +226,6 @@ export function parseMeterServiceCsv(
   text: string,
   columns: MeterServiceColumns,
 ): MeterServiceReading[] {
-  return mappedTable(text, columns).map(readRow)
+  const separator = columns.decimalSeparator ?? 'comma'
+  return mappedTable(text, columns).map(({ get }) => readRow(get, separator))
 }

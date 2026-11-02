@@ -741,7 +741,17 @@ function mapUser(
       ]
     }
     tenancyId = user.id
-    if (!state.tenancies.some(({ id }) => id === tenancyId))
+    const reused = state.tenancies.find(({ id }) => id === tenancyId)
+    // Dieselbe Nutzer-ID in einer anderen Einheit würde die Belegung still
+    // mit dem ersten Mietverhältnis verbinden (E-51-3: melden).
+    if (reused && reused.unitId !== unit.id)
+      context.issue(
+        'warning',
+        'migration.tenancy_id_reused',
+        'Eine Nutzer-ID kommt in mehreren Einheiten vor; die Belegung verweist auf das zuerst übernommene Mietverhältnis. Bitte nach dem Import prüfen.',
+        [...path, 'id'],
+      )
+    if (!reused)
       state.tenancies = [
         ...state.tenancies,
         {

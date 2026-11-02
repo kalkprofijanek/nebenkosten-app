@@ -5,11 +5,13 @@ import {
   parseMeterServiceRows,
   readMeterServiceHeader,
   suggestMeterServiceColumns,
+  type MeterServiceColumnKey,
   type MeterServiceColumns,
   type MeterServiceIssue,
   type MeterServiceRow,
 } from '@nebenkosten/import-export'
 import type { AppDataFile, ValidationIssue } from '@nebenkosten/schema'
+import { DecimalSeparatorSelect } from './DecimalSeparatorSelect'
 import {
   importMeterReadings,
   MeterReadingImportError,
@@ -124,7 +126,7 @@ function ImportSession({ data, billingPeriodId, onApply }: Props) {
     }
   }
 
-  function selectColumn(key: keyof MeterServiceColumns, name: string) {
+  function selectColumn(key: MeterServiceColumnKey, name: string) {
     clearPreview()
     setColumns((current) => ({ ...current, [key]: name || undefined }))
   }
@@ -222,6 +224,16 @@ function ImportSession({ data, billingPeriodId, onApply }: Props) {
               </select>
             </label>
           ))}
+          <DecimalSeparatorSelect
+            value={columns.decimalSeparator}
+            onChange={(separator) => {
+              clearPreview()
+              setColumns((current) => ({
+                ...current,
+                decimalSeparator: separator,
+              }))
+            }}
+          />
           <button type="button" onClick={check}>
             Zuordnung prüfen (Probelauf)
           </button>

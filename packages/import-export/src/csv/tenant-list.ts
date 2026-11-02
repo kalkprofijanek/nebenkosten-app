@@ -2,7 +2,7 @@ import {
   CsvImportError,
   csvCents,
   csvDate,
-  csvTable,
+  csvTableWithLines,
   decimalText,
 } from './table'
 
@@ -68,6 +68,9 @@ export const TENANT_LIST_TEMPLATE = [
   '',
 ].join('\r\n')
 
+/** Obergrenze der Personenzahl je Belegung (E-51-2, fachliche Festlegung). */
+export const MAX_PERSONS = 20
+
 function optional(value: string): string | undefined {
   return value ? value : undefined
 }
@@ -131,9 +134,16 @@ function parseRow(get: (key: Header) => string, line: number): TenantListRow {
   const personsText = get('Personen')
   let persons: number | undefined
   if (personsText) {
-    persons = Number(personsText.replace(',', '.'))
-    if (!Number.isFinite(persons) || persons < 0)
-      throw new CsvImportError('Personen muss eine Zahl ab 0 sein.')
+    // Ganze Zahl 0–20 (E-51-2); keine Hex-, Exponent- oder Bruchschreibweise.
+    if (!/^\d{1,2}$/u.test(personsText))
+      throw new CsvImportError(
+        `Personen muss eine ganze Zahl von 0 bis ${MAX_PERSONS} sein.`,
+      )
+    persons = Number(personsText)
+    if (persons > MAX_PERSONS)
+      throw new CsvImportError(
+        `Personen muss eine ganze Zahl von 0 bis ${MAX_PERSONS} sein.`,
+      )
   }
   const monthly = euro(
     get('Vorauszahlung monatlich EUR'),
@@ -205,7 +215,10 @@ function parseRow(get: (key: Header) => string, line: number): TenantListRow {
  * Keine Speicherung – die Zuordnung zu Wohnungen erfolgt in der Oberfläche.
  */
 export function parseTenantListCsv(text: string): TenantListParseResult {
-  const [header, ...rows] = csvTable(text)
+  const {
+    rows: [header, ...rows],
+    lines,
+  } = csvTableWithLines(text)
   if (
     header!.length !== TENANT_LIST_HEADERS.length ||
     TENANT_LIST_HEADERS.some((name) => !header!.includes(name))
@@ -215,7 +228,7 @@ export function parseTenantListCsv(text: string): TenantListParseResult {
     )
   const result: TenantListParseResult = { rows: [], issues: [] }
   rows.forEach((row, index) => {
-    const line = index + 2
+    const line = lines[index + 1]!
     try {
       result.rows.push(parseRow((key) => row[header!.indexOf(key)]!, line))
     } catch (caught) {
