@@ -46,9 +46,11 @@ abgrenzen, Bankbuchungen zuordnen, Zählerstände plausibilisieren,
 Eigentümer- und Mieterwechsel sauber abbilden. Genau dafür eignet sich ein
 KI-Coding-Agent wie **Claude Code** (Terminal, Desktop-App oder IDE):
 
-1. Repository klonen, `pnpm install`, die eigene Datendatei nach
-   `private-data/` legen (wird nie committet).
-2. Den Agenten mit den Belegen arbeiten lassen: Rechnungen (PDF/Scan),
+1. Repository klonen, `pnpm install`. Vor dem KI-Einsatz den
+   [lokalen Privacy-Ablauf](docs/KI-PRIVACY-SETUP.md) wählen: vorzugsweise
+   bereinigte Arbeitskopien, PrivAiTe allenfalls als experimentellen zusätzlichen Filter.
+   `private-data/` verhindert Git-Commits, keine Übertragung an KI-Anbieter.
+2. Den Agenten mit den dafür bereinigten Belegen arbeiten lassen: Rechnungen (PDF/Scan),
    Kontoauszüge, Ablesebögen, Fotos von Zählerständen. Er liest aus, ordnet
    zu, grenzt ab und schlägt Korrekturen vor – **mit Quelle für jeden Wert**.
 3. Korrekturen schreibt der Agent als kleine, nachvollziehbare Skripte auf die
@@ -58,7 +60,7 @@ KI-Coding-Agent wie **Claude Code** (Terminal, Desktop-App oder IDE):
    Fachlogik wie die App:
 
    ```bash
-   pnpm abrechnung private-data/nk-daten.json --jahr 2025 --out private-data/pdf-2025
+   pnpm abrechnung private-data/ki-work/abrechnung.json --jahr 2025 --out private-data/ki-work/pdf-2025
    ```
 
    Ausgabe: Summen und Kontrolldifferenz, Verteilung je Heizkreis (inkl.
@@ -66,13 +68,21 @@ KI-Coding-Agent wie **Claude Code** (Terminal, Desktop-App oder IDE):
    Prüfhinweise sowie die PDFs (Einzelabrechnungen, Gesamtabrechnung intern
    und für Mieter). Mit `--json <datei>` zusätzlich maschinenlesbar.
 
-5. **Sie entscheiden und geben frei.** Zum Abschluss die Datei in der App
-   importieren, Prüfhinweise bestätigen, freigeben, versenden.
+5. **Sie entscheiden und geben frei.** Ersatzkennungen außerhalb des
+   Agenten-Arbeitsbereichs lokal zurückordnen, Ergebnis prüfen und in die
+   App importieren. Finale PDFs mit Originaldaten lokal erzeugen,
+   Prüfhinweise bestätigen, freigeben, versenden.
 
 Rechnen, Verteilen, Runden und Rechtstexte bleiben immer in der getesteten
 Fachlogik (`packages/core`, `packages/pdf`) – die KI liefert Daten und
 Begründungen, keine eigenen Rechenwege. Ablauf, Regeln und Datenschutz:
 [`docs/KI-ANLEITUNG.md`](docs/KI-ANLEITUNG.md).
+
+Ein lokaler Codex- oder Claude-Code-Prozess kann Dateiinhalte und
+Terminalausgaben an ein Cloud-Modell senden. README und `AGENTS.md` aktivieren
+keinen Filter. Die [Einrichtungsanleitung](docs/KI-PRIVACY-SETUP.md) erklärt
+PrivAiTe, dessen Presidio-Baustein und die Grenzen der Pseudonymisierung.
+Für „keine Arbeitsdaten ins Netz“ ist ein vollständig lokaler Betrieb nötig.
 
 ## Alternative: nur im Browser
 
@@ -213,6 +223,10 @@ Produktive Abrechnungs-, Mieter-, Bank-, Verbrauchs- und Belegdaten gehören
 niemals nach GitHub. Details: [`docs/PRIVACY.md`](docs/PRIVACY.md),
 [`SECURITY.md`](SECURITY.md).
 
+Für externe KI gilt zusätzlich: Originale und Zuordnungstabellen vom
+Agenten-Arbeitsbereich trennen; nur benötigte bereinigte Inhalte bereitstellen.
+Ein Proxy ist optional und hier weder installiert noch aktiviert.
+
 Alle Testdaten und Fixtures sind frei erfunden (Mustermann/Musterstraße-Stil).
 Zwei Guards laufen lokal und in der CI und blockieren versehentliche Lecks:
 
@@ -301,7 +315,8 @@ Verbindliche Rechenvorgabe: Kontrolldifferenz-Toleranz **0,01 €** im Zielsyste
 
 - [`docs/BENUTZERHANDBUCH.md`](docs/BENUTZERHANDBUCH.md) – Bedienung für Anwender
 - [`docs/medien/README.md`](docs/medien/README.md) – Rundgang mit Screenshots und Musterabrechnungen (PDF)
-- [`docs/KI-ANLEITUNG.md`](docs/KI-ANLEITUNG.md) – Arbeiten mit Claude/ChatGPT
+- [`docs/KI-ANLEITUNG.md`](docs/KI-ANLEITUNG.md) – Arbeiten mit Codex, Claude und ChatGPT
+- [`docs/KI-PRIVACY-SETUP.md`](docs/KI-PRIVACY-SETUP.md) – lokale Bereinigung, PrivAiTe und Prüfung des Datenwegs
 - [`docs/DATENQUELLEN.md`](docs/DATENQUELLEN.md) – Klimafaktoren, Heizspiegel, CO₂-Preis und Rechtsgrundlagen (Quellen; im KI-Ablauf ruft der Agent die Werte selbst ab)
 - [`docs/BANK-CSV-FORMAT.md`](docs/BANK-CSV-FORMAT.md) – CSV-Import von Bankbuchungen
 - [`docs/PROJECT.md`](docs/PROJECT.md) – Projektauftrag und Invarianten

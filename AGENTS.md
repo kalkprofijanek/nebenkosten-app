@@ -20,6 +20,26 @@ Vor jeder Bearbeitung sind der Masterplan, die Projektdokumentation und die zuge
 
 Die Prioritäten lauten: Datenschutz, fachliche Richtigkeit, Reproduzierbarkeit, Migrationsfähigkeit, Testbarkeit, Wartbarkeit, Bedienkomfort und erst danach Geschwindigkeit.
 
+## Datenschutz bei KI-Zugriffen
+
+- Vor Datenzugriffen `docs/DATENSCHUTZ-KI.md` und
+  `docs/KI-PRIVACY-SETUP.md` lesen. Ein lokaler Agent kann ein Cloud-Modell
+  nutzen; `.gitignore`, README und diese Regeln sind kein Übertragungsfilter.
+- Für Cloud-KI vorzugsweise ausschließlich freigegebene, bereits bereinigte
+  Arbeitskopien verwenden. Originale und Rückzuordnungstabellen nicht lesen;
+  durch getrennte Berechtigungen außerhalb des Arbeitsbereichs halten.
+- Bereits erteilte Datenfreigaben beachten; bei neuem Datenumfang den
+  Übertragungsweg erläutern und eine reduzierte Variante anbieten. Keine
+  Behauptung „bleibt lokal“, wenn nur Git-Ausschluss oder ein lokaler Prozess
+  nachgewiesen ist.
+- Ersatzkennungen exakt erhalten, auch in Skripten und Werkzeugargumenten.
+  Keine Namen erraten oder Platzhalter durch erfundene Originalwerte ersetzen.
+- Originalwerte weder in Anweisungsdateien noch Logs, Übergaben, Screenshots,
+  Commits oder PR-Texte übernehmen. Rückzuordnung und finale Dokumente mit
+  Originaldaten außerhalb des Cloud-Agenten-Arbeitsbereichs verarbeiten.
+- Bei vorgeschaltetem Proxy dessen Fehler nicht durch direkten Anbieterzugriff
+  umgehen. Ungeprüfte Übertragungswege nicht als geschützt behandeln.
+
 ## Externe Mitwirkende und ihre Agenten
 
 Für Beiträge aus Forks gelten dieselben Regeln mit folgenden Präzisierungen:

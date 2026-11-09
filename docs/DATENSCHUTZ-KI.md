@@ -1,6 +1,6 @@
 # Datenschutz bei der Verarbeitung mit KI
 
-Stand: 23. Oktober 2026 (PR-43). Diese Seite ist keine Rechtsberatung.
+Stand: 9. November 2026 (Ergänzung zu PR-43). Diese Seite ist keine Rechtsberatung.
 Sie beschreibt,
 wie die App und der KI-Workflow (`docs/KI-ANLEITUNG.md`) so eingesetzt
 werden, dass möglichst wenige personenbezogene Daten die eigene
@@ -22,6 +22,12 @@ Entscheidung treffen Sie für jeden Schritt selbst:
   mit einer Ausnahme: Echte Daten gelangen nie in das öffentliche
   Repository (Abschnitt 3 Nr. 4).
 
+**Lokal gestartet bedeutet nicht lokal verarbeitet:** Codex CLI und Claude
+Code können Dateiinhalte und Werkzeugausgaben an Cloud-Modelle senden.
+`private-data/` und die Browser-CSP schützen diesen Datenweg nicht. Empfohlen
+sind vorab bereinigte Arbeitskopien; ein optionaler lokaler Proxy und seine
+Prüfung stehen in [KI-PRIVACY-SETUP.md](KI-PRIVACY-SETUP.md).
+
 Der Maintainer nutzt einen Geschäftstarif mit Auftragsverarbeitungsvertrag.
 
 ## 1. Rollen und Rechtsgrundlage
@@ -42,26 +48,26 @@ Standardvertragsklauseln) und passende technische Maßnahmen voraus.
 
 ## 2. Welche Daten sieht die KI?
 
-| Quelle                                         | Personenbezug zu Mietern                            | Empfehlung                                                           |
-| ---------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
-| Versorger-, Versicherungs-, Handwerkerrechnung | meist keiner (Objektbezug)                          | darf verarbeitet werden                                              |
-| Messdienstabrechnung, Ablesebögen              | ja (Verbrauch je Wohnung, ggf. Namen)               | nur mit AVV; Namen möglichst durch Einheitskürzel ersetzen           |
-| Kontoauszüge                                   | ja (Namen, Zahlungen)                               | nur benötigte Zeilen; Mietereingänge schwärzen oder pseudonymisieren |
-| Datensicherung der App (JSON)                  | ja, vollständig                                     | nur an einen **lokalen** Agenten, nie in einen Chat hochladen        |
-| GiroCode im PDF                                | nein (nur Vermieterkonto, Betrag, Verwendungszweck) | unkritisch                                                           |
+| Quelle                                         | Personenbezug zu Mietern                                           | Empfehlung                                                              |
+| ---------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Versorger-, Versicherungs-, Handwerkerrechnung | Objektadresse, Ansprechpartner, Bank-/Kundendaten möglich          | benötigte Angaben lokal extrahieren und bereinigen                      |
+| Messdienstabrechnung, Ablesebögen              | ja (Verbrauch je Wohnung, ggf. Namen)                              | nur mit AVV; Namen möglichst durch Einheitskürzel ersetzen              |
+| Kontoauszüge                                   | ja (Namen, Zahlungen)                                              | nur benötigte Zeilen; Mietereingänge schwärzen oder pseudonymisieren    |
+| Datensicherung der App (JSON)                  | ja, vollständig                                                    | Original lokal halten; Cloud-Agent nur mit benötigter bereinigter Kopie |
+| GiroCode im PDF                                | Bankverbindung, Betrag und Verwendungszweck; Personenbezug möglich | auch QR-Inhalt berücksichtigen; Original-PDF nicht pauschal freigeben   |
 
 Grundsatz Datenminimierung (Art. 5 Abs. 1 lit. c): Gib der KI nur, was für
 den konkreten Schritt nötig ist.
 
 ## 3. Empfehlungen für lokale Agenten (Claude Code, Codex)
 
-1. **Nur lokal mit echten Daten arbeiten.** Cloud-Sitzungen (z. B. Claude
-   Code im Web) klonen das öffentliche Repository in einen fremden
-   Container – dort keine Belege, Sicherungen oder Ordnerpfade verwenden.
-2. **Arbeitsbereich begrenzen.** Der Agent liest nur das Repository,
-   `private-data/` und die freigegebenen Rechnungsordner. Lese-/Schreib-
-   rechte über die Berechtigungseinstellungen des Agenten einschränken
-   (bei Claude Code z. B. `.claude/settings.local.json`, nicht committet).
+1. **Originale auf dem eigenen Rechner halten.** Keine Originalbelege,
+   Sicherungen oder Zuordnungstabellen in Cloud-Arbeitsumgebungen laden.
+   Auch ein lokaler CLI-Agent kann sie an ein Cloud-Modell übermitteln.
+2. **Arbeitsbereich begrenzen.** Vorzugsweise nur benötigte, lokal bereinigte
+   Kopien zugänglich machen. Originale, Zuordnungstabellen und finale PDFs
+   durch Betriebssystemrechte oder Container-Mounts außerhalb dieses
+   Arbeitsbereichs halten. Ein ignorierter Ordner genügt dafür nicht.
 3. **Originale nie verändern.** Rechnungsordner nur lesen; Änderungen an
    Daten nur als Skript auf einer Sicherungskopie (siehe KI-Anleitung).
 4. **Nichts Echtes ins Repository.** `private-data/` ist ignoriert. Ordner-
@@ -116,8 +122,10 @@ Vor dem ersten Einsatz:
       am Mietverhältnis erfasst.
 - [ ] Verarbeitung im Verzeichnis der Verarbeitungstätigkeiten
       (Art. 30) erfasst, soweit eines geführt wird.
-- [ ] Agentenberechtigungen auf Repository, `private-data/` und
-      Rechnungsordner begrenzt.
+- [ ] Agentenberechtigungen auf Code und bereinigte Arbeitskopien begrenzt;
+      Originale und Zuordnungstabellen getrennt.
+- [ ] Bei Proxy-Einsatz Datenweg, deutsche Erkennung, Rückzuordnung und
+      Fehlerverhalten mit künstlichen Daten geprüft (KI-Privacy-Einrichtung).
 
 Je Abrechnungsjahr:
 
@@ -127,10 +135,16 @@ Je Abrechnungsjahr:
 - [ ] Chatverläufe/Uploads beim KI-Dienst nach Abschluss gelöscht, soweit
       nicht für Nachweise benötigt.
 
-## 6. Bewusst nicht umgesetzt
+## 6. Vorschaltlösung und verbleibender Ausbau
 
-- Automatische Pseudonymisierung von Kontoauszügen vor der KI-Vorkontierung
-  (E-43-2) und eine technische Commit-Sperre für Ordnerpfade (E-43-3):
-  derzeit nicht nötig, weil echte Daten nur lokal unter `private-data/`
-  liegen und der Repository-Scan Anschriften, E-Mail-Adressen und IBANs
-  blockiert. Bei Bedarf als eigener Auftrag.
+Die frühere Zurückstellung E-43-2 wird durch die neue Empfehlung ergänzt:
+PrivAiTe lässt sich experimentell mit künstlichen Daten testen; Presidio ist
+bereits ein Baustein darin. Anleitung, Grenzen und Abnahme stehen in
+[KI-PRIVACY-SETUP.md](KI-PRIVACY-SETUP.md). Eine eigene feldweise
+Pseudonymisierung für JSON/CSV mit lokaler Rückzuordnung bleibt ein möglicher
+Folgeauftrag. Dieser PR implementiert und aktiviert keine solche Verarbeitung.
+
+Eine technische Commit-Sperre für Ordnerpfade (E-43-3) bleibt zurückgestellt.
+Der vorhandene Repository-Scan bleibt aktiv, prüft aber keine ausgehenden
+KI-Anfragen. Die frühere Begründung „liegt lokal, daher geschützt“ reicht
+für Cloud-Modellzugriffe nicht aus.

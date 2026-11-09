@@ -17,11 +17,15 @@ export const AI_DOCS = {
 /** Auftrag für einen KI-Coding-Agenten mit lokaler Kopie (Ablauf 0). */
 export const AGENT_PROMPT = `Du arbeitest im Repository nebenkosten-app und bereitest die Betriebs- und
 Heizkostenabrechnung für das Abrechnungsjahr <JAHR> vor. Lies zuerst
-AGENTS.md, docs/KI-ANLEITUNG.md und docs/DATENQUELLEN.md.
+AGENTS.md, docs/KI-ANLEITUNG.md, docs/KI-PRIVACY-SETUP.md und
+docs/DATENQUELLEN.md.
 
-Meine Datendatei (Sicherung aus der App) und die Belege liegen in
-private-data/. Dieser Ordner wird nie committet; echte Daten verlassen den
-Rechner nicht.
+Arbeite für Cloud-KI ausschließlich mit den freigegebenen, vorab lokal
+bereinigten Kopien in private-data/ki-work/. Originale und Zuordnungstabellen
+liegen außerhalb deines Arbeitsbereichs. private-data/ ist nur ein
+Git-Ausschluss und verhindert keine Cloud-Übermittlung. Ein lokaler
+Privacy-Proxy ist separat einzurichten und zu prüfen; dieser Auftrag
+aktiviert ihn nicht. Erhalte Ersatzkennungen exakt, auch in Werkzeugaufrufen.
 
 So gehst du vor:
 1. Lege vor jeder Änderung eine Sicherungskopie an. Änderungen schreibst du
@@ -35,17 +39,21 @@ So gehst du vor:
    Preissprünge, mehr als 25 % geschätzte Fläche) legst du mir mit Optionen
    und Empfehlung zur Entscheidung vor, statt es glattzurechnen.
 5. Rechne und prüfe mit
-   pnpm abrechnung private-data/<DATEI>.json --jahr <JAHR> --out private-data/pdf
+   pnpm abrechnung private-data/ki-work/<DATEI>.json --jahr <JAHR> --out private-data/ki-work/pdf
    und fasse Kontrolldifferenz, Prüfhinweise, Energiebilanz und Salden
    zusammen.
 6. Schreibe am Ende eine Übergabe-Notiz (Stand, Entscheidungen, offene
-   Punkte) nach private-data/.`
+   Punkte, nur Ersatzkennungen) nach private-data/ki-work/.
+   Die Rückzuordnung und finale PDFs mit Originaldaten erstellt der Nutzer
+   lokal außerhalb deines Arbeitsbereichs.`
 
 /** Arbeitsanweisung für eine Chat-KI zum Auslesen und Zuordnen von Belegen. */
 export const CHAT_INSTRUCTIONS = `Du unterstützt bei der Vorbereitung einer Betriebs- und Heizkostenabrechnung
 für Wohnraum nach § 556 BGB, BetrKV und HeizKV. Die Abrechnung selbst
 berechnet eine separate App. Deine Aufgabe ist ausschließlich das Auslesen,
-Zuordnen und Prüfen.
+Zuordnen und Prüfen. Verwende nur die bereitgestellten bereinigten Inhalte.
+Erhalte Ersatzkennungen exakt; rate keine Originalnamen. Rückzuordnung und
+finale Dokumente mit Originaldaten bleiben beim Nutzer auf dessen Rechner.
 
 Regeln:
 1. Erfinde keine Werte. Was auf dem Beleg nicht eindeutig steht, bleibt leer

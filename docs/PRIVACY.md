@@ -18,6 +18,26 @@ Geschlossene Pull-Request-Refs und alte Commit-Objekte können trotz History-Rew
 
 Die App unter GitHub Pages verarbeitet alle Eingaben ausschließlich lokal im Browser (IndexedDB); ausgehende Verbindungen sind per Content Security Policy gesperrt. Der Maintainer erhält keine Nutzerdaten. Wer Belege oder Kontoauszüge an einen KI-Dienst gibt, verarbeitet sie in eigener Verantwortung (siehe `docs/KI-ANLEITUNG.md` und `docs/DATENSCHUTZ-KI.md`). Ein Muster für die Datenschutzinformation an Mieter steht in `docs/DATENSCHUTZ-MIETERINFORMATION.md`.
 
+## KI-Verarbeitung und Pseudonymisierung
+
+Der Git-Ausschluss von `private-data/` schützt vor Veröffentlichung im
+Repository, nicht vor KI-Zugriffen. Auch lokal gestartete Agenten können
+Dateiinhalte, Terminalausgaben und Bilder an Cloud-Modelle übertragen.
+
+Empfohlen sind lokal bereinigte Arbeitskopien in einem getrennten,
+zugriffsbeschränkten Agenten-Arbeitsbereich. Originale und Zuordnungstabellen
+bleiben außerhalb. Antworten mit Ersatzkennungen werden lokal zurückgeordnet;
+finale PDFs mit Originaldaten dürfen nicht wieder im Cloud-Kontext landen.
+
+[KI-Privacy-Einrichtung](KI-PRIVACY-SETUP.md) beschreibt PrivAiTe als experimentellen
+zusätzlichen Filter und Presidio als etablierteren Erkennungsbaustein für
+einen möglichen eigenen lokalen Ausbau.
+Die Einrichtung ist nicht Bestandteil der App und wird nicht automatisch
+aktiviert. Pseudonymisierung ist kein Nachweis von Anonymität; verbleibende
+Angaben können Personen erkennbar machen. Auch bereinigte Cloud-Anfragen
+verlassen den Rechner. Für vollständig lokale Verarbeitung ist ein lokales
+Modell mit entsprechend begrenzten Netzwerkzugriffen nötig.
+
 ## Beiträge Dritter
 
 Issues, Pull Requests und Kommentare sind öffentlich. Sie dürfen keine echten personenbezogenen, Bank-, Verbrauchs- oder Belegdaten enthalten. Versehentlich veröffentlichte Daten werden über ein privates Security Advisory gemeldet und vom Maintainer entfernt.

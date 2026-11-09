@@ -15,12 +15,12 @@ const PROMPTS: Record<
   agent: {
     title: 'Auftrag für KI-Agent kopieren',
     text: AGENT_PROMPT,
-    hint: 'Für Claude Code o. Ä. mit lokaler Kopie des Repositorys: Die KI liest Belege, holt Klimafaktor und Vergleichswerte selbst, rechnet mit `pnpm abrechnung` und legt Unplausibles zur Entscheidung vor.',
+    hint: 'Für Codex CLI oder Claude Code mit bereinigter lokaler Arbeitskopie: Die KI liest bereinigte Belege, holt Klimafaktor und Vergleichswerte selbst, rechnet mit `pnpm abrechnung` und legt Unplausibles zur Entscheidung vor.',
   },
   chat: {
     title: 'Arbeitsanweisung für Chat-KI kopieren',
     text: CHAT_INSTRUCTIONS,
-    hint: 'Für Claude, ChatGPT o. Ä. im Browser: Belege hochladen, Ergebnis als Erfassungsliste (CSV) unter „Kosten“ importieren.',
+    hint: 'Für Claude, ChatGPT o. Ä. im Browser: Nur lokal bereinigte Beleginhalte bereitstellen, Ergebnis als Erfassungsliste (CSV) unter „Kosten“ importieren.',
   },
 }
 
@@ -58,7 +58,7 @@ export function AiAssistPanel({
         Am schnellsten geht die Abrechnung mit einem KI-Assistenten: Er liest
         Rechnungen, Kontoauszüge und Ablesebögen, ruft Referenzwerte (DWD,
         Heizspiegel) selbst ab und prüft auf Unplausibles. Die App rechnet und
-        bleibt dabei ohne Netzverbindung. Für die KI unter{' '}
+        bleibt dabei ohne Netzverbindung. Vor Änderungen unter{' '}
         <a href="#/sicherung">Sicherung</a> eine Sicherung herunterladen.
       </p>
       <div className="ai-assist__actions">
@@ -88,8 +88,9 @@ export function AiAssistPanel({
         ))}
       </div>
       <p className="privacy-note">
-        Echte Daten nur an KI-Dienste geben, deren Datenschutz geklärt ist. Mehr
-        dazu:{' '}
+        Auch lokal gestartete KI-Agenten können Daten an Cloud-Modelle senden.
+        Vorher benötigte Inhalte lokal bereinigen; eine Sicherung nicht
+        vollständig an die KI geben. Mehr dazu:{' '}
         <a href={AI_DOCS.guide} target="_blank" rel="noopener noreferrer">
           KI-Anleitung
         </a>
