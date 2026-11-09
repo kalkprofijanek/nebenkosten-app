@@ -92,6 +92,12 @@ Claude Code, Codex, Copilot u. Ä. sind ausdrücklich erlaubt. Die Agenten lesen
 für jeden eingereichten Code verantwortlich: Prüfen Sie Diff, Tests und
 Pull-Request-Text selbst, bevor Sie einreichen.
 
+Agentenregeln und `.gitignore` verhindern keine Übermittlung an ein
+Cloud-Modell. Entwickeln Sie mit künstlichen Daten; für private Arbeitsabläufe
+siehe [KI-Privacy-Einrichtung](docs/KI-PRIVACY-SETUP.md). Dort wird PrivAiTe als
+experimenteller lokaler Filter beschrieben. Zugangsdaten, lokale Konfigurationen,
+Originale, Zuordnungstabellen und Mitschnitte bleiben außerhalb des Repositorys.
+
 ## Lizenz der Beiträge
 
 Das Projekt steht unter der [GNU Affero General Public License v3.0](LICENSE).

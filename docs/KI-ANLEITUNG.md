@@ -1,4 +1,4 @@
-# Arbeiten mit Claude oder ChatGPT
+# Arbeiten mit Codex, Claude oder ChatGPT
 
 Diese Anleitung beschreibt, wie Sie eine KI (Claude, ChatGPT o. Ä.) bei der
 Nebenkostenabrechnung einsetzen, **ohne** die Rechenlogik der App aus der
@@ -22,23 +22,34 @@ nicht direkt in Ihre Daten schreiben. Ein **KI-Coding-Agent** auf Ihrem
 Rechner (Ablauf 0) arbeitet dagegen auf einer lokalen Kopie und rechnet mit
 derselben Fachlogik ohne Browser.
 
-## Ablauf 0 (empfohlen): KI-Coding-Agent mit lokaler Kopie
+## Vor dem Start: Datenweg wählen
 
-So wurde u. a. eine Abrechnung mit rund 65 Mietparteien, vier Heizkreisen
-und Eigentümerwechsel erstellt:
+Ein lokaler Agent kann ein Cloud-Modell nutzen. `.gitignore` schützt nur vor
+Commits. Lesen Sie zuerst [KI-PRIVACY-SETUP.md](KI-PRIVACY-SETUP.md):
+Empfohlen sind lokal bereinigte Arbeitskopien und getrennte Originale;
+PrivAiTe ist ein experimenteller zusätzlicher Filter, keine Empfehlung für Originaldaten. Keine Einrichtung wird
+allein durch einen kopierten Auftrag oder `AGENTS.md` aktiviert.
+Die folgenden KI-Schritte beziehen sich auf dafür bereitgestellte bereinigte
+Kopien. Für vollständig lokale Verarbeitung ist ein lokales Modell nötig.
 
-1. Repository klonen, `pnpm install`. Datendatei (Sicherung aus der App oder
-   `nk-daten.json`) nach `private-data/` legen – dieser Ordner wird nie
-   committet.
-2. Den Agenten (z. B. **Claude Code**) die Belege lesen lassen: Rechnungen,
+## Ablauf 0 (empfohlen): KI-Coding-Agent mit bereinigter lokaler Kopie
+
+Der fachliche Ablauf wurde bereits für größere Abrechnungen verwendet;
+die hier ergänzte Privacy-Einrichtung ist separat zu prüfen:
+
+1. Repository klonen, `pnpm install`. Lokal bereinigte Arbeitskopien unter
+   `private-data/ki-work/` bereitstellen. Originale und Zuordnungstabellen
+   außerhalb des Agenten-Arbeitsbereichs halten; Berechtigungen entsprechend
+   begrenzen (KI-Privacy-Einrichtung).
+2. Den Agenten (z. B. **Codex CLI oder Claude Code**) die bereinigten Belege lesen lassen: Rechnungen,
    Kontoauszüge, Ablesebögen, Fotos, Mails. Für jeden übernommenen Wert nennt
    er die Quelle.
    Liegen die Rechnungen in einem Ordner je Objekt, ordnen Sie ihn einmal in
-   `private-data/objekt-ordner.json` zu (siehe
+   `private-data/ki-work/objekt-ordner.json` zu (siehe
    [`BELEGPRUEFUNG.md`](BELEGPRUEFUNG.md)). Der Agent liest nur die Ordner,
    die Sie freigeben, bestimmt das Abrechnungsjahr aus dem
    **Leistungszeitraum** (nicht aus Rechnungsdatum oder Ordner) und trägt den
-   Dateinamen als Belegnummer ein. `pnpm belegpruefung … --jahr 2025` zeigt
+   Dateinamen als Belegnummer ein. `pnpm belegpruefung … --jahr 2025 --zuordnung private-data/ki-work/objekt-ordner.json` zeigt
    danach Kosten ohne Rechnung und Rechnungen ohne Kostenposition.
 3. **Vor jeder Änderung eine Sicherungskopie**; Änderungen als kleines Skript
    mit Kommentar (was, warum, welcher Beleg), damit sie nachvollziehbar und
@@ -47,13 +58,13 @@ und Eigentümerwechsel erstellt:
    Verbräuche weit über Vorjahr, Bestände ohne Lieferung. Der Agent legt die
    Fälle mit Optionen und Empfehlung zur Entscheidung vor.
 5. Rechnen und prüfen:
-   `pnpm abrechnung private-data/nk-daten.json --jahr 2025 --out private-data/pdf`
+   `pnpm abrechnung private-data/ki-work/abrechnung.json --jahr 2025 --out private-data/ki-work/pdf`
    – Kontrolldifferenz, Heizkreise (25-%-Grenze § 9a Abs. 2 HeizKV),
    Salden, Prüfhinweise und alle PDFs. Die PDFs gemeinsam durchsehen.
    Felder, die der Legacy-v3-Import nicht kennt (z. B. § 9b-Aufteilung
    `section9bAllocation`, Steuern und Abgaben `taxesAndLevies`,
    Klimafaktoren, Warmwasserfelder), setzt ein Overlay-Modul außerhalb des
-   Repositorys: `--overlay private-data/overlay.mjs` mit
+   Repositorys: `--overlay private-data/ki-work/overlay.mjs` mit
    `export default function (data, { year }) { … }`. Das Ergebnis wird erneut
    gegen das Dateischema geprüft; die Eingabedatei bleibt unverändert.
    Mit `--abrechnungsentgelt 40 [--ust 19]` zeigt die Ausgabe zusätzlich das
@@ -67,8 +78,10 @@ und Eigentümerwechsel erstellt:
    Agent selbst aus den Quellen in [`DATENQUELLEN.md`](DATENQUELLEN.md) – mit
    URL bzw. Dateiname und Abrufdatum je Wert – und legt sie zur Bestätigung
    vor. Die App selbst lädt nichts aus dem Netz.
-7. Zum Abschluss die Datei in der App importieren, Prüfhinweise bestätigen,
-   freigeben und versenden.
+7. Ersatzkennungen lokal außerhalb des Agenten-Arbeitsbereichs zurückordnen
+   und fachliche Werte gegen die Originale prüfen. Finale PDFs dort mit
+   `pnpm abrechnung` oder in der App erzeugen. Prüfhinweise bestätigen,
+   freigeben und versenden; Originalergebnisse nicht erneut an die KI geben.
 
 Bewährt hat sich, den Agenten am Ende jeder Sitzung eine **Übergabe-Notiz**
 (Stand, Entscheidungen, offene Punkte) neben die Daten schreiben zu lassen.
@@ -82,9 +95,9 @@ verarbeitet sie im Sinne der DSGVO **als Verantwortlicher**.
 - Nutzen Sie einen **Business-/Team-Tarif**, bei dem Eingaben nicht zum
   Training verwendet werden, und schließen Sie mit dem Anbieter einen
   **Auftragsverarbeitungsvertrag (Art. 28 DSGVO)** ab.
-- Geben Sie nur, was nötig ist: Für Rechnungen von Versorgern, Versicherern
-  und Handwerkern sind Mieternamen meist gar nicht enthalten. Schwärzen Sie
-  Kontoauszüge bei Bedarf (Mietereingänge) oder lassen Sie diese Zeilen weg.
+- Geben Sie nur, was nötig ist: Auch Versorger- und Handwerkerrechnungen
+  können Adressen, Bankdaten oder Ansprechpartner enthalten. Bereinigen Sie
+  diese lokal; Kontoauszüge auf benötigte Zeilen und Felder reduzieren.
 - Geben Sie **niemals** die vollständige JSON-Sicherung an eine KI, wenn eine
   Teilinformation reicht.
 - Regeln für lokale Agenten, Ordnerverknüpfung und eine Checkliste stehen
@@ -95,7 +108,9 @@ verarbeitet sie im Sinne der DSGVO **als Verantwortlicher**.
 
 1. Legen Sie in einem Claude-Projekt bzw. einem eigenen GPT die
    **Arbeitsanweisung** unten als Projektanweisung ab.
-2. Laden Sie die Rechnungen des Abrechnungsjahres (PDF/Foto) hoch.
+2. Stellen Sie nur die lokal bereinigten benötigten Beleginhalte bereit.
+   Ein Text-Proxy schützt Original-PDFs, Fotos, QR-Codes und Metadaten nicht
+   automatisch. Für Scans zuerst lokal OCR und Bereinigung durchführen.
 3. Die KI liefert eine **Erfassungsliste** im festen Format (siehe unten),
    inklusive Rückfragen zu unklaren Positionen.
 4. Prüfen Sie die Liste, klären Sie die Rückfragen.
@@ -120,7 +135,9 @@ verarbeitet sie im Sinne der DSGVO **als Verantwortlicher**.
 
 ## Ablauf B: Bankbuchungen
 
-1. Exportieren Sie den Kontoauszug als CSV aus dem Online-Banking.
+1. Exportieren Sie den Kontoauszug lokal als CSV aus dem Online-Banking.
+   Erstellen Sie vor KI-Zugriffen eine reduzierte, bereinigte Arbeitskopie;
+   die Rückzuordnung bleibt getrennt auf Ihrem Rechner.
 2. Passt das Format nicht (siehe [`BANK-CSV-FORMAT.md`](BANK-CSV-FORMAT.md)),
    kann die KI die Datei in das kompatible Format umbauen:
    _„Wandle diese CSV in das Format Buchungstag;Beguenstigter/Zahlungspflichtiger;Verwendungszweck;Buchungstext;Betrag um, Datum TT.MM.JJJJ, Betrag mit Komma, Ausgaben negativ. Lass keine Zeile weg und erfinde keine.“_
@@ -136,8 +153,8 @@ verarbeitet sie im Sinne der DSGVO **als Verantwortlicher**.
 
 ## Ablauf C: Plausibilitätsprüfung
 
-Nach **Berechnung** können Sie die Gesamtabrechnung (PDF) und die
-Erfassungsliste der KI geben und gezielt fragen lassen:
+Nach **Berechnung** können Sie benötigte, lokal bereinigte Auszüge aus der
+Gesamtabrechnung und der Erfassungsliste der KI geben und gezielt fragen lassen:
 
 - Fehlen Kostenarten gegenüber dem Vorjahr?
 - Weichen Kosten je m² stark vom Vorjahr ab?
@@ -151,6 +168,8 @@ Die Prüfhinweise der App haben Vorrang. Die KI ergänzt, sie ersetzt sie nicht.
 Ein Browser-Agent kann die App wie ein Mensch bedienen und die
 Erfassungsliste eintragen. Das ist möglich, aber:
 
+- Verwenden Sie für Cloud-Browser-Agenten eine getrennte Ansicht mit
+  bereinigten Daten: Screenshots und gelesene Seiten können übertragen werden.
 - Lassen Sie ihn **nur erfassen, nie freigeben**.
 - Erstellen Sie vorher eine JSON-Sicherung.
 - Kontrollieren Sie danach die Summe der Kostenpositionen gegen die
@@ -178,16 +197,20 @@ Instandhaltung;30.06.2025;30.06.2025;30.06.2025;Austausch Umwälzpumpe;RE-0816;6
 
 Für Ablauf 0 mit Claude Code o. Ä. Die App bietet den Text unter
 **Übersicht → Mit KI arbeiten** zum Kopieren an und setzt das gewählte
-Abrechnungsjahr ein; `<DATEI>` ist der Name Ihrer Sicherung.
+Abrechnungsjahr ein; `<DATEI>` ist der Name Ihrer bereinigten Arbeitskopie.
 
 ```text
 Du arbeitest im Repository nebenkosten-app und bereitest die Betriebs- und
 Heizkostenabrechnung für das Abrechnungsjahr <JAHR> vor. Lies zuerst
-AGENTS.md, docs/KI-ANLEITUNG.md und docs/DATENQUELLEN.md.
+AGENTS.md, docs/KI-ANLEITUNG.md, docs/KI-PRIVACY-SETUP.md und
+docs/DATENQUELLEN.md.
 
-Meine Datendatei (Sicherung aus der App) und die Belege liegen in
-private-data/. Dieser Ordner wird nie committet; echte Daten verlassen den
-Rechner nicht.
+Arbeite für Cloud-KI ausschließlich mit den freigegebenen, vorab lokal
+bereinigten Kopien in private-data/ki-work/. Originale und Zuordnungstabellen
+liegen außerhalb deines Arbeitsbereichs. private-data/ ist nur ein
+Git-Ausschluss und verhindert keine Cloud-Übermittlung. Ein lokaler
+Privacy-Proxy ist separat einzurichten und zu prüfen; dieser Auftrag
+aktiviert ihn nicht. Erhalte Ersatzkennungen exakt, auch in Werkzeugaufrufen.
 
 So gehst du vor:
 1. Lege vor jeder Änderung eine Sicherungskopie an. Änderungen schreibst du
@@ -201,11 +224,13 @@ So gehst du vor:
    Preissprünge, mehr als 25 % geschätzte Fläche) legst du mir mit Optionen
    und Empfehlung zur Entscheidung vor, statt es glattzurechnen.
 5. Rechne und prüfe mit
-   pnpm abrechnung private-data/<DATEI>.json --jahr <JAHR> --out private-data/pdf
+   pnpm abrechnung private-data/ki-work/<DATEI>.json --jahr <JAHR> --out private-data/ki-work/pdf
    und fasse Kontrolldifferenz, Prüfhinweise, Energiebilanz und Salden
    zusammen.
 6. Schreibe am Ende eine Übergabe-Notiz (Stand, Entscheidungen, offene
-   Punkte) nach private-data/.
+   Punkte, nur Ersatzkennungen) nach private-data/ki-work/.
+   Die Rückzuordnung und finale PDFs mit Originaldaten erstellt der Nutzer
+   lokal außerhalb deines Arbeitsbereichs.
 ```
 
 ## Arbeitsanweisung für die KI (Copy & Paste)
@@ -216,7 +241,9 @@ Auch diese Anweisung lässt sich unter **Übersicht → Mit KI arbeiten** kopier
 Du unterstützt bei der Vorbereitung einer Betriebs- und Heizkostenabrechnung
 für Wohnraum nach § 556 BGB, BetrKV und HeizKV. Die Abrechnung selbst
 berechnet eine separate App. Deine Aufgabe ist ausschließlich das Auslesen,
-Zuordnen und Prüfen.
+Zuordnen und Prüfen. Verwende nur die bereitgestellten bereinigten Inhalte.
+Erhalte Ersatzkennungen exakt; rate keine Originalnamen. Rückzuordnung und
+finale Dokumente mit Originaldaten bleiben beim Nutzer auf dessen Rechner.
 
 Regeln:
 1. Erfinde keine Werte. Was auf dem Beleg nicht eindeutig steht, bleibt leer

@@ -21,6 +21,20 @@ Bei versehentlicher Veröffentlichung ist die Arbeit zu stoppen. Geheimnisse mü
 
 Die veröffentlichte App verarbeitet alle Daten ausschließlich lokal im Browser. Die Content Security Policy verbietet ausgehende Verbindungen (`connect-src 'none'`). Änderungen, die Daten an Dritte übertragen, sind nur nach eigener Architekturentscheidung (ADR) zulässig.
 
+## Externe KI-Agenten und lokale Filter
+
+Die Browser-CSP schützt nicht die Dateizugriffe oder Modellanfragen eines
+externen Codex-/Claude-Code-Prozesses. `private-data/` ist ein Git-Ausschluss,
+keine Zugriffssperre. Der optionale [Privacy-Ablauf](docs/KI-PRIVACY-SETUP.md)
+setzt auf getrennte bereinigte Arbeitskopien und beschreibt PrivAiTe als
+experimentellen zusätzlichen Filter. Dieses Repository installiert oder aktiviert ihn nicht.
+
+Proxy nur an Loopback binden, Zugangsdaten nicht einchecken und den
+Datenweg mit künstlichen Daten prüfen. Ein Erkennungsfehler, ungeschützter
+Anhang oder anderer Netzwerkweg kann weiterhin Originalwerte übertragen.
+Sensible Mitschnitte und echte Datenlecks nicht öffentlich melden; für
+Veröffentlichungen in diesem Repository gilt der private Meldeweg oben.
+
 ## Automatische Sicherheitsprüfungen
 
 | Werkzeug       | Workflow         | Prüft                                    | Wirkung im Pull Request                |
